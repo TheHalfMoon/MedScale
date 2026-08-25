@@ -2,30 +2,42 @@
 
 MedScale is a Rust-owned, local-first, privacy-first medical intelligence platform.
 
-This repository currently contains the **canonical planning system** only. Product implementation has not started.
+## Cursor: start here
 
-## Start here
+Open the repository in Cursor and tell it to read [`CURSOR.md`](CURSOR.md) and continue MedScale from live repository truth. The repository contains standing founder authorization and an autonomous build queue; Cursor should not need routine founder decisions.
 
-1. Read [`AGENTS.md`](AGENTS.md) for authority and execution rules.
-2. Read [`docs/planning/START_HERE.md`](docs/planning/START_HERE.md) for the exact build order.
-3. Read the canonical [`Master Build Plan V2`](docs/planning/MASTER_BUILD_PLAN_V2.md).
-4. Follow the [`Spec Kit Master Roadmap V2`](docs/planning/SPECKIT_MASTER_ROADMAP_V2.md) in dependency order.
+Read order:
 
-## Current state
+1. [`CURSOR.md`](CURSOR.md)
+2. [`AGENTS.md`](AGENTS.md)
+3. [`docs/planning/START_HERE.md`](docs/planning/START_HERE.md)
+4. [`docs/planning/BUILD_QUEUE.md`](docs/planning/BUILD_QUEUE.md)
+5. [`docs/planning/MASTER_BUILD_PLAN_V2.md`](docs/planning/MASTER_BUILD_PLAN_V2.md)
+
+## Active state
 
 ```text
-PLANNING = CANONICAL_V2
-PRIMARY_LANGUAGE = RUST
-TRUSTED_CORE_LANGUAGE = RUST
-LOCAL_FIRST = CONSTITUTIONAL
-PRIVACY_FIRST = CONSTITUTIONAL
-NETWORK_EGRESS = DEFAULT_DENY
-PRODUCT_IMPLEMENTATION = NOT_STARTED
+PLAN = CANONICAL_V2
+SPEC_000 = CLOSED_CANONICAL
+FIRST_EXECUTABLE_SPEC = 001
+CURSOR_AUTONOMOUS_IMPLEMENTATION = AUTHORIZED_WITHIN_PLAN
 REAL_PHI = NOT_AUTHORIZED
-MESC_MUTATION_FROM_THIS_REPO = NOT_AUTHORIZED
+MESC_MUTATION = NOT_AUTHORIZED
+PRODUCT_RUNTIME_EGRESS = DEFAULT_DENY
+UI_VISUAL_SOURCE = v0
 ```
 
-## Canonical planning artifacts
+## Execution support
+
+- [Cursor execution playbook](docs/planning/CURSOR_EXECUTION_PLAYBOOK.md)
+- [Implementation authority](docs/planning/IMPLEMENTATION_AUTHORITY.md)
+- [Decision defaults](docs/planning/IMPLEMENTATION_DECISION_DEFAULTS.md)
+- [Definition of done](docs/planning/DEFINITION_OF_DONE.md)
+- [External gates](docs/planning/EXTERNAL_GATES.md)
+- [Source acquisition and copy plan](docs/planning/SOURCE_ACQUISITION_AND_COPY_PLAN.md)
+- [v0 UI integration contract](docs/planning/V0_UI_INTEGRATION_CONTRACT.md)
+
+## Canonical architecture/planning
 
 - [Master Build Plan V2](docs/planning/MASTER_BUILD_PLAN_V2.md)
 - [Spec Kit Master Roadmap V2](docs/planning/SPECKIT_MASTER_ROADMAP_V2.md)
@@ -34,8 +46,4 @@ MESC_MUTATION_FROM_THIS_REPO = NOT_AUTHORIZED
 - [OpenMed Parity / Surpass Matrix V2](docs/planning/OPENMED_PARITY_SURPASS_MATRIX_V2.md)
 - [GLM 5.3 Reconciliation V2](docs/planning/GLM53_RECONCILIATION_V2.md)
 
-## Build principle
-
-One MedScale platform, many surfaces. CLI, Desktop, iOS, Android, SDK bindings, and pack distribution must share the same Rust-owned medical semantics, source/provenance model, identity, authority, privacy rules, and pack contracts. No surface may create a second clinical-truth implementation.
-
-OpenMed is a competitive capability floor and strategic donor. MESC is an independent scientific/model producer. Neither becomes MedScale's authority model or trusted product runtime.
+One platform, many surfaces: CLI, Desktop, iOS, Android and SDK bindings share the same Rust-owned source/provenance, identity, time, authority, privacy and Pack semantics. OpenMed is the capability floor/strategic donor. MESC is an independent scientific producer. Neither owns MedScale clinical truth.

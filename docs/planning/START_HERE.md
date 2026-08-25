@@ -5,79 +5,75 @@
 ```text
 PLAN = CANONICAL_V2
 REPOSITORY_PLANNING_FINALIZATION = COMPLETE
-PRODUCT_IMPLEMENTATION = NOT_STARTED
-NEXT_EXECUTABLE_GATE = EXPLICIT_FOUNDER_IMPLEMENTATION_AUTHORIZATION
+SPEC_000 = CLOSED_CANONICAL
+SPEC_001 = READY
+FOUNDER_STANDING_CURSOR_IMPLEMENTATION_AUTHORITY = ACTIVE
+REAL_PHI = NOT_AUTHORIZED
+MESC_MUTATION = NOT_AUTHORIZED
 ```
 
-Do not initialize Cargo, install dependencies, execute models, access PHI, or start product code merely because the plan is present.
+The earlier planning-only gate has been superseded by `IMPLEMENTATION_AUTHORITY.md`. Cursor should begin Spec 001 and continue autonomously through the current V2 roadmap. It must not ask the founder for ordinary engineering decisions already governed by the plan.
 
-## 2. Build order
+## 2. Mandatory read order
 
-Follow this dependency chain exactly unless a later canonical spec explicitly changes it:
+1. `/CURSOR.md`
+2. `/AGENTS.md`
+3. `IMPLEMENTATION_AUTHORITY.md`
+4. `BUILD_QUEUE.md`
+5. `MASTER_BUILD_PLAN_V2.md`
+6. `SPECKIT_MASTER_ROADMAP_V2.md`
+7. `IMPLEMENTATION_DECISION_DEFAULTS.md`
+8. `SOURCE_ACQUISITION_AND_COPY_PLAN.md`
+9. `V0_UI_INTEGRATION_CONTRACT.md`
+10. relevant source/OSS/OpenMed matrices and current spec package
+
+## 3. Build order
 
 ```text
-000 Constitution + Source Authority
+000 CLOSED_CANONICAL
   -> 001 Rust Repository + Spec Kit Bootstrap
   -> 002 Trusted Object / Source / Authority + Process/Text Foundation
   -> 003 H0-A Trusted Ingest + Durability
   -> 004 H0-B Trusted Presentation + Coverage
   -> 005 Local Private Vault + Encryption + Recovery
+  -> 006 CLI + Desktop Foundation
 ```
 
-Then controlled parallel tracks:
+Then dependency-controlled tracks:
 
 ```text
-004 -> 006 CLI + Desktop product discovery/foundation preparation
-004 -> 007 OpenMed parity/absorption research (research only may start early)
-
-005 + 006 + 007 -> 008 Local AI Capability Fabric + offline pack admission + worker confinement
-005 + 006       -> 009 Mobile iOS + Android
-008             -> 010 Documents + OCR + Voice
-004 + 008       -> 011 Evidence / Retrieval / Medical Intelligence
+004 -> 007 OpenMed parity/absorption research
+005 + 006 + qualified 007 -> 008 Local AI Capability Fabric
+005 + 006 -> 009 Mobile base; AI features also require 008
+008 -> 010 Documents/OCR/Voice
+004 + 008 -> 011 Evidence/Retrieval/Medical Intelligence
 008 + released MESC artifact -> 012 MESC Artifact Integration
-005 + 006       -> 013 FHIR / SMART / Network Broker
-013 + product evidence -> 014 Controlled Actions / NPHIES
-008 + 013       -> 015 Online Pack Ecosystem + Hugging Face distribution
-016+            -> deferred advanced work only after evidence
+005 + 006 -> 013 FHIR/SMART/Network Broker -> 014 Controlled Actions/NPHIES
+008 + 013 (+ mobile pack constraints) -> 015 Online Pack/HF Ecosystem
+016+ remains deferred until canonically promoted
 ```
 
-The authoritative dependency details are in `SPECKIT_MASTER_ROADMAP_V2.md`.
+## 4. First executable work
 
-## 3. First product wedge
+Spec 001 must:
 
-The first coherent product outcome is the **Trusted Local Longitudinal Record**:
+- establish the Rust workspace and minimal dependency-directed crate skeleton;
+- install/bootstrap GitHub Spec Kit and materialize the already-canonical constitution/source authority without reopening founder decisions;
+- create CI, formatting/lint/test/evidence skeleton and supply-chain gates;
+- establish repository contribution/review/evidence conventions;
+- create the next complete Spec 002 package;
+- add no medical functionality beyond bootstrap contracts required by 001.
 
-- exact local source custody;
-- deterministic FHIR R4 synthetic ingest first;
-- explicit identity and time semantics;
-- deterministic timeline;
-- narrow LLM-free Brief;
-- coverage/conflict/unknown-vs-absence accounting;
-- source/provenance drill-down;
-- one Rust-owned authority path shared by CLI and Desktop.
+When 001 closes, Cursor immediately starts 002.
 
-AI is added later as bounded capability. AI output remains `DerivedSourceArtifact`, `Proposal`, or `EvaluationRecord` until authorized promotion.
+## 5. First product wedge
 
-## 4. Before implementing any spec
+The first useful product outcome is the **Trusted Local Longitudinal Record**: exact source custody, explicit identity/time, deterministic timeline and narrow LLM-free Brief, coverage/conflict/unknown-vs-absence accounting, provenance drill-down, and one Rust authority path shared by CLI/Desktop. It remains valuable with no model installed.
 
-A builder must:
+## 6. UI
 
-1. Verify live `main`, branches, PRs, exact heads, changed files, CI/reviews, and current task status.
-2. Read `AGENTS.md`.
-3. Read this file and the owning roadmap row.
-4. Read the relevant canonical architecture/source/donor/parity material.
-5. Create the complete Spec Kit planning package for that spec.
-6. Run `/speckit.analyze` and close contradictions.
-7. Obtain explicit implementation authorization.
-8. Only then run `/speckit.implement`.
-9. Produce exact evidence and converge before closing the unit.
+The founder uses **v0** for visual UI. Cursor continues backend/core/integration work without waiting for final visual polish. v0 output enters through `imports/v0/` and the `V0_UI_INTEGRATION_CONTRACT.md`; generated server/database/network shortcuts never become MedScale authority automatically.
 
-## 5. Evidence rule
+## 7. Evidence and completion
 
-No `PASS`, `PARITY`, `SURPASS`, `PRIVATE`, `OFFLINE`, `CONFORMANT`, or `CLOSED_CANONICAL` claim is valid without evidence bound to exact repository revision, toolchain/dependencies, platform, fixture/corpus hash, commands/configuration, outputs, and limitations.
-
-OpenMed comparisons additionally bind the exact OpenMed revision, model/artifact revision, hardware/OS, quality, latency, memory, network/privacy behavior, provenance, safety, and limitations.
-
-## 6. Explicitly not next
-
-Do not begin with models, agents, NPHIES, imaging, genomics, browser/WebGPU, cloud services, vector databases, or a large plugin ecosystem. The trusted foundation and first local product wedge come first.
+No `PASS`, `PARITY`, `SURPASS`, `PRIVATE`, `OFFLINE`, `CONFORMANT`, or `CLOSED_CANONICAL` claim is valid without exact evidence. Follow `DEFINITION_OF_DONE.md`. An external gate blocks only its own path; record it in `EXTERNAL_GATES.md` and continue.
