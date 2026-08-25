@@ -8,6 +8,7 @@ members = [
     "crates/medscale-fhir",
     "crates/medscale-keys",
     "crates/medscale-desktop",
+    "crates/medscale-network",
 ]
 default-members = [
     "crates/medscale-contracts",
@@ -17,6 +18,7 @@ default-members = [
     "crates/medscale-fhir",
     "crates/medscale-keys",
     "crates/medscale-desktop",
+    "crates/medscale-network",
 ]
 
 [workspace.package]
@@ -38,11 +40,13 @@ zeroize = { version = "1.8.1", features = ["derive"] }
 rand = "0.8.5"
 clap = { version = "4.5.53", features = ["derive"] }
 anyhow = "1.0.100"
+ureq = { version = "3.0.12", default-features = false, features = ["rustls", "json"] }
 medscale-contracts = { path = "crates/medscale-contracts", version = "0.1.0" }
 medscale-storage = { path = "crates/medscale-storage", version = "0.1.0" }
 medscale-fhir = { path = "crates/medscale-fhir", version = "0.1.0" }
 medscale-core = { path = "crates/medscale-core", version = "0.1.0" }
 medscale-keys = { path = "crates/medscale-keys", version = "0.1.0" }
+medscale-network = { path = "crates/medscale-network", version = "0.1.0" }
 
 [workspace.lints.rust]
 unsafe_code = "forbid"

@@ -1,6 +1,8 @@
-//! Operator doctor report and PRIVACY_PROOF evidence types (Spec 006).
+//! Operator doctor report and PRIVACY_PROOF evidence types (Spec 006 / 013).
 
 use serde::{Deserialize, Serialize};
+
+use crate::network::NetworkBrokerDoctorStatus;
 
 /// Sync / remote filesystem risk assessment for a vault path.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -57,6 +59,7 @@ pub struct DoctorReport {
     pub privacy_proof_freshness: PrivacyFreshness,
     pub desktop_shell: String,
     pub tauri_admitted: bool,
+    pub network_broker: NetworkBrokerDoctorStatus,
     pub notes: Vec<String>,
 }
 

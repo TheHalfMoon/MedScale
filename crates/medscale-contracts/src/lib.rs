@@ -4,6 +4,7 @@ pub mod doctor;
 pub mod envelopes;
 pub mod ffi_policy;
 pub mod ingest;
+pub mod network;
 pub mod objects;
 pub mod presentation;
 pub mod text;

@@ -28,17 +28,17 @@ function Test-DependsOn {
 $contracts = Get-Package 'medscale-contracts'
 $core = Get-Package 'medscale-core'
 $cli = Get-Package 'medscale-cli'
-$cli = Get-Package 'medscale-cli'
 $desktop = Get-Package 'medscale-desktop'
 $keys = Get-Package 'medscale-keys'
 $storage = Get-Package 'medscale-storage'
 $fhir = Get-Package 'medscale-fhir'
+$network = Get-Package 'medscale-network'
 
 $failures = @()
 
 foreach ($name in @('medscale-contracts')) {
     $pkg = Get-Package $name
-    foreach ($forbidden in @('medscale-core', 'medscale-cli', 'medscale-storage', 'medscale-fhir', 'medscale-keys', 'medscale-desktop')) {
+    foreach ($forbidden in @('medscale-core', 'medscale-cli', 'medscale-storage', 'medscale-fhir', 'medscale-keys', 'medscale-desktop', 'medscale-network')) {
         if (Test-DependsOn -Package $pkg -DepName $forbidden) {
             $failures += "$name must not depend on $forbidden"
         }
@@ -100,9 +100,25 @@ if (Test-DependsOn -Package $keys -DepName 'medscale-storage') {
     $failures += 'medscale-keys must not depend on medscale-storage'
 }
 
+if (-not (Test-DependsOn -Package $core -DepName 'medscale-network')) {
+    $failures += 'medscale-core must depend on medscale-network'
+}
+if (-not (Test-DependsOn -Package $network -DepName 'medscale-contracts')) {
+    $failures += 'medscale-network must depend on medscale-contracts'
+}
+if (Test-DependsOn -Package $network -DepName 'medscale-core') {
+    $failures += 'medscale-network must not depend on medscale-core'
+}
+if (Test-DependsOn -Package $cli -DepName 'ureq') {
+    $failures += 'medscale-cli must not depend on ureq'
+}
+if (Test-DependsOn -Package $desktop -DepName 'ureq') {
+    $failures += 'medscale-desktop must not depend on ureq'
+}
+
 if ($failures.Count -gt 0) {
     Write-Error ("Dependency direction check failed:`n - " + ($failures -join "`n - "))
     exit 1
 }
 
-Write-Host 'Dependency direction check passed (cli/desktop -> core -> {storage,fhir} -> {contracts,keys}).'
+Write-Host 'Dependency direction check passed (cli/desktop -> core -> {storage,fhir,network} -> {contracts,keys}).'

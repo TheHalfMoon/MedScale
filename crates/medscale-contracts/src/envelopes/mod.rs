@@ -5,6 +5,7 @@ use serde_json::Value;
 
 use crate::AUTHORITY_SCHEMA_VERSION;
 use crate::ingest::{BackupManifest, IngestReceipt};
+use crate::network::{EgressAllowlistEntry, NetworkBrokerRequest, NetworkBrokerResult};
 use crate::objects::{DigestSha256, EffectState, OpaqueId, VaultId};
 use crate::presentation::{DrillDownResult, SubjectBriefV1, SubjectCoverageV1, SubjectTimelineV1};
 
@@ -41,6 +42,8 @@ pub enum Capability {
     CreateEncryptedVault,
     OpenEncryptedVault,
     CloseEncryptedVault,
+    NetworkBrokerInvoke,
+    SetEgressAllowlist,
 }
 
 /// Request body variants.
@@ -159,6 +162,12 @@ pub enum RequestBody {
         recovery_code: Option<String>,
     },
     CloseEncryptedVault,
+    NetworkBrokerInvoke {
+        request: NetworkBrokerRequest,
+    },
+    SetEgressAllowlist {
+        entries: Vec<EgressAllowlistEntry>,
+    },
 }
 
 /// Successful response body variants.
@@ -237,6 +246,12 @@ pub enum ResponseBody {
         vault_root: String,
         recovery_codes: Option<Vec<String>>,
     },
+    NetworkBroker {
+        result: NetworkBrokerResult,
+    },
+    AllowlistSet {
+        entries: u32,
+    },
 }
 
 /// Authority error vocabulary (fail closed).
@@ -244,7 +259,9 @@ pub enum ResponseBody {
 #[serde(tag = "error", rename_all = "snake_case")]
 pub enum AuthorityError {
     Unauthorized,
-    AlreadyHeld { holder_id: OpaqueId },
+    AlreadyHeld {
+        holder_id: OpaqueId,
+    },
     NotHolder,
     NotHeld,
     NotFound,
@@ -254,12 +271,26 @@ pub enum AuthorityError {
     DigestMismatch,
     LeaseRequired,
     VaultRequired,
-    LexicalReject { reason: String },
-    VersionReject { got: Option<String> },
+    LexicalReject {
+        reason: String,
+    },
+    VersionReject {
+        got: Option<String>,
+    },
     PathOutsideClaim,
-    InvalidArgument { message: String },
+    InvalidArgument {
+        message: String,
+    },
     MissingKeyMaterial,
-    LeaseHeld { holder_id: OpaqueId },
+    LeaseHeld {
+        holder_id: OpaqueId,
+    },
+    BrokerDenied {
+        reason: crate::network::BrokerReasonCode,
+    },
+    ExternalGateRequired {
+        gate: String,
+    },
 }
 
 /// Versioned authority request.
