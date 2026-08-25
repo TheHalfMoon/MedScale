@@ -15,13 +15,13 @@
 | 004 | H0-B Trusted Presentation + Coverage | `CLOSED_CANONICAL` | Deterministic timeline/Brief/coverage merged; continue Spec 005. |
 | 005 | Local Private Vault + Encryption + Recovery | `CLOSED_CANONICAL` | Encrypted vault + recovery merged; continue Spec 006. |
 | 006 | CLI + Desktop Foundation | `CLOSED_CANONICAL` | CLI wedge + non-WebView desktop scaffold merged; continue eligible units. |
-| 007 | OpenMed Absorption / Parity Research | `RESEARCH_ELIGIBLE` | May run research in parallel with 005; use exact source acquisition plan. |
-| 008 | Local AI Capability Fabric | `BLOCKED_BY_007` | Offline pack admission + worker confinement; needs qualified 007. | Offline pack admission + worker confinement. |
-| 009 | Mobile iOS + Android | `BLOCKED_BY_005_006` | AI pack features also depend on 008. |
+| 007 | OpenMed Absorption / Parity Research | `RESEARCH_ELIGIBLE` | Next eligible research unit; pin OpenMed v2.2 baseline without runtime. |
+| 008 | Local AI Capability Fabric | `BLOCKED_BY_007` | Offline pack admission + worker confinement; needs qualified 007. |
+| 009 | Mobile iOS + Android | `BLOCKED_BY_008_FOR_AI` | Base mobile surface unblocked by 005+006; AI pack features still need 008. |
 | 010 | Documents + OCR + Voice | `BLOCKED_BY_005_008` | P1 hostile-input workers. |
 | 011 | Evidence / Retrieval / Medical Intelligence | `BLOCKED_BY_004_008` | Relevance never authority. |
 | 012 | MESC Artifact Integration | `BLOCKED_BY_008_AND_RELEASED_MESC_ARTIFACT` | Artifact import only; never mutate MESC. |
-| 013 | FHIR / SMART / Network Broker | `BLOCKED_BY_005_006` | Sole online product egress path. |
+| 013 | FHIR / SMART / Network Broker | `READY` | Sole online product egress path; 005+006 closed. |
 | 014 | Controlled Actions / NPHIES | `BLOCKED_BY_013_AND_WORKFLOW_EVIDENCE` | No blind retry. |
 | 015 | HF + Online Pack Ecosystem | `BLOCKED_BY_008_013` | HF is distribution, not runtime requirement. |
 | 016+ | Advanced work | `DEFERRED_BY_CANONICAL_DESIGN` | Promote only with new evidence/spec authority. |
