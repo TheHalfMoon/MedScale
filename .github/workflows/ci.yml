@@ -46,8 +46,12 @@ jobs:
       - name: Test
         run: cargo test --workspace
 
-      - name: Supply chain (cargo-deny)
-        uses: EmbarkStudios/cargo-deny-action@v2
+  cargo-deny:
+    name: cargo-deny
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: EmbarkStudios/cargo-deny-action@v2
         with:
           command: check
           arguments: --all-features
