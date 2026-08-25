@@ -6,4 +6,4 @@
 - [x] T004 Facade RetrieveLexical
 - [x] T005 Tests: ranking + evidence_only + no ClinicalAssertion
 - [x] T006 cargo test/clippy/deny
-- [ ] T007 Closeout CLOSED_CANONICAL (merge only)
+- [x] T007 Closeout CLOSED_CANONICAL (merge only)
