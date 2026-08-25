@@ -20,6 +20,29 @@ pub trait KeyStore: Send + Sync {
     fn delete(&self, account: &str) -> Result<(), KeyStoreError>;
 }
 
+/// Policy constraints for OS/mobile key stores (Spec 009).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct MobileKeyStorePolicy {
+    pub apple_synchronizable_allowed: bool,
+    pub android_hardware_backed_preferred: bool,
+}
+
+impl MobileKeyStorePolicy {
+    /// Canonical READY_BASE policy.
+    #[must_use]
+    pub const fn ready_base() -> Self {
+        Self {
+            apple_synchronizable_allowed: false,
+            android_hardware_backed_preferred: true,
+        }
+    }
+
+    #[must_use]
+    pub const fn forbids_apple_icloud_key_sync(self) -> bool {
+        !self.apple_synchronizable_allowed
+    }
+}
+
 /// In-process mock / CI store.
 #[derive(Debug, Default)]
 pub struct MemoryKeyStore {
