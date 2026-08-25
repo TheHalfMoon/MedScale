@@ -46,6 +46,15 @@ impl SqliteMetaStore {
         let root = assert_claim_path(vault_root)?;
         std::fs::create_dir_all(&root)?;
         let db_path = root.join("meta.sqlite3");
+        Self::open_at(&db_path)
+    }
+
+    /// Open metadata DB at an explicit path (EncryptedVault working copy).
+    pub fn open_at(db_path: &Path) -> Result<Self, MetaError> {
+        if let Some(parent) = db_path.parent() {
+            let _ = assert_claim_path(parent)?;
+            std::fs::create_dir_all(parent)?;
+        }
         let conn = Connection::open(db_path)?;
         let store = Self { conn };
         store.migrate()?;

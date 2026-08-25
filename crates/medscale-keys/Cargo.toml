@@ -1,22 +1,17 @@
 [package]
-name = "medscale-storage"
-description = "DurableStore + BlobStore + EncryptedVault (Specs 003–005)"
+name = "medscale-keys"
+description = "KeyProvider, wraps, and key classes for EncryptedVault (Spec 005)"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 publish.workspace = true
 rust-version.workspace = true
 
-[features]
-default = []
-# Reserved: SQLCipher backend re-entry (see admissions/005-sqlcipher-rusqlite.md).
-sqlcipher = []
-
 [dependencies]
+aes-gcm = { workspace = true }
+argon2 = { workspace = true }
 medscale-contracts = { workspace = true }
-medscale-keys = { workspace = true }
 rand = { workspace = true }
-rusqlite = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 sha2 = { workspace = true }

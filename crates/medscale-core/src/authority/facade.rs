@@ -8,8 +8,8 @@ use medscale_contracts::envelopes::{
 };
 use medscale_contracts::objects::{
     ActionAuditKind, ActionAuditRecord, DerivedSourceArtifact, DigestSha256, EffectState,
-    EvaluationRecord, LossClass, MedicalTime, ObjectHeader, ProducerKind, Projection, Proposal,
-    RepresentationKind, TimePrecision,
+    EvaluationRecord, LossClass, MedicalTime, ObjectHeader, OpaqueId, ProducerKind, Projection,
+    Proposal, RepresentationKind, TimePrecision,
 };
 
 use crate::effects;
@@ -21,14 +21,15 @@ use super::presentation;
 use super::promote::{PromoteError, promote_proposal};
 use super::source_ops::create_source_record;
 use super::store::{InMemoryAuthorityStore, ScopeError, StoredObject};
-use medscale_storage::SyntheticVault;
+use medscale_storage::{EncryptedVault, SyntheticVault};
 
-/// In-process facade owning lease registry + in-memory store + optional synthetic vault.
+/// In-process facade owning lease registry + in-memory store + optional vaults.
 #[derive(Debug, Default)]
 pub struct CoreFacade {
     leases: LeaseRegistry,
     store: Mutex<InMemoryAuthorityStore>,
     vault: Mutex<Option<SyntheticVault>>,
+    encrypted: Mutex<Option<EncryptedVault>>,
 }
 
 impl CoreFacade {
@@ -46,6 +47,12 @@ impl CoreFacade {
 
     fn vault(&self) -> std::sync::MutexGuard<'_, Option<SyntheticVault>> {
         self.vault
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+    }
+
+    fn encrypted(&self) -> std::sync::MutexGuard<'_, Option<EncryptedVault>> {
+        self.encrypted
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner)
     }
@@ -542,6 +549,74 @@ impl CoreFacade {
                 })?;
                 Ok(ResponseBody::DrillDown { result })
             }
+            RequestBody::CreateEncryptedVault {
+                vault_root,
+                passphrase,
+            } => {
+                self.require_lease(&req.vault_id)?;
+                let mut slot = self.encrypted();
+                if slot.is_some() {
+                    return Err(AuthorityError::InvalidArgument {
+                        message: "encrypted vault already open".to_owned(),
+                    });
+                }
+                let holder = self
+                    .leases
+                    .holder(&req.vault_id)
+                    .ok_or(AuthorityError::LeaseRequired)?;
+                let (vault, codes) = EncryptedVault::create(
+                    req.vault_id.as_str(),
+                    std::path::Path::new(&vault_root),
+                    &passphrase,
+                    holder.as_str(),
+                    None,
+                )
+                .map_err(enc_err)?;
+                *slot = Some(vault);
+                Ok(ResponseBody::EncryptedVaultReady {
+                    vault_root,
+                    recovery_codes: Some(codes.codes),
+                })
+            }
+            RequestBody::OpenEncryptedVault {
+                vault_root,
+                passphrase,
+                recovery_code,
+            } => {
+                self.require_lease(&req.vault_id)?;
+                let mut slot = self.encrypted();
+                if slot.is_some() {
+                    return Err(AuthorityError::InvalidArgument {
+                        message: "encrypted vault already open".to_owned(),
+                    });
+                }
+                let holder = self
+                    .leases
+                    .holder(&req.vault_id)
+                    .ok_or(AuthorityError::LeaseRequired)?;
+                let path = std::path::Path::new(&vault_root);
+                let vault = if let Some(code) = recovery_code {
+                    EncryptedVault::open_with_recovery(path, &code, holder.as_str())
+                } else if let Some(pw) = passphrase {
+                    EncryptedVault::open_with_passphrase(path, &pw, holder.as_str())
+                } else {
+                    return Err(AuthorityError::MissingKeyMaterial);
+                }
+                .map_err(enc_err)?;
+                *slot = Some(vault);
+                Ok(ResponseBody::EncryptedVaultReady {
+                    vault_root,
+                    recovery_codes: None,
+                })
+            }
+            RequestBody::CloseEncryptedVault => {
+                self.require_lease(&req.vault_id)?;
+                let mut slot = self.encrypted();
+                if let Some(vault) = slot.take() {
+                    vault.close().map_err(enc_err)?;
+                }
+                Ok(ResponseBody::VaultClosed)
+            }
         }
     }
 }
@@ -628,7 +703,39 @@ fn capability_matches(cap: &Capability, body: &RequestBody) -> bool {
                 Capability::DrillDownPresentation,
                 RequestBody::DrillDownPresentation { .. }
             )
+            | (
+                Capability::CreateEncryptedVault,
+                RequestBody::CreateEncryptedVault { .. }
+            )
+            | (
+                Capability::OpenEncryptedVault,
+                RequestBody::OpenEncryptedVault { .. }
+            )
+            | (
+                Capability::CloseEncryptedVault,
+                RequestBody::CloseEncryptedVault
+            )
     )
+}
+
+fn enc_err(err: medscale_storage::EncryptedVaultError) -> AuthorityError {
+    match err {
+        medscale_storage::EncryptedVaultError::Claim(
+            medscale_storage::ClaimError::SyncRootRefused(_),
+        )
+        | medscale_storage::EncryptedVaultError::Claim(medscale_storage::ClaimError::Escape) => {
+            AuthorityError::PathOutsideClaim
+        }
+        medscale_storage::EncryptedVaultError::MissingKeyMaterial => {
+            AuthorityError::MissingKeyMaterial
+        }
+        medscale_storage::EncryptedVaultError::LeaseHeld(holder) => AuthorityError::LeaseHeld {
+            holder_id: OpaqueId::new(holder),
+        },
+        other => AuthorityError::InvalidArgument {
+            message: other.to_string(),
+        },
+    }
 }
 
 fn lease_err(err: LeaseError) -> AuthorityError {
