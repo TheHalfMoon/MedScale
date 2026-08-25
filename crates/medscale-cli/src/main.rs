@@ -174,6 +174,12 @@ fn run() -> Result<()> {
                     report.packs_runtime.admitted_count,
                     report.packs_runtime.online_download_authorized
                 );
+                println!(
+                    "mobile: present={} apps_shipped={} 16kb={}",
+                    report.mobile.present,
+                    report.mobile.apps_shipped,
+                    report.mobile.page_size_16kb_claim
+                );
                 for note in &report.notes {
                     println!("note: {note}");
                 }
@@ -360,6 +366,8 @@ mod tests {
             "default_deny",
             "packs_runtime",
             "offline_only",
+            "mobile",
+            "apps_shipped",
         ] {
             assert!(json.contains(key), "missing {key}");
         }
@@ -370,6 +378,7 @@ mod tests {
         assert!(!report.network_broker.live_partner_authorized);
         assert!(report.packs_runtime.offline_only);
         assert!(!report.packs_runtime.online_download_authorized);
+        assert!(!report.mobile.apps_shipped);
     }
 
     #[test]

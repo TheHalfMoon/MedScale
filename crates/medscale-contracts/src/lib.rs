@@ -6,6 +6,7 @@ pub mod envelopes;
 pub mod evidence;
 pub mod ffi_policy;
 pub mod ingest;
+pub mod mobile;
 pub mod network;
 pub mod objects;
 pub mod packs;
