@@ -11,4 +11,4 @@
 - [x] T009 Doctor + secret-marker tests  
 - [x] T010 cargo test/clippy/deny; no HF/ureq in pack path for install  
 - [x] T011 EXTERNAL_GATES: WORKER_OS_SANDBOX_PLATFORM_QUALIFIED OPEN  
-- [ ] T012 Closeout BUILD_QUEUE CLOSED_CANONICAL (merge only)
+- [x] T012 Closeout BUILD_QUEUE CLOSED_CANONICAL (merge only)

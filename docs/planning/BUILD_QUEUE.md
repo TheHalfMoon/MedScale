@@ -16,14 +16,14 @@
 | 005 | Local Private Vault + Encryption + Recovery | `CLOSED_CANONICAL` | Encrypted vault + recovery merged; continue Spec 006. |
 | 006 | CLI + Desktop Foundation | `CLOSED_CANONICAL` | CLI wedge + non-WebView desktop scaffold merged; continue eligible units. |
 | 007 | OpenMed Absorption / Parity Research | `CLOSED_CANONICAL` | OpenMed v2.2 pin + parity matrix/dispositions merged; Spec 008 unblocked for fabric. |
-| 008 | Local AI Capability Fabric | `IN_REVIEW` | Spec 008 on branch; merge when CI green. |
-| 009 | Mobile iOS + Android | `BLOCKED_BY_008_FOR_AI` | Base mobile surface unblocked by 005+006; AI pack features still need 008. |
-| 010 | Documents + OCR + Voice | `BLOCKED_BY_005_008` | P1 hostile-input workers. |
-| 011 | Evidence / Retrieval / Medical Intelligence | `BLOCKED_BY_004_008` | Relevance never authority. |
-| 012 | MESC Artifact Integration | `BLOCKED_BY_008_AND_RELEASED_MESC_ARTIFACT` | Artifact import only; never mutate MESC. |
+| 008 | Local AI Capability Fabric | `CLOSED_CANONICAL` | Offline Pack v0 + worker ambient-deny merged; OS sandbox PLATFORM_QUALIFIED remains OPEN gate. |
+| 009 | Mobile iOS + Android | `READY_BASE` | Base mobile unblocked; AI pack features can use Spec 008 offline packs. |
+| 010 | Documents + OCR + Voice | `READY` | Spec 008 closed; start P1 hostile-input workers. |
+| 011 | Evidence / Retrieval / Medical Intelligence | `READY` | Spec 008 closed; relevance never authority. |
+| 012 | MESC Artifact Integration | `BLOCKED_BY_RELEASED_MESC_ARTIFACT` | Spec 008 closed; still needs released MESC artifact gate. |
 | 013 | FHIR / SMART / Network Broker | `CLOSED_CANONICAL` | Fail-closed broker + stub SMART/FHIR adapters merged; continue Spec 014 when workflow evidence ready. |
 | 014 | Controlled Actions / NPHIES | `BLOCKED_BY_WORKFLOW_EVIDENCE` | Spec 013 closed; no blind retry; needs workflow evidence + partner gates. |
-| 015 | HF + Online Pack Ecosystem | `BLOCKED_BY_008_013` | HF is distribution, not runtime requirement. |
+| 015 | HF + Online Pack Ecosystem | `BLOCKED_BY_EXTERNAL_AND_MOBILE_CONSTRAINTS` | Spec 008+013 closed; online path still needs HF/external + 009 pack-format constraints. |
 | 016+ | Advanced work | `DEFERRED_BY_CANONICAL_DESIGN` | Promote only with new evidence/spec authority. |
 
 ## Automatic progression
