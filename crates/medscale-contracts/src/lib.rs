@@ -1,7 +1,10 @@
-//! Shared bootstrap contracts for `MedScale`.
-//!
-//! Spec 001 intentionally contains no medical object semantics. Spec 002 owns
-//! trusted object / source / authority types.
+//! Shared `MedScale` contracts (Spec 001 bootstrap + Spec 002 object/authority foundation).
+
+pub mod envelopes;
+pub mod ffi_policy;
+pub mod objects;
+pub mod text;
+pub mod worker_policy;
 
 /// Workspace semantic version advertised by CLI and core reports.
 pub const MEDSCALE_VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -9,8 +12,11 @@ pub const MEDSCALE_VERSION: &str = env!("CARGO_PKG_VERSION");
 /// Stable product name used in operator-facing bootstrap output.
 pub const MEDSCALE_PRODUCT_NAME: &str = "MedScale";
 
+/// Authority-bearing envelope schema version for Spec 002.
+pub const AUTHORITY_SCHEMA_VERSION: u32 = 1;
+
 /// Minimal workspace identity for bootstrap health reporting.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
 pub struct WorkspaceIdentity {
     /// Semantic version string for the workspace package set.
     pub version: &'static str,
