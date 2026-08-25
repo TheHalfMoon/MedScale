@@ -3,6 +3,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::network::NetworkBrokerDoctorStatus;
+use crate::packs::PacksRuntimeDoctorStatus;
 
 /// Sync / remote filesystem risk assessment for a vault path.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -60,6 +61,7 @@ pub struct DoctorReport {
     pub desktop_shell: String,
     pub tauri_admitted: bool,
     pub network_broker: NetworkBrokerDoctorStatus,
+    pub packs_runtime: PacksRuntimeDoctorStatus,
     pub notes: Vec<String>,
 }
 

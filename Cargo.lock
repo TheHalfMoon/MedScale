@@ -681,6 +681,7 @@ dependencies = [
  "medscale-contracts",
  "medscale-fhir",
  "medscale-network",
+ "medscale-pack",
  "medscale-storage",
  "serde",
  "serde_json",
@@ -731,6 +732,17 @@ dependencies = [
  "sha2",
  "thiserror",
  "ureq",
+]
+
+[[package]]
+name = "medscale-pack"
+version = "0.1.0"
+dependencies = [
+ "medscale-contracts",
+ "serde",
+ "serde_json",
+ "sha2",
+ "thiserror",
 ]
 
 [[package]]

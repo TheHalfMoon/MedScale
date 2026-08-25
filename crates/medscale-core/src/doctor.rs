@@ -4,6 +4,7 @@ use std::path::Path;
 
 use medscale_contracts::doctor::{DoctorReport, KeyStoreAvailability, PrivacyFreshness, SyncRisk};
 use medscale_contracts::network::NetworkBrokerDoctorStatus;
+use medscale_contracts::packs::PacksRuntimeDoctorStatus;
 use medscale_contracts::{MEDSCALE_PRODUCT_NAME, MEDSCALE_VERSION};
 use medscale_storage::{assert_claim_path, default_vault_root};
 
@@ -24,6 +25,26 @@ pub fn build_doctor_report_with_allowlist(
     vault_open: bool,
     privacy_proof_present: bool,
     allowlist_entries: u32,
+) -> DoctorReport {
+    build_doctor_report_full(
+        vault_root,
+        vault_open,
+        privacy_proof_present,
+        allowlist_entries,
+        0,
+        None,
+    )
+}
+
+/// Doctor report including packs runtime counts (Spec 008).
+#[must_use]
+pub fn build_doctor_report_full(
+    vault_root: Option<&str>,
+    vault_open: bool,
+    privacy_proof_present: bool,
+    allowlist_entries: u32,
+    admitted_packs: u32,
+    current_pack_id: Option<String>,
 ) -> DoctorReport {
     let (sync_risk, filesystem_claim_ok, resolved_root) = match vault_root {
         Some(root) => match assert_claim_path(Path::new(root)) {
@@ -65,10 +86,19 @@ pub fn build_doctor_report_with_allowlist(
             live_partner_authorized: false,
             http_client: "ureq_behind_broker_fixture_default".to_owned(),
         },
+        packs_runtime: PacksRuntimeDoctorStatus {
+            present: true,
+            offline_only: true,
+            admitted_count: admitted_packs,
+            current_pack_id,
+            confinement_claim: "policy_ambient_deny_v0".to_owned(),
+            online_download_authorized: false,
+        },
         notes: vec![
             "CLI and Desktop call Core Host authority facade only".to_owned(),
             "Tauri/WebView not admitted in Spec 006".to_owned(),
             "Product egress DEFAULT_DENY except Network Broker allowlist".to_owned(),
+            "Packs offline-only; no ONNX/llama admitted in Spec 008".to_owned(),
         ],
     }
 }

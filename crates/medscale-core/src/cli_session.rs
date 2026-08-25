@@ -252,4 +252,36 @@ impl CliSession {
     pub fn is_open(&self) -> bool {
         self.open
     }
+
+    /// Offline local pack install (Spec 008).
+    pub fn packs_install_local(
+        &mut self,
+        local_path: &str,
+    ) -> Result<medscale_contracts::packs::PackAdmitResult, AuthorityError> {
+        let resp = self.dispatch(
+            Capability::PacksInstallLocal,
+            RequestBody::PacksInstallLocal {
+                local_path: local_path.to_owned(),
+            },
+        )?;
+        let ResponseBody::PackAdmit { result } = resp else {
+            return Err(AuthorityError::InvalidArgument {
+                message: "expected pack admit".to_owned(),
+            });
+        };
+        Ok(result)
+    }
+
+    /// List admitted packs.
+    pub fn packs_list(
+        &mut self,
+    ) -> Result<Vec<medscale_contracts::packs::PackManifestV0>, AuthorityError> {
+        let resp = self.dispatch(Capability::PacksList, RequestBody::PacksList)?;
+        let ResponseBody::PackList { packs } = resp else {
+            return Err(AuthorityError::InvalidArgument {
+                message: "expected pack list".to_owned(),
+            });
+        };
+        Ok(packs)
+    }
 }

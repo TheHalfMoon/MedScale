@@ -33,6 +33,7 @@ pub struct CoreFacade {
     vault: Mutex<Option<SyntheticVault>>,
     encrypted: Mutex<Option<EncryptedVault>>,
     allowlist: Mutex<Vec<EgressAllowlistEntry>>,
+    packs: Mutex<medscale_pack::PackStore>,
 }
 
 impl CoreFacade {
@@ -62,6 +63,12 @@ impl CoreFacade {
 
     fn allowlist(&self) -> std::sync::MutexGuard<'_, Vec<EgressAllowlistEntry>> {
         self.allowlist
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+    }
+
+    fn packs(&self) -> std::sync::MutexGuard<'_, medscale_pack::PackStore> {
+        self.packs
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner)
     }
@@ -704,6 +711,90 @@ impl CoreFacade {
                     },
                 })
             }
+            RequestBody::PacksInstallLocal { local_path } => {
+                self.require_lease(&req.vault_id)?;
+                let mut store = self.store();
+                let audit_id = store.alloc_id("audit");
+                match medscale_pack::admit_pack_dir(std::path::Path::new(&local_path)) {
+                    Ok(manifest) => {
+                        let pack_id = manifest.pack_id.clone();
+                        self.packs().insert(manifest);
+                        store.insert(StoredObject::Audit(ActionAuditRecord {
+                            header: ObjectHeader {
+                                id: audit_id.clone(),
+                                schema_version: AUTHORITY_SCHEMA_VERSION,
+                                realm_id: req.realm_id,
+                                authority_scope_id: req.authority_scope_id,
+                            },
+                            kind: ActionAuditKind::Audit,
+                            actor: OpaqueId::new("pack-admit"),
+                            action: "packs.install_local".to_owned(),
+                            target_refs: vec![pack_id.clone()],
+                            effect_state: None,
+                            payload_digest: None,
+                            detail: Some(serde_json::json!({
+                                "local_path": local_path,
+                                "admitted": true
+                            })),
+                        }));
+                        Ok(ResponseBody::PackAdmit {
+                            result: medscale_contracts::packs::PackAdmitResult {
+                                admitted: true,
+                                reason: medscale_contracts::packs::PackAdmitReason::Ok,
+                                pack_id: Some(pack_id),
+                                audit_id,
+                            },
+                        })
+                    }
+                    Err(err) => {
+                        let reason = err.reason();
+                        store.insert(StoredObject::Audit(ActionAuditRecord {
+                            header: ObjectHeader {
+                                id: audit_id.clone(),
+                                schema_version: AUTHORITY_SCHEMA_VERSION,
+                                realm_id: req.realm_id,
+                                authority_scope_id: req.authority_scope_id,
+                            },
+                            kind: ActionAuditKind::Audit,
+                            actor: OpaqueId::new("pack-admit"),
+                            action: "packs.install_local.deny".to_owned(),
+                            target_refs: vec![],
+                            effect_state: None,
+                            payload_digest: None,
+                            detail: Some(serde_json::json!({
+                                "local_path": local_path,
+                                "reason": reason,
+                            })),
+                        }));
+                        Ok(ResponseBody::PackAdmit {
+                            result: medscale_contracts::packs::PackAdmitResult {
+                                admitted: false,
+                                reason,
+                                pack_id: None,
+                                audit_id,
+                            },
+                        })
+                    }
+                }
+            }
+            RequestBody::PacksList => {
+                self.require_lease(&req.vault_id)?;
+                Ok(ResponseBody::PackList {
+                    packs: self.packs().list(),
+                })
+            }
+            RequestBody::PacksPromote { pack_id, to } => {
+                self.require_lease(&req.vault_id)?;
+                match self.packs().promote(&pack_id, to) {
+                    Ok(m) => Ok(ResponseBody::PackPromoted {
+                        pack_id: m.pack_id,
+                        state: m.promotion_state,
+                    }),
+                    Err(msg) => Err(AuthorityError::InvalidArgument {
+                        message: msg.to_owned(),
+                    }),
+                }
+            }
         }
     }
 }
@@ -810,6 +901,12 @@ fn capability_matches(cap: &Capability, body: &RequestBody) -> bool {
                 Capability::SetEgressAllowlist,
                 RequestBody::SetEgressAllowlist { .. }
             )
+            | (
+                Capability::PacksInstallLocal,
+                RequestBody::PacksInstallLocal { .. }
+            )
+            | (Capability::PacksList, RequestBody::PacksList)
+            | (Capability::PacksPromote, RequestBody::PacksPromote { .. })
     )
 }
 
