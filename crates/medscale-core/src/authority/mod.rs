@@ -7,6 +7,7 @@ mod identity;
 mod ingest_ops;
 mod presentation;
 mod promote;
+mod retrieval;
 mod source_ops;
 mod store;
 

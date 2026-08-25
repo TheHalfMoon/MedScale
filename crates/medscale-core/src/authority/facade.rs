@@ -831,6 +831,18 @@ impl CoreFacade {
                     )?,
                 })
             }
+            RequestBody::RetrieveLexical { request } => {
+                self.require_lease(&req.vault_id)?;
+                let mut store = self.store();
+                Ok(ResponseBody::LexicalRetrieve {
+                    result: super::retrieval::retrieve_lexical(
+                        &mut store,
+                        req.realm_id,
+                        req.authority_scope_id,
+                        request,
+                    )?,
+                })
+            }
         }
     }
 }
@@ -949,6 +961,10 @@ fn capability_matches(cap: &Capability, body: &RequestBody) -> bool {
             )
             | (Capability::OcrStub, RequestBody::OcrStub { .. })
             | (Capability::AsrStub, RequestBody::AsrStub { .. })
+            | (
+                Capability::RetrieveLexical,
+                RequestBody::RetrieveLexical { .. }
+            )
     )
 }
 
