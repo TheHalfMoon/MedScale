@@ -1,5 +1,6 @@
 //! Shared `MedScale` contracts (Specs 001–004).
 
+pub mod doctor;
 pub mod envelopes;
 pub mod ffi_policy;
 pub mod ingest;

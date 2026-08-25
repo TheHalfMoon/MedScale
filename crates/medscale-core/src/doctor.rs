@@ -1,0 +1,62 @@
+//! Doctor report aggregation (Spec 006).
+
+use std::path::Path;
+
+use medscale_contracts::doctor::{DoctorReport, KeyStoreAvailability, PrivacyFreshness, SyncRisk};
+use medscale_contracts::{MEDSCALE_PRODUCT_NAME, MEDSCALE_VERSION};
+use medscale_storage::{assert_claim_path, default_vault_root};
+
+/// Build a doctor report for operators (never includes secrets).
+#[must_use]
+pub fn build_doctor_report(
+    vault_root: Option<&str>,
+    vault_open: bool,
+    privacy_proof_present: bool,
+) -> DoctorReport {
+    let (sync_risk, filesystem_claim_ok, resolved_root) = match vault_root {
+        Some(root) => match assert_claim_path(Path::new(root)) {
+            Ok(p) => (SyncRisk::Clear, true, Some(p.display().to_string())),
+            Err(_) => (SyncRisk::RefusedMarker, false, Some(root.to_owned())),
+        },
+        None => {
+            let def = default_vault_root("default");
+            match assert_claim_path(&def) {
+                Ok(p) => (SyncRisk::Clear, true, Some(p.display().to_string())),
+                Err(_) => (SyncRisk::Unknown, false, Some(def.display().to_string())),
+            }
+        }
+    };
+
+    DoctorReport {
+        product_name: MEDSCALE_PRODUCT_NAME.to_owned(),
+        version: MEDSCALE_VERSION.to_owned(),
+        local_only: true,
+        product_runtime_egress: "DEFAULT_DENY".to_owned(),
+        synthetic_only: true,
+        real_phi_authorized: false,
+        vault_root: resolved_root,
+        vault_open,
+        sync_risk,
+        filesystem_claim_ok,
+        key_store: KeyStoreAvailability::MemoryMockAvailable,
+        privacy_proof_freshness: if privacy_proof_present {
+            PrivacyFreshness::Present
+        } else {
+            PrivacyFreshness::Missing
+        },
+        desktop_shell: "thin_scaffold_non_webview".to_owned(),
+        tauri_admitted: false,
+        notes: vec![
+            "CLI and Desktop call Core Host authority facade only".to_owned(),
+            "Tauri/WebView not admitted in Spec 006".to_owned(),
+        ],
+    }
+}
+
+/// Detect whether Spec 006 PRIVACY_PROOF evidence file exists relative to CWD/repo.
+#[must_use]
+pub fn privacy_proof_artifact_present() -> bool {
+    Path::new("evidence/006-cli-desktop-foundation/PRIVACY_PROOF.json").is_file()
+        || Path::new("../evidence/006-cli-desktop-foundation/PRIVACY_PROOF.json").is_file()
+        || Path::new("../../evidence/006-cli-desktop-foundation/PRIVACY_PROOF.json").is_file()
+}

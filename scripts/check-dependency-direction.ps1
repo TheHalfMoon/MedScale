@@ -28,6 +28,8 @@ function Test-DependsOn {
 $contracts = Get-Package 'medscale-contracts'
 $core = Get-Package 'medscale-core'
 $cli = Get-Package 'medscale-cli'
+$cli = Get-Package 'medscale-cli'
+$desktop = Get-Package 'medscale-desktop'
 $keys = Get-Package 'medscale-keys'
 $storage = Get-Package 'medscale-storage'
 $fhir = Get-Package 'medscale-fhir'
@@ -36,7 +38,7 @@ $failures = @()
 
 foreach ($name in @('medscale-contracts')) {
     $pkg = Get-Package $name
-    foreach ($forbidden in @('medscale-core', 'medscale-cli', 'medscale-storage', 'medscale-fhir', 'medscale-keys')) {
+    foreach ($forbidden in @('medscale-core', 'medscale-cli', 'medscale-storage', 'medscale-fhir', 'medscale-keys', 'medscale-desktop')) {
         if (Test-DependsOn -Package $pkg -DepName $forbidden) {
             $failures += "$name must not depend on $forbidden"
         }
@@ -45,6 +47,9 @@ foreach ($name in @('medscale-contracts')) {
 
 if (Test-DependsOn -Package $core -DepName 'medscale-cli') {
     $failures += 'medscale-core must not depend on medscale-cli'
+}
+if (Test-DependsOn -Package $core -DepName 'medscale-desktop') {
+    $failures += 'medscale-core must not depend on medscale-desktop'
 }
 if (-not (Test-DependsOn -Package $core -DepName 'medscale-contracts')) {
     $failures += 'medscale-core must depend on medscale-contracts'
@@ -57,6 +62,18 @@ if (-not (Test-DependsOn -Package $core -DepName 'medscale-fhir')) {
 }
 if (-not (Test-DependsOn -Package $cli -DepName 'medscale-core')) {
     $failures += 'medscale-cli must depend on medscale-core'
+}
+if (Test-DependsOn -Package $cli -DepName 'medscale-storage') {
+    $failures += 'medscale-cli must not depend on medscale-storage (facade-only)'
+}
+if (Test-DependsOn -Package $cli -DepName 'rusqlite') {
+    $failures += 'medscale-cli must not depend on rusqlite'
+}
+if (-not (Test-DependsOn -Package $desktop -DepName 'medscale-core')) {
+    $failures += 'medscale-desktop must depend on medscale-core'
+}
+if (Test-DependsOn -Package $desktop -DepName 'tauri') {
+    $failures += 'medscale-desktop must not depend on tauri in Spec 006'
 }
 if (-not (Test-DependsOn -Package $storage -DepName 'medscale-contracts')) {
     $failures += 'medscale-storage must depend on medscale-contracts'
@@ -88,4 +105,4 @@ if ($failures.Count -gt 0) {
     exit 1
 }
 
-Write-Host 'Dependency direction check passed (cli -> core -> {storage,fhir} -> {contracts,keys}; keys -> contracts).'
+Write-Host 'Dependency direction check passed (cli/desktop -> core -> {storage,fhir} -> {contracts,keys}).'

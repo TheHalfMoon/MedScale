@@ -1,15 +1,19 @@
-//! `MedScale` trusted core (Spec 001 bootstrap + Spec 002 authority foundation).
+//! `MedScale` trusted core (Specs 001–006).
 //!
-//! OS IPC transports are intentional for Spec 006; Spec 002 proves the same logical
-//! API in-process. See `specs/002-*/contracts/authority-facade.md`.
+//! OS IPC transports remain intentional for multi-process Desktop; Spec 006 ships
+//! an in-process CLI session over the same logical authority facade.
 
 pub mod authority;
+pub mod cli_session;
+pub mod doctor;
 pub mod effects;
 pub mod process;
 pub mod text;
 pub mod validate;
 
 pub use authority::CoreFacade;
+pub use cli_session::CliSession;
+pub use doctor::{build_doctor_report, privacy_proof_artifact_present};
 pub use medscale_contracts::{MEDSCALE_VERSION, WorkspaceIdentity};
 
 /// Non-authoritative bootstrap health report for operators.
