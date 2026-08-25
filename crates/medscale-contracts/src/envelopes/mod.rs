@@ -38,6 +38,9 @@ pub enum Capability {
     GetBrief,
     GetCoverage,
     DrillDownPresentation,
+    CreateEncryptedVault,
+    OpenEncryptedVault,
+    CloseEncryptedVault,
 }
 
 /// Request body variants.
@@ -146,6 +149,16 @@ pub enum RequestBody {
         field_key: String,
         assertion_id: Option<OpaqueId>,
     },
+    CreateEncryptedVault {
+        vault_root: String,
+        passphrase: String,
+    },
+    OpenEncryptedVault {
+        vault_root: String,
+        passphrase: Option<String>,
+        recovery_code: Option<String>,
+    },
+    CloseEncryptedVault,
 }
 
 /// Successful response body variants.
@@ -220,6 +233,10 @@ pub enum ResponseBody {
     DrillDown {
         result: DrillDownResult,
     },
+    EncryptedVaultReady {
+        vault_root: String,
+        recovery_codes: Option<Vec<String>>,
+    },
 }
 
 /// Authority error vocabulary (fail closed).
@@ -241,6 +258,8 @@ pub enum AuthorityError {
     VersionReject { got: Option<String> },
     PathOutsideClaim,
     InvalidArgument { message: String },
+    MissingKeyMaterial,
+    LeaseHeld { holder_id: OpaqueId },
 }
 
 /// Versioned authority request.

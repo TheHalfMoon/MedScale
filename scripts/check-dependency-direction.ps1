@@ -28,6 +28,7 @@ function Test-DependsOn {
 $contracts = Get-Package 'medscale-contracts'
 $core = Get-Package 'medscale-core'
 $cli = Get-Package 'medscale-cli'
+$keys = Get-Package 'medscale-keys'
 $storage = Get-Package 'medscale-storage'
 $fhir = Get-Package 'medscale-fhir'
 
@@ -35,7 +36,7 @@ $failures = @()
 
 foreach ($name in @('medscale-contracts')) {
     $pkg = Get-Package $name
-    foreach ($forbidden in @('medscale-core', 'medscale-cli', 'medscale-storage', 'medscale-fhir')) {
+    foreach ($forbidden in @('medscale-core', 'medscale-cli', 'medscale-storage', 'medscale-fhir', 'medscale-keys')) {
         if (Test-DependsOn -Package $pkg -DepName $forbidden) {
             $failures += "$name must not depend on $forbidden"
         }
@@ -60,8 +61,14 @@ if (-not (Test-DependsOn -Package $cli -DepName 'medscale-core')) {
 if (-not (Test-DependsOn -Package $storage -DepName 'medscale-contracts')) {
     $failures += 'medscale-storage must depend on medscale-contracts'
 }
+if (-not (Test-DependsOn -Package $storage -DepName 'medscale-keys')) {
+    $failures += 'medscale-storage must depend on medscale-keys'
+}
 if (-not (Test-DependsOn -Package $fhir -DepName 'medscale-contracts')) {
     $failures += 'medscale-fhir must depend on medscale-contracts'
+}
+if (-not (Test-DependsOn -Package $keys -DepName 'medscale-contracts')) {
+    $failures += 'medscale-keys must depend on medscale-contracts'
 }
 if (Test-DependsOn -Package $storage -DepName 'medscale-core') {
     $failures += 'medscale-storage must not depend on medscale-core'
@@ -69,10 +76,16 @@ if (Test-DependsOn -Package $storage -DepName 'medscale-core') {
 if (Test-DependsOn -Package $fhir -DepName 'medscale-core') {
     $failures += 'medscale-fhir must not depend on medscale-core'
 }
+if (Test-DependsOn -Package $keys -DepName 'medscale-core') {
+    $failures += 'medscale-keys must not depend on medscale-core'
+}
+if (Test-DependsOn -Package $keys -DepName 'medscale-storage') {
+    $failures += 'medscale-keys must not depend on medscale-storage'
+}
 
 if ($failures.Count -gt 0) {
     Write-Error ("Dependency direction check failed:`n - " + ($failures -join "`n - "))
     exit 1
 }
 
-Write-Host 'Dependency direction check passed (cli -> core -> {storage,fhir} -> contracts).'
+Write-Host 'Dependency direction check passed (cli -> core -> {storage,fhir} -> {contracts,keys}; keys -> contracts).'

@@ -25,9 +25,15 @@ pub fn assert_claim_path(path: &Path) -> Result<PathBuf, ClaimError> {
         "onedrive",
         "dropbox",
         "google drive",
+        "googledrive",
         "icloud",
+        "box sync",
+        "boxsync",
+        "\\mega\\",
+        "/mega/",
         "\\remote\\",
         "/mnt/sync",
+        "\\\\remote",
     ] {
         if lower.contains(marker) {
             return Err(ClaimError::SyncRootRefused(marker.to_owned()));

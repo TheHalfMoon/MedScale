@@ -6,6 +6,7 @@ members = [
     "crates/medscale-cli",
     "crates/medscale-storage",
     "crates/medscale-fhir",
+    "crates/medscale-keys",
 ]
 default-members = [
     "crates/medscale-contracts",
@@ -13,6 +14,7 @@ default-members = [
     "crates/medscale-cli",
     "crates/medscale-storage",
     "crates/medscale-fhir",
+    "crates/medscale-keys",
 ]
 
 [workspace.package]
@@ -28,10 +30,15 @@ serde_json = "1.0.151"
 sha2 = "0.11.0"
 thiserror = "2.0.20"
 rusqlite = { version = "0.37.0", features = ["bundled"] }
+aes-gcm = "0.10.3"
+argon2 = "0.5.3"
+zeroize = { version = "1.8.1", features = ["derive"] }
+rand = "0.8.5"
 medscale-contracts = { path = "crates/medscale-contracts", version = "0.1.0" }
 medscale-storage = { path = "crates/medscale-storage", version = "0.1.0" }
 medscale-fhir = { path = "crates/medscale-fhir", version = "0.1.0" }
 medscale-core = { path = "crates/medscale-core", version = "0.1.0" }
+medscale-keys = { path = "crates/medscale-keys", version = "0.1.0" }
 
 [workspace.lints.rust]
 unsafe_code = "forbid"
