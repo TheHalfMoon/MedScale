@@ -63,7 +63,7 @@ pub(crate) fn retrieve_lexical(
             message: format!("unknown corpus_id {}", request.corpus_id),
         });
     }
-    let max = request.max_hits.max(1).min(32) as usize;
+    let max = request.max_hits.clamp(1, 32) as usize;
     let mut scored: Vec<(f64, &CorpusDoc)> = SYNTHETIC_CORPUS
         .iter()
         .map(|d| (score(&request.query, d.text), d))
