@@ -22,8 +22,11 @@ Read, in order, before doing any material work:
 6. `docs/planning/SPECKIT_MASTER_ROADMAP_V2.md`
 7. `docs/planning/IMPLEMENTATION_DECISION_DEFAULTS.md`
 8. `docs/planning/SOURCE_ACQUISITION_AND_COPY_PLAN.md`
-9. relevant source/OSS/OpenMed matrices
-10. relevant current Spec Kit package
+9. `docs/planning/V0_UI_INTEGRATION_CONTRACT.md`
+10. relevant source/OSS/OpenMed matrices
+11. relevant current Spec Kit package or execution handoff
+
+Current first executable unit is Spec 001. Before starting it, read `docs/planning/SPEC_001_EXECUTION_HANDOFF.md`.
 
 Then verify live GitHub/repository truth and execute the first `READY` unit in `BUILD_QUEUE.md`.
 
@@ -32,6 +35,8 @@ Then verify live GitHub/repository truth and execute the first `READY` unit in `
 Resolve ordinary ambiguity from repository truth, frozen invariants, primary upstream evidence, tests, and the defaults in `IMPLEMENTATION_DECISION_DEFAULTS.md`. Prefer fail-closed, local-first, privacy-preserving, Rust-owned, minimal, reversible choices. Record architecture-impacting choices in the owning spec/research/ADR and continue.
 
 If a genuinely external human gate is required, record it in `docs/planning/EXTERNAL_GATES.md`, continue every independent task, and do not turn the gate into a general project stop.
+
+Historical planning-only `Implementation authorization: NO` metadata is superseded by the active standing authority document and must not trigger another founder question.
 
 ## Finish condition
 

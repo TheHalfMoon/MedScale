@@ -5,6 +5,7 @@
 - [`START_HERE.md`](START_HERE.md) — current executable gate and read order
 - [`IMPLEMENTATION_AUTHORITY.md`](IMPLEMENTATION_AUTHORITY.md) — standing founder authorization and limits
 - [`BUILD_QUEUE.md`](BUILD_QUEUE.md) — dynamic dependency/status queue
+- [`SPEC_001_EXECUTION_HANDOFF.md`](SPEC_001_EXECUTION_HANDOFF.md) — exact first executable handoff
 - [`CURSOR_EXECUTION_PLAYBOOK.md`](CURSOR_EXECUTION_PLAYBOOK.md) — operational loop Cursor follows until completion
 - [`IMPLEMENTATION_DECISION_DEFAULTS.md`](IMPLEMENTATION_DECISION_DEFAULTS.md) — no-question decision policy
 - [`DEFINITION_OF_DONE.md`](DEFINITION_OF_DONE.md) — exact closure rules
@@ -29,4 +30,4 @@
 - [`V0_UI_INTEGRATION_CONTRACT.md`](V0_UI_INTEGRATION_CONTRACT.md)
 - [`../../imports/v0/README.md`](../../imports/v0/README.md)
 
-Cursor must keep this index, the build queue, and owning specs synchronized as the repository advances.
+Cursor must keep this index, the build queue, owning specs, donor provenance, and evidence synchronized as the repository advances. Historical planning-only authorization metadata is superseded by `IMPLEMENTATION_AUTHORITY.md`; architecture/safety constraints remain binding.
