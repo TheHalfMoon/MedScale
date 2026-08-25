@@ -53,27 +53,27 @@
 
 | Item | Severity | Disposition |
 |---|---|---|
-| Spec 002 not yet CLOSED | **BLOCKER for implement** | Expected; BUILD_QUEUE `BLOCKED_BY_002`. Package itself is complete. |
+| Spec 002 CLOSED_CANONICAL (`7820cde`) | resolved | Implement gate open 2026-08-25 |
 | Live HL7/HAPI validator optional vs fixture oracle | residual | Accepted; EvaluationRecord evidence-only rule mandatory either way |
-| Exact SQLite crate pin | residual | Deferred to implement-time dependency admission (D13) — not a design blocker |
+| Exact SQLite crate pin | residual | Resolved at implement-time dependency admission |
 | OS IPC still Spec 006 | residual | Ingest uses Spec 002 facade; in-process/host path sufficient for 003 |
 | Projection stub vs H0-B extractors | expected | Hooks in 003; presentation in 004 |
 
 **Unresolved design blockers inside Spec 003 package: NONE.**
 
-**Implementation readiness blocker: Spec 002 must be `CLOSED_CANONICAL` before `/speckit.implement`.**
+**Implementation readiness blocker: NONE (Spec 002 is `CLOSED_CANONICAL`).**
 
 ## Entry / exit readiness
 
 ```text
-ENTRY: Spec 002 CLOSED_CANONICAL (objects, Core Host, facade, identity/promotion)
+ENTRY: Spec 002 CLOSED_CANONICAL (7820cde)
 PACKAGE_STATE: COMPLETE_SPEC_KIT_PACKAGE
 ANALYZE_RESULT: PASS_NO_UNRESOLVED_DESIGN_BLOCKERS
-IMPLEMENT_BLOCKED_UNTIL: SPEC_002_CLOSED
-READY_AFTER_002_CLOSE: YES
-IMPLEMENTATION: NOT STARTED (docs-only planning package)
+IMPLEMENT_BLOCKED_UNTIL: NONE
+READY: YES
+IMPLEMENTATION: IN_PROGRESS
 ```
 
 ## Recommendation
 
-Keep BUILD_QUEUE Spec 003 as `BLOCKED_BY_002` until Spec 002 converges. When Spec 002 closes, set Spec 003 → `READY` and begin `/speckit.implement` on branch `spec/003-h0a-trusted-ingest-durability` using `tasks.md`. Do not treat SQLCipher absence or fixture-oracle validators as READY blockers.
+Proceed with `/speckit.implement` on branch `spec/003-h0a-trusted-ingest-durability` using `tasks.md`. Do not treat SQLCipher absence or fixture-oracle validators as READY blockers.

@@ -4,7 +4,8 @@ use std::collections::HashMap;
 
 use medscale_contracts::objects::{
     ActionAuditRecord, AuthorityScopeId, ClinicalAssertion, DerivedSourceArtifact,
-    IdentityAssertion, IdentityMergeDecision, OpaqueId, Proposal, RealmId, SourceRecord,
+    EvaluationRecord, IdentityAssertion, IdentityMergeDecision, OpaqueId, Projection, Proposal,
+    RealmId, SourceRecord,
 };
 use serde_json::Value;
 
@@ -18,6 +19,8 @@ pub enum StoredObject {
     Audit(ActionAuditRecord),
     Identity(IdentityAssertion),
     Merge(IdentityMergeDecision),
+    Evaluation(EvaluationRecord),
+    Projection(Projection),
 }
 
 impl StoredObject {
@@ -30,6 +33,8 @@ impl StoredObject {
             Self::Audit(v) => serde_json::to_value(v).unwrap_or(Value::Null),
             Self::Identity(v) => serde_json::to_value(v).unwrap_or(Value::Null),
             Self::Merge(v) => serde_json::to_value(v).unwrap_or(Value::Null),
+            Self::Evaluation(v) => serde_json::to_value(v).unwrap_or(Value::Null),
+            Self::Projection(v) => serde_json::to_value(v).unwrap_or(Value::Null),
         }
     }
 
@@ -66,6 +71,16 @@ impl StoredObject {
                 &v.header.id,
             ),
             Self::Merge(v) => (
+                &v.header.realm_id,
+                &v.header.authority_scope_id,
+                &v.header.id,
+            ),
+            Self::Evaluation(v) => (
+                &v.header.realm_id,
+                &v.header.authority_scope_id,
+                &v.header.id,
+            ),
+            Self::Projection(v) => (
                 &v.header.realm_id,
                 &v.header.authority_scope_id,
                 &v.header.id,

@@ -53,6 +53,12 @@ impl DigestSha256 {
         Self(out)
     }
 
+    /// Constructs a digest from raw SHA-256 bytes.
+    #[must_use]
+    pub const fn from_bytes(bytes: [u8; 32]) -> Self {
+        Self(bytes)
+    }
+
     /// Returns the raw digest bytes.
     #[must_use]
     pub const fn as_bytes(&self) -> &[u8; 32] {

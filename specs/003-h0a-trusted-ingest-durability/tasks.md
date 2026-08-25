@@ -12,11 +12,11 @@
 
 **Purpose**: Confirm Spec 002 baseline and storage/fhir module layout
 
-- [ ] T001 Confirm Spec 002 closed and workspace builds; note baseline commit/toolchain in `evidence/003-h0a-trusted-ingest-durability/BASELINE.md`
-- [ ] T002 [P] Create `medscale-storage` crate or modules (`durable`, `blob`, `gc`, `backup`, `migrate`) under chosen layout per research D1/D4
-- [ ] T003 [P] Create `medscale-fhir` crate or modules (`lexical`, `ingest`, `identity_extract`) for structural parse boundary
-- [ ] T004 Admit SQLite binding (exact pin) via dependency admission template; enforce one SQLite copy per process; update lockfile — **do not admit SQLCipher**
-- [ ] T005 [P] Add synthetic FHIR R4 fixtures + adversarial lexical corpus under `fixtures/synthetic/fhir/r4/`
+- [x] T001 Confirm Spec 002 closed and workspace builds; note baseline commit/toolchain in `evidence/003-h0a-trusted-ingest-durability/BASELINE.md`
+- [x] T002 [P] Create `medscale-storage` crate or modules (`durable`, `blob`, `gc`, `backup`, `migrate`) under chosen layout per research D1/D4
+- [x] T003 [P] Create `medscale-fhir` crate or modules (`lexical`, `ingest`, `identity_extract`) for structural parse boundary
+- [x] T004 Admit SQLite binding (exact pin) via dependency admission template; enforce one SQLite copy per process; update lockfile — **do not admit SQLCipher**
+- [x] T005 [P] Add synthetic FHIR R4 fixtures + adversarial lexical corpus under `fixtures/synthetic/fhir/r4/`
 
 **Checkpoint**: Workspace compiles with storage/fhir skeletons; fixtures present
 
@@ -26,12 +26,12 @@
 
 **Purpose**: Traits, claim paths, blob records before ingest
 
-- [ ] T006 Define `BlobRef`, `BlobRecord`, `FilesystemClaimScope`, `IngestReceipt` types in `medscale-contracts`
-- [ ] T007 [P] Define `DurableStore` + `BlobStore` traits in `medscale-storage`
-- [ ] T008 Implement claim-scoped path validation (no `..` escape; sync-root refuse/non-claim policy hooks)
-- [ ] T009 Implement FS blob put (temp → fsync → rename) + get/verify/quarantine
-- [ ] T010 Implement SQLite (or chosen) metadata DurableStore open under Core Host lease only
-- [ ] T011 [P] Unit tests: digest verify success/fail → quarantine in storage tests
+- [x] T006 Define `BlobRef`, `BlobRecord`, `FilesystemClaimScope`, `IngestReceipt` types in `medscale-contracts`
+- [x] T007 [P] Define `DurableStore` + `BlobStore` traits in `medscale-storage`
+- [x] T008 Implement claim-scoped path validation (no `..` escape; sync-root refuse/non-claim policy hooks)
+- [x] T009 Implement FS blob put (temp → fsync → rename) + get/verify/quarantine
+- [x] T010 Implement SQLite (or chosen) metadata DurableStore open under Core Host lease only
+- [x] T011 [P] Unit tests: digest verify success/fail → quarantine in storage tests
 
 **Checkpoint**: Blobs verify; paths claim-scoped; store opens only with lease
 
@@ -43,10 +43,10 @@
 
 **Independent Test**: `cargo test lexical_fhir_ingest` / ingest accept path
 
-- [ ] T012 [US1] Implement `IngestFhirSynthetic` facade method wiring Core Host → storage
-- [ ] T013 [US1] Persist SourceRecord + BlobRef + visibility + IngestReceipt + AuditRecord
-- [ ] T014 [US1] Idempotent duplicate digest → `Duplicate` without byte mutation
-- [ ] T015 [US1] Tests: Patient/Observation/Bundle accept with exact-byte round-trip
+- [x] T012 [US1] Implement `IngestFhirSynthetic` facade method wiring Core Host → storage
+- [x] T013 [US1] Persist SourceRecord + BlobRef + visibility + IngestReceipt + AuditRecord
+- [x] T014 [US1] Idempotent duplicate digest → `Duplicate` without byte mutation
+- [x] T015 [US1] Tests: Patient/Observation/Bundle accept with exact-byte round-trip
 
 **Checkpoint**: US1 — trusted custody of synthetic FHIR bytes
 
@@ -58,11 +58,11 @@
 
 **Independent Test**: `cargo test duplicate_key_reject` (+ decimal/version suites)
 
-- [ ] T016 [US2] Duplicate JSON key detection → reject/quarantine
-- [ ] T017 [US2] Decimal/number policy (no silent f64 clinical coerce)
-- [ ] T018 [US2] FHIR version gate admit only R4 4.0.1
-- [ ] T019 [US2] Size/depth limits + truncated JSON reject
-- [ ] T020 [US2] Adversarial fixture suite (≥3 lexical fails) all fail-closed
+- [x] T016 [US2] Duplicate JSON key detection → reject/quarantine
+- [x] T017 [US2] Decimal/number policy (no silent f64 clinical coerce)
+- [x] T018 [US2] FHIR version gate admit only R4 4.0.1
+- [x] T019 [US2] Size/depth limits + truncated JSON reject
+- [x] T020 [US2] Adversarial fixture suite (≥3 lexical fails) all fail-closed
 
 **Checkpoint**: US2 — lexical exit tests green
 
@@ -74,10 +74,10 @@
 
 **Independent Test**: `cargo test ingest_identity_no_silent_merge`
 
-- [ ] T021 [US3] Emit IdentityAssertion/Proposal from Patient identifiers with evidence_refs
-- [ ] T022 [US3] `AttachValidatorEvidence` → EvaluationRecord `evidence_only`
-- [ ] T023 [US3] Fixture oracle path for validator evidence without network
-- [ ] T024 [US3] Tests: shared identifier ≠ merge; validator never creates ClinicalAssertion
+- [x] T021 [US3] Emit IdentityAssertion/Proposal from Patient identifiers with evidence_refs
+- [x] T022 [US3] `AttachValidatorEvidence` → EvaluationRecord `evidence_only`
+- [x] T023 [US3] Fixture oracle path for validator evidence without network
+- [x] T024 [US3] Tests: shared identifier ≠ merge; validator never creates ClinicalAssertion
 
 **Checkpoint**: US3 — identity/validator evidence wired
 
@@ -89,10 +89,10 @@
 
 **Independent Test**: blob visibility + rebuild tests
 
-- [ ] T025 [US4] `ReadCanonicalVisibility` + read-time verify
-- [ ] T026 [US4] Corruption injection → quarantine + evidence
-- [ ] T027 [US4] `RebuildProjection` for `SubjectCustodyStub` / `IngestIndexStub`
-- [ ] T028 [US4] Deterministic rebuild after Projection delete
+- [x] T025 [US4] `ReadCanonicalVisibility` + read-time verify
+- [x] T026 [US4] Corruption injection → quarantine + evidence
+- [x] T027 [US4] `RebuildProjection` for `SubjectCustodyStub` / `IngestIndexStub`
+- [x] T028 [US4] Deterministic rebuild after Projection delete
 
 **Checkpoint**: US4 — visibility + hooks ready for Spec 004
 
@@ -104,11 +104,11 @@
 
 **Independent Test**: `cargo test gc_promotion_race` / `crash_fault_ingest`
 
-- [ ] T029 [US5] Implement GC mark/tombstone/sweep with epoch state
-- [ ] T030 [US5] Promotion/ingest pin or re-mark against GC
-- [ ] T031 [US5] Fault points + crash recovery tests for ingest write path
-- [ ] T032 [US5] GC↔promotion race suite (zero live-ref deletions)
-- [ ] T033 [US5] Crash mid-GC recovery tests
+- [x] T029 [US5] Implement GC mark/tombstone/sweep with epoch state
+- [x] T030 [US5] Promotion/ingest pin or re-mark against GC
+- [x] T031 [US5] Fault points + crash recovery tests for ingest write path
+- [x] T032 [US5] GC↔promotion race suite (zero live-ref deletions)
+- [x] T033 [US5] Crash mid-GC recovery tests
 
 **Checkpoint**: US5 — durability race/crash proofs
 
@@ -120,13 +120,13 @@
 
 **Independent Test**: `cargo test backup_restore_closure` / `migration_interrupt`
 
-- [ ] T034 [US6] MigrationJournal + idempotent resume on open
-- [ ] T035 [US6] Kill mid-migration test → safe reopen
-- [ ] T036 [US6] Record FilesystemClaimScope in evidence template
-- [ ] T037 [US7] Implement `BackupVault` manifest + artifact layout
-- [ ] T038 [US7] Implement `RestoreVault` with restore closure check
-- [ ] T039 [US7] Tampered digest restore fail-closed test
-- [ ] T040 [US7] Multi-blob end-to-end backup → wipe → restore proof
+- [x] T034 [US6] MigrationJournal + idempotent resume on open
+- [x] T035 [US6] Kill mid-migration test → safe reopen
+- [x] T036 [US6] Record FilesystemClaimScope in evidence template
+- [x] T037 [US7] Implement `BackupVault` manifest + artifact layout
+- [x] T038 [US7] Implement `RestoreVault` with restore closure check
+- [x] T039 [US7] Tampered digest restore fail-closed test
+- [x] T040 [US7] Multi-blob end-to-end backup → wipe → restore proof
 
 **Checkpoint**: US6–US7 — synthetic backup interface proven; migration/FS claim documented
 
@@ -134,11 +134,11 @@
 
 ## Phase 9: Polish & Evidence
 
-- [ ] T041 Run full `cargo test --workspace` + fmt/clippy; fix regressions
-- [ ] T042 Archive evidence under `evidence/003-h0a-trusted-ingest-durability/` per quickstart (include FS claim scope)
-- [ ] T043 Validate `quickstart.md` commands
-- [ ] T044 Update `docs/planning/BUILD_QUEUE.md` on closeout: Spec 003 `CLOSED_CANONICAL`, Spec 004 `READY` (only at converge/merge)
-- [ ] T045 Ensure Spec 004 planning can proceed; do not implement 004 presentation in this branch
+- [x] T041 Run full `cargo test --workspace` + fmt/clippy; fix regressions
+- [x] T042 Archive evidence under `evidence/003-h0a-trusted-ingest-durability/` per quickstart (include FS claim scope)
+- [x] T043 Validate `quickstart.md` commands
+- [x] T044 Update `docs/planning/BUILD_QUEUE.md` on closeout: Spec 003 `CLOSED_CANONICAL`, Spec 004 `READY` (only at converge/merge)
+- [x] T045 Ensure Spec 004 planning can proceed; do not implement 004 presentation in this branch
 
 ---
 

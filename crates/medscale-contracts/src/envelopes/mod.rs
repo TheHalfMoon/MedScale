@@ -4,7 +4,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::AUTHORITY_SCHEMA_VERSION;
-use crate::objects::{EffectState, OpaqueId, VaultId};
+use crate::ingest::{BackupManifest, IngestReceipt};
+use crate::objects::{DigestSha256, EffectState, OpaqueId, VaultId};
 
 /// Capability required to execute a facade operation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -22,10 +23,20 @@ pub enum Capability {
     AppendAudit,
     TransitionEffect,
     ReadObject,
+    OpenSyntheticVault,
+    CloseVault,
+    IngestFhirSynthetic,
+    AttachValidatorEvidence,
+    RebuildProjection,
+    ReadCanonicalVisibility,
+    VerifyBlob,
+    BackupVault,
+    RestoreVault,
+    RunBlobGc,
 }
 
 /// Request body variants.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "op", rename_all = "snake_case")]
 pub enum RequestBody {
     AcquireLease {
@@ -82,10 +93,44 @@ pub enum RequestBody {
     ReadObject {
         object_id: OpaqueId,
     },
+    OpenSyntheticVault {
+        vault_root: String,
+    },
+    CloseVault,
+    IngestFhirSynthetic {
+        media_type: String,
+        bytes: Vec<u8>,
+        fhir_version_hint: Option<String>,
+        attach_validator_fixture_id: Option<String>,
+    },
+    AttachValidatorEvidence {
+        source_id: OpaqueId,
+        evaluator: String,
+        outcome: String,
+        issue_codes: Vec<String>,
+    },
+    RebuildProjection {
+        kind: String,
+        built_from: Vec<OpaqueId>,
+    },
+    ReadCanonicalVisibility {
+        source_id: OpaqueId,
+    },
+    VerifyBlob {
+        digest: DigestSha256,
+    },
+    BackupVault {
+        destination: String,
+    },
+    RestoreVault {
+        source: String,
+        destination: String,
+    },
+    RunBlobGc,
 }
 
 /// Successful response body variants.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "ok", rename_all = "snake_case")]
 pub enum ResponseBody {
     Lease {
@@ -111,6 +156,36 @@ pub enum ResponseBody {
         value: Value,
     },
     Released,
+    VaultOpened {
+        vault_root: String,
+    },
+    VaultClosed,
+    Ingested {
+        receipt: IngestReceipt,
+    },
+    Visibility {
+        source_id: OpaqueId,
+        visible: bool,
+        content_digest: DigestSha256,
+        byte_length: u64,
+        blob_ok: bool,
+    },
+    BlobVerified {
+        digest: DigestSha256,
+        byte_length: u64,
+        state: crate::ingest::BlobState,
+    },
+    Backup {
+        manifest: BackupManifest,
+    },
+    Restored {
+        sources_restored: u64,
+        blobs_restored: u64,
+    },
+    Gc {
+        tombstoned: u64,
+        swept: u64,
+    },
 }
 
 /// Authority error vocabulary (fail closed).
@@ -126,11 +201,16 @@ pub enum AuthorityError {
     IllegalTransition,
     UnknownRequiresReconcile,
     DigestMismatch,
+    LeaseRequired,
+    VaultRequired,
+    LexicalReject { reason: String },
+    VersionReject { got: Option<String> },
+    PathOutsideClaim,
     InvalidArgument { message: String },
 }
 
 /// Versioned authority request.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct AuthorityRequest {
     pub schema_version: u32,
     pub request_id: OpaqueId,
@@ -169,7 +249,7 @@ impl AuthorityRequest {
 }
 
 /// Versioned authority response.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct AuthorityResponse {
     pub schema_version: u32,
     pub request_id: OpaqueId,

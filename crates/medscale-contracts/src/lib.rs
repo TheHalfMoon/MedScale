@@ -1,7 +1,8 @@
-//! Shared `MedScale` contracts (Spec 001 bootstrap + Spec 002 object/authority foundation).
+//! Shared `MedScale` contracts (Specs 001–003).
 
 pub mod envelopes;
 pub mod ffi_policy;
+pub mod ingest;
 pub mod objects;
 pub mod text;
 pub mod worker_policy;
@@ -12,8 +13,11 @@ pub const MEDSCALE_VERSION: &str = env!("CARGO_PKG_VERSION");
 /// Stable product name used in operator-facing bootstrap output.
 pub const MEDSCALE_PRODUCT_NAME: &str = "MedScale";
 
-/// Authority-bearing envelope schema version for Spec 002.
+/// Authority-bearing envelope schema version (Spec 002 base; 003 extends bodies).
 pub const AUTHORITY_SCHEMA_VERSION: u32 = 1;
+
+/// Admitted FHIR interchange version for H0-A.
+pub const FHIR_R4_VERSION: &str = "4.0.1";
 
 /// Minimal workspace identity for bootstrap health reporting.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]

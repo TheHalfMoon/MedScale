@@ -4,11 +4,15 @@ members = [
     "crates/medscale-contracts",
     "crates/medscale-core",
     "crates/medscale-cli",
+    "crates/medscale-storage",
+    "crates/medscale-fhir",
 ]
 default-members = [
     "crates/medscale-contracts",
     "crates/medscale-core",
     "crates/medscale-cli",
+    "crates/medscale-storage",
+    "crates/medscale-fhir",
 ]
 
 [workspace.package]
@@ -18,10 +22,20 @@ license = "UNLICENSED"
 publish = false
 rust-version = "1.85"
 
+[workspace.dependencies]
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.151"
+sha2 = "0.11.0"
+thiserror = "2.0.20"
+rusqlite = { version = "0.37.0", features = ["bundled"] }
+medscale-contracts = { path = "crates/medscale-contracts", version = "0.1.0" }
+medscale-storage = { path = "crates/medscale-storage", version = "0.1.0" }
+medscale-fhir = { path = "crates/medscale-fhir", version = "0.1.0" }
+medscale-core = { path = "crates/medscale-core", version = "0.1.0" }
+
 [workspace.lints.rust]
 unsafe_code = "forbid"
 
 [workspace.lints.clippy]
 all = { level = "deny", priority = -1 }
-# Pedantic stays allow during bootstrap; tighten in later specs with evidence.
 pedantic = { level = "allow", priority = -1 }
