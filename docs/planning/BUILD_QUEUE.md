@@ -15,7 +15,7 @@
 | 004 | H0-B Trusted Presentation + Coverage | `CLOSED_CANONICAL` | Deterministic timeline/Brief/coverage merged; continue Spec 005. |
 | 005 | Local Private Vault + Encryption + Recovery | `CLOSED_CANONICAL` | Encrypted vault + recovery merged; continue Spec 006. |
 | 006 | CLI + Desktop Foundation | `CLOSED_CANONICAL` | CLI wedge + non-WebView desktop scaffold merged; continue eligible units. |
-| 007 | OpenMed Absorption / Parity Research | `RESEARCH_ELIGIBLE` | Next eligible research unit; pin OpenMed v2.2 baseline without runtime. |
+| 007 | OpenMed Absorption / Parity Research | `IN_REVIEW` | Spec 007 research on branch; merge when CI green. |
 | 008 | Local AI Capability Fabric | `BLOCKED_BY_007` | Offline pack admission + worker confinement; needs qualified 007. |
 | 009 | Mobile iOS + Android | `BLOCKED_BY_008_FOR_AI` | Base mobile surface unblocked by 005+006; AI pack features still need 008. |
 | 010 | Documents + OCR + Voice | `BLOCKED_BY_005_008` | P1 hostile-input workers. |
