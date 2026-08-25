@@ -1,5 +1,6 @@
 //! Authority facade, store, promotion, and identity operations.
 
+mod document_ops;
 mod facade;
 mod handles;
 mod identity;
@@ -9,6 +10,7 @@ mod promote;
 mod source_ops;
 mod store;
 
+pub use document_ops::{document_worker_policy, mime_decision, voice_worker_policy};
 pub use facade::CoreFacade;
 pub use handles::assert_no_secret_handles;
 pub use source_ops::{create_source_record, overwrite_source_bytes, verify_source_digest};

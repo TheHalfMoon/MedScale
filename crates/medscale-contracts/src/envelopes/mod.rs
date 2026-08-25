@@ -4,6 +4,9 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::AUTHORITY_SCHEMA_VERSION;
+use crate::documents::{
+    AsrStubRequest, DocumentIntakeRequest, DocumentIntakeResult, MediaStubResult, OcrStubRequest,
+};
 use crate::ingest::{BackupManifest, IngestReceipt};
 use crate::network::{EgressAllowlistEntry, NetworkBrokerRequest, NetworkBrokerResult};
 use crate::objects::{DigestSha256, EffectState, OpaqueId, VaultId};
@@ -48,6 +51,9 @@ pub enum Capability {
     PacksInstallLocal,
     PacksList,
     PacksPromote,
+    DocumentIntake,
+    OcrStub,
+    AsrStub,
 }
 
 /// Request body variants.
@@ -180,6 +186,15 @@ pub enum RequestBody {
         pack_id: OpaqueId,
         to: PackPromotionState,
     },
+    DocumentIntake {
+        request: DocumentIntakeRequest,
+    },
+    OcrStub {
+        request: OcrStubRequest,
+    },
+    AsrStub {
+        request: AsrStubRequest,
+    },
 }
 
 /// Successful response body variants.
@@ -273,6 +288,12 @@ pub enum ResponseBody {
     PackPromoted {
         pack_id: OpaqueId,
         state: PackPromotionState,
+    },
+    DocumentIntake {
+        result: DocumentIntakeResult,
+    },
+    MediaStub {
+        result: MediaStubResult,
     },
 }
 

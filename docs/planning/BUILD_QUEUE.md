@@ -18,7 +18,7 @@
 | 007 | OpenMed Absorption / Parity Research | `CLOSED_CANONICAL` | OpenMed v2.2 pin + parity matrix/dispositions merged; Spec 008 unblocked for fabric. |
 | 008 | Local AI Capability Fabric | `CLOSED_CANONICAL` | Offline Pack v0 + worker ambient-deny merged; OS sandbox PLATFORM_QUALIFIED remains OPEN gate. |
 | 009 | Mobile iOS + Android | `READY_BASE` | Base mobile unblocked; AI pack features can use Spec 008 offline packs. |
-| 010 | Documents + OCR + Voice | `READY` | Spec 008 closed; start P1 hostile-input workers. |
+| 010 | Documents + OCR + Voice | `IN_REVIEW` | Spec 010 on branch; merge when CI green. |
 | 011 | Evidence / Retrieval / Medical Intelligence | `READY` | Spec 008 closed; relevance never authority. |
 | 012 | MESC Artifact Integration | `BLOCKED_BY_RELEASED_MESC_ARTIFACT` | Spec 008 closed; still needs released MESC artifact gate. |
 | 013 | FHIR / SMART / Network Broker | `CLOSED_CANONICAL` | Fail-closed broker + stub SMART/FHIR adapters merged; continue Spec 014 when workflow evidence ready. |
