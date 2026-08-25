@@ -7,6 +7,7 @@ members = [
     "crates/medscale-storage",
     "crates/medscale-fhir",
     "crates/medscale-keys",
+    "crates/medscale-desktop",
 ]
 default-members = [
     "crates/medscale-contracts",
@@ -15,6 +16,7 @@ default-members = [
     "crates/medscale-storage",
     "crates/medscale-fhir",
     "crates/medscale-keys",
+    "crates/medscale-desktop",
 ]
 
 [workspace.package]
@@ -34,6 +36,8 @@ aes-gcm = "0.10.3"
 argon2 = "0.5.3"
 zeroize = { version = "1.8.1", features = ["derive"] }
 rand = "0.8.5"
+clap = { version = "4.5.53", features = ["derive"] }
+anyhow = "1.0.100"
 medscale-contracts = { path = "crates/medscale-contracts", version = "0.1.0" }
 medscale-storage = { path = "crates/medscale-storage", version = "0.1.0" }
 medscale-fhir = { path = "crates/medscale-fhir", version = "0.1.0" }

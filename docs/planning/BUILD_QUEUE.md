@@ -14,7 +14,7 @@
 | 003 | H0-A Trusted Ingest + Durability | `CLOSED_CANONICAL` | Synthetic FHIR R4 ingest + durability merged; continue Spec 004. |
 | 004 | H0-B Trusted Presentation + Coverage | `CLOSED_CANONICAL` | Deterministic timeline/Brief/coverage merged; continue Spec 005. |
 | 005 | Local Private Vault + Encryption + Recovery | `CLOSED_CANONICAL` | Encrypted vault + recovery merged; continue Spec 006. |
-| 006 | CLI + Desktop Foundation | `READY` | Trusted Local Longitudinal Record; integrate v0 UI when available. |
+| 006 | CLI + Desktop Foundation | `IN_REVIEW` | Spec 006 implementation on branch; merge when CI green. |
 | 007 | OpenMed Absorption / Parity Research | `RESEARCH_ELIGIBLE` | May run research in parallel with 005; use exact source acquisition plan. |
 | 008 | Local AI Capability Fabric | `BLOCKED_BY_005_006_007` | Offline pack admission + worker confinement. |
 | 009 | Mobile iOS + Android | `BLOCKED_BY_005_006` | AI pack features also depend on 008. |
