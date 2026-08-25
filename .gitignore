@@ -1,0 +1,29 @@
+# Rust
+/target/
+**/*.rs.bk
+Cargo.lock.bak
+
+# Evidence may contain machine-local paths; keep committed summaries only
+evidence/**/raw/
+
+# Spec Kit / editors
+.specify/feature.json
+*.swp
+.DS_Store
+Thumbs.db
+
+# Secrets / env
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+credentials.json
+
+# Python / uv (Spec Kit tooling)
+.venv/
+__pycache__/
+
+# IDE
+.idea/
+*.iml

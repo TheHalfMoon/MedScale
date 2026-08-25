@@ -27,6 +27,19 @@ PRODUCT_RUNTIME_EGRESS = DEFAULT_DENY
 UI_VISUAL_SOURCE = v0
 ```
 
+## Engineering bootstrap
+
+- Spec Kit constitution: [`.specify/memory/constitution.md`](.specify/memory/constitution.md)
+- Active Spec 001 package: [`specs/001-rust-repository-speckit-bootstrap/`](specs/001-rust-repository-speckit-bootstrap/)
+- Contributing: [`docs/engineering/CONTRIBUTING.md`](docs/engineering/CONTRIBUTING.md)
+- Dependency direction: [`docs/engineering/DEPENDENCY_DIRECTION.md`](docs/engineering/DEPENDENCY_DIRECTION.md)
+
+```powershell
+cargo test --workspace
+cargo run -p medscale-cli -- --version
+cargo run -p medscale-cli -- doctor
+```
+
 ## Execution support
 
 - [Cursor execution playbook](docs/planning/CURSOR_EXECUTION_PLAYBOOK.md)
