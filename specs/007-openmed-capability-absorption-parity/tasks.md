@@ -117,7 +117,7 @@
 - [x] T034 Validate quickstart paths and matrix/evidence file presence
 - [x] T035 Grep/confirm workspace has no OpenMed product runtime dependency introduced by this unit
 - [x] T036 Re-read analyze-notes gates; ensure SC-001…SC-007 satisfied by artifacts
-- [ ] T037 Update `docs/planning/BUILD_QUEUE.md` on converge only: Spec 007 research `CLOSED_CANONICAL` / unlock Spec 008 dependency as appropriate—**not during planning package authoring**
+- [x] T037 Update `docs/planning/BUILD_QUEUE.md` on converge only: Spec 007 research `CLOSED_CANONICAL` / unlock Spec 008 dependency as appropriate—**not during planning package authoring**
 - [x] T038 Do **not** start Spec 008 Rust fabric in this unit
 
 ---
