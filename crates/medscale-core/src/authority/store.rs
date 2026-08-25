@@ -158,6 +158,33 @@ impl InMemoryAuthorityStore {
             _ => None,
         }
     }
+
+    /// Raw object map for presentation orchestration (read-only scans).
+    #[must_use]
+    pub fn objects_raw(&self) -> &HashMap<String, StoredObject> {
+        &self.objects
+    }
+
+    /// All ClinicalAssertions for a subject (unordered).
+    #[must_use]
+    pub fn assertions_for_subject(&self, subject_ref: &OpaqueId) -> Vec<ClinicalAssertion> {
+        self.objects
+            .values()
+            .filter_map(|o| match o {
+                StoredObject::Assertion(a) if &a.subject_ref == subject_ref => Some(a.clone()),
+                _ => None,
+            })
+            .collect()
+    }
+
+    /// Assertion ids for built_from lists.
+    #[must_use]
+    pub fn assertion_ids_for_subject(&self, subject_ref: &OpaqueId) -> Vec<OpaqueId> {
+        self.assertions_for_subject(subject_ref)
+            .into_iter()
+            .map(|a| a.header.id)
+            .collect()
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

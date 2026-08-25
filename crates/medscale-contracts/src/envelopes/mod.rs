@@ -6,6 +6,7 @@ use serde_json::Value;
 use crate::AUTHORITY_SCHEMA_VERSION;
 use crate::ingest::{BackupManifest, IngestReceipt};
 use crate::objects::{DigestSha256, EffectState, OpaqueId, VaultId};
+use crate::presentation::{DrillDownResult, SubjectBriefV1, SubjectCoverageV1, SubjectTimelineV1};
 
 /// Capability required to execute a facade operation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -33,6 +34,10 @@ pub enum Capability {
     BackupVault,
     RestoreVault,
     RunBlobGc,
+    GetTimeline,
+    GetBrief,
+    GetCoverage,
+    DrillDownPresentation,
 }
 
 /// Request body variants.
@@ -127,6 +132,20 @@ pub enum RequestBody {
         destination: String,
     },
     RunBlobGc,
+    GetTimeline {
+        subject_ref: OpaqueId,
+    },
+    GetBrief {
+        subject_ref: OpaqueId,
+    },
+    GetCoverage {
+        subject_ref: OpaqueId,
+    },
+    DrillDownPresentation {
+        subject_ref: OpaqueId,
+        field_key: String,
+        assertion_id: Option<OpaqueId>,
+    },
 }
 
 /// Successful response body variants.
@@ -185,6 +204,21 @@ pub enum ResponseBody {
     Gc {
         tombstoned: u64,
         swept: u64,
+    },
+    Timeline {
+        body: SubjectTimelineV1,
+        projection_id: Option<OpaqueId>,
+    },
+    Brief {
+        body: SubjectBriefV1,
+        projection_id: Option<OpaqueId>,
+    },
+    Coverage {
+        body: SubjectCoverageV1,
+        projection_id: Option<OpaqueId>,
+    },
+    DrillDown {
+        result: DrillDownResult,
     },
 }
 

@@ -17,6 +17,7 @@ use crate::process::{LeaseError, LeaseRegistry};
 
 use super::identity::{create_identity_assertion, decide_identity_merge};
 use super::ingest_ops;
+use super::presentation;
 use super::promote::{PromoteError, promote_proposal};
 use super::source_ops::create_source_record;
 use super::store::{InMemoryAuthorityStore, ScopeError, StoredObject};
@@ -360,8 +361,51 @@ impl CoreFacade {
             RequestBody::RebuildProjection { kind, built_from } => {
                 self.require_lease(&req.vault_id)?;
                 let mut store = self.store();
+                let vault_guard = self.vault();
+                let body = if presentation::is_presentation_kind(&kind) {
+                    // Prefer subject from first assertion in built_from, else treat first id as subject.
+                    let subject_ref =
+                        built_from
+                            .first()
+                            .cloned()
+                            .ok_or(AuthorityError::InvalidArgument {
+                                message: "built_from required".to_owned(),
+                            })?;
+                    // If first id is an assertion, use its subject; else use as subject_ref directly.
+                    let subject = match store.get_scoped(
+                        &subject_ref,
+                        &req.realm_id,
+                        &req.authority_scope_id,
+                    ) {
+                        Ok(StoredObject::Assertion(a)) => a.subject_ref.clone(),
+                        _ => subject_ref.clone(),
+                    };
+                    let lookup = |d: &medscale_contracts::objects::DigestSha256| {
+                        blob_lookup(vault_guard.as_ref(), d)
+                    };
+                    match kind.as_str() {
+                        medscale_contracts::presentation::KIND_SUBJECT_TIMELINE_V1 => {
+                            presentation::body_timeline(&presentation::build_timeline(
+                                &store, &subject, &lookup,
+                            ))
+                        }
+                        medscale_contracts::presentation::KIND_SUBJECT_BRIEF_V1 => {
+                            presentation::body_brief(&presentation::build_brief(
+                                &store, &subject, &lookup,
+                            ))
+                        }
+                        medscale_contracts::presentation::KIND_SUBJECT_COVERAGE_V1 => {
+                            presentation::body_coverage(&presentation::build_coverage(
+                                &store, &subject, &lookup,
+                            ))
+                        }
+                        _ => serde_json::json!({}),
+                    }
+                } else {
+                    serde_json::json!({})
+                };
                 let id = store.alloc_id("proj");
-                store.insert(StoredObject::Projection(Projection {
+                let proj = Projection {
                     header: ObjectHeader {
                         id: id.clone(),
                         schema_version: AUTHORITY_SCHEMA_VERSION,
@@ -375,9 +419,10 @@ impl CoreFacade {
                         precision: TimePrecision::Instant,
                         approximate: false,
                     },
-                    body: serde_json::json!({}),
+                    body,
                     authoritative: false,
-                }));
+                };
+                store.insert(StoredObject::Projection(proj));
                 Ok(ResponseBody::Created { object_id: id })
             }
             RequestBody::ReadCanonicalVisibility { source_id } => {
@@ -436,7 +481,82 @@ impl CoreFacade {
                 let vault = vault_guard.as_ref().ok_or(AuthorityError::VaultRequired)?;
                 ingest_ops::gc(vault)
             }
+            RequestBody::GetTimeline { subject_ref } => {
+                self.require_lease(&req.vault_id)?;
+                let store = self.store();
+                let vault_guard = self.vault();
+                let body = presentation::build_timeline(&store, &subject_ref, &|d| {
+                    blob_lookup(vault_guard.as_ref(), d)
+                });
+                Ok(ResponseBody::Timeline {
+                    body,
+                    projection_id: None,
+                })
+            }
+            RequestBody::GetBrief { subject_ref } => {
+                self.require_lease(&req.vault_id)?;
+                let store = self.store();
+                let vault_guard = self.vault();
+                let body = presentation::build_brief(&store, &subject_ref, &|d| {
+                    blob_lookup(vault_guard.as_ref(), d)
+                });
+                Ok(ResponseBody::Brief {
+                    body,
+                    projection_id: None,
+                })
+            }
+            RequestBody::GetCoverage { subject_ref } => {
+                self.require_lease(&req.vault_id)?;
+                let store = self.store();
+                let vault_guard = self.vault();
+                let body = presentation::build_coverage(&store, &subject_ref, &|d| {
+                    blob_lookup(vault_guard.as_ref(), d)
+                });
+                Ok(ResponseBody::Coverage {
+                    body,
+                    projection_id: None,
+                })
+            }
+            RequestBody::DrillDownPresentation {
+                subject_ref,
+                field_key,
+                assertion_id,
+            } => {
+                self.require_lease(&req.vault_id)?;
+                let store = self.store();
+                let vault_guard = self.vault();
+                let result = presentation::drill_down(
+                    &store,
+                    &subject_ref,
+                    &field_key,
+                    assertion_id.as_ref(),
+                    &|d| blob_lookup(vault_guard.as_ref(), d),
+                )
+                .map_err(|e| match e {
+                    presentation::DrillDownError::NotFound => AuthorityError::NotFound,
+                    presentation::DrillDownError::UnhealthyEvidence => {
+                        AuthorityError::InvalidArgument {
+                            message: "unhealthy_evidence".to_owned(),
+                        }
+                    }
+                })?;
+                Ok(ResponseBody::DrillDown { result })
+            }
         }
+    }
+}
+
+fn blob_lookup(
+    vault: Option<&SyntheticVault>,
+    digest: &medscale_contracts::objects::DigestSha256,
+) -> Option<(Vec<u8>, bool)> {
+    let vault = vault?;
+    match vault.blobs.get_blob(digest) {
+        Ok(bytes) => {
+            let ok = vault.blobs.verify(digest, bytes.len() as u64).is_ok();
+            Some((bytes, ok))
+        }
+        Err(_) => None,
     }
 }
 
@@ -501,6 +621,13 @@ fn capability_matches(cap: &Capability, body: &RequestBody) -> bool {
             | (Capability::BackupVault, RequestBody::BackupVault { .. })
             | (Capability::RestoreVault, RequestBody::RestoreVault { .. })
             | (Capability::RunBlobGc, RequestBody::RunBlobGc)
+            | (Capability::GetTimeline, RequestBody::GetTimeline { .. })
+            | (Capability::GetBrief, RequestBody::GetBrief { .. })
+            | (Capability::GetCoverage, RequestBody::GetCoverage { .. })
+            | (
+                Capability::DrillDownPresentation,
+                RequestBody::DrillDownPresentation { .. }
+            )
     )
 }
 
