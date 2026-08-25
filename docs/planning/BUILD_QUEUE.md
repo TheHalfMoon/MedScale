@@ -21,8 +21,8 @@
 | 010 | Documents + OCR + Voice | `BLOCKED_BY_005_008` | P1 hostile-input workers. |
 | 011 | Evidence / Retrieval / Medical Intelligence | `BLOCKED_BY_004_008` | Relevance never authority. |
 | 012 | MESC Artifact Integration | `BLOCKED_BY_008_AND_RELEASED_MESC_ARTIFACT` | Artifact import only; never mutate MESC. |
-| 013 | FHIR / SMART / Network Broker | `IN_REVIEW` | Spec 013 on branch; merge when CI green. |
-| 014 | Controlled Actions / NPHIES | `BLOCKED_BY_013_AND_WORKFLOW_EVIDENCE` | No blind retry. |
+| 013 | FHIR / SMART / Network Broker | `CLOSED_CANONICAL` | Fail-closed broker + stub SMART/FHIR adapters merged; continue Spec 014 when workflow evidence ready. |
+| 014 | Controlled Actions / NPHIES | `BLOCKED_BY_WORKFLOW_EVIDENCE` | Spec 013 closed; no blind retry; needs workflow evidence + partner gates. |
 | 015 | HF + Online Pack Ecosystem | `BLOCKED_BY_008_013` | HF is distribution, not runtime requirement. |
 | 016+ | Advanced work | `DEFERRED_BY_CANONICAL_DESIGN` | Promote only with new evidence/spec authority. |
 

@@ -93,7 +93,7 @@
 - [x] T030 Run `cargo test --workspace` + fmt/clippy on Windows+Linux as available
 - [x] T031 Validate `quickstart.md` commands
 - [x] T032 Ensure REAL_PHI gate unchanged; no MESC mutation; no reqwest/tokio admit; no Spec 014 state machine; no HF client
-- [ ] T033 Update `docs/planning/BUILD_QUEUE.md` on converge: Spec 013 `CLOSED_CANONICAL` (only at merge/converge—not during planning)
+- [x] T033 Update `docs/planning/BUILD_QUEUE.md` on converge: Spec 013 `CLOSED_CANONICAL` (only at merge/converge—not during planning)
 
 ---
 
