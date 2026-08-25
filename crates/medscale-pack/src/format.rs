@@ -102,7 +102,14 @@ pub fn admit_pack_dir(path: &Path) -> Result<PackManifestV0, AdmitError> {
             return Err(AdmitError::ForbiddenKind);
         }
         let file = path.join(&art.relative_path);
-        let bytes = fs::read(&file).map_err(|e| AdmitError::Io(e.to_string()))?;
+        let mut bytes = fs::read(&file).map_err(|e| AdmitError::Io(e.to_string()))?;
+        // Text fixture kinds are LF-canonical (Windows checkouts must not change digests).
+        if matches!(
+            art.kind,
+            PackArtifactKind::FixtureBytes | PackArtifactKind::TokenizerMeta
+        ) {
+            bytes = normalize_lf(bytes);
+        }
         let dig = DigestSha256::of(&bytes);
         let expected = parse_hex_digest(&art.digest)?;
         if dig != expected {
