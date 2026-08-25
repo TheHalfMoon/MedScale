@@ -1,0 +1,17 @@
+---
+description: Mandatory donor/source provenance and acquisition policy
+alwaysApply: true
+---
+
+# Source acquisition
+
+Before copying, porting, vendoring, linking, or importing any external code/artifact, read `docs/planning/SOURCE_ACQUISITION_AND_COPY_PLAN.md` and the owning spec.
+
+- Never wholesale-copy a donor repository.
+- Only rows explicitly permitting `COPY_BOUNDED`, `PORT_TO_RUST`, `DEPENDENCY`, `VENDOR_SNAPSHOT`, `FFI`, `SIDECAR`, `ARTIFACT_IMPORT`, or `USER_SUPPLIED_UI` authorize that operation.
+- Create the provenance/admission record before the first donor-derived line enters MedScale.
+- Bind exact upstream URL, revision/tag, original path(s), content identity, license/NOTICE/permission, local target, modifications, transitive dependencies, security placement, tests, update strategy, and exit strategy.
+- Code permission never implies permission for model weights, datasets, restricted terminology, or other assets.
+- OpenMed baseline is v2.2.0 commit `59d9cb0a2e0ccbba8fa3d891a66d83ffaf45e837`; do not silently compare/copy from a moving branch.
+- MESC is artifact import only; never copy its Python package/runtime into MedScale or mutate its repository.
+- When a plan says `pin in Spec N`, research and freeze the exact tested upstream revision in that spec without asking the founder.
