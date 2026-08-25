@@ -7,6 +7,7 @@ use crate::AUTHORITY_SCHEMA_VERSION;
 use crate::documents::{
     AsrStubRequest, DocumentIntakeRequest, DocumentIntakeResult, MediaStubResult, OcrStubRequest,
 };
+use crate::evidence::{LexicalRetrieveRequest, LexicalRetrieveResult};
 use crate::ingest::{BackupManifest, IngestReceipt};
 use crate::network::{EgressAllowlistEntry, NetworkBrokerRequest, NetworkBrokerResult};
 use crate::objects::{DigestSha256, EffectState, OpaqueId, VaultId};
@@ -54,6 +55,7 @@ pub enum Capability {
     DocumentIntake,
     OcrStub,
     AsrStub,
+    RetrieveLexical,
 }
 
 /// Request body variants.
@@ -195,6 +197,9 @@ pub enum RequestBody {
     AsrStub {
         request: AsrStubRequest,
     },
+    RetrieveLexical {
+        request: LexicalRetrieveRequest,
+    },
 }
 
 /// Successful response body variants.
@@ -294,6 +299,9 @@ pub enum ResponseBody {
     },
     MediaStub {
         result: MediaStubResult,
+    },
+    LexicalRetrieve {
+        result: LexicalRetrieveResult,
     },
 }
 

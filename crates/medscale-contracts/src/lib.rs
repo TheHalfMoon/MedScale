@@ -3,6 +3,7 @@
 pub mod doctor;
 pub mod documents;
 pub mod envelopes;
+pub mod evidence;
 pub mod ffi_policy;
 pub mod ingest;
 pub mod network;
