@@ -21,6 +21,8 @@ use super::presentation;
 use super::promote::{PromoteError, promote_proposal};
 use super::source_ops::create_source_record;
 use super::store::{InMemoryAuthorityStore, ScopeError, StoredObject};
+use medscale_contracts::network::EgressAllowlistEntry;
+use medscale_network::FixtureTransport;
 use medscale_storage::{EncryptedVault, SyntheticVault};
 
 /// In-process facade owning lease registry + in-memory store + optional vaults.
@@ -30,6 +32,7 @@ pub struct CoreFacade {
     store: Mutex<InMemoryAuthorityStore>,
     vault: Mutex<Option<SyntheticVault>>,
     encrypted: Mutex<Option<EncryptedVault>>,
+    allowlist: Mutex<Vec<EgressAllowlistEntry>>,
 }
 
 impl CoreFacade {
@@ -53,6 +56,12 @@ impl CoreFacade {
 
     fn encrypted(&self) -> std::sync::MutexGuard<'_, Option<EncryptedVault>> {
         self.encrypted
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+    }
+
+    fn allowlist(&self) -> std::sync::MutexGuard<'_, Vec<EgressAllowlistEntry>> {
+        self.allowlist
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner)
     }
@@ -617,6 +626,84 @@ impl CoreFacade {
                 }
                 Ok(ResponseBody::VaultClosed)
             }
+            RequestBody::SetEgressAllowlist { entries } => {
+                self.require_lease(&req.vault_id)?;
+                let count = entries.len() as u32;
+                *self.allowlist() = entries;
+                Ok(ResponseBody::AllowlistSet { entries: count })
+            }
+            RequestBody::NetworkBrokerInvoke { request } => {
+                self.require_lease(&req.vault_id)?;
+                let allowlist = self.allowlist().clone();
+                let outcome =
+                    medscale_network::broker_invoke(&allowlist, &request, &FixtureTransport);
+                let mut store = self.store();
+                let audit_id = store.alloc_id("audit");
+                let action = match outcome.decision {
+                    medscale_contracts::network::BrokerDecision::Allow => "network_broker.attempt",
+                    medscale_contracts::network::BrokerDecision::Deny => "network_broker.deny",
+                };
+                store.insert(StoredObject::Audit(ActionAuditRecord {
+                    header: ObjectHeader {
+                        id: audit_id.clone(),
+                        schema_version: AUTHORITY_SCHEMA_VERSION,
+                        realm_id: req.realm_id.clone(),
+                        authority_scope_id: req.authority_scope_id.clone(),
+                    },
+                    kind: ActionAuditKind::Audit,
+                    actor: OpaqueId::new("network-broker"),
+                    action: action.to_owned(),
+                    target_refs: vec![],
+                    effect_state: None,
+                    payload_digest: request.body_digest.clone(),
+                    detail: Some(serde_json::json!({
+                        "host": request.destination_host,
+                        "path": request.destination_path,
+                        "purpose": request.purpose,
+                        "data_class": request.data_class,
+                        "decision": outcome.decision,
+                        "reason": outcome.reason,
+                        "transport_sent": outcome.transport_sent,
+                    })),
+                }));
+                let evaluation_id = if matches!(
+                    request.purpose,
+                    medscale_contracts::network::EgressPurpose::ProfileOracleFixture
+                        | medscale_contracts::network::EgressPurpose::ConformanceEvidenceAttach
+                        | medscale_contracts::network::EgressPurpose::IntegrityCheck
+                ) {
+                    let eval_id = store.alloc_id("eval");
+                    store.insert(StoredObject::Evaluation(EvaluationRecord {
+                        header: ObjectHeader {
+                            id: eval_id.clone(),
+                            schema_version: AUTHORITY_SCHEMA_VERSION,
+                            realm_id: req.realm_id,
+                            authority_scope_id: req.authority_scope_id,
+                        },
+                        target_refs: vec![audit_id.clone()],
+                        evaluator: "medscale.network.fixture_oracle.v1".to_owned(),
+                        result: serde_json::json!({
+                            "evidence_only": true,
+                            "reason": outcome.reason,
+                            "fixture": outcome.fixture_body,
+                        }),
+                        evidence_only: true,
+                    }));
+                    Some(eval_id)
+                } else {
+                    None
+                };
+                Ok(ResponseBody::NetworkBroker {
+                    result: medscale_contracts::network::NetworkBrokerResult {
+                        decision: outcome.decision,
+                        reason: outcome.reason,
+                        audit_id,
+                        evaluation_id,
+                        transport_sent: outcome.transport_sent,
+                        fixture_body: outcome.fixture_body,
+                    },
+                })
+            }
         }
     }
 }
@@ -714,6 +801,14 @@ fn capability_matches(cap: &Capability, body: &RequestBody) -> bool {
             | (
                 Capability::CloseEncryptedVault,
                 RequestBody::CloseEncryptedVault
+            )
+            | (
+                Capability::NetworkBrokerInvoke,
+                RequestBody::NetworkBrokerInvoke { .. }
+            )
+            | (
+                Capability::SetEgressAllowlist,
+                RequestBody::SetEgressAllowlist { .. }
             )
     )
 }

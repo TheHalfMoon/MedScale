@@ -138,6 +138,13 @@ fn run() -> Result<()> {
                 println!("privacy_proof: {:?}", report.privacy_proof_freshness);
                 println!("desktop_shell: {}", report.desktop_shell);
                 println!("tauri_admitted: {}", report.tauri_admitted);
+                println!(
+                    "network_broker: present={} default_deny={} allowlist_entries={} live_partner={}",
+                    report.network_broker.present,
+                    report.network_broker.default_deny,
+                    report.network_broker.allowlist_entries,
+                    report.network_broker.live_partner_authorized
+                );
                 for note in &report.notes {
                     println!("note: {note}");
                 }
@@ -301,12 +308,16 @@ mod tests {
             "key_store",
             "privacy_proof_freshness",
             "tauri_admitted",
+            "network_broker",
+            "default_deny",
         ] {
             assert!(json.contains(key), "missing {key}");
         }
         assert_no_secret_markers(&json).unwrap();
         assert!(!report.tauri_admitted);
         assert!(!report.real_phi_authorized);
+        assert!(report.network_broker.default_deny);
+        assert!(!report.network_broker.live_partner_authorized);
     }
 
     #[test]

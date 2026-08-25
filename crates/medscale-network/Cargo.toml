@@ -1,6 +1,6 @@
 [package]
-name = "medscale-core"
-description = "Trusted-core authority facade (Specs 002–004)"
+name = "medscale-network"
+description = "Network Broker transport + allowlist (Spec 013); sole product egress path"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -9,13 +9,11 @@ rust-version.workspace = true
 
 [dependencies]
 medscale-contracts = { workspace = true }
-medscale-fhir = { workspace = true }
-medscale-network = { workspace = true }
-medscale-storage = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 sha2 = { workspace = true }
 thiserror = { workspace = true }
+ureq = { workspace = true }
 
 [lints]
 workspace = true

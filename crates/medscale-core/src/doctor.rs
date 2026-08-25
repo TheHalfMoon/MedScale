@@ -3,6 +3,7 @@
 use std::path::Path;
 
 use medscale_contracts::doctor::{DoctorReport, KeyStoreAvailability, PrivacyFreshness, SyncRisk};
+use medscale_contracts::network::NetworkBrokerDoctorStatus;
 use medscale_contracts::{MEDSCALE_PRODUCT_NAME, MEDSCALE_VERSION};
 use medscale_storage::{assert_claim_path, default_vault_root};
 
@@ -12,6 +13,17 @@ pub fn build_doctor_report(
     vault_root: Option<&str>,
     vault_open: bool,
     privacy_proof_present: bool,
+) -> DoctorReport {
+    build_doctor_report_with_allowlist(vault_root, vault_open, privacy_proof_present, 0)
+}
+
+/// Doctor report with allowlist entry count (Spec 013; count-only, no destinations).
+#[must_use]
+pub fn build_doctor_report_with_allowlist(
+    vault_root: Option<&str>,
+    vault_open: bool,
+    privacy_proof_present: bool,
+    allowlist_entries: u32,
 ) -> DoctorReport {
     let (sync_risk, filesystem_claim_ok, resolved_root) = match vault_root {
         Some(root) => match assert_claim_path(Path::new(root)) {
@@ -46,9 +58,17 @@ pub fn build_doctor_report(
         },
         desktop_shell: "thin_scaffold_non_webview".to_owned(),
         tauri_admitted: false,
+        network_broker: NetworkBrokerDoctorStatus {
+            present: true,
+            default_deny: true,
+            allowlist_entries,
+            live_partner_authorized: false,
+            http_client: "ureq_behind_broker_fixture_default".to_owned(),
+        },
         notes: vec![
             "CLI and Desktop call Core Host authority facade only".to_owned(),
             "Tauri/WebView not admitted in Spec 006".to_owned(),
+            "Product egress DEFAULT_DENY except Network Broker allowlist".to_owned(),
         ],
     }
 }
