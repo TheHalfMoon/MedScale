@@ -92,7 +92,8 @@ pub fn android_arm64_16kb_ffi_stub() -> FfiAdmissionRecord {
         upstream_url: "https://github.com/TheHalfMoon/MedScale".to_owned(),
         revision: "spec-009-ready-base".to_owned(),
         build_flags: "TBD_16kb_page_size_link".to_owned(),
-        abi_notes: "arm64-v8a; Android 16KB page-size compatibility required before ship".to_owned(),
+        abi_notes: "arm64-v8a; Android 16KB page-size compatibility required before ship"
+            .to_owned(),
         ownership_freeing: String::new(),
         thread_affinity: "jni_documented".to_owned(),
         no_panic_across_extern_c: true,
