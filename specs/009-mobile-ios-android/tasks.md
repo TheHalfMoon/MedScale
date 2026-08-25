@@ -6,4 +6,4 @@
 - [x] T004 FFI admission stubs (iOS/Android)
 - [x] T005 Tests + doctor JSON axes
 - [x] T006 cargo test/clippy/deny
-- [ ] T007 Closeout CLOSED_CANONICAL (merge only)
+- [x] T007 Closeout CLOSED_CANONICAL (merge only)
