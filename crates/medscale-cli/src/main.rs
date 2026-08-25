@@ -72,6 +72,11 @@ enum Commands {
         #[arg(long)]
         json: bool,
     },
+    /// Offline Pack v0 operations (Spec 008; local path only).
+    Packs {
+        #[command(subcommand)]
+        action: PacksCmd,
+    },
 }
 
 #[derive(Debug, Subcommand)]
@@ -98,6 +103,23 @@ enum VaultCmd {
         vault_id: String,
         #[arg(long)]
         vault_root: PathBuf,
+    },
+}
+
+#[derive(Debug, Subcommand)]
+enum PacksCmd {
+    /// Admit a Pack from a local directory (offline only).
+    Install {
+        #[arg(long)]
+        vault_id: String,
+        path: PathBuf,
+    },
+    /// List admitted packs in the current Core Host session.
+    List {
+        #[arg(long)]
+        vault_id: String,
+        #[arg(long)]
+        json: bool,
     },
 }
 
@@ -144,6 +166,13 @@ fn run() -> Result<()> {
                     report.network_broker.default_deny,
                     report.network_broker.allowlist_entries,
                     report.network_broker.live_partner_authorized
+                );
+                println!(
+                    "packs_runtime: present={} offline_only={} admitted={} online_download={}",
+                    report.packs_runtime.present,
+                    report.packs_runtime.offline_only,
+                    report.packs_runtime.admitted_count,
+                    report.packs_runtime.online_download_authorized
                 );
                 for note in &report.notes {
                     println!("note: {note}");
@@ -256,6 +285,25 @@ fn run() -> Result<()> {
             }
             Ok(())
         }
+        Commands::Packs { action } => match action {
+            PacksCmd::Install { vault_id, path } => {
+                let mut session = CliSession::connect(&vault_id).map_err(auth)?;
+                let result = session
+                    .packs_install_local(&path.display().to_string())
+                    .map_err(auth)?;
+                println!("{}", serde_json::to_string_pretty(&result)?);
+                if !result.admitted {
+                    bail!("pack admission denied: {:?}", result.reason);
+                }
+                Ok(())
+            }
+            PacksCmd::List { vault_id, json } => {
+                let mut session = CliSession::connect(&vault_id).map_err(auth)?;
+                // Note: list is session-local; install then list in same process for CLI demos.
+                let packs = session.packs_list().map_err(auth)?;
+                print_json_or_debug(&packs, json)
+            }
+        },
     }
 }
 
@@ -310,6 +358,8 @@ mod tests {
             "tauri_admitted",
             "network_broker",
             "default_deny",
+            "packs_runtime",
+            "offline_only",
         ] {
             assert!(json.contains(key), "missing {key}");
         }
@@ -318,6 +368,8 @@ mod tests {
         assert!(!report.real_phi_authorized);
         assert!(report.network_broker.default_deny);
         assert!(!report.network_broker.live_partner_authorized);
+        assert!(report.packs_runtime.offline_only);
+        assert!(!report.packs_runtime.online_download_authorized);
     }
 
     #[test]

@@ -14,7 +14,8 @@ pub mod validate;
 pub use authority::CoreFacade;
 pub use cli_session::CliSession;
 pub use doctor::{
-    build_doctor_report, build_doctor_report_with_allowlist, privacy_proof_artifact_present,
+    build_doctor_report, build_doctor_report_full, build_doctor_report_with_allowlist,
+    privacy_proof_artifact_present,
 };
 pub use medscale_contracts::{MEDSCALE_VERSION, WorkspaceIdentity};
 

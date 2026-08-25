@@ -6,6 +6,7 @@ pub mod ffi_policy;
 pub mod ingest;
 pub mod network;
 pub mod objects;
+pub mod packs;
 pub mod presentation;
 pub mod text;
 pub mod worker_policy;

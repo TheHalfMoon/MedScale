@@ -19,6 +19,8 @@ pub struct WorkerSupervisionPolicy {
     pub allow_network: bool,
     pub allow_secrets: bool,
     pub allow_authority: bool,
+    /// Profile id for evidence (Spec 008); OS PLATFORM_QUALIFIED is separate.
+    pub confinement_profile: String,
     pub grants: Vec<WorkerCapabilityGrant>,
 }
 
@@ -33,6 +35,7 @@ impl WorkerSupervisionPolicy {
             allow_network: false,
             allow_secrets: false,
             allow_authority: false,
+            confinement_profile: "policy_ambient_deny_v0".to_owned(),
             grants: Vec::new(),
         }
     }

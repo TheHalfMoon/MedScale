@@ -7,6 +7,7 @@ use crate::AUTHORITY_SCHEMA_VERSION;
 use crate::ingest::{BackupManifest, IngestReceipt};
 use crate::network::{EgressAllowlistEntry, NetworkBrokerRequest, NetworkBrokerResult};
 use crate::objects::{DigestSha256, EffectState, OpaqueId, VaultId};
+use crate::packs::{PackAdmitResult, PackManifestV0, PackPromotionState};
 use crate::presentation::{DrillDownResult, SubjectBriefV1, SubjectCoverageV1, SubjectTimelineV1};
 
 /// Capability required to execute a facade operation.
@@ -44,6 +45,9 @@ pub enum Capability {
     CloseEncryptedVault,
     NetworkBrokerInvoke,
     SetEgressAllowlist,
+    PacksInstallLocal,
+    PacksList,
+    PacksPromote,
 }
 
 /// Request body variants.
@@ -168,6 +172,14 @@ pub enum RequestBody {
     SetEgressAllowlist {
         entries: Vec<EgressAllowlistEntry>,
     },
+    PacksInstallLocal {
+        local_path: String,
+    },
+    PacksList,
+    PacksPromote {
+        pack_id: OpaqueId,
+        to: PackPromotionState,
+    },
 }
 
 /// Successful response body variants.
@@ -252,6 +264,16 @@ pub enum ResponseBody {
     AllowlistSet {
         entries: u32,
     },
+    PackAdmit {
+        result: PackAdmitResult,
+    },
+    PackList {
+        packs: Vec<PackManifestV0>,
+    },
+    PackPromoted {
+        pack_id: OpaqueId,
+        state: PackPromotionState,
+    },
 }
 
 /// Authority error vocabulary (fail closed).
@@ -290,6 +312,9 @@ pub enum AuthorityError {
     },
     ExternalGateRequired {
         gate: String,
+    },
+    PackDenied {
+        reason: crate::packs::PackAdmitReason,
     },
 }
 

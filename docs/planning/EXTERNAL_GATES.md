@@ -19,5 +19,6 @@ This file records blockers that require a real human/external authority. They do
 | TERMINOLOGY_ICD_LICENSE | `OPEN` | ICD Pack rights | Same as SNOMED track discipline. |
 | TERMINOLOGY_ATC_LICENSE | `OPEN` | ATC Pack rights | Same as SNOMED track discipline. |
 | TERMINOLOGY_UMLS_LICENSE | `OPEN` | UMLS/Athena Pack rights | Same as SNOMED track discipline. |
+| WORKER_OS_SANDBOX_PLATFORM_QUALIFIED | `OPEN` | Landlock / AppContainer / Seatbelt PLATFORM_QUALIFIED for workers | Spec 008 ships policy ambient-deny + FixtureRuntime; continue OS sandbox qualification without blocking offline Pack admission. |
 
 Cursor may add rows only when a blocker truly requires external authority. Never use this file for ordinary engineering uncertainty.

@@ -33,12 +33,13 @@ $keys = Get-Package 'medscale-keys'
 $storage = Get-Package 'medscale-storage'
 $fhir = Get-Package 'medscale-fhir'
 $network = Get-Package 'medscale-network'
+$pack = Get-Package 'medscale-pack'
 
 $failures = @()
 
 foreach ($name in @('medscale-contracts')) {
     $pkg = Get-Package $name
-    foreach ($forbidden in @('medscale-core', 'medscale-cli', 'medscale-storage', 'medscale-fhir', 'medscale-keys', 'medscale-desktop', 'medscale-network')) {
+    foreach ($forbidden in @('medscale-core', 'medscale-cli', 'medscale-storage', 'medscale-fhir', 'medscale-keys', 'medscale-desktop', 'medscale-network', 'medscale-pack')) {
         if (Test-DependsOn -Package $pkg -DepName $forbidden) {
             $failures += "$name must not depend on $forbidden"
         }
@@ -116,9 +117,25 @@ if (Test-DependsOn -Package $desktop -DepName 'ureq') {
     $failures += 'medscale-desktop must not depend on ureq'
 }
 
+if (-not (Test-DependsOn -Package $core -DepName 'medscale-pack')) {
+    $failures += 'medscale-core must depend on medscale-pack'
+}
+if (-not (Test-DependsOn -Package $pack -DepName 'medscale-contracts')) {
+    $failures += 'medscale-pack must depend on medscale-contracts'
+}
+if (Test-DependsOn -Package $pack -DepName 'medscale-core') {
+    $failures += 'medscale-pack must not depend on medscale-core'
+}
+if (Test-DependsOn -Package $cli -DepName 'medscale-pack') {
+    $failures += 'medscale-cli must not depend on medscale-pack (facade-only)'
+}
+if (Test-DependsOn -Package $desktop -DepName 'medscale-pack') {
+    $failures += 'medscale-desktop must not depend on medscale-pack (facade-only)'
+}
+
 if ($failures.Count -gt 0) {
     Write-Error ("Dependency direction check failed:`n - " + ($failures -join "`n - "))
     exit 1
 }
 
-Write-Host 'Dependency direction check passed (cli/desktop -> core -> {storage,fhir,network} -> {contracts,keys}).'
+Write-Host 'Dependency direction check passed (cli/desktop -> core -> {storage,fhir,network,pack} -> {contracts,keys}).'
