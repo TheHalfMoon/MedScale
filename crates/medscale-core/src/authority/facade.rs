@@ -795,6 +795,42 @@ impl CoreFacade {
                     }),
                 }
             }
+            RequestBody::DocumentIntake { request } => {
+                self.require_lease(&req.vault_id)?;
+                let mut store = self.store();
+                Ok(ResponseBody::DocumentIntake {
+                    result: super::document_ops::intake(
+                        &mut store,
+                        req.realm_id,
+                        req.authority_scope_id,
+                        request,
+                    )?,
+                })
+            }
+            RequestBody::OcrStub { request } => {
+                self.require_lease(&req.vault_id)?;
+                let mut store = self.store();
+                Ok(ResponseBody::MediaStub {
+                    result: super::document_ops::ocr_stub(
+                        &mut store,
+                        req.realm_id,
+                        req.authority_scope_id,
+                        request,
+                    )?,
+                })
+            }
+            RequestBody::AsrStub { request } => {
+                self.require_lease(&req.vault_id)?;
+                let mut store = self.store();
+                Ok(ResponseBody::MediaStub {
+                    result: super::document_ops::asr_stub(
+                        &mut store,
+                        req.realm_id,
+                        req.authority_scope_id,
+                        request,
+                    )?,
+                })
+            }
         }
     }
 }
@@ -907,6 +943,12 @@ fn capability_matches(cap: &Capability, body: &RequestBody) -> bool {
             )
             | (Capability::PacksList, RequestBody::PacksList)
             | (Capability::PacksPromote, RequestBody::PacksPromote { .. })
+            | (
+                Capability::DocumentIntake,
+                RequestBody::DocumentIntake { .. }
+            )
+            | (Capability::OcrStub, RequestBody::OcrStub { .. })
+            | (Capability::AsrStub, RequestBody::AsrStub { .. })
     )
 }
 
