@@ -10,8 +10,8 @@
 |---:|---|---|---|
 | 000 | Constitution + Source Authority | `CLOSED_CANONICAL` | Planning V2/source authority already canonicalized; Spec 001 materializes it into the Spec Kit repository structure without reopening founder decisions. |
 | 001 | Rust Repository + Spec Kit Bootstrap | `CLOSED_CANONICAL` | Spec Kit + Rust workspace + CI/supply-chain bootstrap merged; continue Spec 002. |
-| 002 | Trusted Object / Source / Authority + Process/Text Foundation | `READY` | First post-bootstrap executable unit; package already prepared under `specs/002-trusted-object-source-authority-foundation/`. |
-| 003 | H0-A Trusted Ingest + Durability | `BLOCKED_BY_002` | Synthetic FHIR R4 only. |
+| 002 | Trusted Object / Source / Authority + Process/Text Foundation | `CLOSED_CANONICAL` | Object/authority foundation merged; continue Spec 003. |
+| 003 | H0-A Trusted Ingest + Durability | `READY` | Synthetic FHIR R4 only; start after 002 closeout. |
 | 004 | H0-B Trusted Presentation + Coverage | `BLOCKED_BY_003` | Deterministic LLM-free presentation. |
 | 005 | Local Private Vault + Encryption + Recovery | `BLOCKED_BY_004` | Pre-PHI technical qualification. |
 | 006 | CLI + Desktop Foundation | `BLOCKED_BY_005` | Trusted Local Longitudinal Record; integrate v0 UI when available. |

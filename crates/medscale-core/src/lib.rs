@@ -1,9 +1,16 @@
-//! `MedScale` core authority facade stub.
+//! `MedScale` trusted core (Spec 001 bootstrap + Spec 002 authority foundation).
 //!
-//! Spec 001 establishes the crate boundary only. No canonical storage, keys,
-//! network broker, or medical object graph is available yet.
+//! OS IPC transports are intentional for Spec 006; Spec 002 proves the same logical
+//! API in-process. See `specs/002-*/contracts/authority-facade.md`.
 
-use medscale_contracts::{MEDSCALE_VERSION, WorkspaceIdentity};
+pub mod authority;
+pub mod effects;
+pub mod process;
+pub mod text;
+pub mod validate;
+
+pub use authority::CoreFacade;
+pub use medscale_contracts::{MEDSCALE_VERSION, WorkspaceIdentity};
 
 /// Non-authoritative bootstrap health report for operators.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -12,16 +19,12 @@ pub struct BootstrapReport {
     pub identity: WorkspaceIdentity,
     /// Explicit statement that this process holds no vault/key/network handles.
     pub local_only: bool,
-    /// Explicit statement that medical functionality is absent in Spec 001.
+    /// Spec 002 adds object/authority semantics but no clinical product surface.
     pub medical_functionality: bool,
 }
 
-/// Authority facade entry point shared by future CLI/Desktop/mobile clients.
-#[derive(Debug, Default, Clone, Copy)]
-pub struct CoreFacade;
-
 impl CoreFacade {
-    /// Returns a bootstrap report proving the stub is local-only and non-medical.
+    /// Returns a bootstrap report proving local-only operation.
     #[must_use]
     pub fn bootstrap_report() -> BootstrapReport {
         BootstrapReport {
