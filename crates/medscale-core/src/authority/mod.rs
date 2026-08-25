@@ -4,6 +4,7 @@ mod facade;
 mod handles;
 mod identity;
 mod ingest_ops;
+mod presentation;
 mod promote;
 mod source_ops;
 mod store;

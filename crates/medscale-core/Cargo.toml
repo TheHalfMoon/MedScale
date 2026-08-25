@@ -1,6 +1,6 @@
 [package]
 name = "medscale-core"
-description = "Trusted-core authority facade (Specs 002–003)"
+description = "Trusted-core authority facade (Specs 002–004)"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

@@ -177,6 +177,7 @@ version = "0.1.0"
 dependencies = [
  "medscale-contracts",
  "serde_json",
+ "sha2",
  "thiserror",
 ]
 

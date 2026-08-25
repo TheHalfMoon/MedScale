@@ -1,9 +1,10 @@
-//! Shared `MedScale` contracts (Specs 001–003).
+//! Shared `MedScale` contracts (Specs 001–004).
 
 pub mod envelopes;
 pub mod ffi_policy;
 pub mod ingest;
 pub mod objects;
+pub mod presentation;
 pub mod text;
 pub mod worker_policy;
 

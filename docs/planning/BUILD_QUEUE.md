@@ -12,7 +12,7 @@
 | 001 | Rust Repository + Spec Kit Bootstrap | `CLOSED_CANONICAL` | Spec Kit + Rust workspace + CI/supply-chain bootstrap merged; continue Spec 002. |
 | 002 | Trusted Object / Source / Authority + Process/Text Foundation | `CLOSED_CANONICAL` | Object/authority foundation merged; continue Spec 003. |
 | 003 | H0-A Trusted Ingest + Durability | `CLOSED_CANONICAL` | Synthetic FHIR R4 ingest + durability merged; continue Spec 004. |
-| 004 | H0-B Trusted Presentation + Coverage | `READY` | Deterministic LLM-free presentation. |
+| 004 | H0-B Trusted Presentation + Coverage | `IN_REVIEW` | Spec 004 implementation on branch; merge when CI green. |
 | 005 | Local Private Vault + Encryption + Recovery | `BLOCKED_BY_004` | Pre-PHI technical qualification. |
 | 006 | CLI + Desktop Foundation | `BLOCKED_BY_005` | Trusted Local Longitudinal Record; integrate v0 UI when available. |
 | 007 | OpenMed Absorption / Parity Research | `RESEARCH_ELIGIBLE_AFTER_004` | May run research in parallel once 004 closes; use exact source acquisition plan. |
