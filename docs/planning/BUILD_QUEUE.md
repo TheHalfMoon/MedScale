@@ -19,7 +19,7 @@
 | 008 | Local AI Capability Fabric | `CLOSED_CANONICAL` | Offline Pack v0 + worker ambient-deny merged; OS sandbox PLATFORM_QUALIFIED remains OPEN gate. |
 | 009 | Mobile iOS + Android | `READY_BASE` | Base mobile unblocked; AI pack features can use Spec 008 offline packs. |
 | 010 | Documents + OCR + Voice | `CLOSED_CANONICAL` | MIME quarantine + OCR/ASR stubs merged; real engines deferred. |
-| 011 | Evidence / Retrieval / Medical Intelligence | `IN_REVIEW` | Spec 011 on branch; merge when CI green. |
+| 011 | Evidence / Retrieval / Medical Intelligence | `CLOSED_CANONICAL` | Lexical retrieval ? evidence-only EvaluationRecords; relevance?authority. |
 | 012 | MESC Artifact Integration | `BLOCKED_BY_RELEASED_MESC_ARTIFACT` | Spec 008 closed; still needs released MESC artifact gate. |
 | 013 | FHIR / SMART / Network Broker | `CLOSED_CANONICAL` | Fail-closed broker + stub SMART/FHIR adapters merged; continue Spec 014 when workflow evidence ready. |
 | 014 | Controlled Actions / NPHIES | `BLOCKED_BY_WORKFLOW_EVIDENCE` | Spec 013 closed; no blind retry; needs workflow evidence + partner gates. |
