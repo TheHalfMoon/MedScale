@@ -8,22 +8,26 @@ use medscale_contracts::envelopes::{
 };
 use medscale_contracts::objects::{
     ActionAuditKind, ActionAuditRecord, DerivedSourceArtifact, DigestSha256, EffectState,
-    LossClass, ObjectHeader, ProducerKind, Proposal, RepresentationKind,
+    EvaluationRecord, LossClass, MedicalTime, ObjectHeader, ProducerKind, Projection, Proposal,
+    RepresentationKind, TimePrecision,
 };
 
 use crate::effects;
 use crate::process::{LeaseError, LeaseRegistry};
 
 use super::identity::{create_identity_assertion, decide_identity_merge};
+use super::ingest_ops;
 use super::promote::{PromoteError, promote_proposal};
 use super::source_ops::create_source_record;
 use super::store::{InMemoryAuthorityStore, ScopeError, StoredObject};
+use medscale_storage::SyntheticVault;
 
-/// In-process facade owning lease registry + in-memory store.
+/// In-process facade owning lease registry + in-memory store + optional synthetic vault.
 #[derive(Debug, Default)]
 pub struct CoreFacade {
     leases: LeaseRegistry,
     store: Mutex<InMemoryAuthorityStore>,
+    vault: Mutex<Option<SyntheticVault>>,
 }
 
 impl CoreFacade {
@@ -37,6 +41,23 @@ impl CoreFacade {
         self.store
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner)
+    }
+
+    fn vault(&self) -> std::sync::MutexGuard<'_, Option<SyntheticVault>> {
+        self.vault
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+    }
+
+    fn require_lease(
+        &self,
+        vault_id: &medscale_contracts::objects::VaultId,
+    ) -> Result<(), AuthorityError> {
+        if self.leases.holder(vault_id).is_none() {
+            Err(AuthorityError::LeaseRequired)
+        } else {
+            Ok(())
+        }
     }
 
     /// Dispatches a versioned authority request.
@@ -280,6 +301,141 @@ impl CoreFacade {
                     value: obj.to_json(),
                 })
             }
+            RequestBody::OpenSyntheticVault { vault_root } => {
+                self.require_lease(&req.vault_id)?;
+                let mut slot = self.vault();
+                ingest_ops::open_vault(&mut slot, req.vault_id.as_str(), &vault_root)
+            }
+            RequestBody::CloseVault => {
+                self.require_lease(&req.vault_id)?;
+                Ok(ingest_ops::close_vault(&mut self.vault()))
+            }
+            RequestBody::IngestFhirSynthetic {
+                media_type,
+                bytes,
+                fhir_version_hint,
+                attach_validator_fixture_id,
+            } => {
+                self.require_lease(&req.vault_id)?;
+                let vault_guard = self.vault();
+                let vault = vault_guard.as_ref().ok_or(AuthorityError::VaultRequired)?;
+                let mut store = self.store();
+                ingest_ops::ingest_fhir(
+                    vault,
+                    &mut store,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    media_type,
+                    bytes,
+                    fhir_version_hint,
+                    attach_validator_fixture_id,
+                )
+            }
+            RequestBody::AttachValidatorEvidence {
+                source_id,
+                evaluator,
+                outcome,
+                issue_codes,
+            } => {
+                self.require_lease(&req.vault_id)?;
+                let mut store = self.store();
+                store
+                    .get_scoped(&source_id, &req.realm_id, &req.authority_scope_id)
+                    .map_err(scope_err)?;
+                let eval_id = store.alloc_id("eval");
+                store.insert(StoredObject::Evaluation(EvaluationRecord {
+                    header: ObjectHeader {
+                        id: eval_id.clone(),
+                        schema_version: AUTHORITY_SCHEMA_VERSION,
+                        realm_id: req.realm_id,
+                        authority_scope_id: req.authority_scope_id,
+                    },
+                    target_refs: vec![source_id],
+                    evaluator,
+                    result: serde_json::json!({ "outcome": outcome, "issues": issue_codes, "evidence_only": true }),
+                    evidence_only: true,
+                }));
+                Ok(ResponseBody::Created { object_id: eval_id })
+            }
+            RequestBody::RebuildProjection { kind, built_from } => {
+                self.require_lease(&req.vault_id)?;
+                let mut store = self.store();
+                let id = store.alloc_id("proj");
+                store.insert(StoredObject::Projection(Projection {
+                    header: ObjectHeader {
+                        id: id.clone(),
+                        schema_version: AUTHORITY_SCHEMA_VERSION,
+                        realm_id: req.realm_id,
+                        authority_scope_id: req.authority_scope_id,
+                    },
+                    projection_kind: kind,
+                    built_from,
+                    built_at: MedicalTime {
+                        value: "1970-01-01T00:00:00Z".to_owned(),
+                        precision: TimePrecision::Instant,
+                        approximate: false,
+                    },
+                    body: serde_json::json!({}),
+                    authoritative: false,
+                }));
+                Ok(ResponseBody::Created { object_id: id })
+            }
+            RequestBody::ReadCanonicalVisibility { source_id } => {
+                self.require_lease(&req.vault_id)?;
+                let vault_guard = self.vault();
+                let vault = vault_guard.as_ref().ok_or(AuthorityError::VaultRequired)?;
+                let meta = vault
+                    .meta
+                    .get_source(&source_id)
+                    .map_err(|_| AuthorityError::NotFound)?;
+                if meta.realm_id != req.realm_id
+                    || meta.authority_scope_id != req.authority_scope_id
+                {
+                    return Err(AuthorityError::WrongScope);
+                }
+                let blob_ok = vault.blobs.verify(&meta.digest, meta.byte_length).is_ok();
+                Ok(ResponseBody::Visibility {
+                    source_id,
+                    visible: meta.visible && blob_ok,
+                    content_digest: meta.digest,
+                    byte_length: meta.byte_length,
+                    blob_ok,
+                })
+            }
+            RequestBody::VerifyBlob { digest } => {
+                self.require_lease(&req.vault_id)?;
+                let vault_guard = self.vault();
+                let vault = vault_guard.as_ref().ok_or(AuthorityError::VaultRequired)?;
+                let state = vault.blobs.state(&digest);
+                let bytes = vault
+                    .blobs
+                    .get_blob(&digest)
+                    .map_err(|_| AuthorityError::NotFound)?;
+                Ok(ResponseBody::BlobVerified {
+                    digest,
+                    byte_length: bytes.len() as u64,
+                    state,
+                })
+            }
+            RequestBody::BackupVault { destination } => {
+                self.require_lease(&req.vault_id)?;
+                let vault_guard = self.vault();
+                let vault = vault_guard.as_ref().ok_or(AuthorityError::VaultRequired)?;
+                ingest_ops::backup(vault, &destination)
+            }
+            RequestBody::RestoreVault {
+                source,
+                destination,
+            } => {
+                self.require_lease(&req.vault_id)?;
+                ingest_ops::restore(&source, &destination)
+            }
+            RequestBody::RunBlobGc => {
+                self.require_lease(&req.vault_id)?;
+                let vault_guard = self.vault();
+                let vault = vault_guard.as_ref().ok_or(AuthorityError::VaultRequired)?;
+                ingest_ops::gc(vault)
+            }
         }
     }
 }
@@ -320,6 +476,31 @@ fn capability_matches(cap: &Capability, body: &RequestBody) -> bool {
                 RequestBody::TransitionEffect { .. }
             )
             | (Capability::ReadObject, RequestBody::ReadObject { .. })
+            | (
+                Capability::OpenSyntheticVault,
+                RequestBody::OpenSyntheticVault { .. }
+            )
+            | (Capability::CloseVault, RequestBody::CloseVault)
+            | (
+                Capability::IngestFhirSynthetic,
+                RequestBody::IngestFhirSynthetic { .. }
+            )
+            | (
+                Capability::AttachValidatorEvidence,
+                RequestBody::AttachValidatorEvidence { .. }
+            )
+            | (
+                Capability::RebuildProjection,
+                RequestBody::RebuildProjection { .. }
+            )
+            | (
+                Capability::ReadCanonicalVisibility,
+                RequestBody::ReadCanonicalVisibility { .. }
+            )
+            | (Capability::VerifyBlob, RequestBody::VerifyBlob { .. })
+            | (Capability::BackupVault, RequestBody::BackupVault { .. })
+            | (Capability::RestoreVault, RequestBody::RestoreVault { .. })
+            | (Capability::RunBlobGc, RequestBody::RunBlobGc)
     )
 }
 
