@@ -61,6 +61,26 @@ fn parse_hex_digest(hex: &str) -> Result<DigestSha256, AdmitError> {
     Ok(DigestSha256::from_bytes(bytes))
 }
 
+fn normalize_lf(bytes: Vec<u8>) -> Vec<u8> {
+    let mut out = Vec::with_capacity(bytes.len());
+    let mut i = 0;
+    while i < bytes.len() {
+        if bytes[i] == b'\r' {
+            if i + 1 < bytes.len() && bytes[i + 1] == b'\n' {
+                out.push(b'\n');
+                i += 2;
+                continue;
+            }
+            out.push(b'\n');
+            i += 1;
+            continue;
+        }
+        out.push(bytes[i]);
+        i += 1;
+    }
+    out
+}
+
 #[derive(Debug, Deserialize)]
 struct WireArtifact {
     relative_path: String,
