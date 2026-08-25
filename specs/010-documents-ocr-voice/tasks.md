@@ -8,4 +8,4 @@
 - [x] T006 Worker ambient-deny tests for doc/voice profiles
 - [x] T007 Evidence MIME_DENY_MATRIX + limitations
 - [x] T008 cargo test/clippy/deny
-- [ ] T009 Closeout CLOSED_CANONICAL (merge only)
+- [x] T009 Closeout CLOSED_CANONICAL (merge only)
