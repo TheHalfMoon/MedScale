@@ -1,0 +1,18 @@
+[package]
+name = "medscale-cli"
+description = "MedScale CLI surface (bootstrap commands only in Spec 001)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+
+[[bin]]
+name = "medscale"
+path = "src/main.rs"
+
+[dependencies]
+medscale-core = { path = "../medscale-core", version = "0.1.0" }
+
+[lints]
+workspace = true

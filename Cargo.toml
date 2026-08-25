@@ -1,0 +1,27 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/medscale-contracts",
+    "crates/medscale-core",
+    "crates/medscale-cli",
+]
+default-members = [
+    "crates/medscale-contracts",
+    "crates/medscale-core",
+    "crates/medscale-cli",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "UNLICENSED"
+publish = false
+rust-version = "1.85"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[workspace.lints.clippy]
+all = { level = "deny", priority = -1 }
+# Pedantic stays allow during bootstrap; tighten in later specs with evidence.
+pedantic = { level = "allow", priority = -1 }
