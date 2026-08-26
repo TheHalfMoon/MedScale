@@ -20,7 +20,7 @@ This file records blockers that require a real human/external authority. They do
 | TERMINOLOGY_ATC_LICENSE | `OPEN` | ATC Pack rights | Same as SNOMED track discipline. |
 | TERMINOLOGY_UMLS_LICENSE | `OPEN` | UMLS/Athena Pack rights | Same as SNOMED track discipline. |
 | WORKER_OS_SANDBOX_PLATFORM_QUALIFIED | `OPEN` | Landlock / AppContainer / Seatbelt PLATFORM_QUALIFIED for workers | OsSandboxPlan scaffold + refuse-apply shipped (NotPlatformQualified); measured PLATFORM_QUALIFIED evidence still required. |
-| MESC_RELEASED_ARTIFACT | `NOT_AVAILABLE` | Spec 012 immutable MESC artifact (hash/rights/SBOM) | Re-check 2026-08-26: v0.1.0 assets=[]; v0.2.0 tag has no Release. See evidence/012-mesc-artifact-integration/GATE_CHECK.md. Fail-closed MescArtifactAdmit ships; do not clear gate. |
+| MESC_RELEASED_ARTIFACT | `NOT_AVAILABLE` | Spec 012 immutable MESC artifact (hash/rights/SBOM) | Re-check 2026-08-26: MESC main `4b193c01…` TRAINING_CODE_READY=YES but RELEASE_STATUS=BLOCKED; v0.1.0 release_id 352847712 assets=[]; v0.2.0 tag has no Release. See evidence/012-mesc-artifact-integration/GATE_CHECK.md. Fail-closed MescArtifactAdmit ships; do not clear gate. |
 | SPEC_014_WORKFLOW_EVIDENCE | `PENDING` | Selected NPHIES/workflow profiles + terminology evidence | Spec 014 READY_BASE closed; NphiesInvoke remains ExternalGateRequired until this gate + PARTNER_EHR_NPHIES_ENDPOINT. |
 | HF_ONLINE_PACK_DISTRIBUTION | `NOT_GRANTED` | Hugging Face / online pack publish+fetch credentials and terms | Spec 015 READY_BASE deny path closed; OnlinePackAcquire remains ExternalGateRequired; offline Pack v0 only. |
 

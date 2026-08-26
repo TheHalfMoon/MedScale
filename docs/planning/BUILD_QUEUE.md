@@ -4,9 +4,9 @@
 **Execution agent:** Cursor  
 **Rule:** update this file whenever a unit enters or leaves a canonical state.
 
-**Autonomous stop status (main `d1a85b6`, 2026-08-26):** `IMPLEMENTATION_COMPLETE_PENDING_EXTERNAL_GATES`
+**Autonomous stop status (main `18d6eca`, 2026-08-26):** `IMPLEMENTATION_COMPLETE_PENDING_EXTERNAL_GATES`
 
-Ungated Spec Kit units 000–011 and 013–015 are `CLOSED_CANONICAL`. Spec 012 remain blocked solely by `MESC_RELEASED_ARTIFACT` (empty MESC release assets). Spec 016+ stays `DEFERRED_BY_CANONICAL_DESIGN`. No further eligible autonomous implementation remains until an external gate clears or a new unit is canonically promoted.
+Ungated Spec Kit units 000–011 and 013–015 are `CLOSED_CANONICAL`. Spec 012 remains blocked solely by `MESC_RELEASED_ARTIFACT` (empty MESC release assets; TRAINING_CODE_READY ≠ RELEASE_READY). Spec 016+ stays `DEFERRED_BY_CANONICAL_DESIGN`. No further eligible autonomous implementation remains until an external gate clears or a new unit is canonically promoted.
 
 ## Current queue
 
