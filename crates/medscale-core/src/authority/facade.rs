@@ -893,6 +893,16 @@ impl CoreFacade {
             RequestBody::NphiesInvoke { request: _ } => Err(AuthorityError::ExternalGateRequired {
                 gate: "SPEC_014_WORKFLOW_EVIDENCE".to_owned(),
             }),
+            RequestBody::OnlinePackAcquire { request } => {
+                if !request.broker_required {
+                    return Err(AuthorityError::InvalidArgument {
+                        message: "online pack acquire requires broker_required=true".to_owned(),
+                    });
+                }
+                Err(AuthorityError::ExternalGateRequired {
+                    gate: "HF_ONLINE_PACK_DISTRIBUTION".to_owned(),
+                })
+            }
         }
     }
 }
@@ -1021,6 +1031,10 @@ fn capability_matches(cap: &Capability, body: &RequestBody) -> bool {
             )
             | (Capability::ListOutbox, RequestBody::ListOutbox)
             | (Capability::NphiesInvoke, RequestBody::NphiesInvoke { .. })
+            | (
+                Capability::OnlinePackAcquire,
+                RequestBody::OnlinePackAcquire { .. }
+            )
     )
 }
 

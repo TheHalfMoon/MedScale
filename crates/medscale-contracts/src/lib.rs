@@ -10,6 +10,7 @@ pub mod ingest;
 pub mod mobile;
 pub mod network;
 pub mod objects;
+pub mod online_packs;
 pub mod packs;
 pub mod presentation;
 pub mod text;

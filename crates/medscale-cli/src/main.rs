@@ -186,6 +186,12 @@ fn run() -> Result<()> {
                     report.controlled_actions.nphies_authorized,
                     report.controlled_actions.unknown_blind_retry
                 );
+                println!(
+                    "online_packs: present={} authorized={} broker={}",
+                    report.online_packs.present,
+                    report.online_packs.online_download_authorized,
+                    report.online_packs.broker_required
+                );
                 for note in &report.notes {
                     println!("note: {note}");
                 }
@@ -376,6 +382,8 @@ mod tests {
             "apps_shipped",
             "controlled_actions",
             "nphies_authorized",
+            "online_packs",
+            "broker_required",
         ] {
             assert!(json.contains(key), "missing {key}");
         }
@@ -389,6 +397,9 @@ mod tests {
         assert!(!report.mobile.apps_shipped);
         assert!(!report.controlled_actions.nphies_authorized);
         assert!(!report.controlled_actions.unknown_blind_retry);
+        assert!(!report.online_packs.online_download_authorized);
+        assert!(report.online_packs.broker_required);
+        assert!(!report.online_packs.hf_runtime_required);
     }
 
     #[test]

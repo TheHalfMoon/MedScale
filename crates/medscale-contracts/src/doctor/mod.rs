@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 use crate::actions::ControlledActionsDoctorStatus;
 use crate::mobile::MobileDoctorStatus;
 use crate::network::NetworkBrokerDoctorStatus;
+use crate::online_packs::OnlinePacksDoctorStatus;
 use crate::packs::PacksRuntimeDoctorStatus;
 
 /// Sync / remote filesystem risk assessment for a vault path.
@@ -66,6 +67,7 @@ pub struct DoctorReport {
     pub packs_runtime: PacksRuntimeDoctorStatus,
     pub mobile: MobileDoctorStatus,
     pub controlled_actions: ControlledActionsDoctorStatus,
+    pub online_packs: OnlinePacksDoctorStatus,
     pub notes: Vec<String>,
 }
 
