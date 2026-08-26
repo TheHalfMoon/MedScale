@@ -40,6 +40,13 @@ impl WorkerSupervisionPolicy {
         }
     }
 
+    /// Bind confinement profile id to OS sandbox scaffold evidence (not PLATFORM_QUALIFIED).
+    #[must_use]
+    pub fn with_os_sandbox_scaffold_profile(mut self) -> Self {
+        self.confinement_profile = "os_sandbox_scaffold_not_platform_qualified".to_owned();
+        self
+    }
+
     /// Returns true when no ambient privilege is enabled.
     #[must_use]
     pub fn ambient_denied(&self) -> bool {

@@ -1,3 +1,5 @@
+<!-- Checkbox sync: tasks completed at CLOSED_CANONICAL closeout; markers aligned 2026-08-26. -->
+
 # Tasks: Local Private Vault + Encryption + Recovery
 
 **Input**: Design documents from `/specs/005-local-private-vault-encryption-recovery/`
@@ -12,14 +14,14 @@
 
 **Purpose**: Provenance before first encrypted/dependency line; crate scaffolds
 
-- [ ] T001 Confirm Spec 004 closed and workspace builds; note baseline commit/toolchain in `evidence/005-local-private-vault-encryption-recovery/BASELINE.md`
-- [ ] T002 [P] Create admission `docs/engineering/admissions/005-sqlcipher-rusqlite.md` binding SQLCipher **v4.17.0** target + rusqlite **0.37.0** / `bundled-sqlcipher-vendored-openssl` (bump allowance **0.40.2**) per research D3
-- [ ] T003 [P] Create admission `docs/engineering/admissions/005-keyring.md` for keyring-core **1.0.0**, windows-native-keyring-store **1.1.0**, linux-keyutils-keyring-store **1.0.0** (+ optional apple **1.0.2**)
-- [ ] T004 [P] Create admission `docs/engineering/admissions/005-crypto-aes-gcm-argon2.md` for aes-gcm **0.11.1**, argon2 **0.5.3**, zeroize **1.9.0**, rand pin
-- [ ] T005 Scaffold `crates/medscale-keys` in workspace; wire empty KeyProvider module + lints
-- [ ] T006 [P] Add `medscale-storage` feature `sqlcipher` and EncryptedVault module stubs; keep SyntheticVault for migration source
-- [ ] T007 [P] Extend `medscale-contracts` with vault/key envelopes, SyncRootRefused, MissingKeyMaterial, EncryptionProfile types
-- [ ] T008 [P] Add synthetic encryption fixtures under `fixtures/synthetic/vault/encryption/` (markers, migration source vault recipe)
+- [x] T001 Confirm Spec 004 closed and workspace builds; note baseline commit/toolchain in `evidence/005-local-private-vault-encryption-recovery/BASELINE.md`
+- [x] T002 [P] Create admission `docs/engineering/admissions/005-sqlcipher-rusqlite.md` binding SQLCipher **v4.17.0** target + rusqlite **0.37.0** / `bundled-sqlcipher-vendored-openssl` (bump allowance **0.40.2**) per research D3
+- [x] T003 [P] Create admission `docs/engineering/admissions/005-keyring.md` for keyring-core **1.0.0**, windows-native-keyring-store **1.1.0**, linux-keyutils-keyring-store **1.0.0** (+ optional apple **1.0.2**)
+- [x] T004 [P] Create admission `docs/engineering/admissions/005-crypto-aes-gcm-argon2.md` for aes-gcm **0.11.1**, argon2 **0.5.3**, zeroize **1.9.0**, rand pin
+- [x] T005 Scaffold `crates/medscale-keys` in workspace; wire empty KeyProvider module + lints
+- [x] T006 [P] Add `medscale-storage` feature `sqlcipher` and EncryptedVault module stubs; keep SyntheticVault for migration source
+- [x] T007 [P] Extend `medscale-contracts` with vault/key envelopes, SyncRootRefused, MissingKeyMaterial, EncryptionProfile types
+- [x] T008 [P] Add synthetic encryption fixtures under `fixtures/synthetic/vault/encryption/` (markers, migration source vault recipe)
 
 **Checkpoint**: Admissions present; workspace compiles with stubs; no plaintext “production encrypted” claim yet
 
@@ -29,11 +31,11 @@
 
 **Purpose**: KeyProvider + location/sync policy before vault IO
 
-- [ ] T009 Implement key classes + WrappedKeyRecord + Argon2id passphrase wrap/unwrap in `medscale-keys`
-- [ ] T010 [P] Implement recovery code generate/wrap/unlock + revoke
-- [ ] T011 [P] Integrate keyring-core + platform stores behind KeyProvider; mock store for unit tests
-- [ ] T012 Extend Spec 003 claim markers + `ResolveDefaultVaultPath` LocalAppData policy; refuse sync/remote roots
-- [ ] T013 [P] Tests: passphrase/recovery round-trip; keyring mock; sync-root refuse; app-data default resolution
+- [x] T009 Implement key classes + WrappedKeyRecord + Argon2id passphrase wrap/unwrap in `medscale-keys`
+- [x] T010 [P] Implement recovery code generate/wrap/unlock + revoke
+- [x] T011 [P] Integrate keyring-core + platform stores behind KeyProvider; mock store for unit tests
+- [x] T012 Extend Spec 003 claim markers + `ResolveDefaultVaultPath` LocalAppData policy; refuse sync/remote roots
+- [x] T013 [P] Tests: passphrase/recovery round-trip; keyring mock; sync-root refuse; app-data default resolution
 
 **Checkpoint**: Keys wrap/unwrap; sync roots refused; no founder ask
 
@@ -45,10 +47,10 @@
 
 **Independent Test**: `cargo test encrypted_vault_roundtrip`
 
-- [ ] T014 [US1] Wire rusqlite sqlcipher features; verify/record embedded SQLCipher version vs **4.17.0** (amend admission if needed)
-- [ ] T015 [US1] Implement EncryptedVault create/open/close with SQLCipher metadata DurableStore
-- [ ] T016 [US1] Implement SealedBlobStore AES-256-GCM put/get/verify
-- [ ] T017 [US1] Tests: write marker → reopen with keys → read; wrong/missing keys → fail closed; marker absent as plaintext on disk
+- [x] T014 [US1] Wire rusqlite sqlcipher features; verify/record embedded SQLCipher version vs **4.17.0** (amend admission if needed)
+- [x] T015 [US1] Implement EncryptedVault create/open/close with SQLCipher metadata DurableStore
+- [x] T016 [US1] Implement SealedBlobStore AES-256-GCM put/get/verify
+- [x] T017 [US1] Tests: write marker → reopen with keys → read; wrong/missing keys → fail closed; marker absent as plaintext on disk
 
 **Checkpoint**: US1 — encryption at rest proof
 
@@ -60,10 +62,10 @@
 
 **Independent Test**: `cargo test vault_sync_root_and_lease`
 
-- [ ] T018 [US2] Enforce sync/remote refusal on create/open/migrate/backup dest (extend markers)
-- [ ] T019 [US3] Enforce single-writer lease for EncryptedVault; second writer → LeaseHeld
-- [ ] T020 [US3] Ensure Authority envelopes / debug dumps contain no DEK/passphrase/SQLCipher secrets (negative tests)
-- [ ] T021 [US2/US3] Tests: OneDrive/Dropbox/iCloud/Google Drive paths refused; lease conflict; secret non-emission
+- [x] T018 [US2] Enforce sync/remote refusal on create/open/migrate/backup dest (extend markers)
+- [x] T019 [US3] Enforce single-writer lease for EncryptedVault; second writer → LeaseHeld
+- [x] T020 [US3] Ensure Authority envelopes / debug dumps contain no DEK/passphrase/SQLCipher secrets (negative tests)
+- [x] T021 [US2/US3] Tests: OneDrive/Dropbox/iCloud/Google Drive paths refused; lease conflict; secret non-emission
 
 **Checkpoint**: US2–US3 green
 
@@ -75,10 +77,10 @@
 
 **Independent Test**: `cargo test vault_recovery_key_loss`
 
-- [ ] T022 [US4] Unlock paths: OS keyring → passphrase → recovery code
-- [ ] T023 [US4] Simulate keyring wipe; unlock via passphrase and via recovery code
-- [ ] T024 [US4] Key-loss: destroy all wraps → open fails + plaintext marker scan fails on DB/blobs
-- [ ] T025 [US4] Tests archive recovery evidence notes (synthetic-only)
+- [x] T022 [US4] Unlock paths: OS keyring → passphrase → recovery code
+- [x] T023 [US4] Simulate keyring wipe; unlock via passphrase and via recovery code
+- [x] T024 [US4] Key-loss: destroy all wraps → open fails + plaintext marker scan fails on DB/blobs
+- [x] T025 [US4] Tests archive recovery evidence notes (synthetic-only)
 
 **Checkpoint**: US4 — recovery/key-loss exit
 
@@ -90,10 +92,10 @@
 
 **Independent Test**: `cargo test encrypted_backup_restore_retention`
 
-- [ ] T026 [US5] Implement BackupEncryptedVault / RestoreEncryptedVault with wrap metadata in manifest
-- [ ] T027 [US5] Restore without unlock material fails closed; with keys matches digests/closure
-- [ ] T028 [US5] Implement DestroyVaultKeys scopes + RetentionDestructionRecord (no secrets in audit)
-- [ ] T029 [US5] Tests: backup/restore; restore-without-keys; destroy → unreadable
+- [x] T026 [US5] Implement BackupEncryptedVault / RestoreEncryptedVault with wrap metadata in manifest
+- [x] T027 [US5] Restore without unlock material fails closed; with keys matches digests/closure
+- [x] T028 [US5] Implement DestroyVaultKeys scopes + RetentionDestructionRecord (no secrets in audit)
+- [x] T029 [US5] Tests: backup/restore; restore-without-keys; destroy → unreadable
 
 **Checkpoint**: US5 — snapshot/restore/retention proofs
 
@@ -105,11 +107,11 @@
 
 **Independent Test**: `cargo test migrate_synthetic_to_encrypted`
 
-- [ ] T030 [US6] Implement MigrationJournal state machine + crash checkpoints
-- [ ] T031 [US6] Migrate fixture Spec 003 vault; preserve ids/digests; switch authority
-- [ ] T032 [US6] Post-migration SyntheticVault open on upgraded root fails closed / superseded
-- [ ] T033 [US6] Crash-restart tests: no half-encrypted PASS
-- [ ] T034 [US6] Re-migrate already-encrypted → typed AlreadyEncrypted / idempotent Done
+- [x] T030 [US6] Implement MigrationJournal state machine + crash checkpoints
+- [x] T031 [US6] Migrate fixture Spec 003 vault; preserve ids/digests; switch authority
+- [x] T032 [US6] Post-migration SyntheticVault open on upgraded root fails closed / superseded
+- [x] T033 [US6] Crash-restart tests: no half-encrypted PASS
+- [x] T034 [US6] Re-migrate already-encrypted → typed AlreadyEncrypted / idempotent Done
 
 **Checkpoint**: US6 — one-way upgrade
 
@@ -121,9 +123,9 @@
 
 **Independent Test**: `cargo test vault_log_redaction`
 
-- [ ] T035 [US7] Audit error paths for typed non-secret messages
-- [ ] T036 [US7] Capture logs during intentional failures; assert passphrase/recovery/key fixtures absent
-- [ ] T037 [US7] Document Spec 005 limitations for later PRIVACY_PROOF (006); do not claim system-wide zero packets
+- [x] T035 [US7] Audit error paths for typed non-secret messages
+- [x] T036 [US7] Capture logs during intentional failures; assert passphrase/recovery/key fixtures absent
+- [x] T037 [US7] Document Spec 005 limitations for later PRIVACY_PROOF (006); do not claim system-wide zero packets
 
 **Checkpoint**: US7 — log hygiene
 
@@ -131,14 +133,14 @@
 
 ## Phase 9: Facade Wiring + Polish
 
-- [ ] T038 Wire vault/key capabilities into `medscale-core` facade envelopes
-- [ ] T039 Integration: encrypted vault → ingest synthetic fixture (003 path) → optional 004 presentation smoke (if cheap) via Core Host
-- [ ] T040 Run `cargo test --workspace` + fmt/clippy with `sqlcipher` feature on Windows+Linux CI matrix as available
-- [ ] T041 If SQLCipher CI blocked after fixes, activate documented AES-GCM EncryptedVault exit backend (research D4) **without** plaintext claim; amend evidence
-- [ ] T042 Archive evidence under `evidence/005-local-private-vault-encryption-recovery/` per quickstart
-- [ ] T043 Validate `quickstart.md` commands
-- [ ] T044 Update `docs/planning/BUILD_QUEUE.md` on closeout: Spec 005 `CLOSED_CANONICAL`, Spec 006 unblocked (only at converge/merge)
-- [ ] T045 Ensure REAL_PHI EXTERNAL_GATES remains NOT_AUTHORIZED; no MESC mutation; no product network clients
+- [x] T038 Wire vault/key capabilities into `medscale-core` facade envelopes
+- [x] T039 Integration: encrypted vault → ingest synthetic fixture (003 path) → optional 004 presentation smoke (if cheap) via Core Host
+- [x] T040 Run `cargo test --workspace` + fmt/clippy with `sqlcipher` feature on Windows+Linux CI matrix as available
+- [x] T041 If SQLCipher CI blocked after fixes, activate documented AES-GCM EncryptedVault exit backend (research D4) **without** plaintext claim; amend evidence
+- [x] T042 Archive evidence under `evidence/005-local-private-vault-encryption-recovery/` per quickstart
+- [x] T043 Validate `quickstart.md` commands
+- [x] T044 Update `docs/planning/BUILD_QUEUE.md` on closeout: Spec 005 `CLOSED_CANONICAL`, Spec 006 unblocked (only at converge/merge)
+- [x] T045 Ensure REAL_PHI EXTERNAL_GATES remains NOT_AUTHORIZED; no MESC mutation; no product network clients
 
 ---
 
