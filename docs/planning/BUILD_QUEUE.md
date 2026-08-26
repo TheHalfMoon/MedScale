@@ -22,7 +22,7 @@
 | 011 | Evidence / Retrieval / Medical Intelligence | `CLOSED_CANONICAL` | Lexical retrieval to evidence-only EvaluationRecords; relevance is not authority. |
 | 012 | MESC Artifact Integration | `BLOCKED_BY_RELEASED_MESC_ARTIFACT` | Spec 008 closed; still needs released MESC artifact gate. |
 | 013 | FHIR / SMART / Network Broker | `CLOSED_CANONICAL` | Fail-closed broker + stub SMART/FHIR adapters merged; continue Spec 014 when workflow evidence ready. |
-| 014 | Controlled Actions / NPHIES | `IN_REVIEW` | Spec 014 READY_BASE on branch; merge when CI green. |
+| 014 | Controlled Actions / NPHIES | `CLOSED_CANONICAL` | READY_BASE: outbox + payload-bound intents; NPHIES remains external gate. |
 | 015 | HF + Online Pack Ecosystem | `BLOCKED_BY_EXTERNAL_AND_MOBILE_CONSTRAINTS` | Spec 008+013+009 pack-format constraints ready; online path still needs HF/external gate (`HF_ONLINE_PACK_DISTRIBUTION`). |
 | 016+ | Advanced work | `DEFERRED_BY_CANONICAL_DESIGN` | Promote only with new evidence/spec authority. |
 
