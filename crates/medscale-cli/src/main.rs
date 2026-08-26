@@ -180,6 +180,12 @@ fn run() -> Result<()> {
                     report.mobile.apps_shipped,
                     report.mobile.page_size_16kb_claim
                 );
+                println!(
+                    "controlled_actions: present={} nphies={} blind_retry={}",
+                    report.controlled_actions.present,
+                    report.controlled_actions.nphies_authorized,
+                    report.controlled_actions.unknown_blind_retry
+                );
                 for note in &report.notes {
                     println!("note: {note}");
                 }
@@ -368,6 +374,8 @@ mod tests {
             "offline_only",
             "mobile",
             "apps_shipped",
+            "controlled_actions",
+            "nphies_authorized",
         ] {
             assert!(json.contains(key), "missing {key}");
         }
@@ -379,6 +387,8 @@ mod tests {
         assert!(report.packs_runtime.offline_only);
         assert!(!report.packs_runtime.online_download_authorized);
         assert!(!report.mobile.apps_shipped);
+        assert!(!report.controlled_actions.nphies_authorized);
+        assert!(!report.controlled_actions.unknown_blind_retry);
     }
 
     #[test]

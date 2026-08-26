@@ -2,6 +2,7 @@
 
 use std::path::Path;
 
+use medscale_contracts::actions::ControlledActionsDoctorStatus;
 use medscale_contracts::doctor::{DoctorReport, KeyStoreAvailability, PrivacyFreshness, SyncRisk};
 use medscale_contracts::mobile::MobileDoctorStatus;
 use medscale_contracts::network::NetworkBrokerDoctorStatus;
@@ -96,12 +97,14 @@ pub fn build_doctor_report_full(
             online_download_authorized: false,
         },
         mobile: MobileDoctorStatus::ready_base(),
+        controlled_actions: ControlledActionsDoctorStatus::ready_base(),
         notes: vec![
             "CLI and Desktop call Core Host authority facade only".to_owned(),
             "Tauri/WebView not admitted in Spec 006".to_owned(),
             "Product egress DEFAULT_DENY except Network Broker allowlist".to_owned(),
             "Packs offline-only; no ONNX/llama admitted in Spec 008".to_owned(),
             "Mobile READY_BASE: no apps shipped; Keychain sync forbidden".to_owned(),
+            "Controlled actions READY_BASE: outbox + UNKNOWN reconcile; NPHIES gated".to_owned(),
         ],
     }
 }

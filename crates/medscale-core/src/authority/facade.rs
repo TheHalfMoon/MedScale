@@ -301,6 +301,15 @@ impl CoreFacade {
                     }
                 }
                 let from = audit.effect_state.unwrap_or(EffectState::Pending);
+                // READY_BASE: cannot leave Pending toward Sent without bound payload digest.
+                if from == EffectState::Pending
+                    && to == EffectState::Sent
+                    && audit.payload_digest.is_none()
+                {
+                    return Err(AuthorityError::InvalidArgument {
+                        message: "payload_digest required before Pending→Sent".to_owned(),
+                    });
+                }
                 let next = effects::transition(from, to, reconcile_token.as_deref()).ok_or(
                     if from == EffectState::Unknown
                         && reconcile_token.as_deref().unwrap_or("").is_empty()
@@ -843,6 +852,47 @@ impl CoreFacade {
                     )?,
                 })
             }
+            RequestBody::CreateExternalActionIntent { request } => {
+                let mut store = self.store();
+                let id = store.alloc_id("intent");
+                let audit = ActionAuditRecord {
+                    header: ObjectHeader {
+                        id: id.clone(),
+                        schema_version: AUTHORITY_SCHEMA_VERSION,
+                        realm_id: req.realm_id,
+                        authority_scope_id: req.authority_scope_id,
+                    },
+                    kind: ActionAuditKind::ExternalActionIntent,
+                    actor: request.actor,
+                    action: request.action,
+                    target_refs: request.target_refs,
+                    effect_state: Some(EffectState::Pending),
+                    payload_digest: Some(request.payload_digest),
+                    detail: None,
+                };
+                store.insert(StoredObject::Audit(audit));
+                Ok(ResponseBody::Created { object_id: id })
+            }
+            RequestBody::ListOutbox => {
+                let store = self.store();
+                let entries = store
+                    .list_external_action_intents(&req.realm_id, &req.authority_scope_id)
+                    .into_iter()
+                    .filter_map(|a| {
+                        let digest = a.payload_digest.clone()?;
+                        Some(medscale_contracts::actions::OutboxEntry {
+                            action_id: a.header.id.clone(),
+                            action: a.action.clone(),
+                            effect_state: a.effect_state.unwrap_or(EffectState::Pending),
+                            payload_digest: digest,
+                        })
+                    })
+                    .collect();
+                Ok(ResponseBody::Outbox { entries })
+            }
+            RequestBody::NphiesInvoke { request: _ } => Err(AuthorityError::ExternalGateRequired {
+                gate: "SPEC_014_WORKFLOW_EVIDENCE".to_owned(),
+            }),
         }
     }
 }
@@ -965,6 +1015,12 @@ fn capability_matches(cap: &Capability, body: &RequestBody) -> bool {
                 Capability::RetrieveLexical,
                 RequestBody::RetrieveLexical { .. }
             )
+            | (
+                Capability::CreateExternalActionIntent,
+                RequestBody::CreateExternalActionIntent { .. }
+            )
+            | (Capability::ListOutbox, RequestBody::ListOutbox)
+            | (Capability::NphiesInvoke, RequestBody::NphiesInvoke { .. })
     )
 }
 

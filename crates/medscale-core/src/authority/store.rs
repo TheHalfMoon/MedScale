@@ -159,6 +159,29 @@ impl InMemoryAuthorityStore {
         }
     }
 
+    /// External-action intents in this realm/scope (outbox projection).
+    #[must_use]
+    pub fn list_external_action_intents(
+        &self,
+        realm_id: &RealmId,
+        scope_id: &AuthorityScopeId,
+    ) -> Vec<&ActionAuditRecord> {
+        self.objects
+            .values()
+            .filter_map(|o| match o {
+                StoredObject::Audit(a)
+                    if a.kind
+                        == medscale_contracts::objects::ActionAuditKind::ExternalActionIntent
+                        && &a.header.realm_id == realm_id
+                        && &a.header.authority_scope_id == scope_id =>
+                {
+                    Some(a)
+                }
+                _ => None,
+            })
+            .collect()
+    }
+
     /// Raw object map for presentation orchestration (read-only scans).
     #[must_use]
     pub fn objects_raw(&self) -> &HashMap<String, StoredObject> {

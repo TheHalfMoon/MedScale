@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::AUTHORITY_SCHEMA_VERSION;
+use crate::actions::{CreateExternalActionIntentRequest, NphiesInvokeRequest, OutboxEntry};
 use crate::documents::{
     AsrStubRequest, DocumentIntakeRequest, DocumentIntakeResult, MediaStubResult, OcrStubRequest,
 };
@@ -56,6 +57,9 @@ pub enum Capability {
     OcrStub,
     AsrStub,
     RetrieveLexical,
+    CreateExternalActionIntent,
+    ListOutbox,
+    NphiesInvoke,
 }
 
 /// Request body variants.
@@ -200,6 +204,13 @@ pub enum RequestBody {
     RetrieveLexical {
         request: LexicalRetrieveRequest,
     },
+    CreateExternalActionIntent {
+        request: CreateExternalActionIntentRequest,
+    },
+    ListOutbox,
+    NphiesInvoke {
+        request: NphiesInvokeRequest,
+    },
 }
 
 /// Successful response body variants.
@@ -302,6 +313,9 @@ pub enum ResponseBody {
     },
     LexicalRetrieve {
         result: LexicalRetrieveResult,
+    },
+    Outbox {
+        entries: Vec<OutboxEntry>,
     },
 }
 
