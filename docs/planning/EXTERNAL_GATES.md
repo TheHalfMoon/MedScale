@@ -5,7 +5,7 @@ This file records blockers that require a real human/external authority. They do
 | Gate | Current state | Scope | Cursor behavior |
 |---|---|---|---|
 | REAL_PHI_AUTHORIZATION | `NOT_AUTHORIZED` | Any real patient data | Use synthetic/permitted fixtures; continue. |
-| LEGAL_COUNSEL_FLOW_MAPPING | `PENDING_WHEN_REQUIRED` | Deployment-specific PDPL/SFDA/controller/processor/lawful-basis decisions | FlowDecisionRecord schema shipped (PendingCounsel default); do not invent legal conclusions — counsel fills records. |
+| LEGAL_COUNSEL_FLOW_MAPPING | `PENDING_WHEN_REQUIRED` | Deployment-specific PDPL/SFDA/controller/processor/lawful-basis decisions | FlowDecisionRecord schema shipped (PendingCounsel default); do not invent legal conclusions ? counsel fills records. |
 | PUBLIC_SOURCE_LICENSE_CHOICE | `PENDING` | Public SPDX license for MedScale crates/distribution | Keep crates `publish = false` / `UNLICENSED` privately; cargo-deny ignores unpublished workspace members; continue. |
 | GATED_MODEL_TERMS | `NOT_GRANTED_BY_DEFAULT` | Model requiring click-through/credential acceptance | Do not accept terms; use admissible public/local comparator and continue. |
 | PRODUCTION_CREDENTIALS | `NOT_GRANTED` | Real cloud/provider/partner credentials | Build/test with mocks/synthetic endpoints; continue. |
@@ -20,7 +20,7 @@ This file records blockers that require a real human/external authority. They do
 | TERMINOLOGY_ATC_LICENSE | `OPEN` | ATC Pack rights | Same as SNOMED track discipline. |
 | TERMINOLOGY_UMLS_LICENSE | `OPEN` | UMLS/Athena Pack rights | Same as SNOMED track discipline. |
 | WORKER_OS_SANDBOX_PLATFORM_QUALIFIED | `OPEN` | Landlock / AppContainer / Seatbelt PLATFORM_QUALIFIED for workers | OsSandboxPlan scaffold + refuse-apply shipped (NotPlatformQualified); measured PLATFORM_QUALIFIED evidence still required. |
-| MESC_RELEASED_ARTIFACT | `NOT_AVAILABLE` | Spec 012 immutable MESC artifact (hash/rights/SBOM) | 2026-08-26: TheHalfMoon/MESC v0.1.0 has empty release assets; see evidence/012-mesc-artifact-integration/GATE_CHECK.md. Do not copy MESC Python/runtime. |
+| MESC_RELEASED_ARTIFACT | `NOT_AVAILABLE` | Spec 012 immutable MESC artifact (hash/rights/SBOM) | Re-check 2026-08-26: v0.1.0 assets=[]; v0.2.0 tag has no Release. See evidence/012-mesc-artifact-integration/GATE_CHECK.md. Fail-closed MescArtifactAdmit ships; do not clear gate. |
 | SPEC_014_WORKFLOW_EVIDENCE | `PENDING` | Selected NPHIES/workflow profiles + terminology evidence | Spec 014 READY_BASE closed; NphiesInvoke remains ExternalGateRequired until this gate + PARTNER_EHR_NPHIES_ENDPOINT. |
 | HF_ONLINE_PACK_DISTRIBUTION | `NOT_GRANTED` | Hugging Face / online pack publish+fetch credentials and terms | Spec 015 READY_BASE deny path closed; OnlinePackAcquire remains ExternalGateRequired; offline Pack v0 only. |
 

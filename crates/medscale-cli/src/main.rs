@@ -207,6 +207,12 @@ fn run() -> Result<()> {
                     report.online_packs.online_download_authorized,
                     report.online_packs.broker_required
                 );
+                println!(
+                    "mesc_artifact: present={} admitted={} gate={}",
+                    report.mesc_artifact.present,
+                    report.mesc_artifact.artifact_admitted,
+                    report.mesc_artifact.gate
+                );
                 for note in &report.notes {
                     println!("note: {note}");
                 }
@@ -416,6 +422,8 @@ mod tests {
             "nphies_authorized",
             "online_packs",
             "broker_required",
+            "mesc_artifact",
+            "artifact_admitted",
         ] {
             assert!(json.contains(key), "missing {key}");
         }
@@ -432,6 +440,8 @@ mod tests {
         assert!(!report.online_packs.online_download_authorized);
         assert!(report.online_packs.broker_required);
         assert!(!report.online_packs.hf_runtime_required);
+        assert!(!report.mesc_artifact.artifact_admitted);
+        assert!(!report.mesc_artifact.python_runtime_imported);
     }
 
     #[test]

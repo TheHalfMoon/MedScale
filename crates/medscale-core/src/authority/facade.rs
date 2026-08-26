@@ -903,6 +903,17 @@ impl CoreFacade {
                     gate: "HF_ONLINE_PACK_DISTRIBUTION".to_owned(),
                 })
             }
+            RequestBody::MescArtifactAdmit { request } => {
+                if !request.pack_path_required {
+                    return Err(AuthorityError::InvalidArgument {
+                        message: "MESC admit requires pack_path_required=true (ARTIFACT_IMPORT)"
+                            .to_owned(),
+                    });
+                }
+                Err(AuthorityError::ExternalGateRequired {
+                    gate: "MESC_RELEASED_ARTIFACT".to_owned(),
+                })
+            }
         }
     }
 }
@@ -1034,6 +1045,10 @@ fn capability_matches(cap: &Capability, body: &RequestBody) -> bool {
             | (
                 Capability::OnlinePackAcquire,
                 RequestBody::OnlinePackAcquire { .. }
+            )
+            | (
+                Capability::MescArtifactAdmit,
+                RequestBody::MescArtifactAdmit { .. }
             )
     )
 }
