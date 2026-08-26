@@ -6,6 +6,7 @@ use std::process::ExitCode;
 use anyhow::{Context, Result, bail};
 use clap::{Parser, Subcommand};
 use medscale_contracts::doctor::PrivacyProof;
+use medscale_contracts::fixture_ui::{FixtureUiSurface, FixtureUiViewModel};
 use medscale_core::{CliSession, build_doctor_report, privacy_proof_artifact_present};
 
 #[derive(Debug, Parser)]
@@ -77,6 +78,11 @@ enum Commands {
         #[command(subcommand)]
         action: PacksCmd,
     },
+    /// Deterministic fixture UI view-models (no final visual design).
+    FixtureUi {
+        #[command(subcommand)]
+        action: FixtureUiCmd,
+    },
 }
 
 #[derive(Debug, Subcommand)]
@@ -120,6 +126,15 @@ enum PacksCmd {
         vault_id: String,
         #[arg(long)]
         json: bool,
+    },
+}
+
+#[derive(Debug, Subcommand)]
+enum FixtureUiCmd {
+    /// Emit doctor FixtureUiViewModel JSON (synthetic-only; no visual design).
+    Doctor {
+        #[arg(long)]
+        vault_root: Option<PathBuf>,
     },
 }
 
@@ -322,6 +337,23 @@ fn run() -> Result<()> {
                 print_json_or_debug(&packs, json)
             }
         },
+        Commands::FixtureUi { action } => match action {
+            FixtureUiCmd::Doctor { vault_root } => {
+                let root = vault_root.map(|p| p.display().to_string());
+                let report =
+                    build_doctor_report(root.as_deref(), false, privacy_proof_artifact_present());
+                let vm = FixtureUiViewModel::from_doctor(&report);
+                if vm.surface != FixtureUiSurface::Doctor {
+                    bail!("unexpected fixture UI surface");
+                }
+                if !vm.respects_phi_boundary() {
+                    bail!("fixture UI PHI boundary violated");
+                }
+                assert_no_secret_markers(&serde_json::to_string(&vm)?)?;
+                println!("{}", serde_json::to_string_pretty(&vm)?);
+                Ok(())
+            }
+        },
     }
 }
 
@@ -400,6 +432,16 @@ mod tests {
         assert!(!report.online_packs.online_download_authorized);
         assert!(report.online_packs.broker_required);
         assert!(!report.online_packs.hf_runtime_required);
+    }
+
+    #[test]
+    fn fixture_ui_doctor_respects_phi_and_has_no_secrets() {
+        let report = build_doctor_report(None, false, false);
+        let vm = FixtureUiViewModel::from_doctor(&report);
+        assert_eq!(vm.surface, FixtureUiSurface::Doctor);
+        assert!(vm.respects_phi_boundary());
+        let json = serde_json::to_string(&vm).unwrap();
+        assert_no_secret_markers(&json).unwrap();
     }
 
     #[test]
