@@ -20,8 +20,8 @@ This file records blockers that require a real human/external authority. They do
 | TERMINOLOGY_ATC_LICENSE | `OPEN` | ATC Pack rights | Same as SNOMED track discipline. |
 | TERMINOLOGY_UMLS_LICENSE | `OPEN` | UMLS/Athena Pack rights | Same as SNOMED track discipline. |
 | WORKER_OS_SANDBOX_PLATFORM_QUALIFIED | `OPEN` | Landlock / AppContainer / Seatbelt PLATFORM_QUALIFIED for workers | Spec 008 ships policy ambient-deny + FixtureRuntime; continue OS sandbox qualification without blocking offline Pack admission. |
-| MESC_RELEASED_ARTIFACT | `NOT_AVAILABLE` | Spec 012 immutable MESC artifact (hash/rights/SBOM) | Do not copy MESC Python/runtime; keep Spec 012 blocked until a released artifact is admitted. |
-| SPEC_014_WORKFLOW_EVIDENCE | `PENDING` | Selected NPHIES/workflow profiles + terminology evidence for Spec 014 | Keep Spec 014 blocked for NPHIES path; do not invent partner workflows or live endpoints. |
-| HF_ONLINE_PACK_DISTRIBUTION | `NOT_GRANTED` | Hugging Face / online pack publish+fetch credentials and terms | Spec 015 remains blocked for online acquisition; Network Broker stays DEFAULT_DENY; use offline Pack v0 only. |
+| MESC_RELEASED_ARTIFACT | `NOT_AVAILABLE` | Spec 012 immutable MESC artifact (hash/rights/SBOM) | 2026-08-26: TheHalfMoon/MESC v0.1.0 has empty release assets; see evidence/012-mesc-artifact-integration/GATE_CHECK.md. Do not copy MESC Python/runtime. |
+| SPEC_014_WORKFLOW_EVIDENCE | `PENDING` | Selected NPHIES/workflow profiles + terminology evidence | Spec 014 READY_BASE closed; NphiesInvoke remains ExternalGateRequired until this gate + PARTNER_EHR_NPHIES_ENDPOINT. |
+| HF_ONLINE_PACK_DISTRIBUTION | `NOT_GRANTED` | Hugging Face / online pack publish+fetch credentials and terms | Spec 015 READY_BASE deny path closed; OnlinePackAcquire remains ExternalGateRequired; offline Pack v0 only. |
 
 Cursor may add rows only when a blocker truly requires external authority. Never use this file for ordinary engineering uncertainty.
