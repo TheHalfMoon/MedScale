@@ -1,9 +1,11 @@
+use medscale_contracts::actions::CreateExternalActionIntentRequest;
 use medscale_contracts::envelopes::{
     AuthorityError, AuthorityRequest, Capability, RequestBody, ResponseBody,
 };
-use medscale_contracts::objects::{AuthorityScopeId, EffectState, OpaqueId, RealmId, VaultId};
+use medscale_contracts::objects::{
+    AuthorityScopeId, DigestSha256, EffectState, OpaqueId, RealmId, VaultId,
+};
 use medscale_core::CoreFacade;
-use serde_json::json;
 
 fn req(capability: Capability, body: RequestBody) -> AuthorityRequest {
     AuthorityRequest::new(
@@ -20,12 +22,14 @@ fn req(capability: Capability, body: RequestBody) -> AuthorityRequest {
 fn unknown_without_reconcile_denied() {
     let facade = CoreFacade::new();
     let created = facade.dispatch(req(
-        Capability::AppendAudit,
-        RequestBody::AppendAudit {
-            actor: OpaqueId::new("actor"),
-            action: "send".to_owned(),
-            target_refs: vec![],
-            detail: Some(json!({})),
+        Capability::CreateExternalActionIntent,
+        RequestBody::CreateExternalActionIntent {
+            request: CreateExternalActionIntentRequest {
+                actor: OpaqueId::new("actor"),
+                action: "send".to_owned(),
+                target_refs: vec![],
+                payload_digest: DigestSha256::of(b"bound"),
+            },
         },
     ));
     let action_id = match created.result.unwrap() {

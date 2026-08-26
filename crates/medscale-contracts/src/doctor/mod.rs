@@ -2,6 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
+use crate::actions::ControlledActionsDoctorStatus;
 use crate::mobile::MobileDoctorStatus;
 use crate::network::NetworkBrokerDoctorStatus;
 use crate::packs::PacksRuntimeDoctorStatus;
@@ -64,6 +65,7 @@ pub struct DoctorReport {
     pub network_broker: NetworkBrokerDoctorStatus,
     pub packs_runtime: PacksRuntimeDoctorStatus,
     pub mobile: MobileDoctorStatus,
+    pub controlled_actions: ControlledActionsDoctorStatus,
     pub notes: Vec<String>,
 }
 
