@@ -12,6 +12,7 @@ use crate::evidence::{LexicalRetrieveRequest, LexicalRetrieveResult};
 use crate::ingest::{BackupManifest, IngestReceipt};
 use crate::network::{EgressAllowlistEntry, NetworkBrokerRequest, NetworkBrokerResult};
 use crate::objects::{DigestSha256, EffectState, OpaqueId, VaultId};
+use crate::online_packs::OnlinePackAcquireRequest;
 use crate::packs::{PackAdmitResult, PackManifestV0, PackPromotionState};
 use crate::presentation::{DrillDownResult, SubjectBriefV1, SubjectCoverageV1, SubjectTimelineV1};
 
@@ -60,6 +61,7 @@ pub enum Capability {
     CreateExternalActionIntent,
     ListOutbox,
     NphiesInvoke,
+    OnlinePackAcquire,
 }
 
 /// Request body variants.
@@ -210,6 +212,9 @@ pub enum RequestBody {
     ListOutbox,
     NphiesInvoke {
         request: NphiesInvokeRequest,
+    },
+    OnlinePackAcquire {
+        request: OnlinePackAcquireRequest,
     },
 }
 

@@ -6,6 +6,7 @@ use medscale_contracts::actions::ControlledActionsDoctorStatus;
 use medscale_contracts::doctor::{DoctorReport, KeyStoreAvailability, PrivacyFreshness, SyncRisk};
 use medscale_contracts::mobile::MobileDoctorStatus;
 use medscale_contracts::network::NetworkBrokerDoctorStatus;
+use medscale_contracts::online_packs::OnlinePacksDoctorStatus;
 use medscale_contracts::packs::PacksRuntimeDoctorStatus;
 use medscale_contracts::{MEDSCALE_PRODUCT_NAME, MEDSCALE_VERSION};
 use medscale_storage::{assert_claim_path, default_vault_root};
@@ -98,6 +99,7 @@ pub fn build_doctor_report_full(
         },
         mobile: MobileDoctorStatus::ready_base(),
         controlled_actions: ControlledActionsDoctorStatus::ready_base(),
+        online_packs: OnlinePacksDoctorStatus::ready_base(),
         notes: vec![
             "CLI and Desktop call Core Host authority facade only".to_owned(),
             "Tauri/WebView not admitted in Spec 006".to_owned(),
@@ -105,6 +107,7 @@ pub fn build_doctor_report_full(
             "Packs offline-only; no ONNX/llama admitted in Spec 008".to_owned(),
             "Mobile READY_BASE: no apps shipped; Keychain sync forbidden".to_owned(),
             "Controlled actions READY_BASE: outbox + UNKNOWN reconcile; NPHIES gated".to_owned(),
+            "Online packs READY_BASE: acquire denied; HF not a runtime dependency".to_owned(),
         ],
     }
 }
