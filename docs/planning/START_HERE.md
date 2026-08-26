@@ -6,13 +6,13 @@
 PLAN = CANONICAL_V2
 REPOSITORY_PLANNING_FINALIZATION = COMPLETE
 SPEC_000 = CLOSED_CANONICAL
-SPEC_001 = READY
+SPEC_001 = CLOSED_CANONICAL (see BUILD_QUEUE.md for live states)
 FOUNDER_STANDING_CURSOR_IMPLEMENTATION_AUTHORITY = ACTIVE
 REAL_PHI = NOT_AUTHORIZED
 MESC_MUTATION = NOT_AUTHORIZED
 ```
 
-The earlier planning-only gate has been superseded by `IMPLEMENTATION_AUTHORITY.md`. Cursor should begin Spec 001 and continue autonomously through the current V2 roadmap. It must not ask the founder for ordinary engineering decisions already governed by the plan.
+The earlier planning-only gate has been superseded by `IMPLEMENTATION_AUTHORITY.md`. Cursor must follow live BUILD_QUEUE.md; Specs 001–011 and 013–015 are CLOSED_CANONICAL; Spec 012 remains MESC-artifact gated. It must not ask the founder for ordinary engineering decisions already governed by the plan.
 
 ## 2. Mandatory read order
 

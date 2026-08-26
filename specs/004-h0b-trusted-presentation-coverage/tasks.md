@@ -1,3 +1,5 @@
+<!-- Checkbox sync: tasks completed at CLOSED_CANONICAL closeout; markers aligned 2026-08-26. -->
+
 # Tasks: H0-B Trusted Presentation + Coverage
 
 **Input**: Design documents from `/specs/004-h0b-trusted-presentation-coverage/`
@@ -12,11 +14,11 @@
 
 **Purpose**: Confirm Spec 003 baseline and presentation module layout
 
-- [ ] T001 Confirm Spec 003 closed and workspace builds; note baseline commit/toolchain in `evidence/004-h0b-trusted-presentation-coverage/BASELINE.md`
-- [ ] T002 [P] Add presentation module layout under `medscale-fhir` (`extractors/`, `units/`) and `medscale-core` presentation orchestration hooks
-- [ ] T003 [P] Extend `medscale-contracts` with CoverageStatus, TimelineEvent, Brief/Coverage body types, DrillDownResult, PresentationRulesVersion
-- [ ] T004 Admit UCUM/unit subset pin (hand table or narrow dependency) via dependency/STANDARD admission; record subset id+digest in research/evidence — **do not admit FHIRPath or model crates**
-- [ ] T005 [P] Add synthetic presentation fixtures (golden, absence, conflict, units, unsupported resource, quarantine) under `fixtures/synthetic/fhir/r4/presentation/`
+- [x] T001 Confirm Spec 003 closed and workspace builds; note baseline commit/toolchain in `evidence/004-h0b-trusted-presentation-coverage/BASELINE.md`
+- [x] T002 [P] Add presentation module layout under `medscale-fhir` (`extractors/`, `units/`) and `medscale-core` presentation orchestration hooks
+- [x] T003 [P] Extend `medscale-contracts` with CoverageStatus, TimelineEvent, Brief/Coverage body types, DrillDownResult, PresentationRulesVersion
+- [x] T004 Admit UCUM/unit subset pin (hand table or narrow dependency) via dependency/STANDARD admission; record subset id+digest in research/evidence — **do not admit FHIRPath or model crates**
+- [x] T005 [P] Add synthetic presentation fixtures (golden, absence, conflict, units, unsupported resource, quarantine) under `fixtures/synthetic/fhir/r4/presentation/`
 
 **Checkpoint**: Workspace compiles with presentation type skeletons; fixtures present
 
@@ -26,12 +28,12 @@
 
 **Purpose**: Closed typed extractors before facade reads
 
-- [ ] T006 Implement `TypedResourceExtractor` trait + registry (Patient, Observation, Condition only)
-- [ ] T007 [P] Implement `patient.v1` extractor with evidence refs + span/citation hooks
-- [ ] T008 [P] Implement `observation.v1` extractor including valueQuantity path
-- [ ] T009 [P] Implement `condition.v1` extractor
-- [ ] T010 Implement `UnitSemantics` for admitted UCUM subset (comparable / incomparable / unrecognized)
-- [ ] T011 [P] Unit tests: per-extractor happy paths; unsupported resource → Unsupported/Unknown
+- [x] T006 Implement `TypedResourceExtractor` trait + registry (Patient, Observation, Condition only)
+- [x] T007 [P] Implement `patient.v1` extractor with evidence refs + span/citation hooks
+- [x] T008 [P] Implement `observation.v1` extractor including valueQuantity path
+- [x] T009 [P] Implement `condition.v1` extractor
+- [x] T010 Implement `UnitSemantics` for admitted UCUM subset (comparable / incomparable / unrecognized)
+- [x] T011 [P] Unit tests: per-extractor happy paths; unsupported resource → Unsupported/Unknown
 
 **Checkpoint**: Extractors deterministic; units fail closed on unrecognized
 
@@ -43,10 +45,10 @@
 
 **Independent Test**: `cargo test coverage_absence_conflict`
 
-- [ ] T012 [US3] Implement CoverageSlot builder from extractor outputs
-- [ ] T013 [US3] Conflict detection retains ≥2 members; resolution = Unresolved
-- [ ] T014 [US3] Map incomparable units → `IncomparableUnits`
-- [ ] T015 [US3] Tests: absence fixture → Absent; unsupported → Unknown/Unsupported; conflict fixture → Conflict
+- [x] T012 [US3] Implement CoverageSlot builder from extractor outputs
+- [x] T013 [US3] Conflict detection retains ≥2 members; resolution = Unresolved
+- [x] T014 [US3] Map incomparable units → `IncomparableUnits`
+- [x] T015 [US3] Tests: absence fixture → Absent; unsupported → Unknown/Unsupported; conflict fixture → Conflict
 
 **Checkpoint**: US3 — coverage exit tests green
 
@@ -58,10 +60,10 @@
 
 **Independent Test**: `cargo test timeline_golden_rebuild`
 
-- [ ] T016 [US1] Implement timeline event mapping from ClinicalAssertions + extractors
-- [ ] T017 [US1] Implement deterministic sort (effective → recorded → assertion id) with precision preservation
-- [ ] T018 [US1] Exclude Proposals from default timeline events
-- [ ] T019 [US1] Tests: ≥3-event golden order; missing effective uses recorded; Proposal-only → empty clinical timeline
+- [x] T016 [US1] Implement timeline event mapping from ClinicalAssertions + extractors
+- [x] T017 [US1] Implement deterministic sort (effective → recorded → assertion id) with precision preservation
+- [x] T018 [US1] Exclude Proposals from default timeline events
+- [x] T019 [US1] Tests: ≥3-event golden order; missing effective uses recorded; Proposal-only → empty clinical timeline
 
 **Checkpoint**: US1 — deterministic timeline
 
@@ -73,9 +75,9 @@
 
 **Independent Test**: `cargo test brief_golden`
 
-- [ ] T020 [US2] Implement SubjectBriefV1 section assembly (identity, vitals, conditions, coverage_summary)
-- [ ] T021 [US2] Wire missing fields to Absent/Unknown per coverage rules
-- [ ] T022 [US2] Tests: golden Brief JSON; assert no LLM/model API surface in presentation path
+- [x] T020 [US2] Implement SubjectBriefV1 section assembly (identity, vitals, conditions, coverage_summary)
+- [x] T021 [US2] Wire missing fields to Absent/Unknown per coverage rules
+- [x] T022 [US2] Tests: golden Brief JSON; assert no LLM/model API surface in presentation path
 
 **Checkpoint**: US2 — narrow Brief
 
@@ -87,10 +89,10 @@
 
 **Independent Test**: `cargo test presentation_drilldown`
 
-- [ ] T023 [US4] Implement DrillDownPresentation facade method
-- [ ] T024 [US4] Prefer raw-byte TextSpan; WholeResourceCitation for structural fields
-- [ ] T025 [US4] Quarantined/missing blob → UnhealthyEvidence / fail closed
-- [ ] T026 [US4] Tests: populated fields resolve; quarantine fixture fails closed
+- [x] T023 [US4] Implement DrillDownPresentation facade method
+- [x] T024 [US4] Prefer raw-byte TextSpan; WholeResourceCitation for structural fields
+- [x] T025 [US4] Quarantined/missing blob → UnhealthyEvidence / fail closed
+- [x] T026 [US4] Tests: populated fields resolve; quarantine fixture fails closed
 
 **Checkpoint**: US4 — provenance drill-down
 
@@ -102,10 +104,10 @@
 
 **Independent Test**: `cargo test presentation_golden_rebuild`
 
-- [ ] T027 [US5] Extend RebuildProjection for three presentation kinds
-- [ ] T028 [US5] Persist Projection with authoritative=false + built_from + rules_version
-- [ ] T029 [US5] Canonical JSON body encoding for equality
-- [ ] T030 [US5] Golden rebuild twice → equal; delta after new assertion
+- [x] T027 [US5] Extend RebuildProjection for three presentation kinds
+- [x] T028 [US5] Persist Projection with authoritative=false + built_from + rules_version
+- [x] T029 [US5] Canonical JSON body encoding for equality
+- [x] T030 [US5] Golden rebuild twice → equal; delta after new assertion
 
 **Checkpoint**: US5 — golden rebuild
 
@@ -117,9 +119,9 @@
 
 **Independent Test**: dependency/evidence checks + unit suite
 
-- [ ] T031 [US6] Document and test that no FHIRPath engine dependency is linked for H0-B presentation
-- [ ] T032 [US7] Unit suite: incompatible units not equal; unrecognized no silent convert
-- [ ] T033 [US6/US7] Archive extractor version + ucum_subset digest in evidence
+- [x] T031 [US6] Document and test that no FHIRPath engine dependency is linked for H0-B presentation
+- [x] T032 [US7] Unit suite: incompatible units not equal; unrecognized no silent convert
+- [x] T033 [US6/US7] Archive extractor version + ucum_subset digest in evidence
 
 **Checkpoint**: US6–US7 — exit gate proofs
 
@@ -127,13 +129,13 @@
 
 ## Phase 9: Facade Wiring + Polish
 
-- [ ] T034 Wire GetTimeline / GetBrief / GetCoverage to facade envelopes in `medscale-contracts` + `medscale-core`
-- [ ] T035 Integration test: ingest synthetic fixtures (003 path) → promote → presentation reads
-- [ ] T036 Run full `cargo test --workspace` + fmt/clippy; fix regressions
-- [ ] T037 Archive evidence under `evidence/004-h0b-trusted-presentation-coverage/` per quickstart
-- [ ] T038 Validate `quickstart.md` commands
-- [ ] T039 Update `docs/planning/BUILD_QUEUE.md` on closeout: Spec 004 `CLOSED_CANONICAL`, Spec 005 `READY` (only at converge/merge)
-- [ ] T040 Ensure Spec 005/007 planning can proceed; do not implement encryption or product UI in this branch
+- [x] T034 Wire GetTimeline / GetBrief / GetCoverage to facade envelopes in `medscale-contracts` + `medscale-core`
+- [x] T035 Integration test: ingest synthetic fixtures (003 path) → promote → presentation reads
+- [x] T036 Run full `cargo test --workspace` + fmt/clippy; fix regressions
+- [x] T037 Archive evidence under `evidence/004-h0b-trusted-presentation-coverage/` per quickstart
+- [x] T038 Validate `quickstart.md` commands
+- [x] T039 Update `docs/planning/BUILD_QUEUE.md` on closeout: Spec 004 `CLOSED_CANONICAL`, Spec 005 `READY` (only at converge/merge)
+- [x] T040 Ensure Spec 005/007 planning can proceed; do not implement encryption or product UI in this branch
 
 ---
 
