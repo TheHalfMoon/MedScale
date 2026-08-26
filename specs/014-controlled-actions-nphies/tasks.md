@@ -6,4 +6,4 @@
 - [x] T004 Harden TransitionEffect (sent requires digest; UNKNOWN reconcile)
 - [x] T005 NphiesInvoke refuse ExternalGateRequired
 - [x] T006 Tests + cargo test/clippy/deny
-- [ ] T007 Closeout CLOSED_CANONICAL (merge only)
+- [x] T007 Closeout CLOSED_CANONICAL (merge only)
