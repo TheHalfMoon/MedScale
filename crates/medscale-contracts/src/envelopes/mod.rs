@@ -10,6 +10,7 @@ use crate::documents::{
 };
 use crate::evidence::{LexicalRetrieveRequest, LexicalRetrieveResult};
 use crate::ingest::{BackupManifest, IngestReceipt};
+use crate::mesc::MescArtifactAdmitRequest;
 use crate::network::{EgressAllowlistEntry, NetworkBrokerRequest, NetworkBrokerResult};
 use crate::objects::{DigestSha256, EffectState, OpaqueId, VaultId};
 use crate::online_packs::OnlinePackAcquireRequest;
@@ -62,6 +63,7 @@ pub enum Capability {
     ListOutbox,
     NphiesInvoke,
     OnlinePackAcquire,
+    MescArtifactAdmit,
 }
 
 /// Request body variants.
@@ -215,6 +217,9 @@ pub enum RequestBody {
     },
     OnlinePackAcquire {
         request: OnlinePackAcquireRequest,
+    },
+    MescArtifactAdmit {
+        request: MescArtifactAdmitRequest,
     },
 }
 

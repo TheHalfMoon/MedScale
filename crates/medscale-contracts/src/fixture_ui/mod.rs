@@ -128,6 +128,7 @@ mod tests {
             mobile: MobileDoctorStatus::ready_base(),
             controlled_actions: ControlledActionsDoctorStatus::ready_base(),
             online_packs: OnlinePacksDoctorStatus::ready_base(),
+            mesc_artifact: crate::mesc::MescArtifactDoctorStatus::gate_blocked(),
             notes: vec![],
         };
         let vm = FixtureUiViewModel::from_doctor(&report);
