@@ -303,3 +303,64 @@ The [delivery plan](TRUSTED_V1_DELIVERY_PLAN.md) is the improved dependency-orde
 companion to V2. It does not automatically promote Spec 016+ implementation or clear external
 gates. Ordinary preparation can proceed; a material implementation must own a complete
 Spec Kit package, exact-head checks and review before touching closed runtime contracts.
+
+## Required report index
+
+Mutable GitHub values below are observations at review time; the delivery PR is the live
+publication record. A report cannot embed its own eventual merge commit hash in advance.
+
+| Required field | Result / location |
+|---|---|
+| CURRENT_MAIN_SHA | Review baseline `b49592c83d23542363f671afe6a9ae65fc65b276`; refresh at delivery. |
+| CURRENT_MAIN_TREE | Review baseline `8b79737e6f0b320308b95b30e22e5fd94c08b7df`; refresh at delivery. |
+| WHOLE_PROJECT_REVIEW_STATUS | Source-backed planning review with explicit coverage limits; not exhaustive runtime qualification. |
+| CURRENT_PRODUCT_DEFINITION | Synthetic local Rust record workspace; Product definition above. |
+| MEDSCALE_NORTH_STAR | Inspectable, recoverable local longitudinal record with source-linked uncertainty. |
+| MINIMUM_LOVABLE_TRUSTED_MEDSCALE | Import, inspect, timeline/Brief, export, reopen, recover; Product definition above. |
+| TOP_10_STRENGTHS | Ten strengths in this report; scoped evidence, not release claims. |
+| TOP_10_WEAKNESSES | Ten weaknesses in this report; prioritized in delivery plan. |
+| TOP_P0_IMPROVEMENTS | Q01 truthful status; Q02 persistence; Q03 vault; Q04 host; Q05 release evidence. |
+| TOP_P1_IMPROVEMENTS | Q06 semantics; Q07 workflow; Q08 FHIR; Q09 workers; Q10 evidence. |
+| TOP_P2_IMPROVEMENTS | Q11 documents; Q12 broker/actions; Q13 artifact admission. |
+| WHAT_TO_KEEP | Rust authority, custody, explicit promotion, local-first baseline. |
+| WHAT_TO_HARDEN | Durable state, keys/leases, temporal semantics, artifact trust, recovery. |
+| WHAT_TO_SIMPLIFY | One record workspace and one durable authority. |
+| WHAT_TO_REMOVE | Stale execution claims and unsupported readiness promises. |
+| WHAT_TO_ADD | Restart/privacy/platform evidence and complete user workflow. |
+| WHAT_TO_DEFER | Live actions, replicas, generic plugins, custom CUDA and unmeasured breadth. |
+| TRUSTED_CORE_REVIEW | Good type boundaries; authenticated host and persistent authority incomplete. |
+| OBJECT_MODEL_REVIEW | Preserve distinct source/proposal/assertion/evaluation classes; strengthen versions and lineage. |
+| LONGITUDINAL_RECORD_REVIEW | Qualify temporal precision, identity reconciliation and amendments. |
+| FHIR_REVIEW | Narrow R4 subset, not full conformance; explicit support/loss matrix required. |
+| EVIDENCE_REVIEW | Static synthetic corpus; production source lifecycle remains work. |
+| AI_ARCHITECTURE_REVIEW | Proposal-only fixture runtime; no qualified real engine. |
+| MESC_BOUNDARY_REVIEW | Independent released-artifact boundary; acceptance contract linked above. |
+| NETWORK_BROKER_REVIEW | Fixture transport; live transport denies. |
+| CONTROLLED_ACTIONS_REVIEW | In-memory intents; durable verified reconciliation needed before live effects. |
+| PRIVACY_REVIEW | Open metadata plaintext; lifecycle qualification required. |
+| SECURITY_REVIEW | Defensive source model; no exhaustive vulnerability or deployed-boundary claim. |
+| DOCUMENT_PIPELINE_REVIEW | Quarantine policy plus OCR/ASR stubs; engines not qualified. |
+| DESKTOP_REVIEW | Scaffold; integrate first complete workflow. |
+| MOBILE_REVIEW | READY_BASE policies and FFI stubs; no apps. |
+| CLI_REVIEW | Useful synthetic entry; restart and stable error qualification needed. |
+| UI_UX_REVIEW | v0 visual authority retained; accessibility and source inspection acceptance added. |
+| TEST_STRATEGY_REVIEW | Baseline 98 tests; add real restart, storage faults, platform and release evidence. |
+| RELEASE_REVIEW | No current release; source closure is insufficient. |
+| MAGIKA_DISPOSITION | REFERENCE_ONLY now; conditional optional classifier candidate. |
+| HPC_OPS_DISPOSITION | BENCHMARK_REFERENCE / FUTURE_RESEARCH. |
+| AICGSECEVAL_DISPOSITION | REFERENCE_ONLY evaluation methodology. |
+| NEW_HIGH_VALUE_SOURCES | Primary-source register: FHIR/SMART, SQLite, TUF, Tauri, openEHR, OMOP, OWASP mobile, Zotero/OpenEMR. |
+| PRODUCT_CAPABILITY_MAP | Maturity map in this report. |
+| ARCHITECTURE_MAP | Component/resource tables and diagram in trust/privacy model. |
+| DEPENDENCY_GRAPH | Q01–Q15 delivery plan graph, corrected independent lexical evidence path. |
+| THREAT_MODEL | Trust/privacy model: conditional scenarios, controls, detection/recovery, severity limits. |
+| PRIVACY_MODEL | Trust/privacy model: data lifecycle, actual locations and future qualification. |
+| CRITICAL_PATH | Persistent record -> protected storage -> host -> semantics -> user workflow -> release. |
+| CURRENT_EXTERNAL_GATES | MESC assets, qualified partner/profile access, final visuals, platform evidence, PHI/legal/signing/settings authority; see EXTERNAL_GATES.md. |
+| MESC_DEPENDENCY_STATE | BLOCKED_BY_RELEASED_ARTIFACT; core work independent. |
+| CAN_EXECUTE_NOW | Bounded follow-on specification and synthetic qualification preparation. |
+| IMPROVED_CANONICAL_ROADMAP | V2 companion delivery plan and updated queue; runtime qualification still required. |
+| UPDATED_FILES | PR diff contains 17 planning, entry, evidence and specification-preparation documents. |
+| PRS_CREATED | [MedScale #34](https://github.com/TheHalfMoon/MedScale/pull/34). |
+| PRS_MERGED | Not yet verified in this report revision; check delivery status. |
+| NEXT_CANONICAL_UNIT | T01 durable trusted-record follow-on specification preparation. |
