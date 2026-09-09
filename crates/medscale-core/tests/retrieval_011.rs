@@ -1,4 +1,4 @@
-//! Spec 011 lexical retrieval tests.
+//! Spec 011 lexical retrieval tests (updated for Spec 025 corpus).
 
 use medscale_contracts::envelopes::{AuthorityRequest, Capability, RequestBody, ResponseBody};
 use medscale_contracts::evidence::LexicalRetrieveRequest;
@@ -45,8 +45,9 @@ fn lexical_retrieve_ranks_and_evidence_only() {
             RequestBody::RetrieveLexical {
                 request: LexicalRetrieveRequest {
                     query: "diabetes metformin".into(),
-                    corpus_id: "synthetic-lexical-v0".into(),
+                    corpus_id: "synthetic-lexical".into(),
                     max_hits: 5,
+                    include_retracted: false,
                 },
             },
         ))
@@ -57,6 +58,8 @@ fn lexical_retrieve_ranks_and_evidence_only() {
     };
     assert!(result.evidence_only);
     assert!(result.relevance_is_not_authority);
+    assert_eq!(result.corpus_version, "1.0.0");
+    assert_eq!(result.corpus_source_identity, "synthetic-lexical@1.0.0");
     assert!(!result.hits.is_empty());
     assert!(result.hits[0].relevance_only);
     assert!(result.hits.iter().any(|h| h.doc_id.as_str() == "doc-dm"));
@@ -91,6 +94,7 @@ fn unknown_corpus_denied() {
                     query: "x".into(),
                     corpus_id: "nope".into(),
                     max_hits: 1,
+                    include_retracted: false,
                 },
             },
         ))

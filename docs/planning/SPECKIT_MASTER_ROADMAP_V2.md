@@ -54,7 +54,8 @@ Required lifecycle for each material executable spec:
 | 022 | `release-qualification-prep` | Q05 locked builds, evidence binding, doctor honesty (prep) | 016–021; Q05 partial pins | CLOSED_CANONICAL READY_BASE prep; RELEASE_READY=false; branch protection EXTERNAL_GATES |
 | 023 | `vault-open-metadata-privacy` | SQLCipher page-encrypted EncryptedVault open work (Q03 residual) | 017 closed; admission 005-sqlcipher | CLOSED_CANONICAL READY_BASE; PRIVATE_DATA_READY=false (OS key/swap/snapshot) |
 | 024 | `host-os-ipc-authority` | Localhost OS IPC + strict mutating sessions (Q04 residual) | 018 closed; Spec 016 WriterLock | CLOSED_CANONICAL READY_BASE; os_ipc_qualified=true; MULTI_CLIENT_RELEASE_READY=false |
-| 025+ | `research-site-imaging-genomics-advanced` | deferred site/research/collab/imaging/genomics/plugin/browser/watch/vision expansion | evidence-driven later gates | no Trusted V1 implementation commitment |
+| 025 | `evidence-corpus-lifecycle` | Source-versioned local lexical evidence corpus (Q10) | 011 + 016/019 | CLOSED_CANONICAL READY_BASE; synthetic-owned; clinical quality / RELEASE_READY=false |
+| 026+ | `research-site-imaging-genomics-advanced` | deferred site/research/collab/imaging/genomics/plugin/browser/watch/vision expansion | evidence-driven later gates | no Trusted V1 implementation commitment |
 
 ## 3. Corrected critical path
 
@@ -89,7 +90,8 @@ ONLINE ECOSYSTEM
 022 release-qualification prep (Q05) CLOSED_CANONICAL READY_BASE prep; RELEASE_READY=false
 023 vault open-metadata privacy (Q03 residual) CLOSED_CANONICAL READY_BASE; PRIVATE_DATA_READY=false
 024 host OS IPC authority (Q04 residual) CLOSED_CANONICAL READY_BASE; os_ipc_qualified=true; MULTI_CLIENT_RELEASE_READY=false
-Next: 012 MESC-blocked; OS key/swap/snapshot still block PRIVATE_DATA_READY; 025+ deferred
+025 evidence corpus lifecycle (Q10) CLOSED_CANONICAL READY_BASE; synthetic-lexical@version; clinical quality / RELEASE_READY=false
+Next: 012 MESC-blocked; OS key/swap/snapshot still block PRIVATE_DATA_READY; 026+ deferred
 ```
 
 ## 4. Core process topology — decided for downstream specs

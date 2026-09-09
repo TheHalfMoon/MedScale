@@ -237,6 +237,7 @@ pub struct DoctorReport {
     pub fhir_support_matrix: FhirSupportMatrix,
     pub workflow: WorkflowDoctorStatus,
     pub release_qualification: ReleaseQualificationDoctorStatus,
+    pub evidence_corpus: crate::evidence::EvidenceCorpusDoctorStatus,
     pub notes: Vec<String>,
 }
 

@@ -141,6 +141,10 @@ mod tests {
             workflow: crate::workflow::WorkflowDoctorStatus::ready_base(),
             release_qualification: crate::doctor::ReleaseQualificationDoctorStatus::prep_ready_base(
             ),
+            evidence_corpus: crate::evidence::EvidenceCorpusDoctorStatus::ready_base(
+                "synthetic-lexical",
+                "1.0.0",
+            ),
             notes: vec![],
         };
         let vm = FixtureUiViewModel::from_doctor(&report);

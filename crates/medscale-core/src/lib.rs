@@ -13,7 +13,10 @@ pub mod text;
 pub mod validate;
 pub mod workflow;
 
-pub use authority::CoreFacade;
+pub use authority::{
+    CoreFacade, DEFAULT_CORPUS_ID, DEFAULT_CORPUS_VERSION, admit_corpus_bytes, admit_corpus_dir,
+    default_synthetic_corpus,
+};
 pub use cli_session::CliSession;
 pub use doctor::{
     build_doctor_report, build_doctor_report_full, build_doctor_report_with_allowlist,
