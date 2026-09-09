@@ -62,7 +62,8 @@ Specs 016–023 are `CLOSED_CANONICAL` READY_BASE (022 = Q05 release-qualification
 Spec **024** is `CLOSED_CANONICAL` READY_BASE (Q04 host OS IPC; `MULTI_CLIENT_RELEASE_READY` still FALSE).
 Spec **025** is `CLOSED_CANONICAL` READY_BASE (Q10 versioned synthetic evidence corpus; clinical quality / `RELEASE_READY` still FALSE).
 Spec **026** is `CLOSED_CANONICAL` READY_BASE (Q09 pack signer/anti-rollback + Linux Landlock measured; `platform_qualified=false`; `WORKER_OS_SANDBOX_PLATFORM_QUALIFIED` still OPEN).
-Spec 012 remains MESC-blocked. Deferred advanced work is **027+**.
+Spec **027** is `CLOSED_CANONICAL` READY_BASE (Q05 perf harness + SBOM/checksum scaffolds; budgets not claimed; `RELEASE_READY` still FALSE).
+Spec 012 remains MESC-blocked. Deferred advanced work is **028+**.
 Do **not** claim `RELEASE_READY`, `PRIVATE_DATA_READY`, or `MULTI_CLIENT_RELEASE_READY`.
 Q03 residual page encryption landed in Spec 023; OS keyring/swap/snapshot still block PRIVATE_DATA_READY.
 Foundation and prep closure is not product or privacy release readiness.
