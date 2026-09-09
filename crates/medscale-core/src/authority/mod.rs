@@ -1,5 +1,6 @@
 //! Authority facade, store, promotion, and identity operations.
 
+mod amend;
 mod document_ops;
 mod durable;
 mod facade;

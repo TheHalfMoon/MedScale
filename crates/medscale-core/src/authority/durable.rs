@@ -2,8 +2,8 @@
 
 use medscale_contracts::envelopes::AuthorityError;
 use medscale_contracts::objects::{
-    ActionAuditRecord, ClinicalAssertion, DerivedSourceArtifact, DigestSha256, EvaluationRecord,
-    IdentityAssertion, IdentityMergeDecision, Projection, Proposal, SourceRecord,
+    ActionAuditRecord, AmendmentRecord, ClinicalAssertion, DerivedSourceArtifact, DigestSha256,
+    EvaluationRecord, IdentityAssertion, IdentityMergeDecision, Projection, Proposal, SourceRecord,
 };
 use medscale_storage::{AuthorityObjectRow, FsBlobStore, SyntheticVault};
 use serde_json::Value;
@@ -179,6 +179,7 @@ fn to_row(obj: &StoredObject, updated_seq: u64) -> Result<AuthorityObjectRow, Au
         StoredObject::Merge(a) => row_parts("merge", a)?,
         StoredObject::Evaluation(a) => row_parts("evaluation", a)?,
         StoredObject::Projection(a) => row_parts("projection", a)?,
+        StoredObject::Amendment(a) => row_parts("amendment", a)?,
     };
     let body_json = serde_json::to_string(&body).map_err(|e| AuthorityError::InvalidArgument {
         message: e.to_string(),
@@ -236,6 +237,7 @@ impl_header!(IdentityAssertion);
 impl_header!(IdentityMergeDecision);
 impl_header!(EvaluationRecord);
 impl_header!(Projection);
+impl_header!(AmendmentRecord);
 
 fn from_row(row: &AuthorityObjectRow, blobs: &FsBlobStore) -> Result<StoredObject, AuthorityError> {
     let value: Value =
@@ -308,6 +310,11 @@ fn from_row(row: &AuthorityObjectRow, blobs: &FsBlobStore) -> Result<StoredObjec
             })?,
         )),
         "projection" => Ok(StoredObject::Projection(
+            serde_json::from_value(value).map_err(|e| AuthorityError::InvalidArgument {
+                message: e.to_string(),
+            })?,
+        )),
+        "amendment" => Ok(StoredObject::Amendment(
             serde_json::from_value(value).map_err(|e| AuthorityError::InvalidArgument {
                 message: e.to_string(),
             })?,

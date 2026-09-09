@@ -17,11 +17,7 @@ fn header(id: &str) -> ObjectHeader {
 }
 
 fn instant() -> MedicalTime {
-    MedicalTime {
-        value: "1970-01-01T00:00:00Z".to_owned(),
-        precision: TimePrecision::Instant,
-        approximate: false,
-    }
+    MedicalTime::new("1970-01-01T00:00:00Z", TimePrecision::Instant, false)
 }
 
 #[test]

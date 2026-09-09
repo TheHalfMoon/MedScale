@@ -88,8 +88,8 @@ mod tests {
     use super::*;
     use crate::actions::ControlledActionsDoctorStatus;
     use crate::doctor::{
-        HostAuthorityDoctorStatus, KeyStoreAvailability, PrivacyFreshness, SyncRisk,
-        VaultPrivacyDoctorStatus,
+        HostAuthorityDoctorStatus, KeyStoreAvailability, PrivacyFreshness,
+        RecordSemanticsDoctorStatus, SyncRisk, VaultPrivacyDoctorStatus,
     };
     use crate::mobile::MobileDoctorStatus;
     use crate::network::NetworkBrokerDoctorStatus;
@@ -134,6 +134,7 @@ mod tests {
             mesc_artifact: crate::mesc::MescArtifactDoctorStatus::gate_blocked(),
             vault_privacy: VaultPrivacyDoctorStatus::spec_017_honest(),
             host_authority: HostAuthorityDoctorStatus::ready_base(),
+            record_semantics: RecordSemanticsDoctorStatus::ready_base(),
             notes: vec![],
         };
         let vm = FixtureUiViewModel::from_doctor(&report);

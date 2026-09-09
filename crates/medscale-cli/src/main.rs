@@ -226,6 +226,13 @@ fn run() -> Result<()> {
                     report.host_authority.multi_client_release_ready,
                     report.host_authority.os_ipc_qualified
                 );
+                println!(
+                    "record_semantics: ready_base={} precision_time={} amendments={} release_ready={}",
+                    report.record_semantics.ready_base,
+                    report.record_semantics.precision_aware_time,
+                    report.record_semantics.append_only_amendments,
+                    report.record_semantics.release_ready
+                );
                 for note in &report.notes {
                     println!("note: {note}");
                 }
@@ -437,6 +444,8 @@ mod tests {
             "broker_required",
             "mesc_artifact",
             "artifact_admitted",
+            "record_semantics",
+            "precision_aware_time",
         ] {
             assert!(json.contains(key), "missing {key}");
         }

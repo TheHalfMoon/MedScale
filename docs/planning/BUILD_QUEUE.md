@@ -5,12 +5,12 @@
 **Rule:** update this file whenever a unit enters or leaves a canonical state.
 
 **Autonomous stop status (historical V2 scoped closure):** superseded for Trusted V1 follow-on work.
-**Live follow-on status (2026-09-09):** Spec **016** `CLOSED_CANONICAL`. Spec **017** vault privacy lifecycle wipe/honesty `CLOSED_CANONICAL` with `PRIVATE_DATA_READY = FALSE`. Spec **018** host/client authority (Q04) `CLOSED_CANONICAL` READY_BASE with `MULTI_CLIENT_RELEASE_READY = FALSE`. Spec 012 remains MESC-blocked. Advanced work `019+` deferred. `RELEASE_READY = FALSE`.
+**Live follow-on status (2026-09-09):** Spec **016** `CLOSED_CANONICAL`. Spec **017** vault privacy lifecycle wipe/honesty `CLOSED_CANONICAL` with `PRIVATE_DATA_READY = FALSE`. Spec **018** host/client authority (Q04) `CLOSED_CANONICAL` READY_BASE with `MULTI_CLIENT_RELEASE_READY = FALSE`. Spec **019** record semantics (Q06) `CLOSED_CANONICAL` READY_BASE with `RELEASE_READY = FALSE`. Spec 012 remains MESC-blocked. Spec **020** FHIR support matrix (Q08) is next READY. Advanced work beyond 020 remains deferred. `RELEASE_READY = FALSE`.
 
 ## 2026-09-09 planning refinement
 
-See Trusted V1 delivery plan. Spec 018 READY_BASE closed (in-process sessions). Next eligible unit: none in Trusted V1 Q-series until external gates or deferred 019+ are reopened.
-Main after Spec 016: `419a468`. Spec 017 wipe landed via PR #36 (`0668359`); Spec 018 on branch `spec/018-host-client-authority`.
+See Trusted V1 delivery plan. Spec 018 READY_BASE closed (in-process sessions). Spec 019 record semantics READY_BASE closed. Next eligible unit: Spec **020** FHIR support matrix (Q08) READY.
+Main after Spec 018: `873a74d`. Spec 019 on branch `spec/019-record-semantics-q06`.
 
 ## Historical scoped queue (closures preserved)
 
@@ -35,7 +35,9 @@ Main after Spec 016: `419a468`. Spec 017 wipe landed via PR #36 (`0668359`); Spe
 | 016 | Durable Trusted Record (Q02) | `CLOSED_CANONICAL` | Full authority object graph persists across process restart; see evidence/016. |
 | 017 | Vault Privacy Qualification (Q03) | `CLOSED_CANONICAL` | Work/WAL wipe + doctor honesty; PRIVATE_DATA_READY remains FALSE. |
 | 018 | Host / Client Authority (Q04) | `CLOSED_CANONICAL` | READY_BASE: in-process SessionRegistry; MULTI_CLIENT_RELEASE_READY=false. |
-| 019+ | Advanced deferred work | `DEFERRED_BY_CANONICAL_DESIGN` | Plugins/GraphRAG/replicas/imaging/CUDA/etc. |
+| 019 | Record Semantics (Q06) | `CLOSED_CANONICAL` | READY_BASE: precision-aware MedicalTime, AmendAssertion, missingness, identity unresolved; RELEASE_READY=false. |
+| 020 | FHIR Support Matrix (Q08) | `READY` | Support matrix, validator evidence, loss-aware export/provenance; depends on 019. |
+| 021+ | Advanced deferred work | `DEFERRED_BY_CANONICAL_DESIGN` | Plugins/GraphRAG/replicas/imaging/CUDA/etc. |
 
 ## Automatic progression
 

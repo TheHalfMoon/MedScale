@@ -2,6 +2,7 @@
 
 use std::collections::HashMap;
 
+use medscale_contracts::objects::AmendmentRecord;
 use medscale_contracts::objects::{
     ActionAuditRecord, AuthorityScopeId, ClinicalAssertion, DerivedSourceArtifact,
     EvaluationRecord, IdentityAssertion, IdentityMergeDecision, OpaqueId, Projection, Proposal,
@@ -21,6 +22,7 @@ pub enum StoredObject {
     Merge(IdentityMergeDecision),
     Evaluation(EvaluationRecord),
     Projection(Projection),
+    Amendment(AmendmentRecord),
 }
 
 impl StoredObject {
@@ -35,6 +37,7 @@ impl StoredObject {
             Self::Merge(v) => serde_json::to_value(v).unwrap_or(Value::Null),
             Self::Evaluation(v) => serde_json::to_value(v).unwrap_or(Value::Null),
             Self::Projection(v) => serde_json::to_value(v).unwrap_or(Value::Null),
+            Self::Amendment(v) => serde_json::to_value(v).unwrap_or(Value::Null),
         }
     }
 
@@ -81,6 +84,11 @@ impl StoredObject {
                 &v.header.id,
             ),
             Self::Projection(v) => (
+                &v.header.realm_id,
+                &v.header.authority_scope_id,
+                &v.header.id,
+            ),
+            Self::Amendment(v) => (
                 &v.header.realm_id,
                 &v.header.authority_scope_id,
                 &v.header.id,
@@ -220,6 +228,51 @@ impl InMemoryAuthorityStore {
         self.assertions_for_subject(subject_ref)
             .into_iter()
             .map(|a| a.header.id)
+            .collect()
+    }
+
+    /// OpaqueIds of assertions that have been superseded or retracted (append-only lineage).
+    #[must_use]
+    pub fn superseded_assertion_ids(&self) -> std::collections::HashSet<String> {
+        self.objects
+            .values()
+            .filter_map(|o| match o {
+                StoredObject::Amendment(a) => Some(a.prior_assertion_id.as_str().to_owned()),
+                _ => None,
+            })
+            .collect()
+    }
+
+    #[must_use]
+    pub fn identity_assertions(&self) -> Vec<IdentityAssertion> {
+        self.objects
+            .values()
+            .filter_map(|o| match o {
+                StoredObject::Identity(a) => Some(a.clone()),
+                _ => None,
+            })
+            .collect()
+    }
+
+    #[must_use]
+    pub fn identity_merges(&self) -> Vec<IdentityMergeDecision> {
+        self.objects
+            .values()
+            .filter_map(|o| match o {
+                StoredObject::Merge(m) => Some(m.clone()),
+                _ => None,
+            })
+            .collect()
+    }
+
+    #[must_use]
+    pub fn amendments(&self) -> Vec<AmendmentRecord> {
+        self.objects
+            .values()
+            .filter_map(|o| match o {
+                StoredObject::Amendment(a) => Some(a.clone()),
+                _ => None,
+            })
             .collect()
     }
 }

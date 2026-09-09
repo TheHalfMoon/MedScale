@@ -12,7 +12,7 @@ use crate::evidence::{LexicalRetrieveRequest, LexicalRetrieveResult};
 use crate::ingest::{BackupManifest, IngestReceipt};
 use crate::mesc::MescArtifactAdmitRequest;
 use crate::network::{EgressAllowlistEntry, NetworkBrokerRequest, NetworkBrokerResult};
-use crate::objects::{DigestSha256, EffectState, OpaqueId, VaultId};
+use crate::objects::{AmendmentKind, DigestSha256, EffectState, MedicalTime, OpaqueId, VaultId};
 use crate::online_packs::OnlinePackAcquireRequest;
 use crate::packs::{PackAdmitResult, PackManifestV0, PackPromotionState};
 use crate::presentation::{DrillDownResult, SubjectBriefV1, SubjectCoverageV1, SubjectTimelineV1};
@@ -66,6 +66,7 @@ pub enum Capability {
     MescArtifactAdmit,
     OpenSession,
     RevokeSession,
+    AmendAssertion,
 }
 
 /// Request body variants.
@@ -231,6 +232,14 @@ pub enum RequestBody {
     RevokeSession {
         session_id: OpaqueId,
     },
+    AmendAssertion {
+        prior_assertion_id: OpaqueId,
+        authorized_by: OpaqueId,
+        payload: Value,
+        effective_time: Option<MedicalTime>,
+        kind: AmendmentKind,
+        rationale: String,
+    },
 }
 
 /// Successful response body variants.
@@ -340,6 +349,11 @@ pub enum ResponseBody {
     Session {
         session_id: OpaqueId,
         expires_at_tick: u64,
+    },
+    Amended {
+        assertion_id: OpaqueId,
+        amendment_id: OpaqueId,
+        audit_id: OpaqueId,
     },
 }
 
