@@ -166,3 +166,11 @@ MESC_MUTATION = NOT_AUTHORIZED_BY_THIS_PLAN
 ```
 
 The canonical V2 planning artifacts are now placed in `TheHalfMoon/MedScale`. The next executable gate is explicit founder authorization to begin Spec 000/001 bootstrap work. Repository planning finalization does not itself authorize Cargo initialization, dependency installation, product code, model execution, PHI access, or `/speckit.implement`.
+
+
+## 2026-09-09 evidence-backed refinement
+
+Read [whole-product review](WHOLE_PRODUCT_REVIEW_2026-09-09.md) and
+[trusted V1 delivery priorities](TRUSTED_V1_DELIVERY_PLAN.md). Historical scope closures
+remain intact; next bounded planning work is tracked in BUILD_QUEUE.md. Runtime promotion
+requires the owning Spec Kit lifecycle. No blanket advanced-capability promotion is implied.

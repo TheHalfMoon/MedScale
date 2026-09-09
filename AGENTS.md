@@ -43,7 +43,7 @@ MedScale uses GitHub Spec Kit and a Spec-of-Specs process. For each material exe
 -> /speckit.converge
 ```
 
-Use `/speckit.constitution` when repository constitution is created/changed. Spec 000 is already `CLOSED_CANONICAL` at planning/source-authority level; Spec 001 is the first executable unit and materializes the constitution into the bootstrapped Spec Kit structure without reopening founder decisions.
+Use `/speckit.constitution` when repository constitution is created/changed. Spec 000 is already `CLOSED_CANONICAL` at planning/source-authority level; Spec 001 is also closed. Use the live queue for current work; do not restart bootstrap. Scoped closure does not establish product or privacy release readiness.
 
 ## Autonomous behavior
 

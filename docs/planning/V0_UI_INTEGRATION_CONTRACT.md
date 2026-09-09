@@ -23,3 +23,13 @@ For mobile, Swift/Kotlin platform shells may implement the v0 visual intent whil
 5. Only integrated, privacy-qualified UI is merged.
 
 Cursor does not wait for final v0 polish to build core product behavior.
+
+## Whole-product qualification refinement (2026-09-09)
+
+The first integration journey is import -> inspect source/identity/coverage -> timeline/Brief
+-> export -> close/reopen -> backup/restore. Show unsupported resources, partial dates,
+conflicts, unknown/missing evidence and model availability explicitly. Acceptance includes
+keyboard-only operation, focus/error recovery, screen-reader labels, accessible contrast,
+empty/loading/failure states and source drill-down. UI calls only the Rust authority facade;
+no direct vault, model, secret or network access. Backend contracts and synthetic integration
+can proceed before final v0 visuals; final visual release remains governed by this contract.
