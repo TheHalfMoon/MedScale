@@ -52,7 +52,8 @@ Required lifecycle for each material executable spec:
 | 020 | `fhir-interchange-qualification` | FHIR support matrix, validator evidence, loss-aware export/provenance (Q08) | 019 | CLOSED_CANONICAL READY_BASE; bounded interchange; no false conformance |
 | 021 | `minimum-lovable-workflow` | restartable import-review-timeline-export-backup journey (Q07) | 016–020 | CLOSED_CANONICAL READY_BASE; disclosure append; RELEASE_READY=false |
 | 022 | `release-qualification-prep` | Q05 locked builds, evidence binding, doctor honesty (prep) | 016–021; Q05 partial pins | CLOSED_CANONICAL READY_BASE prep; RELEASE_READY=false; branch protection EXTERNAL_GATES |
-| 023+ | `research-site-imaging-genomics-advanced` | deferred site/research/collab/imaging/genomics/plugin/browser/watch/vision expansion | evidence-driven later gates | no Trusted V1 implementation commitment |
+| 023 | `vault-open-metadata-privacy` | SQLCipher page-encrypted EncryptedVault open work (Q03 residual) | 017 closed; admission 005-sqlcipher | CLOSED_CANONICAL READY_BASE; PRIVATE_DATA_READY=false (OS key/swap/snapshot) |
+| 024+ | `research-site-imaging-genomics-advanced` | deferred site/research/collab/imaging/genomics/plugin/browser/watch/vision expansion | evidence-driven later gates | no Trusted V1 implementation commitment |
 
 ## 3. Corrected critical path
 
@@ -79,13 +80,14 @@ ONLINE ECOSYSTEM
 008 + 013 (+ 009 pack-format constraints) -> 015
 
 016 durable trusted record (Q02) after foundation
-017 vault privacy (Q03)
+017 vault privacy (Q03) lifecycle wipe
 018 host/client authority (Q04)
 019 record semantics (Q06)
 020 FHIR interchange qualification (Q08) CLOSED_CANONICAL READY_BASE
 021 minimum lovable workflow (Q07) CLOSED_CANONICAL READY_BASE
 022 release-qualification prep (Q05) CLOSED_CANONICAL READY_BASE prep; RELEASE_READY=false
-Next: IMPLEMENTATION_COMPLETE_PENDING_EXTERNAL_GATES (ordinary Trusted V1 in-repo); 012 MESC-blocked; 023+ deferred
+023 vault open-metadata privacy (Q03 residual) CLOSED_CANONICAL READY_BASE; PRIVATE_DATA_READY=false
+Next: 012 MESC-blocked; OS key/swap/snapshot still block PRIVATE_DATA_READY; 024+ deferred
 ```
 
 ## 4. Core process topology — decided for downstream specs

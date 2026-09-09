@@ -1,4 +1,4 @@
-//! EncryptedVault: AES-GCM sealed metadata + sealed blobs (Spec 005 D4 primary ship path).
+//! EncryptedVault: SQLCipher page-encrypted work metadata + AES-GCM sealed at-rest (Specs 005/023).
 
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -92,11 +92,11 @@ impl EncryptedVault {
 
         let work = root.join(META_WORK);
         {
-            let _meta = SqliteMetaStore::open_at(&work)?;
+            let _meta = SqliteMetaStore::open_at_sqlcipher(&work, dek.as_bytes())?;
         }
         Self::seal_meta_file(&root, vault_id, &dek)?;
         Self::unseal_meta_file(&root, vault_id, &dek)?;
-        let meta = SqliteMetaStore::open_at(&work)?;
+        let meta = SqliteMetaStore::open_at_sqlcipher(&work, dek.as_bytes())?;
         let blobs = SealedBlobStore::open(&root, vault_id)?;
 
         Ok((
@@ -164,7 +164,7 @@ impl EncryptedVault {
         }
         Self::unseal_meta_file(&root, &header.vault_id, &dek)?;
         let work = root.join(META_WORK);
-        let meta = SqliteMetaStore::open_at(&work)?;
+        let meta = SqliteMetaStore::open_at_sqlcipher_or_rekey_legacy(&work, dek.as_bytes())?;
         let blobs = SealedBlobStore::open(&root, &header.vault_id)?;
         Ok(Self {
             vault_id: header.vault_id.clone(),
@@ -256,7 +256,7 @@ impl EncryptedVault {
         Ok(())
     }
 
-    /// Remove plaintext work DB and SQLite sidecar files if present.
+    /// Remove work DB and SQLite sidecar files if present.
     pub fn wipe_work_sidecars(root: &Path) -> Result<(), EncryptedVaultError> {
         let work = root.join(META_WORK);
         for path in [
@@ -277,7 +277,7 @@ impl EncryptedVault {
         Ok(())
     }
 
-    /// True when plaintext work or journal sidecars remain on disk.
+    /// True when work or journal sidecars remain on disk.
     #[must_use]
     pub fn leftover_work_present(root: &Path) -> bool {
         let work = root.join(META_WORK);
@@ -298,6 +298,17 @@ impl EncryptedVault {
     pub fn insert_source(&self, meta: &SourceMeta) -> Result<(), EncryptedVaultError> {
         self.meta.insert_source(meta)?;
         Ok(())
+    }
+
+    /// Embedded SQLCipher version for evidence (`PRAGMA cipher_version`).
+    pub fn sqlcipher_cipher_version(&self) -> Result<String, EncryptedVaultError> {
+        Ok(self.meta.cipher_version()?)
+    }
+
+    /// True when Spec 023 SQLCipher EncryptedVault backend is compiled in.
+    #[must_use]
+    pub fn sqlcipher_enabled() -> bool {
+        SqliteMetaStore::sqlcipher_backend_active()
     }
 
     /// Destroy key wraps (retention); leaves ciphertext unreadable.
@@ -370,11 +381,26 @@ impl EncryptedVault {
         Ok((enc, codes))
     }
 
+    /// Open-work + sealed surfaces must not contain the marker (Spec 023 page encryption).
     pub fn plaintext_marker_absent_on_disk(&self, marker: &[u8]) -> bool {
-        if let Ok(bytes) = fs::read(self.root.join(META_SEALED)) {
-            if bytes.windows(marker.len()).any(|w| w == marker) {
+        let work = self.root.join(META_WORK);
+        if let Ok(bytes) = fs::read(&work)
+            && bytes.windows(marker.len()).any(|w| w == marker)
+        {
+            return false;
+        }
+        for suffix in ["-wal", "-shm", "-journal"] {
+            let side = sqlite_sidecar(&work, suffix);
+            if let Ok(bytes) = fs::read(&side)
+                && bytes.windows(marker.len()).any(|w| w == marker)
+            {
                 return false;
             }
+        }
+        if let Ok(bytes) = fs::read(self.root.join(META_SEALED))
+            && bytes.windows(marker.len()).any(|w| w == marker)
+        {
+            return false;
         }
         self.blobs.plaintext_marker_absent(marker)
     }

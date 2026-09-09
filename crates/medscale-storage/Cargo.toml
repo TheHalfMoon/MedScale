@@ -8,8 +8,8 @@ publish.workspace = true
 rust-version.workspace = true
 
 [features]
-default = []
-# Reserved: SQLCipher backend re-entry (see admissions/005-sqlcipher-rusqlite.md).
+default = ["sqlcipher"]
+# Spec 023: workspace rusqlite is SQLCipher-backed; feature documents the EncryptedVault path.
 sqlcipher = []
 
 [dependencies]

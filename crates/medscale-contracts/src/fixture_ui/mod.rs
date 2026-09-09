@@ -133,7 +133,7 @@ mod tests {
             controlled_actions: ControlledActionsDoctorStatus::ready_base(),
             online_packs: OnlinePacksDoctorStatus::ready_base(),
             mesc_artifact: crate::mesc::MescArtifactDoctorStatus::gate_blocked(),
-            vault_privacy: VaultPrivacyDoctorStatus::spec_017_honest(),
+            vault_privacy: VaultPrivacyDoctorStatus::spec_023_honest(),
             host_authority: HostAuthorityDoctorStatus::ready_base(),
             record_semantics: RecordSemanticsDoctorStatus::ready_base(),
             fhir_interchange: FhirInterchangeDoctorStatus::ready_base(),

@@ -57,10 +57,11 @@ Then dependency-controlled tracks:
 
 Read [whole-product review](WHOLE_PRODUCT_REVIEW_2026-09-09.md),
 [delivery plan](TRUSTED_V1_DELIVERY_PLAN.md), and live [BUILD_QUEUE.md](BUILD_QUEUE.md).
-Specs 016–022 are `CLOSED_CANONICAL` READY_BASE (022 = Q05 release-qualification **prep** only).
-Spec 012 remains MESC-blocked. Deferred advanced work is **023+**.
-Ordinary in-repo Trusted V1 follow-on is `IMPLEMENTATION_COMPLETE_PENDING_EXTERNAL_GATES`.
+Specs 016–023 are `CLOSED_CANONICAL` READY_BASE (022 = Q05 release-qualification **prep** only;
+023 = Q03 open-metadata SQLCipher; `PRIVATE_DATA_READY` still FALSE).
+Spec 012 remains MESC-blocked. Deferred advanced work is **024+**.
 Do **not** claim `RELEASE_READY`, `PRIVATE_DATA_READY`, or `MULTI_CLIENT_RELEASE_READY`.
+Q03 residual page encryption landed in Spec 023; OS keyring/swap/snapshot still block PRIVATE_DATA_READY.
 Foundation and prep closure is not product or privacy release readiness.
 
 ### Historical bootstrap requirements (already closed)
