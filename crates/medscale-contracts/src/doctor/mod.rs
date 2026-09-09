@@ -9,6 +9,7 @@ use crate::mobile::MobileDoctorStatus;
 use crate::network::NetworkBrokerDoctorStatus;
 use crate::online_packs::OnlinePacksDoctorStatus;
 use crate::packs::PacksRuntimeDoctorStatus;
+use crate::workflow::WorkflowDoctorStatus;
 
 /// Sync / remote filesystem risk assessment for a vault path.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -151,6 +152,7 @@ pub struct DoctorReport {
     pub record_semantics: RecordSemanticsDoctorStatus,
     pub fhir_interchange: FhirInterchangeDoctorStatus,
     pub fhir_support_matrix: FhirSupportMatrix,
+    pub workflow: WorkflowDoctorStatus,
     pub notes: Vec<String>,
 }
 

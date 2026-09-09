@@ -50,7 +50,7 @@ Required lifecycle for each material executable spec:
 | 018 | `host-client-authority` | authenticated local host/client sessions and scoped capabilities (Q04) | 016–017 | sessions/leases/revocation; not remote multi-tenant |
 | 019 | `record-semantics` | precision-aware time, append-only amendments, explicit identity reconciliation, missingness (Q06) | 016 + 004 contracts | READY_BASE synthetic; RELEASE_READY false |
 | 020 | `fhir-interchange-qualification` | FHIR support matrix, validator evidence, loss-aware export/provenance (Q08) | 019 | CLOSED_CANONICAL READY_BASE; bounded interchange; no false conformance |
-| 021 | `minimum-lovable-workflow` | restartable import-review-timeline-export-backup journey (Q07) | 016–020 | READY next; shared facade; disclosure clarity |
+| 021 | `minimum-lovable-workflow` | restartable import-review-timeline-export-backup journey (Q07) | 016–020 | CLOSED_CANONICAL READY_BASE; disclosure append; RELEASE_READY=false |
 | 022+ | `research-site-imaging-genomics-advanced` | deferred site/research/collab/imaging/genomics/plugin/browser/watch/vision expansion | evidence-driven later gates | no Trusted V1 implementation commitment |
 
 ## 3. Corrected critical path
@@ -82,8 +82,8 @@ ONLINE ECOSYSTEM
 018 host/client authority (Q04)
 019 record semantics (Q06)
 020 FHIR interchange qualification (Q08) CLOSED_CANONICAL READY_BASE
-021 minimum lovable workflow (Q07) READY next
-022+ remains deferred
+021 minimum lovable workflow (Q07) CLOSED_CANONICAL READY_BASE
+Next: Q05 release-evidence / qualification prep (honest; RELEASE_READY=false); 012 MESC-blocked; 022+ deferred
 ```
 
 ## 4. Core process topology — decided for downstream specs

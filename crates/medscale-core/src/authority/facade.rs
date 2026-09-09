@@ -1003,6 +1003,84 @@ impl CoreFacade {
                     export: medscale_contracts::fhir::loss_aware_export(&resource),
                 })
             }
+            RequestBody::RejectProposal {
+                proposal_id,
+                actor,
+                rationale,
+            } => {
+                self.require_lease(&req.vault_id)?;
+                let mut store = self.store();
+                let _proposal = store
+                    .get_proposal(&proposal_id, &req.realm_id, &req.authority_scope_id)
+                    .map_err(scope_err)?;
+                let audit_id = store.alloc_id("audit");
+                let audit = ActionAuditRecord {
+                    header: ObjectHeader {
+                        id: audit_id.clone(),
+                        schema_version: AUTHORITY_SCHEMA_VERSION,
+                        realm_id: req.realm_id,
+                        authority_scope_id: req.authority_scope_id,
+                    },
+                    kind: ActionAuditKind::Audit,
+                    actor,
+                    action: medscale_contracts::workflow::PROPOSAL_REJECT_ACTION.to_owned(),
+                    target_refs: vec![proposal_id.clone()],
+                    effect_state: None,
+                    payload_digest: None,
+                    detail: Some(serde_json::json!({ "rationale": rationale })),
+                };
+                store.insert(StoredObject::Audit(audit));
+                Ok(ResponseBody::Rejected {
+                    proposal_id,
+                    audit_id,
+                })
+            }
+            RequestBody::AppendDisclosure {
+                purpose,
+                scope,
+                subject_ref,
+                artifact_refs,
+                export_digest,
+                note,
+            } => {
+                self.require_lease(&req.vault_id)?;
+                let mut store = self.store();
+                let disclosure_id = store.alloc_id("disclosure");
+                let record = medscale_contracts::workflow::DisclosureRecord {
+                    disclosure_id: disclosure_id.clone(),
+                    purpose: purpose.clone(),
+                    scope: scope.clone(),
+                    subject_ref: subject_ref.clone(),
+                    artifact_refs: artifact_refs.clone(),
+                    export_digest: export_digest.clone(),
+                    synthetic_only: true,
+                    release_ready_claimed: false,
+                    note: note.clone(),
+                };
+                let audit = ActionAuditRecord {
+                    header: ObjectHeader {
+                        id: disclosure_id,
+                        schema_version: AUTHORITY_SCHEMA_VERSION,
+                        realm_id: req.realm_id,
+                        authority_scope_id: req.authority_scope_id,
+                    },
+                    kind: ActionAuditKind::Audit,
+                    actor: OpaqueId::new("workflow-operator"),
+                    action: medscale_contracts::workflow::DISCLOSURE_APPEND_ACTION.to_owned(),
+                    target_refs: artifact_refs,
+                    effect_state: None,
+                    payload_digest: export_digest,
+                    detail: Some(serde_json::to_value(&record).unwrap_or(serde_json::Value::Null)),
+                };
+                store.insert(StoredObject::Audit(audit));
+                Ok(ResponseBody::DisclosureAppended { record })
+            }
+            RequestBody::ListDisclosures => {
+                self.require_lease(&req.vault_id)?;
+                let store = self.store();
+                let records = store.list_disclosures(&req.realm_id, &req.authority_scope_id);
+                Ok(ResponseBody::DisclosureList { records })
+            }
         }
     }
 }
@@ -1153,6 +1231,15 @@ fn capability_matches(cap: &Capability, body: &RequestBody) -> bool {
                 Capability::ExportFhirLossAware,
                 RequestBody::ExportFhirLossAware { .. }
             )
+            | (
+                Capability::RejectProposal,
+                RequestBody::RejectProposal { .. }
+            )
+            | (
+                Capability::AppendDisclosure,
+                RequestBody::AppendDisclosure { .. }
+            )
+            | (Capability::ListDisclosures, RequestBody::ListDisclosures)
     )
 }
 

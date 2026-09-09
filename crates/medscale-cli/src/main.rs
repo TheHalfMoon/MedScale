@@ -7,7 +7,11 @@ use anyhow::{Context, Result, bail};
 use clap::{Parser, Subcommand};
 use medscale_contracts::doctor::PrivacyProof;
 use medscale_contracts::fixture_ui::{FixtureUiSurface, FixtureUiViewModel};
-use medscale_core::{CliSession, build_doctor_report, privacy_proof_artifact_present};
+use medscale_contracts::workflow::CliJsonError;
+use medscale_core::{
+    CliSession, CoreFacade, JourneyConfig, build_doctor_report, privacy_proof_artifact_present,
+    run_minimum_lovable_journey,
+};
 
 #[derive(Debug, Parser)]
 #[command(name = "medscale", version, about = "MedScale local-first CLI")]
@@ -83,6 +87,11 @@ enum Commands {
         #[command(subcommand)]
         action: FixtureUiCmd,
     },
+    /// Spec 021 minimum lovable trusted workflow (synthetic).
+    Journey {
+        #[command(subcommand)]
+        action: JourneyCmd,
+    },
 }
 
 #[derive(Debug, Subcommand)]
@@ -138,13 +147,70 @@ enum FixtureUiCmd {
     },
 }
 
+#[derive(Debug, Subcommand)]
+enum JourneyCmd {
+    /// Run the documented synthetic end-to-end journey via CoreFacade.
+    Run {
+        #[arg(long)]
+        vault_root: PathBuf,
+        #[arg(long)]
+        fixture: PathBuf,
+        #[arg(long, default_value = "journey-subject")]
+        subject: String,
+        #[arg(long, default_value = "journey-vault")]
+        vault_id: String,
+        #[arg(long)]
+        backup_dir: PathBuf,
+        #[arg(long)]
+        restore_dir: PathBuf,
+        /// Reject the previewed proposal instead of accepting.
+        #[arg(long, default_value_t = false)]
+        reject: bool,
+        #[arg(long)]
+        json: bool,
+    },
+}
+
+/// Stable CLI exit codes (Spec 021).
+const EXIT_OK: u8 = 0;
+const EXIT_ERROR: u8 = 1;
+const EXIT_JSON_ERROR: u8 = 2;
+
 fn main() -> ExitCode {
     match run() {
-        Ok(()) => ExitCode::SUCCESS,
+        Ok(()) => ExitCode::from(EXIT_OK),
         Err(err) => {
-            eprintln!("error: {err:#}");
-            ExitCode::from(1)
+            if let Some(json_err) = err.downcast_ref::<JsonCliFailure>() {
+                eprintln!("{}", json_err.0);
+                ExitCode::from(EXIT_JSON_ERROR)
+            } else {
+                eprintln!("error: {err:#}");
+                ExitCode::from(EXIT_ERROR)
+            }
         }
+    }
+}
+
+#[derive(Debug)]
+struct JsonCliFailure(String);
+
+impl std::fmt::Display for JsonCliFailure {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl std::error::Error for JsonCliFailure {}
+
+fn fail_json(code: &str, message: impl Into<String>, as_json: bool) -> anyhow::Error {
+    let err = CliJsonError::new(code, message);
+    if as_json {
+        match serde_json::to_string_pretty(&err) {
+            Ok(s) => JsonCliFailure(s).into(),
+            Err(e) => anyhow::anyhow!("json error encode failed: {e}"),
+        }
+    } else {
+        anyhow::anyhow!("{}: {}", err.code, err.message)
     }
 }
 
@@ -246,6 +312,12 @@ fn run() -> Result<()> {
                     report.fhir_support_matrix.resources.len(),
                     report.fhir_support_matrix.status_for("Patient").structural,
                     report.fhir_support_matrix.full_conformance_claimed
+                );
+                println!(
+                    "workflow: ready_base={} release_ready={} disclosure={}",
+                    report.workflow.workflow_ready_base,
+                    report.workflow.release_ready,
+                    report.workflow.disclosure_append_supported
                 );
                 for note in &report.notes {
                     println!("note: {note}");
@@ -394,6 +466,70 @@ fn run() -> Result<()> {
                 Ok(())
             }
         },
+        Commands::Journey { action } => match action {
+            JourneyCmd::Run {
+                vault_root,
+                fixture,
+                subject,
+                vault_id,
+                backup_dir,
+                restore_dir,
+                reject,
+                json,
+            } => {
+                if !fixture.is_file() {
+                    return Err(fail_json(
+                        "fixture_missing",
+                        format!("fixture not found: {}", fixture.display()),
+                        json,
+                    ));
+                }
+                let _ = std::fs::remove_dir_all(&backup_dir);
+                let _ = std::fs::remove_dir_all(&restore_dir);
+                let facade = CoreFacade::new();
+                let cfg = JourneyConfig {
+                    vault_id,
+                    vault_root: vault_root.display().to_string(),
+                    fixture_path: fixture.display().to_string(),
+                    subject,
+                    backup_dir: backup_dir.display().to_string(),
+                    restore_dir: restore_dir.display().to_string(),
+                    accept: !reject,
+                };
+                match run_minimum_lovable_journey(&facade, &cfg) {
+                    Ok(report) => {
+                        if !report.is_honest_ready_base() {
+                            return Err(fail_json(
+                                "honesty_failed",
+                                "journey report must be synthetic READY_BASE with release_ready=false",
+                                json,
+                            ));
+                        }
+                        if json {
+                            println!("{}", serde_json::to_string_pretty(&report)?);
+                        } else {
+                            println!("journey_ok: steps={}", report.steps.len());
+                            println!("workflow_ready_base: {}", report.workflow_ready_base);
+                            println!("release_ready: {}", report.release_ready);
+                            if let Some(sid) = &report.source_id {
+                                println!("source_id: {sid}");
+                            }
+                            if let Some(aid) = &report.assertion_id {
+                                println!("assertion_id: {aid}");
+                            }
+                            if let Some(did) = &report.disclosure_id {
+                                println!("disclosure_id: {did}");
+                            }
+                            for step in &report.steps {
+                                println!("step {:?}: ok={}", step.step, step.ok);
+                            }
+                        }
+                        Ok(())
+                    }
+                    Err(e) => Err(fail_json("journey_failed", format!("{e:?}"), json)),
+                }
+            }
+        },
     }
 }
 
@@ -464,6 +600,8 @@ mod tests {
             "fhir_support_matrix",
             "full_conformance_claimed",
             "validator_is_authority",
+            "workflow",
+            "workflow_ready_base",
         ] {
             assert!(json.contains(key), "missing {key}");
         }
@@ -486,6 +624,8 @@ mod tests {
         assert!(!report.fhir_interchange.validator_is_authority);
         assert!(!report.fhir_interchange.release_ready);
         assert!(report.fhir_support_matrix.is_honest_ready_base());
+        assert!(report.workflow.workflow_ready_base);
+        assert!(!report.workflow.release_ready);
     }
 
     #[test]

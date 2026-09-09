@@ -56,11 +56,10 @@ Then dependency-controlled tracks:
 ## 4. Current follow-on work
 
 Read [whole-product review](WHOLE_PRODUCT_REVIEW_2026-09-09.md),
-[delivery plan](TRUSTED_V1_DELIVERY_PLAN.md), the
-[bounded package](../../specs/review-trusted-v1-2026-09-09/README.md), and
-[Spec 016](../../specs/016-durable-trusted-record/spec.md).
-Next: implement and qualify durable trusted-record persistence (Q02 T04–T08).
-Foundation closure is not release readiness.
+[delivery plan](TRUSTED_V1_DELIVERY_PLAN.md), and live [BUILD_QUEUE.md](BUILD_QUEUE.md).
+Specs 016–021 are `CLOSED_CANONICAL` READY_BASE. Spec 012 remains MESC-blocked.
+Next eligible work: release-qualification / Q05 evidence hardening prep — not `RELEASE_READY`.
+Foundation and workflow READY_BASE closure is not product or privacy release readiness.
 
 ### Historical bootstrap requirements (already closed)
 

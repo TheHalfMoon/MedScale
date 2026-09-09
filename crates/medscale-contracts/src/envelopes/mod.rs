@@ -16,6 +16,7 @@ use crate::objects::{AmendmentKind, DigestSha256, EffectState, MedicalTime, Opaq
 use crate::online_packs::OnlinePackAcquireRequest;
 use crate::packs::{PackAdmitResult, PackManifestV0, PackPromotionState};
 use crate::presentation::{DrillDownResult, SubjectBriefV1, SubjectCoverageV1, SubjectTimelineV1};
+use crate::workflow::DisclosureRecord;
 
 /// Capability required to execute a facade operation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -69,6 +70,9 @@ pub enum Capability {
     AmendAssertion,
     GetFhirSupportMatrix,
     ExportFhirLossAware,
+    RejectProposal,
+    AppendDisclosure,
+    ListDisclosures,
 }
 
 /// Request body variants.
@@ -246,6 +250,20 @@ pub enum RequestBody {
     ExportFhirLossAware {
         resource: Value,
     },
+    RejectProposal {
+        proposal_id: OpaqueId,
+        actor: OpaqueId,
+        rationale: String,
+    },
+    AppendDisclosure {
+        purpose: String,
+        scope: String,
+        subject_ref: Option<OpaqueId>,
+        artifact_refs: Vec<OpaqueId>,
+        export_digest: Option<DigestSha256>,
+        note: Option<String>,
+    },
+    ListDisclosures,
 }
 
 /// Successful response body variants.
@@ -366,6 +384,16 @@ pub enum ResponseBody {
     },
     FhirLossAwareExport {
         export: crate::fhir::FhirLossAwareExport,
+    },
+    Rejected {
+        proposal_id: OpaqueId,
+        audit_id: OpaqueId,
+    },
+    DisclosureAppended {
+        record: DisclosureRecord,
+    },
+    DisclosureList {
+        records: Vec<DisclosureRecord>,
     },
 }
 

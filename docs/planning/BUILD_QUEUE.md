@@ -5,12 +5,12 @@
 **Rule:** update this file whenever a unit enters or leaves a canonical state.
 
 **Autonomous stop status (historical V2 scoped closure):** superseded for Trusted V1 follow-on work.
-**Live follow-on status (2026-09-09):** Spec **016**–**019** `CLOSED_CANONICAL`. Spec **020** FHIR interchange (Q08) `CLOSED_CANONICAL` READY_BASE with `RELEASE_READY = FALSE` and no full FHIR conformance claim. Spec 012 remains MESC-blocked. Spec **021** minimum lovable workflow (Q07) is next READY. Advanced work **022+** remains deferred. `RELEASE_READY = FALSE`.
+**Live follow-on status (2026-09-09):** Spec **016**–**021** `CLOSED_CANONICAL`. Spec **020** FHIR interchange (Q08) and Spec **021** minimum lovable workflow (Q07) are READY_BASE with `RELEASE_READY = FALSE`. Spec 012 remains MESC-blocked. Next eligible work is release-qualification prep / remaining Q05 evidence hardening (immutable pins, evidence artifacts) — not a RELEASE_READY claim. Advanced work **022+** remains deferred. `RELEASE_READY = FALSE`.
 
 ## 2026-09-09 planning refinement
 
-See Trusted V1 delivery plan. Specs 018–020 READY_BASE closed. Next eligible unit: Spec **021** minimum lovable workflow (Q07) READY.
-Main after Spec 019: `7f2902e`. Spec 020 on branch `spec/020-fhir-support-matrix`.
+See Trusted V1 delivery plan. Specs 018–021 READY_BASE closed. Next: Q05 release-evidence hardening / release-qualification prep (honestly partial; no RELEASE_READY). Spec 012 MESC-blocked. 022+ deferred.
+Main after Spec 020: `987d596`. Spec 021 on branch `spec/021-minimum-lovable-workflow`.
 
 ## Historical scoped queue (closures preserved)
 
@@ -37,7 +37,7 @@ Main after Spec 019: `7f2902e`. Spec 020 on branch `spec/020-fhir-support-matrix
 | 018 | Host / Client Authority (Q04) | `CLOSED_CANONICAL` | READY_BASE: in-process SessionRegistry; MULTI_CLIENT_RELEASE_READY=false. |
 | 019 | Record Semantics (Q06) | `CLOSED_CANONICAL` | READY_BASE: precision-aware MedicalTime, AmendAssertion, missingness, identity unresolved; RELEASE_READY=false. |
 | 020 | FHIR Interchange Qualification (Q08) | `CLOSED_CANONICAL` | READY_BASE: honest support matrix + loss-aware export; no full conformance; RELEASE_READY=false. |
-| 021 | Minimum Lovable Workflow (Q07) | `READY` | Restartable import-review-timeline-export-backup journey; stable CLI errors; depends on 016–020. |
+| 021 | Minimum Lovable Workflow (Q07) | `CLOSED_CANONICAL` | READY_BASE: synthetic restartable import-review-export-backup journey + disclosure; RELEASE_READY=false. |
 | 022+ | Advanced deferred work | `DEFERRED_BY_CANONICAL_DESIGN` | Plugins/GraphRAG/replicas/imaging/CUDA/etc. |
 
 ## Automatic progression
@@ -45,3 +45,5 @@ Main after Spec 019: `7f2902e`. Spec 020 on branch `spec/020-fhir-support-matrix
 For the first `READY` unit: create/complete its Spec Kit package, analyze it, implement tasks in dependency order, qualify exact head, converge, merge if all required gates pass, mark `CLOSED_CANONICAL`, recompute this queue, and immediately start the next eligible unit.
 
 Do not stop merely because a PR merged, one milestone passed, or an external optional gate exists.
+
+**Next eligible (honest):** Q05 release-evidence / release-qualification prep remains open (immutable action pins, locked builds, evidence artifacts; repo settings may be external). Spec 012 remains MESC-blocked. Do **not** claim `RELEASE_READY`.

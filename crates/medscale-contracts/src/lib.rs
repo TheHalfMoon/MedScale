@@ -20,6 +20,7 @@ pub mod packs;
 pub mod presentation;
 pub mod text;
 pub mod worker_policy;
+pub mod workflow;
 
 /// Workspace semantic version advertised by CLI and core reports.
 pub const MEDSCALE_VERSION: &str = env!("CARGO_PKG_VERSION");
