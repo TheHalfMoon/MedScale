@@ -8,7 +8,8 @@ use crate::mesc::MescArtifactDoctorStatus;
 use crate::mobile::MobileDoctorStatus;
 use crate::network::NetworkBrokerDoctorStatus;
 use crate::online_packs::OnlinePacksDoctorStatus;
-use crate::packs::PacksRuntimeDoctorStatus;
+use crate::os_sandbox::OsSandboxDoctorStatus;
+use crate::packs::{PackSignerDoctorStatus, PacksRuntimeDoctorStatus};
 use crate::workflow::WorkflowDoctorStatus;
 
 /// Release-qualification prep posture (Spec 022 / Trusted V1 Q05 remnants).
@@ -238,6 +239,8 @@ pub struct DoctorReport {
     pub workflow: WorkflowDoctorStatus,
     pub release_qualification: ReleaseQualificationDoctorStatus,
     pub evidence_corpus: crate::evidence::EvidenceCorpusDoctorStatus,
+    pub pack_signer: PackSignerDoctorStatus,
+    pub os_sandbox: OsSandboxDoctorStatus,
     pub notes: Vec<String>,
 }
 

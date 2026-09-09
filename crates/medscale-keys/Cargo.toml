@@ -10,6 +10,7 @@ rust-version.workspace = true
 [dependencies]
 aes-gcm = { workspace = true }
 argon2 = { workspace = true }
+ed25519-dalek = { workspace = true }
 medscale-contracts = { workspace = true }
 rand = { workspace = true }
 serde = { workspace = true }

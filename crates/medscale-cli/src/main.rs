@@ -364,6 +364,20 @@ fn run() -> Result<()> {
                     report.evidence_corpus.current_corpus_id,
                     report.evidence_corpus.current_version
                 );
+                println!(
+                    "pack_signer: ready_base={} synthetic_trust_root={} anti_rollback={} release_ready={}",
+                    report.pack_signer.ready_base,
+                    report.pack_signer.synthetic_trust_root,
+                    report.pack_signer.anti_rollback,
+                    report.pack_signer.release_ready
+                );
+                println!(
+                    "os_sandbox: ready_base={} linux_measured={} platform_qualified={} release_ready={}",
+                    report.os_sandbox.ready_base,
+                    report.os_sandbox.linux_measured,
+                    report.os_sandbox.platform_qualified,
+                    report.os_sandbox.release_ready
+                );
                 for missing in &report.release_qualification.missing_evidence_classes {
                     println!("release_qualification_missing: {missing}");
                 }
@@ -689,6 +703,12 @@ mod tests {
             "release_qualification",
             "prep_ready_base",
             "missing_evidence_classes",
+            "pack_signer",
+            "synthetic_trust_root",
+            "anti_rollback",
+            "os_sandbox",
+            "linux_measured",
+            "platform_qualified",
         ] {
             assert!(json.contains(key), "missing {key}");
         }
@@ -715,6 +735,8 @@ mod tests {
         assert!(!report.workflow.release_ready);
         assert!(report.release_qualification.is_honest_prep());
         assert!(!report.release_qualification.release_ready);
+        assert!(report.pack_signer.is_honest_ready_base());
+        assert!(report.os_sandbox.is_honest_ready_base());
     }
 
     #[test]

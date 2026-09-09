@@ -14,7 +14,8 @@ use medscale_contracts::mesc::MescArtifactDoctorStatus;
 use medscale_contracts::mobile::MobileDoctorStatus;
 use medscale_contracts::network::NetworkBrokerDoctorStatus;
 use medscale_contracts::online_packs::OnlinePacksDoctorStatus;
-use medscale_contracts::packs::PacksRuntimeDoctorStatus;
+use medscale_contracts::os_sandbox::OsSandboxDoctorStatus;
+use medscale_contracts::packs::{PackSignerDoctorStatus, PacksRuntimeDoctorStatus};
 use medscale_contracts::workflow::WorkflowDoctorStatus;
 use medscale_contracts::{MEDSCALE_PRODUCT_NAME, MEDSCALE_VERSION};
 use medscale_storage::{assert_claim_path, default_vault_root};
@@ -122,11 +123,13 @@ pub fn build_doctor_report_full(
             DEFAULT_CORPUS_ID,
             DEFAULT_CORPUS_VERSION,
         ),
+        pack_signer: PackSignerDoctorStatus::ready_base(),
+        os_sandbox: OsSandboxDoctorStatus::ready_base(),
         notes: vec![
             "CLI and Desktop call Core Host authority facade only".to_owned(),
             "Tauri/WebView not admitted in Spec 006".to_owned(),
             "Product egress DEFAULT_DENY except Network Broker allowlist".to_owned(),
-            "Packs offline-only; no ONNX/llama admitted in Spec 008".to_owned(),
+            "Packs offline-only; signer+anti-rollback READY_BASE; no ONNX/llama admitted".to_owned(),
             "Mobile READY_BASE: no apps shipped; Keychain sync forbidden".to_owned(),
             "Controlled actions READY_BASE: outbox + UNKNOWN reconcile; NPHIES gated".to_owned(),
             "Online packs READY_BASE: acquire denied; HF not a runtime dependency".to_owned(),
@@ -138,6 +141,7 @@ pub fn build_doctor_report_full(
             "Workflow READY_BASE: synthetic import-review-export-backup journey; WORKFLOW_READY_BASE=true; RELEASE_READY=false".to_owned(),
             "Release qualification PREP_READY_BASE: locked CI + evidence; RELEASE_READY=false; branch protection EXTERNAL_GATES".to_owned(),
             "Evidence corpus READY_BASE: versioned synthetic-lexical@1.0.0; relevance != authority; clinical quality not claimed".to_owned(),
+            "OS sandbox READY_BASE: Linux Landlock measured; platform_qualified=false; WORKER_OS_SANDBOX_PLATFORM_QUALIFIED OPEN".to_owned(),
         ],
     }
 }
