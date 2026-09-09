@@ -139,7 +139,7 @@ pub fn build_doctor_report_full(
             "Record semantics READY_BASE: precision-aware time, append-only amendments; RELEASE_READY=false".to_owned(),
             "FHIR interchange READY_BASE: honest support matrix; no full conformance; validator evidence != authority".to_owned(),
             "Workflow READY_BASE: synthetic import-review-export-backup journey; WORKFLOW_READY_BASE=true; RELEASE_READY=false".to_owned(),
-            "Release qualification PREP_READY_BASE: locked CI + evidence; RELEASE_READY=false; branch protection EXTERNAL_GATES".to_owned(),
+            "Release qualification READY_BASE (022+027): locked CI + evidence + perf/SBOM scaffolds; RELEASE_READY=false; budgets not claimed; branch protection EXTERNAL_GATES".to_owned(),
             "Evidence corpus READY_BASE: versioned synthetic-lexical@1.0.0; relevance != authority; clinical quality not claimed".to_owned(),
             "OS sandbox READY_BASE: Linux Landlock measured; platform_qualified=false; WORKER_OS_SANDBOX_PLATFORM_QUALIFIED OPEN".to_owned(),
         ],

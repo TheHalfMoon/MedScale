@@ -12,7 +12,7 @@ use crate::os_sandbox::OsSandboxDoctorStatus;
 use crate::packs::{PackSignerDoctorStatus, PacksRuntimeDoctorStatus};
 use crate::workflow::WorkflowDoctorStatus;
 
-/// Release-qualification prep posture (Spec 022 / Trusted V1 Q05 remnants).
+/// Release-qualification prep posture (Specs 022/027 / Trusted V1 Q05 remnants).
 ///
 /// Always reports `release_ready = false` until a separate qualification package
 /// and external gates close. Lists missing evidence classes without claiming pass.
@@ -22,7 +22,7 @@ pub struct ReleaseQualificationDoctorStatus {
     pub present: bool,
     /// Spec 022 prep paths/evidence/locked CI documented and wired.
     pub prep_ready_base: bool,
-    /// Never true in Spec 022.
+    /// Never true for Specs 022/027 READY_BASE.
     pub release_ready: bool,
     pub locked_builds: bool,
     pub immutable_ci_action_pins: bool,
@@ -32,11 +32,16 @@ pub struct ReleaseQualificationDoctorStatus {
     pub mobile_release_qualified: bool,
     /// Owner settings EXTERNAL_GATES; not configured by MedScale code.
     pub branch_protection_configured: bool,
+    /// Spec 027: deterministic perf harness evidence path present (budgets not claimed).
+    pub perf_harness_present: bool,
+    /// Spec 027: cargo-metadata SBOM scaffold path present (not full release SBOM).
+    pub sbom_scaffold_present: bool,
     pub missing_evidence_classes: Vec<String>,
 }
 
 impl ReleaseQualificationDoctorStatus {
-    /// Spec 022 READY_BASE prep: locked builds + evidence; RELEASE_READY remains false.
+    /// Specs 022+027 READY_BASE: locked builds + evidence + perf/SBOM scaffolds;
+    /// RELEASE_READY remains false.
     #[must_use]
     pub fn prep_ready_base() -> Self {
         Self {
@@ -50,12 +55,15 @@ impl ReleaseQualificationDoctorStatus {
             macos_qualified: false,
             mobile_release_qualified: false,
             branch_protection_configured: false,
+            perf_harness_present: true,
+            sbom_scaffold_present: true,
             missing_evidence_classes: vec![
                 "qualified_os_matrix_macos".to_owned(),
                 "mobile_app_release_qualification".to_owned(),
                 "repo_branch_protection_required_checks".to_owned(),
                 "reproducible_release_package_contents".to_owned(),
                 "release_sbom_native_model_assets".to_owned(),
+                "perf_budgets_attained_on_qualified_hardware".to_owned(),
                 "public_source_license_choice".to_owned(),
                 "checksums_provenance_signing_verification".to_owned(),
                 "release_bar_migration_recovery_proof".to_owned(),
@@ -72,6 +80,8 @@ impl ReleaseQualificationDoctorStatus {
             && !self.macos_qualified
             && !self.mobile_release_qualified
             && !self.branch_protection_configured
+            && self.perf_harness_present
+            && self.sbom_scaffold_present
             && !self.missing_evidence_classes.is_empty()
     }
 }
@@ -297,9 +307,19 @@ mod release_qualification_tests {
         let s = ReleaseQualificationDoctorStatus::prep_ready_base();
         assert!(s.is_honest_prep());
         assert!(!s.release_ready);
+        assert!(s.perf_harness_present);
+        assert!(s.sbom_scaffold_present);
         assert!(
             s.missing_evidence_classes
                 .contains(&"repo_branch_protection_required_checks".to_owned())
+        );
+        assert!(
+            s.missing_evidence_classes
+                .contains(&"perf_budgets_attained_on_qualified_hardware".to_owned())
+        );
+        assert!(
+            s.missing_evidence_classes
+                .contains(&"release_sbom_native_model_assets".to_owned())
         );
     }
 }

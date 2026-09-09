@@ -5,11 +5,11 @@
 **Rule:** update this file whenever a unit enters or leaves a canonical state.
 
 **Autonomous stop status (historical V2 scoped closure):** superseded for Trusted V1 follow-on work.
-**Live follow-on status (2026-09-10):** Spec **016**–**026** `CLOSED_CANONICAL`. Spec **026** closes Q09 Pack signer/trust/anti-rollback + Linux OS sandbox READY_BASE (`pack_signer` / `os_sandbox` doctor axes; `linux_measured=true`; `platform_qualified=false`; EXTERNAL_GATES `WORKER_OS_SANDBOX_PLATFORM_QUALIFIED` remains OPEN). Spec **025** closes Q10 source-versioned synthetic lexical evidence corpus as READY_BASE (`evidence_corpus.ready_base=true`; clinical quality / `RELEASE_READY` still FALSE). Spec **024** closes Q04 residual host OS IPC authority as READY_BASE (`os_ipc_qualified=true`; `MULTI_CLIENT_RELEASE_READY=false`). Spec **023** closes Q03 residual open-metadata privacy (SQLCipher EncryptedVault) as READY_BASE; `PRIVATE_DATA_READY` remains FALSE. Spec 022 is READY_BASE **prep** for Q05 (`RELEASE_READY = FALSE`). Spec 012 remains MESC-blocked. Deferred advanced work is **027+**. Do **not** claim `RELEASE_READY`, `PRIVATE_DATA_READY`, or `MULTI_CLIENT_RELEASE_READY`. Q03 is **not** fully complete for PRIVATE_DATA_READY (OS keyring / swap / snapshot still open).
+**Live follow-on status (2026-09-10):** Spec **016**–**027** `CLOSED_CANONICAL`. Spec **027** closes Q05 release-evidence remnants: perf harness + SBOM scaffold + package checksums READY_BASE (`perf_harness_present` / `sbom_scaffold_present`; budgets not claimed; `RELEASE_READY=false`). Spec **026** closes Q09 Pack signer/trust/anti-rollback + Linux OS sandbox READY_BASE (`pack_signer` / `os_sandbox` doctor axes; `linux_measured=true`; `platform_qualified=false`; EXTERNAL_GATES `WORKER_OS_SANDBOX_PLATFORM_QUALIFIED` remains OPEN). Spec **025** closes Q10 source-versioned synthetic lexical evidence corpus as READY_BASE (`evidence_corpus.ready_base=true`; clinical quality / `RELEASE_READY` still FALSE). Spec **024** closes Q04 residual host OS IPC authority as READY_BASE (`os_ipc_qualified=true`; `MULTI_CLIENT_RELEASE_READY=false`). Spec **023** closes Q03 residual open-metadata privacy (SQLCipher EncryptedVault) as READY_BASE; `PRIVATE_DATA_READY` remains FALSE. Spec 022 is READY_BASE **prep** for Q05 (`RELEASE_READY = FALSE`). Spec 012 remains MESC-blocked. Deferred advanced work is **028+**. Do **not** claim `RELEASE_READY`, `PRIVATE_DATA_READY`, or `MULTI_CLIENT_RELEASE_READY`. Q03 is **not** fully complete for PRIVATE_DATA_READY (OS keyring / swap / snapshot still open).
 
 ## 2026-09-10 planning refinement
 
-See Trusted V1 delivery plan. Specs 018–026 READY_BASE closed (022 = Q05 prep only; 023 = Q03 open-metadata SQLCipher; 024 = Q04 OS IPC; 025 = Q10 evidence corpus; 026 = Q09 pack signer + Linux sandbox). Spec 012 MESC-blocked. Advanced **027+** deferred.
+See Trusted V1 delivery plan. Specs 018–027 READY_BASE closed (022 = Q05 prep only; 023 = Q03 open-metadata SQLCipher; 024 = Q04 OS IPC; 025 = Q10 evidence corpus; 026 = Q09 pack signer + Linux sandbox; 027 = Q05 perf/SBOM/checksum scaffolds). Spec 012 MESC-blocked. Advanced **028+** deferred.
 
 ## Historical scoped queue (closures preserved)
 
@@ -42,7 +42,8 @@ See Trusted V1 delivery plan. Specs 018–026 READY_BASE closed (022 = Q05 prep 
 | 024 | Host OS IPC Authority (Q04 residual) | `CLOSED_CANONICAL` | READY_BASE: localhost OS IPC + strict sessions; os_ipc_qualified=true; MULTI_CLIENT_RELEASE_READY=false. |
 | 025 | Evidence Corpus Lifecycle (Q10) | `CLOSED_CANONICAL` | READY_BASE: versioned synthetic-lexical corpus + lexical filters; clinical quality / RELEASE_READY=false. |
 | 026 | Pack Signer + OS Sandbox (Q09) | `CLOSED_CANONICAL` | READY_BASE: synthetic pack signer/anti-rollback + Linux Landlock measured; platform_qualified=false; WORKER_OS_SANDBOX gate OPEN. |
-| 027+ | Advanced deferred work | `DEFERRED_BY_CANONICAL_DESIGN` | Plugins/GraphRAG/replicas/imaging/CUDA/etc. |
+| 027 | Perf Harness + Package/SBOM Evidence (Q05 remnants) | `CLOSED_CANONICAL` | READY_BASE: perf harness + SBOM scaffold + checksums; budgets not claimed; RELEASE_READY=false. |
+| 028+ | Advanced deferred work | `DEFERRED_BY_CANONICAL_DESIGN` | Plugins/GraphRAG/replicas/imaging/CUDA/etc. |
 
 ## Automatic progression
 
@@ -50,4 +51,4 @@ For the first `READY` unit: create/complete its Spec Kit package, analyze it, im
 
 Do not stop merely because a PR merged, one milestone passed, or an external optional gate exists.
 
-**Next eligible (honest):** Spec 012 MESC-blocked. PRIVATE_DATA_READY still blocked by OS keyring / swap / snapshot qualification (not claimed complete by Spec 023). Branch protection / required checks need owner settings. Deferred advanced **027+**. Do **not** claim `RELEASE_READY`, `PRIVATE_DATA_READY`, or `MULTI_CLIENT_RELEASE_READY`. Remaining ordinary Trusted V1 in-repo work may still include measured OS privacy follow-ons and multi-OS sandbox qualification; do not treat Q03 or Q09 multi-OS as fully exhausted.
+**Next eligible (honest):** Spec 012 MESC-blocked. PRIVATE_DATA_READY still blocked by OS keyring / swap / snapshot qualification (not claimed complete by Spec 023). Branch protection / required checks need owner settings. Deferred advanced **028+**. Do **not** claim `RELEASE_READY`, `PRIVATE_DATA_READY`, or `MULTI_CLIENT_RELEASE_READY`. Remaining ordinary Trusted V1 in-repo work may still include measured OS privacy follow-ons and multi-OS sandbox qualification; do not treat Q03 or Q09 multi-OS as fully exhausted.

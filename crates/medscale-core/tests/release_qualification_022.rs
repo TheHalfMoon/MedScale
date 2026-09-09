@@ -18,6 +18,12 @@ fn release_qualification_axis_is_honest_prep_not_release_ready() {
     assert!(!rq.branch_protection_configured);
     assert!(!rq.missing_evidence_classes.is_empty());
     assert!(rq.is_honest_prep());
+    assert!(rq.perf_harness_present);
+    assert!(rq.sbom_scaffold_present);
+    assert!(
+        rq.missing_evidence_classes
+            .contains(&"perf_budgets_attained_on_qualified_hardware".to_owned())
+    );
     assert!(
         report
             .notes

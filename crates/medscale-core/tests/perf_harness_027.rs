@@ -1,0 +1,349 @@
+//! Spec 027 performance harness — measure, do not claim budgets met.
+//!
+//! Methodology (Trusted V1 delivery plan): explicit warmup, then N=30 timed runs;
+//! report p50/p95 in milliseconds. CI asserts the harness runs and emits numbers only.
+
+use medscale_contracts::envelopes::{AuthorityRequest, Capability, RequestBody, ResponseBody};
+use medscale_contracts::evidence::LexicalRetrieveRequest;
+use medscale_contracts::objects::{AuthorityScopeId, OpaqueId, RealmId, VaultId};
+use medscale_core::CoreFacade;
+use serde_json::{Value, json};
+use std::fs;
+use std::path::{Path, PathBuf};
+use std::time::{Duration, Instant};
+
+const WARMUP: usize = 3;
+const RUNS: usize = 30;
+/// READY_BASE timeline event count (delivery-plan target is 10_000; not claimed here).
+const TIMELINE_EVENTS: usize = 64;
+/// Default bounded FHIR ingest size for CI (under MAX_INGEST_BYTES). Override with
+/// `MEDSCALE_027_FHIR_BYTES` up to 1_000_000 for local near-budget measurements.
+const FHIR_INGEST_DEFAULT_BYTES: usize = 128 * 1024;
+
+fn fhir_ingest_target_bytes() -> usize {
+    std::env::var("MEDSCALE_027_FHIR_BYTES")
+        .ok()
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(FHIR_INGEST_DEFAULT_BYTES)
+        .clamp(4_096, 1_000_000)
+}
+
+fn realm() -> RealmId {
+    RealmId::new("realm-027")
+}
+fn scope() -> AuthorityScopeId {
+    AuthorityScopeId::new("scope-027")
+}
+fn vault() -> VaultId {
+    VaultId::new("vault-027")
+}
+
+fn req(cap: Capability, body: RequestBody) -> AuthorityRequest {
+    AuthorityRequest::new(
+        OpaqueId::new(format!("req-027-{}", uuid_like())),
+        vault(),
+        realm(),
+        scope(),
+        cap,
+        body,
+    )
+}
+
+fn uuid_like() -> u64 {
+    use std::sync::atomic::{AtomicU64, Ordering};
+    static C: AtomicU64 = AtomicU64::new(1);
+    C.fetch_add(1, Ordering::SeqCst)
+}
+
+fn work_root(name: &str) -> PathBuf {
+    let base = PathBuf::from(r"D:\medscale-tmp");
+    let root = if base.exists() {
+        base
+    } else {
+        std::env::temp_dir()
+    };
+    root.join(format!("medscale-027-{name}-{}", std::process::id()))
+}
+
+fn repo_root() -> PathBuf {
+    let mut p = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    p.pop();
+    p.pop();
+    p
+}
+
+fn evidence_dir() -> PathBuf {
+    repo_root().join("evidence/027-perf-sbom-release-evidence")
+}
+
+fn open_vault(facade: &CoreFacade) -> PathBuf {
+    let root = work_root("vault");
+    let _ = fs::remove_dir_all(&root);
+    fs::create_dir_all(&root).unwrap();
+    facade
+        .dispatch(req(
+            Capability::AcquireLease,
+            RequestBody::AcquireLease {
+                client_id: OpaqueId::new("cli-027"),
+                holder_id_hint: None,
+            },
+        ))
+        .result
+        .unwrap();
+    facade
+        .dispatch(req(
+            Capability::OpenSyntheticVault,
+            RequestBody::OpenSyntheticVault {
+                vault_root: root.to_string_lossy().into_owned(),
+            },
+        ))
+        .result
+        .unwrap();
+    root
+}
+
+fn percentile_ms(sorted: &[Duration], pct: usize) -> f64 {
+    assert!(!sorted.is_empty());
+    let idx = ((sorted.len() * pct) / 100).min(sorted.len() - 1);
+    sorted[idx].as_secs_f64() * 1000.0
+}
+
+fn measure_ms<F>(warmup: usize, runs: usize, mut f: F) -> (f64, f64, Vec<f64>)
+where
+    F: FnMut(),
+{
+    for _ in 0..warmup {
+        f();
+    }
+    let mut samples = Vec::with_capacity(runs);
+    for _ in 0..runs {
+        let t0 = Instant::now();
+        f();
+        samples.push(t0.elapsed());
+    }
+    samples.sort();
+    let p50 = percentile_ms(&samples, 50);
+    let p95 = percentile_ms(&samples, 95);
+    let raw: Vec<f64> = samples.iter().map(|d| d.as_secs_f64() * 1000.0).collect();
+    (p50, p95, raw)
+}
+
+fn seed_timeline(facade: &CoreFacade, subject: &OpaqueId, n: usize) {
+    let base = json!({
+        "resourceType": "Observation",
+        "status": "final",
+        "code": { "text": "synthetic-027" },
+        "subject": { "reference": "Patient/synthetic-027" },
+        "valueQuantity": { "value": 1, "unit": "kg" }
+    });
+    let bytes = serde_json::to_vec(&base).unwrap();
+    let ingested = facade
+        .dispatch(req(
+            Capability::IngestFhirSynthetic,
+            RequestBody::IngestFhirSynthetic {
+                media_type: "application/fhir+json".to_owned(),
+                bytes: bytes.clone(),
+                fhir_version_hint: Some("4.0.1".to_owned()),
+                attach_validator_fixture_id: None,
+            },
+        ))
+        .result
+        .unwrap();
+    let ResponseBody::Ingested { receipt } = ingested else {
+        panic!("ingest seed");
+    };
+    let source_id = receipt.source_id.expect("source");
+    let resource: Value = serde_json::from_slice(&bytes).unwrap();
+
+    for i in 0..n {
+        let payload = json!({
+            "resource": resource,
+            "effective_hint": format!("2020-01-{:02}T09:00:00Z", (i % 28) + 1),
+            "harness_seq": i,
+        });
+        let created = facade
+            .dispatch(req(
+                Capability::CreateProposal,
+                RequestBody::CreateProposal {
+                    subject_ref: Some(subject.clone()),
+                    claim_kind: "observation".to_owned(),
+                    payload,
+                    evidence_refs: vec![source_id.clone()],
+                },
+            ))
+            .result
+            .unwrap();
+        let ResponseBody::Created {
+            object_id: proposal_id,
+        } = created
+        else {
+            panic!("proposal");
+        };
+        facade
+            .dispatch(req(
+                Capability::PromoteProposal,
+                RequestBody::PromoteProposal {
+                    proposal_id,
+                    authorized_by: OpaqueId::new("clinician-027"),
+                    subject_ref: subject.clone(),
+                },
+            ))
+            .result
+            .unwrap();
+    }
+}
+
+fn padded_fhir_bytes(target: usize, salt: u64) -> Vec<u8> {
+    // Conservative overhead for JSON wrapper around valueString.
+    let overhead = 220 + salt.to_string().len();
+    let pad_len = target.saturating_sub(overhead);
+    let pad = format!("{salt}:{}", "x".repeat(pad_len));
+    let v = json!({
+        "resourceType": "Patient",
+        "id": format!("synthetic-027-padded-{salt}"),
+        "active": true,
+        "name": [{ "family": "Harness", "given": ["Synthetic"] }],
+        "extension": [{
+            "url": "https://medscale.local/synthetic/027-pad",
+            "valueString": pad
+        }]
+    });
+    let bytes = serde_json::to_vec(&v).unwrap();
+    assert!(
+        bytes.len() <= 1_048_576,
+        "harness FHIR payload {} exceeds MAX_INGEST_BYTES",
+        bytes.len()
+    );
+    bytes
+}
+
+fn hardware_note() -> String {
+    format!(
+        "os={} arch={} cores_hint={:?} hostname_env={:?}",
+        std::env::consts::OS,
+        std::env::consts::ARCH,
+        std::thread::available_parallelism().ok().map(|n| n.get()),
+        std::env::var("COMPUTERNAME")
+            .or_else(|_| std::env::var("HOSTNAME"))
+            .ok()
+    )
+}
+
+#[test]
+fn perf_harness_027_runs_and_reports_numbers_without_budget_pass() {
+    let facade = CoreFacade::new_legacy_lease_only_engineering();
+    let vault_root = open_vault(&facade);
+    let subject = OpaqueId::new("subject-027");
+    seed_timeline(&facade, &subject, TIMELINE_EVENTS);
+
+    let (tl_p50, tl_p95, tl_raw) = measure_ms(WARMUP, RUNS, || {
+        let resp = facade
+            .dispatch(req(
+                Capability::GetTimeline,
+                RequestBody::GetTimeline {
+                    subject_ref: subject.clone(),
+                },
+            ))
+            .result
+            .unwrap();
+        assert!(matches!(resp, ResponseBody::Timeline { .. }));
+    });
+
+    let (lex_p50, lex_p95, lex_raw) = measure_ms(WARMUP, RUNS, || {
+        let resp = facade
+            .dispatch(req(
+                Capability::RetrieveLexical,
+                RequestBody::RetrieveLexical {
+                    request: LexicalRetrieveRequest {
+                        query: "hypertension blood pressure".to_owned(),
+                        corpus_id: "synthetic-lexical".to_owned(),
+                        max_hits: 5,
+                        include_retracted: false,
+                    },
+                },
+            ))
+            .result
+            .unwrap();
+        assert!(matches!(resp, ResponseBody::LexicalRetrieve { .. }));
+    });
+
+    let fhir_target = fhir_ingest_target_bytes();
+    let mut fhir_salt = 0_u64;
+    let mut fhir_len = 0_usize;
+    let (fhir_p50, fhir_p95, fhir_raw) = measure_ms(WARMUP, RUNS, || {
+        fhir_salt += 1;
+        let bytes = padded_fhir_bytes(fhir_target, fhir_salt);
+        fhir_len = bytes.len();
+        let _ = facade
+            .dispatch(req(
+                Capability::IngestFhirSynthetic,
+                RequestBody::IngestFhirSynthetic {
+                    media_type: "application/fhir+json".to_owned(),
+                    bytes,
+                    fhir_version_hint: Some("4.0.1".to_owned()),
+                    attach_validator_fixture_id: None,
+                },
+            ))
+            .result
+            .unwrap();
+    });
+
+    let report = json!({
+        "spec_id": "027-perf-sbom-release-evidence",
+        "schema_version": 1,
+        "budgets_claimed_met": false,
+        "release_ready": false,
+        "methodology": {
+            "warmup_runs": WARMUP,
+            "timed_runs": RUNS,
+            "percentile_method": "sort ascending; p50=index floor(n*50/100); p95=index floor(n*95/100) clamped to n-1",
+            "units": "milliseconds",
+            "synthetic_only": true,
+            "real_phi": false,
+        },
+        "hardware_note": hardware_note(),
+        "toolchain_note": format!("rustc channel via rust-toolchain.toml; CARGO_TARGET_DIR={:?}", std::env::var("CARGO_TARGET_DIR").ok()),
+        "delivery_plan_targets_not_claimed": {
+            "timeline_10000_events_p95_ms": 250,
+            "lexical_10000_records_p95_ms": 300,
+            "fhir_1mib_ingest_p95_ms": 500,
+        },
+        "measured_scale": {
+            "timeline_events": TIMELINE_EVENTS,
+            "lexical_corpus": "synthetic-lexical (builtin; not 10000 records)",
+            "fhir_ingest_bytes": fhir_len,
+            "fhir_ingest_bytes_note": "CI default 128KiB; set MEDSCALE_027_FHIR_BYTES<=1000000 for larger local runs",
+        },
+        "results_ms": {
+            "timeline_projection": { "p50": tl_p50, "p95": tl_p95, "samples": tl_raw },
+            "lexical_search": { "p50": lex_p50, "p95": lex_p95, "samples": lex_raw },
+            "fhir_ingest": { "p50": fhir_p50, "p95": fhir_p95, "samples": fhir_raw },
+        },
+        "honesty": [
+            "Numbers are READY_BASE engineering measurements only.",
+            "Do not treat p50/p95 as RELEASE_READY or budget attainment.",
+            "Scale may differ from delivery-plan 10k / 1 MiB acceptance targets.",
+        ],
+        "vault_root_ephemeral": vault_root.display().to_string(),
+    });
+
+    // Assert harness ran and reported finite numbers — never budget pass/fail.
+    assert!(tl_p50.is_finite() && tl_p95.is_finite() && tl_p95 >= tl_p50);
+    assert!(lex_p50.is_finite() && lex_p95.is_finite() && lex_p95 >= lex_p50);
+    assert!(fhir_p50.is_finite() && fhir_p95.is_finite() && fhir_p95 >= fhir_p50);
+    assert!(tl_p50 >= 0.0 && lex_p50 >= 0.0 && fhir_p50 >= 0.0);
+
+    let out_dir = evidence_dir();
+    fs::create_dir_all(&out_dir).unwrap();
+    let out_path = out_dir.join("perf_harness_latest.json");
+    fs::write(
+        &out_path,
+        serde_json::to_string_pretty(&report).expect("serialize"),
+    )
+    .expect("write evidence");
+    assert!(Path::new(&out_path).is_file());
+    assert!(!report["budgets_claimed_met"].as_bool().unwrap());
+    assert!(!report["release_ready"].as_bool().unwrap());
+
+    let _ = fs::remove_dir_all(&vault_root);
+}

@@ -346,12 +346,14 @@ fn run() -> Result<()> {
                     report.workflow.disclosure_append_supported
                 );
                 println!(
-                    "release_qualification: prep_ready_base={} release_ready={} locked={} macos_qualified={} branch_protection={} missing={}",
+                    "release_qualification: prep_ready_base={} release_ready={} locked={} macos_qualified={} branch_protection={} perf_harness={} sbom_scaffold={} missing={}",
                     report.release_qualification.prep_ready_base,
                     report.release_qualification.release_ready,
                     report.release_qualification.locked_builds,
                     report.release_qualification.macos_qualified,
                     report.release_qualification.branch_protection_configured,
+                    report.release_qualification.perf_harness_present,
+                    report.release_qualification.sbom_scaffold_present,
                     report.release_qualification.missing_evidence_classes.len()
                 );
                 println!(
@@ -703,6 +705,8 @@ mod tests {
             "release_qualification",
             "prep_ready_base",
             "missing_evidence_classes",
+            "perf_harness_present",
+            "sbom_scaffold_present",
             "pack_signer",
             "synthetic_trust_root",
             "anti_rollback",
