@@ -5,12 +5,12 @@
 **Rule:** update this file whenever a unit enters or leaves a canonical state.
 
 **Autonomous stop status (historical V2 scoped closure):** superseded for Trusted V1 follow-on work.
-**Live follow-on status (2026-09-09):** Spec **016** `CLOSED_CANONICAL`. Spec **017** vault privacy lifecycle wipe/honesty `CLOSED_CANONICAL` with `PRIVATE_DATA_READY = FALSE`. Spec **018** host/client authority (Q04) `CLOSED_CANONICAL` READY_BASE with `MULTI_CLIENT_RELEASE_READY = FALSE`. Spec **019** record semantics (Q06) `CLOSED_CANONICAL` READY_BASE with `RELEASE_READY = FALSE`. Spec 012 remains MESC-blocked. Spec **020** FHIR support matrix (Q08) is next READY. Advanced work beyond 020 remains deferred. `RELEASE_READY = FALSE`.
+**Live follow-on status (2026-09-09):** Spec **016**–**019** `CLOSED_CANONICAL`. Spec **020** FHIR interchange (Q08) `CLOSED_CANONICAL` READY_BASE with `RELEASE_READY = FALSE` and no full FHIR conformance claim. Spec 012 remains MESC-blocked. Spec **021** minimum lovable workflow (Q07) is next READY. Advanced work **022+** remains deferred. `RELEASE_READY = FALSE`.
 
 ## 2026-09-09 planning refinement
 
-See Trusted V1 delivery plan. Spec 018 READY_BASE closed (in-process sessions). Spec 019 record semantics READY_BASE closed. Next eligible unit: Spec **020** FHIR support matrix (Q08) READY.
-Main after Spec 018: `873a74d`. Spec 019 on branch `spec/019-record-semantics-q06`.
+See Trusted V1 delivery plan. Specs 018–020 READY_BASE closed. Next eligible unit: Spec **021** minimum lovable workflow (Q07) READY.
+Main after Spec 019: `7f2902e`. Spec 020 on branch `spec/020-fhir-support-matrix`.
 
 ## Historical scoped queue (closures preserved)
 
@@ -36,8 +36,9 @@ Main after Spec 018: `873a74d`. Spec 019 on branch `spec/019-record-semantics-q0
 | 017 | Vault Privacy Qualification (Q03) | `CLOSED_CANONICAL` | Work/WAL wipe + doctor honesty; PRIVATE_DATA_READY remains FALSE. |
 | 018 | Host / Client Authority (Q04) | `CLOSED_CANONICAL` | READY_BASE: in-process SessionRegistry; MULTI_CLIENT_RELEASE_READY=false. |
 | 019 | Record Semantics (Q06) | `CLOSED_CANONICAL` | READY_BASE: precision-aware MedicalTime, AmendAssertion, missingness, identity unresolved; RELEASE_READY=false. |
-| 020 | FHIR Support Matrix (Q08) | `READY` | Support matrix, validator evidence, loss-aware export/provenance; depends on 019. |
-| 021+ | Advanced deferred work | `DEFERRED_BY_CANONICAL_DESIGN` | Plugins/GraphRAG/replicas/imaging/CUDA/etc. |
+| 020 | FHIR Interchange Qualification (Q08) | `CLOSED_CANONICAL` | READY_BASE: honest support matrix + loss-aware export; no full conformance; RELEASE_READY=false. |
+| 021 | Minimum Lovable Workflow (Q07) | `READY` | Restartable import-review-timeline-export-backup journey; stable CLI errors; depends on 016–020. |
+| 022+ | Advanced deferred work | `DEFERRED_BY_CANONICAL_DESIGN` | Plugins/GraphRAG/replicas/imaging/CUDA/etc. |
 
 ## Automatic progression
 

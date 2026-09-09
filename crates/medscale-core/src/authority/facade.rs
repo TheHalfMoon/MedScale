@@ -995,6 +995,14 @@ impl CoreFacade {
                     gate: "MESC_RELEASED_ARTIFACT".to_owned(),
                 })
             }
+            RequestBody::GetFhirSupportMatrix => Ok(ResponseBody::FhirSupportMatrix {
+                matrix: medscale_contracts::fhir::FhirSupportMatrix::trusted_v1_ready_base(),
+            }),
+            RequestBody::ExportFhirLossAware { resource } => {
+                Ok(ResponseBody::FhirLossAwareExport {
+                    export: medscale_contracts::fhir::loss_aware_export(&resource),
+                })
+            }
         }
     }
 }
@@ -1137,6 +1145,14 @@ fn capability_matches(cap: &Capability, body: &RequestBody) -> bool {
             )
             | (Capability::OpenSession, RequestBody::OpenSession { .. })
             | (Capability::RevokeSession, RequestBody::RevokeSession { .. })
+            | (
+                Capability::GetFhirSupportMatrix,
+                RequestBody::GetFhirSupportMatrix
+            )
+            | (
+                Capability::ExportFhirLossAware,
+                RequestBody::ExportFhirLossAware { .. }
+            )
     )
 }
 

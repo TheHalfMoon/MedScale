@@ -233,6 +233,20 @@ fn run() -> Result<()> {
                     report.record_semantics.append_only_amendments,
                     report.record_semantics.release_ready
                 );
+                println!(
+                    "fhir_interchange: ready_base={} fhir={} full_conformance={} validator_authority={} release_ready={}",
+                    report.fhir_interchange.ready_base,
+                    report.fhir_interchange.fhir_version,
+                    report.fhir_interchange.full_conformance_claimed,
+                    report.fhir_interchange.validator_is_authority,
+                    report.fhir_interchange.release_ready
+                );
+                println!(
+                    "fhir_support_matrix: resources={} patient_structural={:?} conformance_claimed={}",
+                    report.fhir_support_matrix.resources.len(),
+                    report.fhir_support_matrix.status_for("Patient").structural,
+                    report.fhir_support_matrix.full_conformance_claimed
+                );
                 for note in &report.notes {
                     println!("note: {note}");
                 }
@@ -446,6 +460,10 @@ mod tests {
             "artifact_admitted",
             "record_semantics",
             "precision_aware_time",
+            "fhir_interchange",
+            "fhir_support_matrix",
+            "full_conformance_claimed",
+            "validator_is_authority",
         ] {
             assert!(json.contains(key), "missing {key}");
         }
@@ -464,6 +482,10 @@ mod tests {
         assert!(!report.online_packs.hf_runtime_required);
         assert!(!report.mesc_artifact.artifact_admitted);
         assert!(!report.mesc_artifact.python_runtime_imported);
+        assert!(!report.fhir_interchange.full_conformance_claimed);
+        assert!(!report.fhir_interchange.validator_is_authority);
+        assert!(!report.fhir_interchange.release_ready);
+        assert!(report.fhir_support_matrix.is_honest_ready_base());
     }
 
     #[test]
