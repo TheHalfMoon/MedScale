@@ -139,6 +139,8 @@ mod tests {
             fhir_interchange: FhirInterchangeDoctorStatus::ready_base(),
             fhir_support_matrix: FhirSupportMatrix::trusted_v1_ready_base(),
             workflow: crate::workflow::WorkflowDoctorStatus::ready_base(),
+            release_qualification: crate::doctor::ReleaseQualificationDoctorStatus::prep_ready_base(
+            ),
             notes: vec![],
         };
         let vm = FixtureUiViewModel::from_doctor(&report);

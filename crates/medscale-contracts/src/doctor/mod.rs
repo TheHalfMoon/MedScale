@@ -11,6 +11,70 @@ use crate::online_packs::OnlinePacksDoctorStatus;
 use crate::packs::PacksRuntimeDoctorStatus;
 use crate::workflow::WorkflowDoctorStatus;
 
+/// Release-qualification prep posture (Spec 022 / Trusted V1 Q05 remnants).
+///
+/// Always reports `release_ready = false` until a separate qualification package
+/// and external gates close. Lists missing evidence classes without claiming pass.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ReleaseQualificationDoctorStatus {
+    pub present: bool,
+    /// Spec 022 prep paths/evidence/locked CI documented and wired.
+    pub prep_ready_base: bool,
+    /// Never true in Spec 022.
+    pub release_ready: bool,
+    pub locked_builds: bool,
+    pub immutable_ci_action_pins: bool,
+    pub cargo_lock_committed: bool,
+    pub windows_linux_ci_baseline: bool,
+    pub macos_qualified: bool,
+    pub mobile_release_qualified: bool,
+    /// Owner settings EXTERNAL_GATES; not configured by MedScale code.
+    pub branch_protection_configured: bool,
+    pub missing_evidence_classes: Vec<String>,
+}
+
+impl ReleaseQualificationDoctorStatus {
+    /// Spec 022 READY_BASE prep: locked builds + evidence; RELEASE_READY remains false.
+    #[must_use]
+    pub fn prep_ready_base() -> Self {
+        Self {
+            present: true,
+            prep_ready_base: true,
+            release_ready: false,
+            locked_builds: true,
+            immutable_ci_action_pins: true,
+            cargo_lock_committed: true,
+            windows_linux_ci_baseline: true,
+            macos_qualified: false,
+            mobile_release_qualified: false,
+            branch_protection_configured: false,
+            missing_evidence_classes: vec![
+                "qualified_os_matrix_macos".to_owned(),
+                "mobile_app_release_qualification".to_owned(),
+                "repo_branch_protection_required_checks".to_owned(),
+                "reproducible_release_package_contents".to_owned(),
+                "release_sbom_native_model_assets".to_owned(),
+                "public_source_license_choice".to_owned(),
+                "checksums_provenance_signing_verification".to_owned(),
+                "release_bar_migration_recovery_proof".to_owned(),
+                "unresolved_material_findings_clearance".to_owned(),
+            ],
+        }
+    }
+
+    #[must_use]
+    pub fn is_honest_prep(&self) -> bool {
+        self.present
+            && self.prep_ready_base
+            && !self.release_ready
+            && !self.macos_qualified
+            && !self.mobile_release_qualified
+            && !self.branch_protection_configured
+            && !self.missing_evidence_classes.is_empty()
+    }
+}
+
 /// Sync / remote filesystem risk assessment for a vault path.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -153,6 +217,7 @@ pub struct DoctorReport {
     pub fhir_interchange: FhirInterchangeDoctorStatus,
     pub fhir_support_matrix: FhirSupportMatrix,
     pub workflow: WorkflowDoctorStatus,
+    pub release_qualification: ReleaseQualificationDoctorStatus,
     pub notes: Vec<String>,
 }
 
@@ -197,5 +262,21 @@ impl PrivacyProof {
                 "OS keyring stores deferred; MemoryKeyStore used for CI proofs".to_owned(),
             ],
         }
+    }
+}
+
+#[cfg(test)]
+mod release_qualification_tests {
+    use super::ReleaseQualificationDoctorStatus;
+
+    #[test]
+    fn prep_ready_base_never_claims_release_ready() {
+        let s = ReleaseQualificationDoctorStatus::prep_ready_base();
+        assert!(s.is_honest_prep());
+        assert!(!s.release_ready);
+        assert!(
+            s.missing_evidence_classes
+                .contains(&"repo_branch_protection_required_checks".to_owned())
+        );
     }
 }
