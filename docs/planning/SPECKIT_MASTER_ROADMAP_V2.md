@@ -111,3 +111,11 @@ workers/
 ## 6. Hard anti-scope rules
 
 H0 contains no OpenMed/MESC/model/OCR/ASR/vector/agent/live network/NPHIES/action/real-PHI/browser/imaging/genomics functionality. No REST/gRPC/GraphQL service plane, plugin ecosystem, general FHIRPath engine, custom cryptography, or cloud-provider adapter is required by V2 core. No feature may bypass the Rust authority path because it is “just CLI,” “just a model,” or “just a worker.”
+
+
+## 2026-09-09 evidence-backed refinement
+
+Read [whole-product review](WHOLE_PRODUCT_REVIEW_2026-09-09.md) and
+[trusted V1 delivery priorities](TRUSTED_V1_DELIVERY_PLAN.md). Historical scope closures
+remain intact; next bounded planning work is tracked in BUILD_QUEUE.md. Runtime promotion
+requires the owning Spec Kit lifecycle. No blanket advanced-capability promotion is implied.

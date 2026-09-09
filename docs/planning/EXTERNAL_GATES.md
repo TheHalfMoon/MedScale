@@ -25,3 +25,12 @@ This file records blockers that require a real human/external authority. They do
 | HF_ONLINE_PACK_DISTRIBUTION | `NOT_GRANTED` | Hugging Face / online pack publish+fetch credentials and terms | Spec 015 READY_BASE deny path closed; OnlinePackAcquire remains ExternalGateRequired; offline Pack v0 only. |
 
 Cursor may add rows only when a blocker truly requires external authority. Never use this file for ordinary engineering uncertainty.
+
+## Whole-product qualification refinement (2026-09-09)
+
+Observed 2026-09-09: MESC v0.1.0 has no release assets; a v0.2.0 tag is insufficient.
+Spec 012 remains blocked; see [acceptance contract](MESC_ARTIFACT_ACCEPTANCE.md).
+OS sandbox/key/ownership qualification includes ordinary engineering work; lack of proof
+blocks the affected readiness claim, not independent specification work. Repository required
+checks/protection need owner settings authority: observed main unprotected and rulesets empty.
+This review does not authorize settings changes or bypass exact-head review and CI.

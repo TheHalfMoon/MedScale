@@ -26,7 +26,9 @@ Read, in order, before doing any material work:
 10. relevant source/OSS/OpenMed matrices
 11. relevant current Spec Kit package or execution handoff
 
-Current first executable unit is Spec 001. Before starting it, read `docs/planning/SPEC_001_EXECUTION_HANDOFF.md`.
+Spec 001 is historical and closed. Use the live queue and read
+`docs/planning/TRUSTED_V1_DELIVERY_PLAN.md` and its bounded follow-on package.
+Foundation closure does not establish product release readiness.
 
 Then verify live GitHub/repository truth and execute the first `READY` unit in `BUILD_QUEUE.md`.
 

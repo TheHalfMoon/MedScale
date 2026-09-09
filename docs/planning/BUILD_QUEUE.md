@@ -8,7 +8,18 @@
 
 Ungated Spec Kit units 000–011 and 013–015 are `CLOSED_CANONICAL`. Spec 012 remains blocked solely by `MESC_RELEASED_ARTIFACT` (empty MESC release assets; TRAINING_CODE_READY ≠ RELEASE_READY). Spec 016+ stays `DEFERRED_BY_CANONICAL_DESIGN`. No further eligible autonomous implementation remains until an external gate clears or a new unit is canonically promoted.
 
-## Current queue
+## 2026-09-09 planning refinement
+
+The stop status above is historical scoped V2 closure, not product readiness.
+Review baseline: main `b49592c83d23542363f671afe6a9ae65fc65b276`.
+See [whole-product review](WHOLE_PRODUCT_REVIEW_2026-09-09.md) and
+[delivery plan](TRUSTED_V1_DELIVERY_PLAN.md). Next eligible planning task is T01 in the
+[bounded follow-on package](../../specs/review-trusted-v1-2026-09-09/README.md):
+prepare and analyze the owning durable-record specification before runtime changes.
+This does not promote all advanced work or reopen previous scoped closures.
+No founder permission is needed for ordinary specification preparation. RELEASE_READY = FALSE.
+
+## Historical scoped queue (closures preserved)
 
 | Order | Spec | State | Next action |
 |---:|---|---|---|

@@ -19,7 +19,8 @@ Read order:
 ```text
 PLAN = CANONICAL_V2
 SPEC_000 = CLOSED_CANONICAL
-FIRST_EXECUTABLE_SPEC = 001
+CURRENT_EXECUTION_QUEUE = docs/planning/BUILD_QUEUE.md
+PRODUCT_MATURITY = SYNTHETIC_FOUNDATION_NOT_RELEASE_READY
 CURSOR_AUTONOMOUS_IMPLEMENTATION = AUTHORIZED_WITHIN_PLAN
 REAL_PHI = NOT_AUTHORIZED
 MESC_MUTATION = NOT_AUTHORIZED
@@ -27,10 +28,14 @@ PRODUCT_RUNTIME_EGRESS = DEFAULT_DENY
 UI_VISUAL_SOURCE = v0
 ```
 
-## Engineering bootstrap
+See the [whole-product review](docs/planning/WHOLE_PRODUCT_REVIEW_2026-09-09.md) and
+[prioritized delivery plan](docs/planning/TRUSTED_V1_DELIVERY_PLAN.md) for current gaps and
+follow-on work. OpenMed superiority has not been measured.
+
+## Engineering bootstrap (historical foundation)
 
 - Spec Kit constitution: [`.specify/memory/constitution.md`](.specify/memory/constitution.md)
-- Active Spec 001 package: [`specs/001-rust-repository-speckit-bootstrap/`](specs/001-rust-repository-speckit-bootstrap/)
+- Closed Spec 001 package: [`specs/001-rust-repository-speckit-bootstrap/`](specs/001-rust-repository-speckit-bootstrap/)
 - Contributing: [`docs/engineering/CONTRIBUTING.md`](docs/engineering/CONTRIBUTING.md)
 - Dependency direction: [`docs/engineering/DEPENDENCY_DIRECTION.md`](docs/engineering/DEPENDENCY_DIRECTION.md)
 

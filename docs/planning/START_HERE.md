@@ -53,7 +53,15 @@ Then dependency-controlled tracks:
 016+ remains deferred until canonically promoted
 ```
 
-## 4. First executable work
+## 4. Current follow-on work
+
+Read [whole-product review](WHOLE_PRODUCT_REVIEW_2026-09-09.md),
+[delivery plan](TRUSTED_V1_DELIVERY_PLAN.md), and the
+[bounded package](../../specs/review-trusted-v1-2026-09-09/README.md).
+Next: prepare the durable trusted-record follow-on specification. Runtime changes follow
+the owning Spec Kit lifecycle. Foundation closure is not release readiness.
+
+### Historical bootstrap requirements (already closed)
 
 Spec 001 must:
 
