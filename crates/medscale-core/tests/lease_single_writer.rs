@@ -17,7 +17,7 @@ fn req(capability: Capability, body: RequestBody) -> AuthorityRequest {
 
 #[test]
 fn exclusive_lease_second_acquire_already_held() {
-    let facade = CoreFacade::new();
+    let facade = CoreFacade::new_legacy_lease_only_engineering();
     let first = facade.dispatch(req(
         Capability::AcquireLease,
         RequestBody::AcquireLease {

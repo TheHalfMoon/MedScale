@@ -18,7 +18,7 @@ fn req(capability: Capability, body: RequestBody) -> AuthorityRequest {
 
 #[test]
 fn mesc_admit_refuses_without_released_artifact_gate() {
-    let facade = CoreFacade::new();
+    let facade = CoreFacade::new_legacy_lease_only_engineering();
     let out = facade.dispatch(req(
         Capability::MescArtifactAdmit,
         RequestBody::MescArtifactAdmit {
@@ -43,7 +43,7 @@ fn mesc_admit_refuses_without_released_artifact_gate() {
 
 #[test]
 fn mesc_admit_requires_pack_path_flag() {
-    let facade = CoreFacade::new();
+    let facade = CoreFacade::new_legacy_lease_only_engineering();
     let out = facade.dispatch(req(
         Capability::MescArtifactAdmit,
         RequestBody::MescArtifactAdmit {

@@ -125,7 +125,7 @@ pub fn build_doctor_report_full(
             "Online packs READY_BASE: acquire denied; HF not a runtime dependency".to_owned(),
             "MESC ARTIFACT_IMPORT blocked: MESC_RELEASED_ARTIFACT not available".to_owned(),
             "Vault privacy Spec 023: SQLCipher page-encrypted open work; PRIVATE_DATA_READY=false (OS keyring/swap/snapshot)".to_owned(),
-            "Host authority READY_BASE: in-process sessions; MULTI_CLIENT_RELEASE_READY=false".to_owned(),
+            "Host authority READY_BASE: localhost OS IPC + strict sessions; MULTI_CLIENT_RELEASE_READY=false".to_owned(),
             "Record semantics READY_BASE: precision-aware time, append-only amendments; RELEASE_READY=false".to_owned(),
             "FHIR interchange READY_BASE: honest support matrix; no full conformance; validator evidence != authority".to_owned(),
             "Workflow READY_BASE: synthetic import-review-export-backup journey; WORKFLOW_READY_BASE=true; RELEASE_READY=false".to_owned(),

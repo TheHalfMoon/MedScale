@@ -45,7 +45,7 @@ fn fixture_pack() -> PathBuf {
 
 #[test]
 fn offline_pack_install_and_list() {
-    let facade = CoreFacade::new();
+    let facade = CoreFacade::new_legacy_lease_only_engineering();
     lease(&facade);
     let path = fixture_pack().display().to_string();
     let out = facade

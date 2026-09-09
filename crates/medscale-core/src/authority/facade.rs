@@ -13,7 +13,7 @@ use medscale_contracts::objects::{
 };
 
 use crate::effects;
-use crate::process::{LeaseError, LeaseRegistry, SessionRegistry};
+use crate::process::{LeaseError, LeaseRegistry, SessionEnforcement, SessionRegistry};
 
 use super::identity::{create_identity_assertion, decide_identity_merge};
 use super::ingest_ops;
@@ -26,10 +26,11 @@ use medscale_network::FixtureTransport;
 use medscale_storage::{EncryptedVault, SyntheticVault};
 
 /// In-process facade owning lease registry + in-memory store + optional vaults.
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct CoreFacade {
     leases: LeaseRegistry,
     sessions: SessionRegistry,
+    session_enforcement: SessionEnforcement,
     store: Mutex<InMemoryAuthorityStore>,
     vault: Mutex<Option<SyntheticVault>>,
     encrypted: Mutex<Option<EncryptedVault>>,
@@ -37,17 +38,49 @@ pub struct CoreFacade {
     packs: Mutex<medscale_pack::PackStore>,
 }
 
+impl Default for CoreFacade {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl CoreFacade {
-    /// Creates a new facade instance (one per process/host in Spec 002).
+    /// Creates a new facade with Spec 024 Strict session enforcement (fail-closed).
     #[must_use]
     pub fn new() -> Self {
-        Self::default()
+        Self {
+            leases: LeaseRegistry::new(),
+            sessions: SessionRegistry::new(),
+            session_enforcement: SessionEnforcement::Strict,
+            store: Mutex::new(InMemoryAuthorityStore::default()),
+            vault: Mutex::new(None),
+            encrypted: Mutex::new(None),
+            allowlist: Mutex::new(Vec::new()),
+            packs: Mutex::new(medscale_pack::PackStore::default()),
+        }
+    }
+
+    /// Engineering/test escape: Spec 018 legacy lease-only mutation without `session_id`.
+    ///
+    /// Not used by the qualified OS IPC host path. Prefer Strict (`CoreFacade::new()`).
+    #[must_use]
+    pub fn new_legacy_lease_only_engineering() -> Self {
+        Self {
+            session_enforcement: SessionEnforcement::LegacyLeaseOnlyEngineering,
+            ..Self::new()
+        }
     }
 
     /// In-process session registry (Spec 018 READY_BASE).
     #[must_use]
     pub fn sessions(&self) -> &SessionRegistry {
         &self.sessions
+    }
+
+    /// Active session enforcement mode (Spec 024).
+    #[must_use]
+    pub fn session_enforcement(&self) -> SessionEnforcement {
+        self.session_enforcement
     }
 
     fn store(&self) -> std::sync::MutexGuard<'_, InMemoryAuthorityStore> {
@@ -124,11 +157,27 @@ impl CoreFacade {
             return Err(AuthorityError::Unauthorized);
         }
 
-        // Spec 018 READY_BASE: session_id is opt-in. When present, validate; when
-        // absent, legacy lease-only callers continue without a session.
-        if let Some(session_id) = &req.session_id {
-            self.sessions
-                .validate(session_id, &req.vault_id, req.capability)?;
+        // Spec 024: Strict requires session_id for mutating capabilities.
+        // LegacyLeaseOnlyEngineering preserves Spec 018 opt-in validation-only-when-present.
+        match self.session_enforcement {
+            SessionEnforcement::Strict => {
+                if req.capability.requires_client_session() {
+                    let Some(session_id) = &req.session_id else {
+                        return Err(AuthorityError::SessionRequired);
+                    };
+                    self.sessions
+                        .validate(session_id, &req.vault_id, req.capability)?;
+                } else if let Some(session_id) = &req.session_id {
+                    self.sessions
+                        .validate(session_id, &req.vault_id, req.capability)?;
+                }
+            }
+            SessionEnforcement::LegacyLeaseOnlyEngineering => {
+                if let Some(session_id) = &req.session_id {
+                    self.sessions
+                        .validate(session_id, &req.vault_id, req.capability)?;
+                }
+            }
         }
 
         match req.body {

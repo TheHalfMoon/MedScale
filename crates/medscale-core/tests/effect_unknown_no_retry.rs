@@ -20,7 +20,7 @@ fn req(capability: Capability, body: RequestBody) -> AuthorityRequest {
 
 #[test]
 fn unknown_without_reconcile_denied() {
-    let facade = CoreFacade::new();
+    let facade = CoreFacade::new_legacy_lease_only_engineering();
     let created = facade.dispatch(req(
         Capability::CreateExternalActionIntent,
         RequestBody::CreateExternalActionIntent {

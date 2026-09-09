@@ -60,7 +60,7 @@ fn journey_accept_backup_restore_021() {
     let restore = root.join("restore");
     fs::create_dir_all(&vault).unwrap();
 
-    let facade = CoreFacade::new();
+    let facade = CoreFacade::new_legacy_lease_only_engineering();
     let cfg = JourneyConfig {
         vault_id: "journey-vault".to_owned(),
         vault_root: vault.to_string_lossy().into_owned(),
@@ -90,7 +90,7 @@ fn journey_reject_no_assertion_021() {
     let restore = root.join("restore");
     fs::create_dir_all(&vault).unwrap();
 
-    let facade = CoreFacade::new();
+    let facade = CoreFacade::new_legacy_lease_only_engineering();
     let cfg = JourneyConfig {
         vault_id: "journey-vault".to_owned(),
         vault_root: vault.to_string_lossy().into_owned(),
@@ -120,7 +120,7 @@ fn reject_and_list_disclosures_facade_021() {
     let root = work_root("facade");
     let vault = root.join("vault");
     fs::create_dir_all(&vault).unwrap();
-    let facade = CoreFacade::new();
+    let facade = CoreFacade::new_legacy_lease_only_engineering();
 
     assert!(
         facade
@@ -219,7 +219,7 @@ fn workflow_two_process_reopen_021() {
     if let Ok(root) = std::env::var("MEDSCALE_021_VAULT") {
         let source_id = std::env::var("MEDSCALE_021_SOURCE").unwrap();
         let digest = std::env::var("MEDSCALE_021_DIGEST").unwrap();
-        let facade = CoreFacade::new();
+        let facade = CoreFacade::new_legacy_lease_only_engineering();
         assert!(
             facade
                 .dispatch(req(
@@ -272,7 +272,7 @@ fn workflow_two_process_reopen_021() {
     let restore = root.join("restore");
     fs::create_dir_all(&vault).unwrap();
 
-    let facade = CoreFacade::new();
+    let facade = CoreFacade::new_legacy_lease_only_engineering();
     let cfg = JourneyConfig {
         vault_id: "journey-vault".to_owned(),
         vault_root: vault.to_string_lossy().into_owned(),

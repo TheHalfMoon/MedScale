@@ -13,6 +13,7 @@ medscale-fhir = { workspace = true }
 medscale-network = { workspace = true }
 medscale-pack = { workspace = true }
 medscale-storage = { workspace = true }
+interprocess = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 sha2 = { workspace = true }

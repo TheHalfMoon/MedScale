@@ -75,6 +75,98 @@ pub enum Capability {
     ListDisclosures,
 }
 
+impl Capability {
+    /// Lease/session bootstrap ops that must work before a client session exists.
+    #[must_use]
+    pub const fn is_session_bootstrap(self) -> bool {
+        matches!(
+            self,
+            Self::AcquireLease | Self::ReleaseLease | Self::OpenSession | Self::RevokeSession
+        )
+    }
+
+    /// Read-only / health ops that do not require a client session under Strict mode.
+    #[must_use]
+    pub const fn is_read_or_health(self) -> bool {
+        matches!(
+            self,
+            Self::Ping
+                | Self::ReadObject
+                | Self::GetTimeline
+                | Self::GetBrief
+                | Self::GetCoverage
+                | Self::DrillDownPresentation
+                | Self::PacksList
+                | Self::ListOutbox
+                | Self::ListDisclosures
+                | Self::ReadCanonicalVisibility
+                | Self::VerifyBlob
+                | Self::GetFhirSupportMatrix
+        )
+    }
+
+    /// True when Spec 024 Strict enforcement requires a live `session_id`.
+    #[must_use]
+    pub const fn requires_client_session(self) -> bool {
+        !self.is_session_bootstrap() && !self.is_read_or_health()
+    }
+
+    /// Broad grant set for CLI / IPC operator sessions (synthetic READY_BASE).
+    #[must_use]
+    pub fn operator_grants() -> Vec<Self> {
+        vec![
+            Self::Ping,
+            Self::CreateSourceRecord,
+            Self::CreateDerivedArtifact,
+            Self::CreateProposal,
+            Self::PromoteProposal,
+            Self::CreateIdentityAssertion,
+            Self::DecideIdentityMerge,
+            Self::AppendAudit,
+            Self::TransitionEffect,
+            Self::ReadObject,
+            Self::OpenSyntheticVault,
+            Self::CloseVault,
+            Self::IngestFhirSynthetic,
+            Self::AttachValidatorEvidence,
+            Self::RebuildProjection,
+            Self::ReadCanonicalVisibility,
+            Self::VerifyBlob,
+            Self::BackupVault,
+            Self::RestoreVault,
+            Self::RunBlobGc,
+            Self::GetTimeline,
+            Self::GetBrief,
+            Self::GetCoverage,
+            Self::DrillDownPresentation,
+            Self::CreateEncryptedVault,
+            Self::OpenEncryptedVault,
+            Self::CloseEncryptedVault,
+            Self::NetworkBrokerInvoke,
+            Self::SetEgressAllowlist,
+            Self::PacksInstallLocal,
+            Self::PacksList,
+            Self::PacksPromote,
+            Self::DocumentIntake,
+            Self::OcrStub,
+            Self::AsrStub,
+            Self::RetrieveLexical,
+            Self::CreateExternalActionIntent,
+            Self::ListOutbox,
+            Self::NphiesInvoke,
+            Self::OnlinePackAcquire,
+            Self::MescArtifactAdmit,
+            Self::AmendAssertion,
+            Self::GetFhirSupportMatrix,
+            Self::ExportFhirLossAware,
+            Self::RejectProposal,
+            Self::AppendDisclosure,
+            Self::ListDisclosures,
+            Self::RevokeSession,
+        ]
+    }
+}
+
 /// Request body variants.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "op", rename_all = "snake_case")]
@@ -454,7 +546,8 @@ pub struct AuthorityRequest {
     pub capability: Capability,
     pub deadline_ms: u64,
     pub max_response_bytes: u64,
-    /// Optional client session (Spec 018 READY_BASE; absent = legacy lease-only path).
+    /// Client session (Spec 024 Strict: required for mutating capabilities).
+    /// Absent is only valid for bootstrap/read/health, or LegacyLeaseOnlyEngineering.
     #[serde(default)]
     pub session_id: Option<OpaqueId>,
     pub body: RequestBody,

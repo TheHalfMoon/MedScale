@@ -24,7 +24,7 @@ fn base(
 
 #[test]
 fn unauthorized_capability_mismatch_denied() {
-    let facade = CoreFacade::new();
+    let facade = CoreFacade::new_legacy_lease_only_engineering();
     let resp = facade.dispatch(base(
         "v",
         "r",
@@ -42,7 +42,7 @@ fn unauthorized_capability_mismatch_denied() {
 
 #[test]
 fn authorized_promote_and_cross_scope_deny() {
-    let facade = CoreFacade::new();
+    let facade = CoreFacade::new_legacy_lease_only_engineering();
     let created = facade.dispatch(base(
         "v",
         "r",
@@ -89,7 +89,7 @@ fn authorized_promote_and_cross_scope_deny() {
 
 #[test]
 fn no_silent_identity_merge() {
-    let facade = CoreFacade::new();
+    let facade = CoreFacade::new_legacy_lease_only_engineering();
     let bad = facade.dispatch(base(
         "v",
         "r",

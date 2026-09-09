@@ -37,7 +37,7 @@ fn lease(facade: &CoreFacade) {
 
 #[test]
 fn lexical_retrieve_ranks_and_evidence_only() {
-    let facade = CoreFacade::new();
+    let facade = CoreFacade::new_legacy_lease_only_engineering();
     lease(&facade);
     let out = facade
         .dispatch(req(
@@ -81,7 +81,7 @@ fn lexical_retrieve_ranks_and_evidence_only() {
 
 #[test]
 fn unknown_corpus_denied() {
-    let facade = CoreFacade::new();
+    let facade = CoreFacade::new_legacy_lease_only_engineering();
     lease(&facade);
     let err = facade
         .dispatch(req(

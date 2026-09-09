@@ -56,7 +56,7 @@ fn open_leased(facade: &CoreFacade, root: &str) {
 }
 
 fn write_parent_vault(root: &Path) -> (String, String, usize) {
-    let facade = CoreFacade::new();
+    let facade = CoreFacade::new_legacy_lease_only_engineering();
     open_leased(&facade, root.to_str().unwrap());
     let bytes = fs::read(fixture("fixtures/synthetic/fhir/r4/valid/patient-min.json")).unwrap();
     let accepted = facade.dispatch(req(
@@ -118,7 +118,7 @@ fn write_parent_vault(root: &Path) -> (String, String, usize) {
 }
 
 fn verify_child_vault(root: &Path, source_id: &str, digest_hex: &str, min_objects: usize) {
-    let facade = CoreFacade::new();
+    let facade = CoreFacade::new_legacy_lease_only_engineering();
     open_leased(&facade, root.to_str().unwrap());
     let meta = SqliteMetaStore::open(root).expect("child meta");
     let objects = meta.list_authority_objects().unwrap();
@@ -185,7 +185,7 @@ fn writer_lock_second_process_denied_016() {
 #[test]
 fn digest_mismatch_refuses_016() {
     let root = tmp_dir("digest");
-    let facade = CoreFacade::new();
+    let facade = CoreFacade::new_legacy_lease_only_engineering();
     open_leased(&facade, root.to_str().unwrap());
     let bytes = fs::read(fixture("fixtures/synthetic/fhir/r4/valid/patient-min.json")).unwrap();
     let accepted = facade.dispatch(req(
@@ -212,7 +212,7 @@ fn digest_mismatch_refuses_016() {
     let blob_path = root.join("blobs").join(digest.to_hex());
     fs::write(&blob_path, b"corrupted-not-original-bytes").unwrap();
 
-    let facade2 = CoreFacade::new();
+    let facade2 = CoreFacade::new_legacy_lease_only_engineering();
     let opened = {
         assert!(
             facade2
@@ -243,7 +243,7 @@ fn digest_mismatch_refuses_016() {
 fn same_process_reopen_retains_objects_016() {
     let root = tmp_dir("reopen");
     let (source_id, digest_hex, object_count) = write_parent_vault(&root);
-    let facade = CoreFacade::new();
+    let facade = CoreFacade::new_legacy_lease_only_engineering();
     open_leased(&facade, root.to_str().unwrap());
     let meta = SqliteMetaStore::open(&root).unwrap();
     assert!(meta.list_authority_objects().unwrap().len() >= object_count);

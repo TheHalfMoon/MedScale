@@ -24,7 +24,7 @@ fn req(capability: Capability, body: RequestBody) -> AuthorityRequest {
 
 #[test]
 fn create_intent_binds_payload_and_lists_outbox() {
-    let facade = CoreFacade::new();
+    let facade = CoreFacade::new_legacy_lease_only_engineering();
     let digest = DigestSha256::of(b"approved-payload");
     let created = facade.dispatch(req(
         Capability::CreateExternalActionIntent,
@@ -54,7 +54,7 @@ fn create_intent_binds_payload_and_lists_outbox() {
 
 #[test]
 fn sent_without_payload_digest_denied() {
-    let facade = CoreFacade::new();
+    let facade = CoreFacade::new_legacy_lease_only_engineering();
     let created = facade.dispatch(req(
         Capability::AppendAudit,
         RequestBody::AppendAudit {
@@ -84,7 +84,7 @@ fn sent_without_payload_digest_denied() {
 
 #[test]
 fn unknown_requires_reconcile_after_bound_send() {
-    let facade = CoreFacade::new();
+    let facade = CoreFacade::new_legacy_lease_only_engineering();
     let created = facade.dispatch(req(
         Capability::CreateExternalActionIntent,
         RequestBody::CreateExternalActionIntent {
@@ -152,7 +152,7 @@ fn unknown_requires_reconcile_after_bound_send() {
 
 #[test]
 fn nphies_invoke_requires_workflow_evidence_gate() {
-    let facade = CoreFacade::new();
+    let facade = CoreFacade::new_legacy_lease_only_engineering();
     let out = facade.dispatch(req(
         Capability::NphiesInvoke,
         RequestBody::NphiesInvoke {

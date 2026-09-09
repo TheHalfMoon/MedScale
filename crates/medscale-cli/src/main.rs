@@ -9,8 +9,8 @@ use medscale_contracts::doctor::PrivacyProof;
 use medscale_contracts::fixture_ui::{FixtureUiSurface, FixtureUiViewModel};
 use medscale_contracts::workflow::CliJsonError;
 use medscale_core::{
-    CliSession, CoreFacade, JourneyConfig, build_doctor_report, privacy_proof_artifact_present,
-    run_minimum_lovable_journey,
+    CliSession, CoreFacade, HostIpcClient, HostIpcServer, JourneyConfig, build_doctor_report,
+    endpoint_for_vault_root, privacy_proof_artifact_present, run_minimum_lovable_journey,
 };
 
 #[derive(Debug, Parser)]
@@ -92,6 +92,11 @@ enum Commands {
         #[command(subcommand)]
         action: JourneyCmd,
     },
+    /// Localhost OS IPC host/client (Spec 024 READY_BASE).
+    HostIpc {
+        #[command(subcommand)]
+        action: HostIpcCmd,
+    },
 }
 
 #[derive(Debug, Subcommand)]
@@ -168,6 +173,25 @@ enum JourneyCmd {
         reject: bool,
         #[arg(long)]
         json: bool,
+    },
+}
+
+#[derive(Debug, Subcommand)]
+enum HostIpcCmd {
+    /// Serve CoreFacade over localhost OS IPC (holds Spec 016 writer lock).
+    Serve {
+        #[arg(long)]
+        vault_root: PathBuf,
+        /// Namespaced endpoint ([A-Za-z0-9_-]+). Default: hash of vault_root.
+        #[arg(long)]
+        endpoint: Option<String>,
+    },
+    /// Dispatch one JSON AuthorityRequest file via IPC and print the response.
+    Call {
+        #[arg(long)]
+        endpoint: String,
+        #[arg(long)]
+        request_json: PathBuf,
     },
 }
 
@@ -542,6 +566,42 @@ fn run() -> Result<()> {
                     }
                     Err(e) => Err(fail_json("journey_failed", format!("{e:?}"), json)),
                 }
+            }
+        },
+        Commands::HostIpc { action } => match action {
+            HostIpcCmd::Serve {
+                vault_root,
+                endpoint,
+            } => {
+                std::fs::create_dir_all(&vault_root)
+                    .with_context(|| format!("create vault_root {}", vault_root.display()))?;
+                let endpoint = endpoint.unwrap_or_else(|| endpoint_for_vault_root(&vault_root));
+                let server = HostIpcServer::bind(&vault_root, &endpoint)
+                    .with_context(|| format!("bind host-ipc endpoint={endpoint}"))?;
+                println!(
+                    "host_ipc_listening endpoint={} vault_root={} os_ipc_qualified=true multi_client_release_ready=false",
+                    server.endpoint(),
+                    server.vault_root().display()
+                );
+                loop {
+                    if let Err(e) = server.serve_connection() {
+                        eprintln!("host_ipc_connection_error: {e}");
+                    }
+                }
+            }
+            HostIpcCmd::Call {
+                endpoint,
+                request_json,
+            } => {
+                let bytes = std::fs::read(&request_json)
+                    .with_context(|| format!("read {}", request_json.display()))?;
+                let req: medscale_contracts::envelopes::AuthorityRequest =
+                    serde_json::from_slice(&bytes).context("parse AuthorityRequest JSON")?;
+                let mut client = HostIpcClient::connect(&endpoint)
+                    .with_context(|| format!("connect endpoint={endpoint}"))?;
+                let resp = client.dispatch(req).context("ipc dispatch")?;
+                println!("{}", serde_json::to_string_pretty(&resp)?);
+                Ok(())
             }
         },
     }

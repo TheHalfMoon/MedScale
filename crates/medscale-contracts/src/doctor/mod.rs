@@ -168,14 +168,14 @@ pub struct HostAuthorityDoctorStatus {
 }
 
 impl HostAuthorityDoctorStatus {
-    /// Spec 018 READY_BASE: in-process sessions only; multi-client release not claimed.
+    /// Spec 024 READY_BASE: localhost OS IPC + strict sessions; multi-client release not claimed.
     #[must_use]
     pub fn ready_base() -> Self {
         Self {
             present: true,
             ready_base: true,
             multi_client_release_ready: false,
-            os_ipc_qualified: false,
+            os_ipc_qualified: true,
         }
     }
 }

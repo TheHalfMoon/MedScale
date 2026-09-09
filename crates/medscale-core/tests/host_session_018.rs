@@ -1,4 +1,4 @@
-//! Spec 018 host/client session authority READY_BASE.
+//! Spec 018 host/client session authority (retained under Spec 024 Strict).
 
 use medscale_contracts::envelopes::{
     AuthorityError, AuthorityRequest, Capability, RequestBody, ResponseBody,
@@ -148,7 +148,7 @@ fn expiry_denies_further_use() {
 }
 
 #[test]
-fn mutating_without_session_id_still_allowed_ready_base() {
+fn mutating_without_session_id_denied_under_strict() {
     let facade = CoreFacade::new();
     let created = facade.dispatch(req(
         Capability::CreateSourceRecord,
@@ -157,14 +157,17 @@ fn mutating_without_session_id_still_allowed_ready_base() {
             bytes: b"synthetic".to_vec(),
         },
     ));
-    assert!(matches!(created.result, Ok(ResponseBody::Created { .. })));
+    assert!(matches!(
+        created.result,
+        Err(AuthorityError::SessionRequired)
+    ));
 }
 
 #[test]
-fn doctor_host_authority_ready_base_not_multi_client() {
+fn doctor_host_authority_ready_base_os_ipc_not_multi_client() {
     let report = build_doctor_report(None, false, false);
     assert!(report.host_authority.present);
     assert!(report.host_authority.ready_base);
     assert!(!report.host_authority.multi_client_release_ready);
-    assert!(!report.host_authority.os_ipc_qualified);
+    assert!(report.host_authority.os_ipc_qualified);
 }

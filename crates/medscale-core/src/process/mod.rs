@@ -10,6 +10,16 @@ use thiserror::Error;
 
 pub use session::SessionRegistry;
 
+/// Spec 024 session enforcement for mutating authority calls.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum SessionEnforcement {
+    /// Fail-closed: mutating capabilities require a live `session_id` (default / IPC).
+    #[default]
+    Strict,
+    /// Engineering/test escape: Spec 018 lease-only mutation without `session_id`.
+    LegacyLeaseOnlyEngineering,
+}
+
 /// Errors from lease acquire/release.
 #[derive(Debug, Clone, PartialEq, Eq, Error)]
 pub enum LeaseError {

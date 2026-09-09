@@ -61,7 +61,7 @@ fn open_leased(facade: &CoreFacade, root: &str) {
 #[test]
 fn lexical_fhir_ingest_accept_and_duplicate() {
     let root = tmp_dir("ingest");
-    let facade = CoreFacade::new();
+    let facade = CoreFacade::new_legacy_lease_only_engineering();
     open_leased(&facade, root.to_str().unwrap());
     let bytes = fs::read(fixture("fixtures/synthetic/fhir/r4/valid/patient-min.json")).unwrap();
     let accepted = facade.dispatch(req(
@@ -102,7 +102,7 @@ fn lexical_fhir_ingest_accept_and_duplicate() {
 #[test]
 fn duplicate_key_reject() {
     let root = tmp_dir("dup");
-    let facade = CoreFacade::new();
+    let facade = CoreFacade::new_legacy_lease_only_engineering();
     open_leased(&facade, root.to_str().unwrap());
     let bytes = fs::read(fixture(
         "fixtures/synthetic/fhir/r4/adversarial/duplicate-key.json",
@@ -128,7 +128,7 @@ fn backup_restore_roundtrip() {
     let root = tmp_dir("vault");
     let backup = tmp_dir("backup");
     let restored = tmp_dir("restored");
-    let facade = CoreFacade::new();
+    let facade = CoreFacade::new_legacy_lease_only_engineering();
     open_leased(&facade, root.to_str().unwrap());
     let bytes = fs::read(fixture("fixtures/synthetic/fhir/r4/valid/patient-min.json")).unwrap();
     assert!(
