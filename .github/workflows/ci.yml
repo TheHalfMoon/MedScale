@@ -5,6 +5,9 @@ on:
     branches: [main, "spec/**"]
   pull_request:
 
+permissions:
+  contents: read
+
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -22,16 +25,16 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@master
+        uses: dtolnay/rust-toolchain@d1031067263f94b142dd6c0ce24c5eb9d02d52a0 # pinned master
         with:
           toolchain: "1.97.1"
           components: rustfmt, clippy
 
       - name: Cache cargo
-        uses: Swatinem/rust-cache@v2
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
 
       - name: Format
         run: cargo fmt --all -- --check
@@ -50,8 +53,8 @@ jobs:
     name: cargo-deny
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: EmbarkStudios/cargo-deny-action@v2
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: EmbarkStudios/cargo-deny-action@3c6349835b2b7b196a839186cb8b78e02f7b5f25 # v2
         with:
           command: check
           arguments: --all-features
@@ -60,7 +63,7 @@ jobs:
     name: supply-chain policy present
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Check deny.toml and supply-chain scaffold
         run: |
           test -f deny.toml
