@@ -1,5 +1,5 @@
 {
-  "pack_id": "pack-fixture-ner-v0",
+  "pack_id": "pack-fixture-signed-v1",
   "version": "0.1.0",
   "pack_epoch": 1,
   "content_digest": "5cc645671bd2a5b4592783be6dd880f37d7580fdc87caf647561a4c7d2570052",
@@ -11,12 +11,10 @@
     }
   ],
   "rights_uri": "https://medscale.local/rights/synthetic-fixture",
-  "sbom_ref": "sbom:fixture-ner-v0",
+  "sbom_ref": "sbom:fixture-signed-v1",
   "runtime_requirements": "fixture_runtime_v0",
-  "benchmark_links": [
-    "evidence/007-openmed-capability-absorption-parity/CORPUS_REGISTRY.md"
-  ],
+  "benchmark_links": [],
   "promotion_state": "candidate",
   "trust_root_id": "synthetic-pack-trust-v1",
-  "signature_hex": "8de10972f80e41f0b3c95b0b8803e534232710b4023c2d28bcd9862d5b934212cd1a494fc06a2264e5852ad9a5383ae71cdd6a7d121c54e9f8b11ac1c8e1f300"
+  "signature_hex": "513d37761208005603ad99dc30e3abf6897ac3450ca3365a923383815847e4895676137dd8efc4cafc74c8e84bca20eb45f3e299afa24f2dcc7437389bcc4b03"
 }

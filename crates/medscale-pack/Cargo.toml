@@ -1,6 +1,6 @@
 [package]
 name = "medscale-pack"
-description = "Offline Pack v0 admission + fixture runtime (Spec 008)"
+description = "Offline Pack v0 admission + fixture runtime (Specs 008/026)"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -9,6 +9,7 @@ rust-version.workspace = true
 
 [dependencies]
 medscale-contracts = { workspace = true }
+medscale-keys = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 sha2 = { workspace = true }

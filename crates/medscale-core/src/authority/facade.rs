@@ -857,7 +857,35 @@ impl CoreFacade {
                 match medscale_pack::admit_pack_dir(std::path::Path::new(&local_path)) {
                     Ok(manifest) => {
                         let pack_id = manifest.pack_id.clone();
-                        self.packs().insert(manifest);
+                        if let Err(err) = self.packs().admit(manifest) {
+                            let reason = err.reason();
+                            store.insert(StoredObject::Audit(ActionAuditRecord {
+                                header: ObjectHeader {
+                                    id: audit_id.clone(),
+                                    schema_version: AUTHORITY_SCHEMA_VERSION,
+                                    realm_id: req.realm_id,
+                                    authority_scope_id: req.authority_scope_id,
+                                },
+                                kind: ActionAuditKind::Audit,
+                                actor: OpaqueId::new("pack-admit"),
+                                action: "packs.install_local.deny".to_owned(),
+                                target_refs: vec![],
+                                effect_state: None,
+                                payload_digest: None,
+                                detail: Some(serde_json::json!({
+                                    "local_path": local_path,
+                                    "reason": reason,
+                                })),
+                            }));
+                            return Ok(ResponseBody::PackAdmit {
+                                result: medscale_contracts::packs::PackAdmitResult {
+                                    admitted: false,
+                                    reason,
+                                    pack_id: None,
+                                    audit_id,
+                                },
+                            });
+                        }
                         store.insert(StoredObject::Audit(ActionAuditRecord {
                             header: ObjectHeader {
                                 id: audit_id.clone(),

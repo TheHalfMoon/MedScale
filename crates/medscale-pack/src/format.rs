@@ -1,4 +1,4 @@
-//! Format gates and local-path admission.
+//! Format gates and local-path admission (Spec 008 + Spec 026 signer).
 
 use std::fs;
 use std::path::Path;
@@ -6,6 +6,9 @@ use std::path::Path;
 use medscale_contracts::objects::{DigestSha256, OpaqueId};
 use medscale_contracts::packs::{
     PackAdmitReason, PackArtifactEntry, PackArtifactKind, PackManifestV0, PackPromotionState,
+};
+use medscale_keys::{
+    PackTrustError, SYNTHETIC_PACK_TRUST_ROOT_ID, pack_signing_payload, verify_pack_signature,
 };
 use serde::Deserialize;
 use thiserror::Error;
@@ -21,6 +24,14 @@ pub enum AdmitError {
     ForbiddenKind,
     #[error("digest mismatch")]
     DigestMismatch,
+    #[error("missing signature")]
+    MissingSignature,
+    #[error("invalid signature")]
+    InvalidSignature,
+    #[error("unknown trust root")]
+    UnknownTrustRoot,
+    #[error("anti-rollback")]
+    AntiRollback,
     #[error("io: {0}")]
     Io(String),
 }
@@ -32,6 +43,10 @@ impl AdmitError {
             Self::MissingRights => PackAdmitReason::MissingRights,
             Self::ForbiddenKind => PackAdmitReason::ForbiddenArtifactKind,
             Self::DigestMismatch => PackAdmitReason::DigestMismatch,
+            Self::MissingSignature => PackAdmitReason::MissingSignature,
+            Self::InvalidSignature => PackAdmitReason::InvalidSignature,
+            Self::UnknownTrustRoot => PackAdmitReason::UnknownTrustRoot,
+            Self::AntiRollback => PackAdmitReason::AntiRollback,
             Self::InvalidManifest(_) | Self::Io(_) => PackAdmitReason::InvalidManifest,
         }
     }
@@ -92,6 +107,7 @@ struct WireArtifact {
 struct WireManifest {
     pack_id: String,
     version: String,
+    pack_epoch: u64,
     content_digest: String,
     artifacts: Vec<WireArtifact>,
     rights_uri: String,
@@ -100,6 +116,8 @@ struct WireManifest {
     #[serde(default)]
     benchmark_links: Vec<String>,
     promotion_state: PackPromotionState,
+    trust_root_id: String,
+    signature_hex: String,
 }
 
 /// Load and validate a pack directory containing `pack.manifest.json` + artifacts.
@@ -114,6 +132,12 @@ pub fn admit_pack_dir(path: &Path) -> Result<PackManifestV0, AdmitError> {
     }
     if wire.sbom_ref.trim().is_empty() {
         return Err(AdmitError::InvalidManifest("empty sbom_ref".into()));
+    }
+    if wire.signature_hex.trim().is_empty() {
+        return Err(AdmitError::MissingSignature);
+    }
+    if wire.trust_root_id.trim().is_empty() {
+        return Err(AdmitError::UnknownTrustRoot);
     }
 
     let mut artifacts = Vec::new();
@@ -155,6 +179,26 @@ pub fn admit_pack_dir(path: &Path) -> Result<PackManifestV0, AdmitError> {
         return Err(AdmitError::DigestMismatch);
     }
 
+    let payload = pack_signing_payload(
+        &wire.pack_id,
+        &wire.version,
+        wire.pack_epoch,
+        &wire.content_digest,
+        &wire.rights_uri,
+        &wire.sbom_ref,
+    );
+    match verify_pack_signature(&wire.trust_root_id, &payload, &wire.signature_hex) {
+        Ok(()) => {}
+        Err(PackTrustError::UnknownTrustRoot) => return Err(AdmitError::UnknownTrustRoot),
+        Err(PackTrustError::InvalidEncoding | PackTrustError::VerifyFailed) => {
+            return Err(AdmitError::InvalidSignature);
+        }
+    }
+    // Keep synthetic root id constant visible for audits.
+    if wire.trust_root_id != SYNTHETIC_PACK_TRUST_ROOT_ID {
+        return Err(AdmitError::UnknownTrustRoot);
+    }
+
     let mut promotion_state = wire.promotion_state;
     if !matches!(
         promotion_state,
@@ -166,6 +210,7 @@ pub fn admit_pack_dir(path: &Path) -> Result<PackManifestV0, AdmitError> {
     Ok(PackManifestV0 {
         pack_id: OpaqueId::new(wire.pack_id),
         version: wire.version,
+        pack_epoch: wire.pack_epoch,
         content_digest: declared,
         artifacts,
         rights_uri: wire.rights_uri,
@@ -173,5 +218,7 @@ pub fn admit_pack_dir(path: &Path) -> Result<PackManifestV0, AdmitError> {
         runtime_requirements: wire.runtime_requirements,
         benchmark_links: wire.benchmark_links,
         promotion_state,
+        trust_root_id: wire.trust_root_id,
+        signature_hex: wire.signature_hex,
     })
 }

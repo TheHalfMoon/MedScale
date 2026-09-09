@@ -145,6 +145,8 @@ mod tests {
                 "synthetic-lexical",
                 "1.0.0",
             ),
+            pack_signer: crate::packs::PackSignerDoctorStatus::ready_base(),
+            os_sandbox: crate::os_sandbox::OsSandboxDoctorStatus::ready_base(),
             notes: vec![],
         };
         let vm = FixtureUiViewModel::from_doctor(&report);
