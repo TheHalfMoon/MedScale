@@ -46,6 +46,32 @@ pub enum WebViewScanStatus {
     Deferred,
 }
 
+/// Vault privacy posture (Spec 017). Never claims secrets.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct VaultPrivacyDoctorStatus {
+    pub present: bool,
+    pub private_data_ready: bool,
+    pub sealed_at_close: bool,
+    pub open_work_plaintext_risk: bool,
+    pub work_wipe_on_close: bool,
+    pub sqlcipher_enabled: bool,
+}
+
+impl VaultPrivacyDoctorStatus {
+    #[must_use]
+    pub fn spec_017_honest() -> Self {
+        Self {
+            present: true,
+            private_data_ready: false,
+            sealed_at_close: true,
+            open_work_plaintext_risk: true,
+            work_wipe_on_close: true,
+            sqlcipher_enabled: false,
+        }
+    }
+}
+
 /// `medscale doctor` structured report (no secrets).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -70,6 +96,7 @@ pub struct DoctorReport {
     pub controlled_actions: ControlledActionsDoctorStatus,
     pub online_packs: OnlinePacksDoctorStatus,
     pub mesc_artifact: MescArtifactDoctorStatus,
+    pub vault_privacy: VaultPrivacyDoctorStatus,
     pub notes: Vec<String>,
 }
 

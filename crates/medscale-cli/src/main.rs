@@ -213,6 +213,13 @@ fn run() -> Result<()> {
                     report.mesc_artifact.artifact_admitted,
                     report.mesc_artifact.gate
                 );
+                println!(
+                    "vault_privacy: ready={} sealed_at_close={} open_work_risk={} wipe_on_close={}",
+                    report.vault_privacy.private_data_ready,
+                    report.vault_privacy.sealed_at_close,
+                    report.vault_privacy.open_work_plaintext_risk,
+                    report.vault_privacy.work_wipe_on_close
+                );
                 for note in &report.notes {
                     println!("note: {note}");
                 }

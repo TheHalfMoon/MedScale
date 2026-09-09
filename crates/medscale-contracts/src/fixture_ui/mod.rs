@@ -87,7 +87,9 @@ impl FixtureUiViewModel {
 mod tests {
     use super::*;
     use crate::actions::ControlledActionsDoctorStatus;
-    use crate::doctor::{KeyStoreAvailability, PrivacyFreshness, SyncRisk};
+    use crate::doctor::{
+        KeyStoreAvailability, PrivacyFreshness, SyncRisk, VaultPrivacyDoctorStatus,
+    };
     use crate::mobile::MobileDoctorStatus;
     use crate::network::NetworkBrokerDoctorStatus;
     use crate::online_packs::OnlinePacksDoctorStatus;
@@ -129,6 +131,7 @@ mod tests {
             controlled_actions: ControlledActionsDoctorStatus::ready_base(),
             online_packs: OnlinePacksDoctorStatus::ready_base(),
             mesc_artifact: crate::mesc::MescArtifactDoctorStatus::gate_blocked(),
+            vault_privacy: VaultPrivacyDoctorStatus::spec_017_honest(),
             notes: vec![],
         };
         let vm = FixtureUiViewModel::from_doctor(&report);
