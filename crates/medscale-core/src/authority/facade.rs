@@ -13,7 +13,7 @@ use medscale_contracts::objects::{
 };
 
 use crate::effects;
-use crate::process::{LeaseError, LeaseRegistry};
+use crate::process::{LeaseError, LeaseRegistry, SessionRegistry};
 
 use super::identity::{create_identity_assertion, decide_identity_merge};
 use super::ingest_ops;
@@ -29,6 +29,7 @@ use medscale_storage::{EncryptedVault, SyntheticVault};
 #[derive(Debug, Default)]
 pub struct CoreFacade {
     leases: LeaseRegistry,
+    sessions: SessionRegistry,
     store: Mutex<InMemoryAuthorityStore>,
     vault: Mutex<Option<SyntheticVault>>,
     encrypted: Mutex<Option<EncryptedVault>>,
@@ -41,6 +42,12 @@ impl CoreFacade {
     #[must_use]
     pub fn new() -> Self {
         Self::default()
+    }
+
+    /// In-process session registry (Spec 018 READY_BASE).
+    #[must_use]
+    pub fn sessions(&self) -> &SessionRegistry {
+        &self.sessions
     }
 
     fn store(&self) -> std::sync::MutexGuard<'_, InMemoryAuthorityStore> {
@@ -117,6 +124,13 @@ impl CoreFacade {
             return Err(AuthorityError::Unauthorized);
         }
 
+        // Spec 018 READY_BASE: session_id is opt-in. When present, validate; when
+        // absent, legacy lease-only callers continue without a session.
+        if let Some(session_id) = &req.session_id {
+            self.sessions
+                .validate(session_id, &req.vault_id, req.capability)?;
+        }
+
         match req.body {
             RequestBody::AcquireLease {
                 client_id,
@@ -135,6 +149,29 @@ impl CoreFacade {
                 self.leases
                     .release(&req.vault_id, &holder_id)
                     .map_err(lease_err)?;
+                Ok(ResponseBody::Released)
+            }
+            RequestBody::OpenSession {
+                holder_id,
+                granted,
+                ttl_ticks,
+            } => {
+                let Some(lease_holder) = self.leases.holder(&req.vault_id) else {
+                    return Err(AuthorityError::LeaseRequired);
+                };
+                if lease_holder != holder_id {
+                    return Err(AuthorityError::NotHolder);
+                }
+                let (session_id, expires_at_tick) =
+                    self.sessions
+                        .open(&req.vault_id, holder_id, granted, ttl_ticks);
+                Ok(ResponseBody::Session {
+                    session_id,
+                    expires_at_tick,
+                })
+            }
+            RequestBody::RevokeSession { session_id } => {
+                self.sessions.revoke(&session_id);
                 Ok(ResponseBody::Released)
             }
             RequestBody::Ping => Ok(ResponseBody::Pong {
@@ -1065,6 +1102,8 @@ fn capability_matches(cap: &Capability, body: &RequestBody) -> bool {
                 Capability::MescArtifactAdmit,
                 RequestBody::MescArtifactAdmit { .. }
             )
+            | (Capability::OpenSession, RequestBody::OpenSession { .. })
+            | (Capability::RevokeSession, RequestBody::RevokeSession { .. })
     )
 }
 

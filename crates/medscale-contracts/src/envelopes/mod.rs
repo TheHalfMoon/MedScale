@@ -64,6 +64,8 @@ pub enum Capability {
     NphiesInvoke,
     OnlinePackAcquire,
     MescArtifactAdmit,
+    OpenSession,
+    RevokeSession,
 }
 
 /// Request body variants.
@@ -221,6 +223,14 @@ pub enum RequestBody {
     MescArtifactAdmit {
         request: MescArtifactAdmitRequest,
     },
+    OpenSession {
+        holder_id: OpaqueId,
+        granted: Vec<Capability>,
+        ttl_ticks: u64,
+    },
+    RevokeSession {
+        session_id: OpaqueId,
+    },
 }
 
 /// Successful response body variants.
@@ -327,6 +337,10 @@ pub enum ResponseBody {
     Outbox {
         entries: Vec<OutboxEntry>,
     },
+    Session {
+        session_id: OpaqueId,
+        expires_at_tick: u64,
+    },
 }
 
 /// Authority error vocabulary (fail closed).
@@ -369,6 +383,10 @@ pub enum AuthorityError {
     PackDenied {
         reason: crate::packs::PackAdmitReason,
     },
+    SessionRequired,
+    SessionExpired,
+    SessionRevoked,
+    SessionDenied,
 }
 
 /// Versioned authority request.
@@ -382,6 +400,9 @@ pub struct AuthorityRequest {
     pub capability: Capability,
     pub deadline_ms: u64,
     pub max_response_bytes: u64,
+    /// Optional client session (Spec 018 READY_BASE; absent = legacy lease-only path).
+    #[serde(default)]
+    pub session_id: Option<OpaqueId>,
     pub body: RequestBody,
 }
 
@@ -405,6 +426,7 @@ impl AuthorityRequest {
             capability,
             deadline_ms: 5_000,
             max_response_bytes: 1_048_576,
+            session_id: None,
             body,
         }
     }

@@ -1,10 +1,14 @@
-//! Single-writer Core Host lease simulator.
+//! Single-writer Core Host lease simulator + client sessions.
+
+mod session;
 
 use std::collections::HashMap;
 use std::sync::{Mutex, MutexGuard};
 
 use medscale_contracts::objects::{OpaqueId, VaultId};
 use thiserror::Error;
+
+pub use session::SessionRegistry;
 
 /// Errors from lease acquire/release.
 #[derive(Debug, Clone, PartialEq, Eq, Error)]
