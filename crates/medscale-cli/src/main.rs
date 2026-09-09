@@ -220,6 +220,12 @@ fn run() -> Result<()> {
                     report.vault_privacy.open_work_plaintext_risk,
                     report.vault_privacy.work_wipe_on_close
                 );
+                println!(
+                    "host_authority: ready_base={} multi_client_release={} os_ipc={}",
+                    report.host_authority.ready_base,
+                    report.host_authority.multi_client_release_ready,
+                    report.host_authority.os_ipc_qualified
+                );
                 for note in &report.notes {
                     println!("note: {note}");
                 }

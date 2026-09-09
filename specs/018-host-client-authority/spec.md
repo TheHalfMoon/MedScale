@@ -2,25 +2,32 @@
 
 **Feature Branch**: `spec/018-host-client-authority`  
 **Created**: 2026-09-09  
-**Status**: READY for specify/plan completion; runtime NOT_QUALIFIED  
-**Depends on**: Spec 016 writer lock, Spec 017 privacy honesty, Specs 002/006 process topology  
+**Status**: CLOSED_CANONICAL READY_BASE  
+**Depends on**: Spec 016 writer lock; Spec 017 privacy honesty; Specs 002/006  
 
-## Intent
+## User Stories
 
-Qualify authenticated peer/session, scoped capabilities, lease expiry/revocation, and OS-exclusive writer ownership before untrusted UI/workers. Do not confuse logical policy structs with enforced runtime isolation.
+### US1 — Session bound to lease holder (P1)
+A local client acquires a vault lease, opens a session with explicit capability grants, and mutating calls require a live non-expired session matching the holder. Revocation and expiry deny further use.
 
-## In scope (planned)
+### US2 — No ambient authority for workers (P1)
+Doctor and contracts document that workers receive no ambient DB/keys/filesystem/network; READY_BASE does not ship a worker runtime.
 
-- Authenticated session identity for local IPC clients
-- Capability grants bound to caller + vault + scope
-- Lease/session expiry and revocation
-- Enforce no ambient DB/keys/filesystem/network to workers
-- Keep one Core Host writer (builds on Spec 016 lock)
+## Requirements
+
+- **FR-001**: Typed `ClientSession` with session_id, vault_id, holder_id, granted capabilities, expires_at_seq.
+- **FR-002**: `OpenSession` / `RevokeSession` capabilities through CoreFacade.
+- **FR-003**: When a session is active for a vault, mutating requests must present matching `session_id` (via request extension field) or fail closed.
+- **FR-004**: Expiry and revoke are explicit; lock-file presence is not session proof (Spec 016 writer lock remains separate).
+- **FR-005**: Doctor `host_authority` axis; `MULTI_CLIENT_RELEASE_READY = false`.
+- **FR-006**: Synthetic-only tests.
 
 ## Out of scope
 
-Remote multi-tenant auth; REAL_PHI; MESC; full desktop UI; Q06 semantics.
+Remote auth; OS IPC transport qualification beyond in-process; full hostile UI sandbox; Q06 semantics.
 
-## Next
+## Success Criteria
 
-Complete clarify/plan/ADR/tasks before implementation. Q02 lock is not Q04 completion.
+- Session open/revoke/expiry tests PASS
+- Existing lease tests remain green
+- Evidence LIMITATIONS honest

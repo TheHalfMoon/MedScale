@@ -4,7 +4,8 @@ use std::path::Path;
 
 use medscale_contracts::actions::ControlledActionsDoctorStatus;
 use medscale_contracts::doctor::{
-    DoctorReport, KeyStoreAvailability, PrivacyFreshness, SyncRisk, VaultPrivacyDoctorStatus,
+    DoctorReport, HostAuthorityDoctorStatus, KeyStoreAvailability, PrivacyFreshness, SyncRisk,
+    VaultPrivacyDoctorStatus,
 };
 use medscale_contracts::mesc::MescArtifactDoctorStatus;
 use medscale_contracts::mobile::MobileDoctorStatus;
@@ -105,6 +106,7 @@ pub fn build_doctor_report_full(
         online_packs: OnlinePacksDoctorStatus::ready_base(),
         mesc_artifact: MescArtifactDoctorStatus::gate_blocked(),
         vault_privacy: VaultPrivacyDoctorStatus::spec_017_honest(),
+        host_authority: HostAuthorityDoctorStatus::ready_base(),
         notes: vec![
             "CLI and Desktop call Core Host authority facade only".to_owned(),
             "Tauri/WebView not admitted in Spec 006".to_owned(),
@@ -115,6 +117,7 @@ pub fn build_doctor_report_full(
             "Online packs READY_BASE: acquire denied; HF not a runtime dependency".to_owned(),
             "MESC ARTIFACT_IMPORT blocked: MESC_RELEASED_ARTIFACT not available".to_owned(),
             "Vault privacy: work wipe on EncryptedVault close; PRIVATE_DATA_READY=false (open-work + OS gaps)".to_owned(),
+            "Host authority READY_BASE: in-process sessions; MULTI_CLIENT_RELEASE_READY=false".to_owned(),
         ],
     }
 }

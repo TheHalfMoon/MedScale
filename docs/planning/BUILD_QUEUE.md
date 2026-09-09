@@ -5,12 +5,12 @@
 **Rule:** update this file whenever a unit enters or leaves a canonical state.
 
 **Autonomous stop status (historical V2 scoped closure):** superseded for Trusted V1 follow-on work.
-**Live follow-on status (2026-09-09):** Spec **016** `CLOSED_CANONICAL`. Spec **017** vault privacy lifecycle wipe/honesty `CLOSED_CANONICAL` with `PRIVATE_DATA_READY = FALSE`. Spec **018** host/client authority (Q04) is `READY`. Spec 012 remains MESC-blocked. Advanced work `019+` deferred. `RELEASE_READY = FALSE`.
+**Live follow-on status (2026-09-09):** Spec **016** `CLOSED_CANONICAL`. Spec **017** vault privacy lifecycle wipe/honesty `CLOSED_CANONICAL` with `PRIVATE_DATA_READY = FALSE`. Spec **018** host/client authority (Q04) `CLOSED_CANONICAL` READY_BASE with `MULTI_CLIENT_RELEASE_READY = FALSE`. Spec 012 remains MESC-blocked. Advanced work `019+` deferred. `RELEASE_READY = FALSE`.
 
 ## 2026-09-09 planning refinement
 
-See Trusted V1 delivery plan. Next eligible unit: Spec 018 Q04 authenticated host/client authority.
-Main after Spec 016: `419a468`. Spec 017 wipe landed via PR #36 (`0668359`); doctor closeout follows.
+See Trusted V1 delivery plan. Spec 018 READY_BASE closed (in-process sessions). Next eligible unit: none in Trusted V1 Q-series until external gates or deferred 019+ are reopened.
+Main after Spec 016: `419a468`. Spec 017 wipe landed via PR #36 (`0668359`); Spec 018 on branch `spec/018-host-client-authority`.
 
 ## Historical scoped queue (closures preserved)
 
@@ -34,7 +34,7 @@ Main after Spec 016: `419a468`. Spec 017 wipe landed via PR #36 (`0668359`); doc
 | 015 | HF + Online Pack Ecosystem | `CLOSED_CANONICAL` | READY_BASE deny path via Network Broker; HF online remains external gate. |
 | 016 | Durable Trusted Record (Q02) | `CLOSED_CANONICAL` | Full authority object graph persists across process restart; see evidence/016. |
 | 017 | Vault Privacy Qualification (Q03) | `CLOSED_CANONICAL` | Work/WAL wipe + doctor honesty; PRIVATE_DATA_READY remains FALSE. |
-| 018 | Host / Client Authority (Q04) | `READY` | Authenticated session/capabilities on top of Spec 016 writer lock. |
+| 018 | Host / Client Authority (Q04) | `CLOSED_CANONICAL` | READY_BASE: in-process SessionRegistry; MULTI_CLIENT_RELEASE_READY=false. |
 | 019+ | Advanced deferred work | `DEFERRED_BY_CANONICAL_DESIGN` | Plugins/GraphRAG/replicas/imaging/CUDA/etc. |
 
 ## Automatic progression

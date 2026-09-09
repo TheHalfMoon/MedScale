@@ -72,6 +72,29 @@ impl VaultPrivacyDoctorStatus {
     }
 }
 
+/// Host / client session authority posture (Spec 018).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct HostAuthorityDoctorStatus {
+    pub present: bool,
+    pub ready_base: bool,
+    pub multi_client_release_ready: bool,
+    pub os_ipc_qualified: bool,
+}
+
+impl HostAuthorityDoctorStatus {
+    /// Spec 018 READY_BASE: in-process sessions only; multi-client release not claimed.
+    #[must_use]
+    pub fn ready_base() -> Self {
+        Self {
+            present: true,
+            ready_base: true,
+            multi_client_release_ready: false,
+            os_ipc_qualified: false,
+        }
+    }
+}
+
 /// `medscale doctor` structured report (no secrets).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -97,6 +120,7 @@ pub struct DoctorReport {
     pub online_packs: OnlinePacksDoctorStatus,
     pub mesc_artifact: MescArtifactDoctorStatus,
     pub vault_privacy: VaultPrivacyDoctorStatus,
+    pub host_authority: HostAuthorityDoctorStatus,
     pub notes: Vec<String>,
 }
 
