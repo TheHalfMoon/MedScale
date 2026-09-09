@@ -1,4 +1,4 @@
-//! Open synthetic vault handle (blobs + sqlite metadata).
+//! Open synthetic vault handle (blobs + sqlite metadata + writer lock).
 
 use std::path::{Path, PathBuf};
 
@@ -7,6 +7,7 @@ use thiserror::Error;
 use crate::blob::{BlobError, FsBlobStore};
 use crate::claim::{ClaimError, assert_claim_path};
 use crate::sqlite_meta::{MetaError, SqliteMetaStore};
+use crate::writer_lock::{WriterLock, WriterLockError};
 
 /// Vault open errors.
 #[derive(Debug, Error)]
@@ -17,6 +18,8 @@ pub enum VaultError {
     Blob(#[from] BlobError),
     #[error(transparent)]
     Meta(#[from] MetaError),
+    #[error(transparent)]
+    Writer(#[from] WriterLockError),
     #[error("io: {0}")]
     Io(#[from] std::io::Error),
 }
@@ -28,12 +31,14 @@ pub struct SyntheticVault {
     pub root: PathBuf,
     pub blobs: FsBlobStore,
     pub meta: SqliteMetaStore,
+    _writer: WriterLock,
 }
 
 impl SyntheticVault {
     pub fn open(vault_id: &str, vault_root: &Path) -> Result<Self, VaultError> {
         let root = assert_claim_path(vault_root)?;
         std::fs::create_dir_all(&root)?;
+        let writer = WriterLock::try_acquire(&root)?;
         let blobs = FsBlobStore::open(&root)?;
         let meta = SqliteMetaStore::open(&root)?;
         Ok(Self {
@@ -41,6 +46,7 @@ impl SyntheticVault {
             root,
             blobs,
             meta,
+            _writer: writer,
         })
     }
 }

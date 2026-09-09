@@ -11,30 +11,47 @@ use medscale_fhir::{LexicalError, extract_patient_identifiers, gate_fhir_json};
 use medscale_storage::{SourceMeta, SyntheticVault, backup_vault, restore_vault, run_gc};
 use serde_json::json;
 
+use super::durable;
 use super::store::{InMemoryAuthorityStore, StoredObject};
 
 pub fn open_vault(
     vault_slot: &mut Option<SyntheticVault>,
+    store: &mut InMemoryAuthorityStore,
     vault_id: &str,
     vault_root: &str,
 ) -> Result<ResponseBody, AuthorityError> {
     let vault = SyntheticVault::open(vault_id, std::path::Path::new(vault_root)).map_err(|e| {
         let msg = e.to_string();
-        if msg.contains("sync") || msg.contains("refused") {
+        if msg.contains("writer held") {
+            AuthorityError::InvalidArgument {
+                message: "WriterHeld".to_owned(),
+            }
+        } else if msg.contains("sync") || msg.contains("refused") {
             AuthorityError::PathOutsideClaim
+        } else if msg.contains("migration incomplete") {
+            AuthorityError::InvalidArgument {
+                message: format!("MigrationIncomplete: {msg}"),
+            }
         } else {
             AuthorityError::InvalidArgument { message: msg }
         }
     })?;
+    durable::load_store_from_vault(&vault, store)?;
     *vault_slot = Some(vault);
     Ok(ResponseBody::VaultOpened {
         vault_root: vault_root.to_owned(),
     })
 }
 
-pub fn close_vault(vault_slot: &mut Option<SyntheticVault>) -> ResponseBody {
+pub fn close_vault(
+    vault_slot: &mut Option<SyntheticVault>,
+    store: &InMemoryAuthorityStore,
+) -> Result<ResponseBody, AuthorityError> {
+    if let Some(vault) = vault_slot.as_ref() {
+        durable::sync_store_to_vault(vault, store)?;
+    }
     *vault_slot = None;
-    ResponseBody::VaultClosed
+    Ok(ResponseBody::VaultClosed)
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -193,6 +210,7 @@ pub fn ingest_fhir(
         identity_refs,
         error: None,
     };
+    durable::sync_store_to_vault(vault, memory)?;
     Ok(ResponseBody::Ingested { receipt })
 }
 

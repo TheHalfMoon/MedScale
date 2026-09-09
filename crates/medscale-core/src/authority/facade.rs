@@ -87,12 +87,24 @@ impl CoreFacade {
     /// Dispatches a versioned authority request.
     pub fn dispatch(&self, req: AuthorityRequest) -> AuthorityResponse {
         let request_id = req.request_id.clone();
-        let result = self.dispatch_inner(req);
+        let result = self.dispatch_inner(req).and_then(|body| {
+            self.persist_open_vault()?;
+            Ok(body)
+        });
         AuthorityResponse {
             schema_version: AUTHORITY_SCHEMA_VERSION,
             request_id,
             result,
         }
+    }
+
+    fn persist_open_vault(&self) -> Result<(), AuthorityError> {
+        let vault = self.vault();
+        let Some(vault) = vault.as_ref() else {
+            return Ok(());
+        };
+        let store = self.store();
+        super::durable::sync_store_to_vault(vault, &store)
     }
 
     fn dispatch_inner(&self, req: AuthorityRequest) -> Result<ResponseBody, AuthorityError> {
@@ -337,11 +349,14 @@ impl CoreFacade {
             RequestBody::OpenSyntheticVault { vault_root } => {
                 self.require_lease(&req.vault_id)?;
                 let mut slot = self.vault();
-                ingest_ops::open_vault(&mut slot, req.vault_id.as_str(), &vault_root)
+                let mut store = self.store();
+                ingest_ops::open_vault(&mut slot, &mut store, req.vault_id.as_str(), &vault_root)
             }
             RequestBody::CloseVault => {
                 self.require_lease(&req.vault_id)?;
-                Ok(ingest_ops::close_vault(&mut self.vault()))
+                let mut slot = self.vault();
+                let store = self.store();
+                ingest_ops::close_vault(&mut slot, &store)
             }
             RequestBody::IngestFhirSynthetic {
                 media_type,
