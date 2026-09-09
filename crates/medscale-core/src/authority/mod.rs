@@ -1,6 +1,7 @@
 //! Authority facade, store, promotion, and identity operations.
 
 mod amend;
+mod corpus;
 mod document_ops;
 mod durable;
 mod facade;
@@ -13,6 +14,10 @@ mod retrieval;
 mod source_ops;
 mod store;
 
+pub use corpus::{
+    DEFAULT_CORPUS_ID, DEFAULT_CORPUS_VERSION, admit_corpus_bytes, admit_corpus_dir,
+    default_synthetic_corpus,
+};
 pub use document_ops::{document_worker_policy, mime_decision, voice_worker_policy};
 pub use facade::CoreFacade;
 pub use handles::assert_no_secret_handles;
