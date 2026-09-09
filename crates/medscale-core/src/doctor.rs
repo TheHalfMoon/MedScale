@@ -5,7 +5,8 @@ use std::path::Path;
 use medscale_contracts::actions::ControlledActionsDoctorStatus;
 use medscale_contracts::doctor::{
     DoctorReport, HostAuthorityDoctorStatus, KeyStoreAvailability, PrivacyFreshness,
-    RecordSemanticsDoctorStatus, SyncRisk, VaultPrivacyDoctorStatus,
+    RecordSemanticsDoctorStatus, ReleaseQualificationDoctorStatus, SyncRisk,
+    VaultPrivacyDoctorStatus,
 };
 use medscale_contracts::fhir::{FhirInterchangeDoctorStatus, FhirSupportMatrix};
 use medscale_contracts::mesc::MescArtifactDoctorStatus;
@@ -113,6 +114,7 @@ pub fn build_doctor_report_full(
         fhir_interchange: FhirInterchangeDoctorStatus::ready_base(),
         fhir_support_matrix: FhirSupportMatrix::trusted_v1_ready_base(),
         workflow: WorkflowDoctorStatus::ready_base(),
+        release_qualification: ReleaseQualificationDoctorStatus::prep_ready_base(),
         notes: vec![
             "CLI and Desktop call Core Host authority facade only".to_owned(),
             "Tauri/WebView not admitted in Spec 006".to_owned(),
@@ -127,6 +129,7 @@ pub fn build_doctor_report_full(
             "Record semantics READY_BASE: precision-aware time, append-only amendments; RELEASE_READY=false".to_owned(),
             "FHIR interchange READY_BASE: honest support matrix; no full conformance; validator evidence != authority".to_owned(),
             "Workflow READY_BASE: synthetic import-review-export-backup journey; WORKFLOW_READY_BASE=true; RELEASE_READY=false".to_owned(),
+            "Release qualification PREP_READY_BASE: locked CI + evidence; RELEASE_READY=false; branch protection EXTERNAL_GATES".to_owned(),
         ],
     }
 }

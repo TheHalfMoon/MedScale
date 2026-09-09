@@ -22,9 +22,20 @@ Use `.github/PULL_REQUEST_TEMPLATE.md`. Merge only when required exact-head gate
 Complete `docs/engineering/DEPENDENCY_ADMISSION_TEMPLATE.md` before admitting a load-bearing dependency.
 Follow `docs/planning/SOURCE_ACQUISITION_AND_COPY_PLAN.md` before donor code.
 
+## Verify (locked)
+
+Prefer Cargo `--locked` against the committed `Cargo.lock` (matches CI):
+
+```powershell
+cargo fmt --all -- --check
+cargo clippy --workspace --all-targets --locked -- -D warnings
+cargo test --workspace --locked
+```
+
 ## Evidence
 
 Do not claim PASS without exact-head evidence under `evidence/`.
+Do not claim `RELEASE_READY` without a separate qualification package and closed external gates.
 
 ## Anti-scope reminders
 

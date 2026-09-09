@@ -319,6 +319,18 @@ fn run() -> Result<()> {
                     report.workflow.release_ready,
                     report.workflow.disclosure_append_supported
                 );
+                println!(
+                    "release_qualification: prep_ready_base={} release_ready={} locked={} macos_qualified={} branch_protection={} missing={}",
+                    report.release_qualification.prep_ready_base,
+                    report.release_qualification.release_ready,
+                    report.release_qualification.locked_builds,
+                    report.release_qualification.macos_qualified,
+                    report.release_qualification.branch_protection_configured,
+                    report.release_qualification.missing_evidence_classes.len()
+                );
+                for missing in &report.release_qualification.missing_evidence_classes {
+                    println!("release_qualification_missing: {missing}");
+                }
                 for note in &report.notes {
                     println!("note: {note}");
                 }
@@ -602,6 +614,9 @@ mod tests {
             "validator_is_authority",
             "workflow",
             "workflow_ready_base",
+            "release_qualification",
+            "prep_ready_base",
+            "missing_evidence_classes",
         ] {
             assert!(json.contains(key), "missing {key}");
         }
@@ -626,6 +641,8 @@ mod tests {
         assert!(report.fhir_support_matrix.is_honest_ready_base());
         assert!(report.workflow.workflow_ready_base);
         assert!(!report.workflow.release_ready);
+        assert!(report.release_qualification.is_honest_prep());
+        assert!(!report.release_qualification.release_ready);
     }
 
     #[test]

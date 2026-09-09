@@ -40,9 +40,9 @@ follow-on work. OpenMed superiority has not been measured.
 - Dependency direction: [`docs/engineering/DEPENDENCY_DIRECTION.md`](docs/engineering/DEPENDENCY_DIRECTION.md)
 
 ```powershell
-cargo test --workspace
-cargo run -p medscale-cli -- --version
-cargo run -p medscale-cli -- doctor
+cargo test --workspace --locked
+cargo run -p medscale-cli --locked -- --version
+cargo run -p medscale-cli --locked -- doctor
 ```
 
 ## Execution support

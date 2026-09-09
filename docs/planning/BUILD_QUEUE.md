@@ -5,12 +5,12 @@
 **Rule:** update this file whenever a unit enters or leaves a canonical state.
 
 **Autonomous stop status (historical V2 scoped closure):** superseded for Trusted V1 follow-on work.
-**Live follow-on status (2026-09-09):** Spec **016**–**021** `CLOSED_CANONICAL`. Spec **020** FHIR interchange (Q08) and Spec **021** minimum lovable workflow (Q07) are READY_BASE with `RELEASE_READY = FALSE`. Spec 012 remains MESC-blocked. Next eligible work is release-qualification prep / remaining Q05 evidence hardening (immutable pins, evidence artifacts) — not a RELEASE_READY claim. Advanced work **022+** remains deferred. `RELEASE_READY = FALSE`.
+**Live follow-on status (2026-09-09):** Spec **016**–**022** `CLOSED_CANONICAL`. Spec **022** is READY_BASE **prep** for Q05 release-qualification remnants (`RELEASE_READY = FALSE`). Spec 012 remains MESC-blocked. Deferred advanced work is **023+**. Ordinary in-repo Trusted V1 follow-on work is exhausted; remaining progress is `IMPLEMENTATION_COMPLETE_PENDING_EXTERNAL_GATES` style. Do **not** claim `RELEASE_READY`, `PRIVATE_DATA_READY`, or `MULTI_CLIENT_RELEASE_READY`.
 
 ## 2026-09-09 planning refinement
 
-See Trusted V1 delivery plan. Specs 018–021 READY_BASE closed. Next: Q05 release-evidence hardening / release-qualification prep (honestly partial; no RELEASE_READY). Spec 012 MESC-blocked. 022+ deferred.
-Main after Spec 020: `987d596`. Spec 021 on branch `spec/021-minimum-lovable-workflow`.
+See Trusted V1 delivery plan. Specs 018–022 READY_BASE closed (022 = Q05 prep only). Spec 012 MESC-blocked. Advanced **023+** deferred.
+Main after Spec 021: `7a2be94`. Spec 022 on branch `spec/022-release-qualification-prep`.
 
 ## Historical scoped queue (closures preserved)
 
@@ -38,7 +38,8 @@ Main after Spec 020: `987d596`. Spec 021 on branch `spec/021-minimum-lovable-wor
 | 019 | Record Semantics (Q06) | `CLOSED_CANONICAL` | READY_BASE: precision-aware MedicalTime, AmendAssertion, missingness, identity unresolved; RELEASE_READY=false. |
 | 020 | FHIR Interchange Qualification (Q08) | `CLOSED_CANONICAL` | READY_BASE: honest support matrix + loss-aware export; no full conformance; RELEASE_READY=false. |
 | 021 | Minimum Lovable Workflow (Q07) | `CLOSED_CANONICAL` | READY_BASE: synthetic restartable import-review-export-backup journey + disclosure; RELEASE_READY=false. |
-| 022+ | Advanced deferred work | `DEFERRED_BY_CANONICAL_DESIGN` | Plugins/GraphRAG/replicas/imaging/CUDA/etc. |
+| 022 | Release Qualification Prep (Q05) | `CLOSED_CANONICAL` | READY_BASE prep: locked CI, evidence binding, doctor honesty; RELEASE_READY=false; branch protection EXTERNAL_GATES. |
+| 023+ | Advanced deferred work | `DEFERRED_BY_CANONICAL_DESIGN` | Plugins/GraphRAG/replicas/imaging/CUDA/etc. |
 
 ## Automatic progression
 
@@ -46,4 +47,4 @@ For the first `READY` unit: create/complete its Spec Kit package, analyze it, im
 
 Do not stop merely because a PR merged, one milestone passed, or an external optional gate exists.
 
-**Next eligible (honest):** Q05 release-evidence / release-qualification prep remains open (immutable action pins, locked builds, evidence artifacts; repo settings may be external). Spec 012 remains MESC-blocked. Do **not** claim `RELEASE_READY`.
+**Next eligible (honest):** `IMPLEMENTATION_COMPLETE_PENDING_EXTERNAL_GATES` for ordinary Trusted V1 in-repo follow-on. Spec 012 MESC-blocked. Branch protection / required checks need owner settings. Do **not** claim `RELEASE_READY`.

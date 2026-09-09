@@ -57,9 +57,11 @@ Then dependency-controlled tracks:
 
 Read [whole-product review](WHOLE_PRODUCT_REVIEW_2026-09-09.md),
 [delivery plan](TRUSTED_V1_DELIVERY_PLAN.md), and live [BUILD_QUEUE.md](BUILD_QUEUE.md).
-Specs 016–021 are `CLOSED_CANONICAL` READY_BASE. Spec 012 remains MESC-blocked.
-Next eligible work: release-qualification / Q05 evidence hardening prep — not `RELEASE_READY`.
-Foundation and workflow READY_BASE closure is not product or privacy release readiness.
+Specs 016–022 are `CLOSED_CANONICAL` READY_BASE (022 = Q05 release-qualification **prep** only).
+Spec 012 remains MESC-blocked. Deferred advanced work is **023+**.
+Ordinary in-repo Trusted V1 follow-on is `IMPLEMENTATION_COMPLETE_PENDING_EXTERNAL_GATES`.
+Do **not** claim `RELEASE_READY`, `PRIVATE_DATA_READY`, or `MULTI_CLIENT_RELEASE_READY`.
+Foundation and prep closure is not product or privacy release readiness.
 
 ### Historical bootstrap requirements (already closed)
 
