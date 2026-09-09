@@ -45,7 +45,8 @@ Required lifecycle for each material executable spec:
 | 013 | `fhir-smart-network-broker` | partner FHIR/SMART adapters and sole controlled online egress abstraction | 005 + 006 | Network Broker receipts/allowlist/capability rules; bypass tests; FHIR profile/integrity/conformance evidence; no uncontrolled provider client |
 | 014 | `controlled-actions-nphies` | durable action intent/outbox/reconciliation; NPHIES only if product evidence selects it | 013 + workflow evidence | PENDING/SENT/CONFIRMED/FAILED/UNKNOWN; no blind retry; approval binds exact payload; terminology/profile gates for selected NPHIES workflows |
 | 015 | `hf-online-pack-ecosystem` | online pack acquisition/publishing and Hugging Face distribution | 008 + 013 + mobile-format constraints from 009 planning | online path only through Network Broker; TUF/offline root + optional Sigstore attestation; chunked/per-arch/resumable packs; HF never runtime requirement |
-| 016+ | `research-site-imaging-genomics-advanced` | deferred site/research/collab/imaging/genomics/plugin/browser/watch/vision expansion | evidence-driven later gates | no V2 implementation commitment |
+| 016 | `durable-trusted-record` | persist full trusted-record authority object graph across process restart (Q02) | 002–006 closed; Trusted V1 review | two-process restart + failure/backup qualification; not PRIVATE_DATA_READY |
+| 017+ | `research-site-imaging-genomics-advanced` | deferred site/research/collab/imaging/genomics/plugin/browser/watch/vision expansion | evidence-driven later gates | no Trusted V1 implementation commitment |
 
 ## 3. Corrected critical path
 
@@ -71,7 +72,8 @@ NETWORK / ACTIONS
 ONLINE ECOSYSTEM
 008 + 013 (+ 009 pack-format constraints) -> 015
 
-016+ remains deferred
+016 durable trusted record (Q02) after foundation
+017+ remains deferred
 ```
 
 ## 4. Core process topology — decided for downstream specs

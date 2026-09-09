@@ -4,20 +4,18 @@
 **Execution agent:** Cursor  
 **Rule:** update this file whenever a unit enters or leaves a canonical state.
 
-**Autonomous stop status (main `18d6eca`, 2026-08-26):** `IMPLEMENTATION_COMPLETE_PENDING_EXTERNAL_GATES`
-
-Ungated Spec Kit units 000–011 and 013–015 are `CLOSED_CANONICAL`. Spec 012 remains blocked solely by `MESC_RELEASED_ARTIFACT` (empty MESC release assets; TRAINING_CODE_READY ≠ RELEASE_READY). Spec 016+ stays `DEFERRED_BY_CANONICAL_DESIGN`. No further eligible autonomous implementation remains until an external gate clears or a new unit is canonically promoted.
+**Autonomous stop status (historical V2 scoped closure):** superseded for Trusted V1 follow-on work.
+**Live follow-on status (2026-09-09):** Spec **016** `durable-trusted-record` is `READY` (Q02). Spec 012 remains `BLOCKED_BY_RELEASED_MESC_ARTIFACT`. Remaining advanced capabilities stay `017+` / `DEFERRED_BY_CANONICAL_DESIGN`. `RELEASE_READY = FALSE`.
 
 ## 2026-09-09 planning refinement
 
-The stop status above is historical scoped V2 closure, not product readiness.
-Review baseline: main `b49592c83d23542363f671afe6a9ae65fc65b276`.
-See [whole-product review](WHOLE_PRODUCT_REVIEW_2026-09-09.md) and
-[delivery plan](TRUSTED_V1_DELIVERY_PLAN.md). Next eligible planning task is T01 in the
-[bounded follow-on package](../../specs/review-trusted-v1-2026-09-09/README.md):
-prepare and analyze the owning durable-record specification before runtime changes.
-This does not promote all advanced work or reopen previous scoped closures.
-No founder permission is needed for ordinary specification preparation. RELEASE_READY = FALSE.
+Historical V2 scoped closure is not product readiness.
+Review baseline: main `b49592c83d23542363f671afe6a9ae65fc65b276` (checkpoint main `e969833` after PR #34).
+See [whole-product review](WHOLE_PRODUCT_REVIEW_2026-09-09.md),
+[delivery plan](TRUSTED_V1_DELIVERY_PLAN.md), and
+[Spec 016](../../specs/016-durable-trusted-record/spec.md).
+T01–T03 specification/analyze are materialized; implementation proceeds T04–T08.
+This does not promote unrelated advanced work or reopen previous scoped closures.
 
 ## Historical scoped queue (closures preserved)
 
@@ -39,7 +37,8 @@ No founder permission is needed for ordinary specification preparation. RELEASE_
 | 013 | FHIR / SMART / Network Broker | `CLOSED_CANONICAL` | Fail-closed broker + stub SMART/FHIR adapters merged; continue Spec 014 when workflow evidence ready. |
 | 014 | Controlled Actions / NPHIES | `CLOSED_CANONICAL` | READY_BASE: outbox + payload-bound intents; NPHIES remains external gate. |
 | 015 | HF + Online Pack Ecosystem | `CLOSED_CANONICAL` | READY_BASE deny path via Network Broker; HF online remains external gate. |
-| 016+ | Advanced work | `DEFERRED_BY_CANONICAL_DESIGN` | Promote only with new evidence/spec authority. |
+| 016 | Durable Trusted Record (Q02) | `READY` | Persist full authority object graph + restart/failure/backup qualification; see `specs/016-durable-trusted-record/`. |
+| 017+ | Advanced deferred work | `DEFERRED_BY_CANONICAL_DESIGN` | Plugins/GraphRAG/replicas/imaging/CUDA/etc. — promote only with new evidence. |
 
 ## Automatic progression
 

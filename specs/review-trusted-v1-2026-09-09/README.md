@@ -66,11 +66,11 @@ dependencies, not implicit claims that T04 alone produces a releasable app.
 - [x] Evidence-backed gap and bounded user outcome defined.
 - [x] Scope, dependencies, invariants, targets and acceptance checks identified.
 - [x] External gates kept separate from ordinary engineering work.
-- [ ] Owning numbered Spec Kit specify/clarify/plan/checklist/tasks artifacts materialized.
-- [ ] Storage/privacy ADR and migration compatibility approved through repository review.
-- [ ] Requirement-to-test analysis passes with no material ambiguity.
+- [x] Owning numbered Spec Kit specify/clarify/plan/checklist/tasks artifacts materialized (`specs/016-durable-trusted-record/`).
+- [x] Storage/privacy ADR and migration compatibility drafted (`adr-016-001-durable-sqlite.md`); repository review via Spec 016 PR.
+- [x] Requirement-to-test analysis passes with no material ambiguity (`analyze-notes.md` PASS).
 - [ ] Runtime implementation, exact-head qualification and convergence complete.
 
-Analysis result: READY to start T01; NOT ready to skip T01–T03 and implement an unspecified
-storage migration. No founder clarification is required for these routine engineering steps.
-Estimated Q02 cost: 8–15 engineer-days, contingent on T02; re-estimate on concrete design.
+Analysis result: T01–T03 complete; proceed T04–T08 on Spec 016. Do not skip restart/failure
+qualification. No founder clarification is required for these routine engineering steps.
+Estimated Q02 cost: 8–15 engineer-days; re-estimate if ADR changes during review.

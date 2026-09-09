@@ -112,6 +112,20 @@ impl InMemoryAuthorityStore {
         self.objects.insert(id, object);
     }
 
+    #[must_use]
+    pub fn next_seq(&self) -> u64 {
+        self.next_seq
+    }
+
+    pub fn set_next_seq(&mut self, next_seq: u64) {
+        self.next_seq = next_seq;
+    }
+
+    pub fn clear(&mut self) {
+        self.objects.clear();
+        self.next_seq = 0;
+    }
+
     pub fn get_scoped(
         &self,
         id: &OpaqueId,

@@ -56,10 +56,11 @@ Then dependency-controlled tracks:
 ## 4. Current follow-on work
 
 Read [whole-product review](WHOLE_PRODUCT_REVIEW_2026-09-09.md),
-[delivery plan](TRUSTED_V1_DELIVERY_PLAN.md), and the
-[bounded package](../../specs/review-trusted-v1-2026-09-09/README.md).
-Next: prepare the durable trusted-record follow-on specification. Runtime changes follow
-the owning Spec Kit lifecycle. Foundation closure is not release readiness.
+[delivery plan](TRUSTED_V1_DELIVERY_PLAN.md), the
+[bounded package](../../specs/review-trusted-v1-2026-09-09/README.md), and
+[Spec 016](../../specs/016-durable-trusted-record/spec.md).
+Next: implement and qualify durable trusted-record persistence (Q02 T04–T08).
+Foundation closure is not release readiness.
 
 ### Historical bootstrap requirements (already closed)
 
