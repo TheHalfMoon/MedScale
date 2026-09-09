@@ -91,6 +91,7 @@ mod tests {
         HostAuthorityDoctorStatus, KeyStoreAvailability, PrivacyFreshness,
         RecordSemanticsDoctorStatus, SyncRisk, VaultPrivacyDoctorStatus,
     };
+    use crate::fhir::{FhirInterchangeDoctorStatus, FhirSupportMatrix};
     use crate::mobile::MobileDoctorStatus;
     use crate::network::NetworkBrokerDoctorStatus;
     use crate::online_packs::OnlinePacksDoctorStatus;
@@ -135,6 +136,8 @@ mod tests {
             vault_privacy: VaultPrivacyDoctorStatus::spec_017_honest(),
             host_authority: HostAuthorityDoctorStatus::ready_base(),
             record_semantics: RecordSemanticsDoctorStatus::ready_base(),
+            fhir_interchange: FhirInterchangeDoctorStatus::ready_base(),
+            fhir_support_matrix: FhirSupportMatrix::trusted_v1_ready_base(),
             notes: vec![],
         };
         let vm = FixtureUiViewModel::from_doctor(&report);

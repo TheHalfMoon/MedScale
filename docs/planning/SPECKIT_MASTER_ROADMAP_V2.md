@@ -49,8 +49,9 @@ Required lifecycle for each material executable spec:
 | 017 | `vault-privacy-qualification` | open-vault work/WAL wipe and privacy honesty (Q03) | 016 closed; 005 EncryptedVault | lifecycle wipe/detect; PRIVATE_DATA_READY only with measured evidence |
 | 018 | `host-client-authority` | authenticated local host/client sessions and scoped capabilities (Q04) | 016–017 | sessions/leases/revocation; not remote multi-tenant |
 | 019 | `record-semantics` | precision-aware time, append-only amendments, explicit identity reconciliation, missingness (Q06) | 016 + 004 contracts | READY_BASE synthetic; RELEASE_READY false |
-| 020 | `fhir-support-matrix` | FHIR support matrix, validator evidence, loss-aware export/provenance (Q08) | 019 | bounded interchange claims; no false conformance |
-| 021+ | `research-site-imaging-genomics-advanced` | deferred site/research/collab/imaging/genomics/plugin/browser/watch/vision expansion | evidence-driven later gates | no Trusted V1 implementation commitment |
+| 020 | `fhir-interchange-qualification` | FHIR support matrix, validator evidence, loss-aware export/provenance (Q08) | 019 | CLOSED_CANONICAL READY_BASE; bounded interchange; no false conformance |
+| 021 | `minimum-lovable-workflow` | restartable import-review-timeline-export-backup journey (Q07) | 016–020 | READY next; shared facade; disclosure clarity |
+| 022+ | `research-site-imaging-genomics-advanced` | deferred site/research/collab/imaging/genomics/plugin/browser/watch/vision expansion | evidence-driven later gates | no Trusted V1 implementation commitment |
 
 ## 3. Corrected critical path
 
@@ -80,8 +81,9 @@ ONLINE ECOSYSTEM
 017 vault privacy (Q03)
 018 host/client authority (Q04)
 019 record semantics (Q06)
-020 FHIR support matrix (Q08) READY next
-021+ remains deferred
+020 FHIR interchange qualification (Q08) CLOSED_CANONICAL READY_BASE
+021 minimum lovable workflow (Q07) READY next
+022+ remains deferred
 ```
 
 ## 4. Core process topology — decided for downstream specs

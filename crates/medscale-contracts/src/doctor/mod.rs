@@ -3,6 +3,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::actions::ControlledActionsDoctorStatus;
+use crate::fhir::{FhirInterchangeDoctorStatus, FhirSupportMatrix};
 use crate::mesc::MescArtifactDoctorStatus;
 use crate::mobile::MobileDoctorStatus;
 use crate::network::NetworkBrokerDoctorStatus;
@@ -148,6 +149,8 @@ pub struct DoctorReport {
     pub vault_privacy: VaultPrivacyDoctorStatus,
     pub host_authority: HostAuthorityDoctorStatus,
     pub record_semantics: RecordSemanticsDoctorStatus,
+    pub fhir_interchange: FhirInterchangeDoctorStatus,
+    pub fhir_support_matrix: FhirSupportMatrix,
     pub notes: Vec<String>,
 }
 

@@ -67,6 +67,8 @@ pub enum Capability {
     OpenSession,
     RevokeSession,
     AmendAssertion,
+    GetFhirSupportMatrix,
+    ExportFhirLossAware,
 }
 
 /// Request body variants.
@@ -240,6 +242,10 @@ pub enum RequestBody {
         kind: AmendmentKind,
         rationale: String,
     },
+    GetFhirSupportMatrix,
+    ExportFhirLossAware {
+        resource: Value,
+    },
 }
 
 /// Successful response body variants.
@@ -354,6 +360,12 @@ pub enum ResponseBody {
         assertion_id: OpaqueId,
         amendment_id: OpaqueId,
         audit_id: OpaqueId,
+    },
+    FhirSupportMatrix {
+        matrix: crate::fhir::FhirSupportMatrix,
+    },
+    FhirLossAwareExport {
+        export: crate::fhir::FhirLossAwareExport,
     },
 }
 

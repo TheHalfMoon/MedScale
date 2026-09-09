@@ -6,6 +6,7 @@ pub mod documents;
 pub mod envelopes;
 pub mod evidence;
 pub mod ffi_policy;
+pub mod fhir;
 pub mod fixture_ui;
 pub mod ingest;
 pub mod legal;
