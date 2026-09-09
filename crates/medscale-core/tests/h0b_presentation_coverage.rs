@@ -140,7 +140,7 @@ fn ingest_promote(
 
 #[test]
 fn timeline_golden_rebuild() {
-    let facade = CoreFacade::new();
+    let facade = CoreFacade::new_legacy_lease_only_engineering();
     let _lease = open_and_lease(&facade);
     let subject = OpaqueId::new("subject-timeline");
 
@@ -255,7 +255,7 @@ fn timeline_golden_rebuild() {
 
 #[test]
 fn coverage_absence_conflict() {
-    let facade = CoreFacade::new();
+    let facade = CoreFacade::new_legacy_lease_only_engineering();
     let _lease = open_and_lease(&facade);
     let subject = OpaqueId::new("subject-coverage");
 
@@ -326,7 +326,7 @@ fn coverage_absence_conflict() {
 
 #[test]
 fn brief_golden() {
-    let facade = CoreFacade::new();
+    let facade = CoreFacade::new_legacy_lease_only_engineering();
     let _lease = open_and_lease(&facade);
     let subject = OpaqueId::new("subject-brief");
     ingest_promote(
@@ -381,7 +381,7 @@ fn brief_golden() {
 
 #[test]
 fn presentation_drilldown() {
-    let facade = CoreFacade::new();
+    let facade = CoreFacade::new_legacy_lease_only_engineering();
     let _lease = open_and_lease(&facade);
     let subject = OpaqueId::new("subject-drill");
     ingest_promote(
@@ -413,7 +413,7 @@ fn presentation_drilldown() {
 
 #[test]
 fn presentation_golden_rebuild() {
-    let facade = CoreFacade::new();
+    let facade = CoreFacade::new_legacy_lease_only_engineering();
     let _lease = open_and_lease(&facade);
     let subject = OpaqueId::new("subject-rebuild");
     ingest_promote(

@@ -23,7 +23,7 @@ fn req(capability: Capability, body: RequestBody) -> AuthorityRequest {
 
 #[test]
 fn online_acquire_refuses_hf_gate() {
-    let facade = CoreFacade::new();
+    let facade = CoreFacade::new_legacy_lease_only_engineering();
     let out = facade.dispatch(req(
         Capability::OnlinePackAcquire,
         RequestBody::OnlinePackAcquire {
@@ -46,7 +46,7 @@ fn online_acquire_refuses_hf_gate() {
 
 #[test]
 fn online_acquire_requires_broker_flag() {
-    let facade = CoreFacade::new();
+    let facade = CoreFacade::new_legacy_lease_only_engineering();
     let out = facade.dispatch(req(
         Capability::OnlinePackAcquire,
         RequestBody::OnlinePackAcquire {

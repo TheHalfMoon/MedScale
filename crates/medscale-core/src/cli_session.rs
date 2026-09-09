@@ -1,4 +1,4 @@
-//! CLI session: in-process transient Core Host owner (Spec 006).
+//! CLI session: in-process transient Core Host owner (Spec 006 + Spec 024 sessions).
 
 use medscale_contracts::envelopes::{
     AuthorityError, AuthorityRequest, Capability, RequestBody, ResponseBody,
@@ -8,20 +8,21 @@ use medscale_contracts::presentation::{SubjectBriefV1, SubjectCoverageV1, Subjec
 
 use crate::CoreFacade;
 
-/// In-process CLI session owning one CoreFacade + lease for a vault id.
+/// In-process CLI session owning one CoreFacade + lease + client session for a vault id.
 pub struct CliSession {
     facade: CoreFacade,
     vault_id: VaultId,
     realm_id: RealmId,
     scope_id: AuthorityScopeId,
     holder_id: OpaqueId,
+    session_id: OpaqueId,
     next_req: u64,
     vault_root: Option<String>,
     open: bool,
 }
 
 impl CliSession {
-    /// Acquire lease and create session (vault not yet open).
+    /// Acquire lease, open client session, create session (vault not yet open).
     pub fn connect(vault_id: &str) -> Result<Self, AuthorityError> {
         let facade = CoreFacade::new();
         let vault_id = VaultId::new(vault_id);
@@ -33,11 +34,12 @@ impl CliSession {
             realm_id: realm_id.clone(),
             scope_id: scope_id.clone(),
             holder_id: OpaqueId::new("pending"),
+            session_id: OpaqueId::new("pending"),
             next_req: 0,
             vault_root: None,
             open: false,
         };
-        let resp = session.dispatch(
+        let resp = session.dispatch_bootstrap(
             Capability::AcquireLease,
             RequestBody::AcquireLease {
                 client_id: OpaqueId::new("medscale-cli"),
@@ -49,7 +51,21 @@ impl CliSession {
                 message: "expected lease".to_owned(),
             });
         };
-        session.holder_id = holder_id;
+        session.holder_id = holder_id.clone();
+        let opened = session.dispatch_bootstrap(
+            Capability::OpenSession,
+            RequestBody::OpenSession {
+                holder_id,
+                granted: Capability::operator_grants(),
+                ttl_ticks: 1_000_000,
+            },
+        )?;
+        let ResponseBody::Session { session_id, .. } = opened else {
+            return Err(AuthorityError::InvalidArgument {
+                message: "expected session".to_owned(),
+            });
+        };
+        session.session_id = session_id;
         Ok(session)
     }
 
@@ -58,7 +74,7 @@ impl CliSession {
         OpaqueId::new(format!("cli-req-{}", self.next_req))
     }
 
-    fn dispatch(
+    fn dispatch_bootstrap(
         &mut self,
         capability: Capability,
         body: RequestBody,
@@ -71,6 +87,23 @@ impl CliSession {
             capability,
             body,
         );
+        self.facade.dispatch(req).result
+    }
+
+    fn dispatch(
+        &mut self,
+        capability: Capability,
+        body: RequestBody,
+    ) -> Result<ResponseBody, AuthorityError> {
+        let mut req = AuthorityRequest::new(
+            self.req_id(),
+            self.vault_id.clone(),
+            self.realm_id.clone(),
+            self.scope_id.clone(),
+            capability,
+            body,
+        );
+        req.session_id = Some(self.session_id.clone());
         self.facade.dispatch(req).result
     }
 

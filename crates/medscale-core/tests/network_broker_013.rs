@@ -44,7 +44,7 @@ fn lease(facade: &CoreFacade) {
 
 #[test]
 fn broker_deny_empty_allowlist_no_transport() {
-    let facade = CoreFacade::new();
+    let facade = CoreFacade::new_legacy_lease_only_engineering();
     lease(&facade);
     let out = facade
         .dispatch(req(
@@ -73,7 +73,7 @@ fn broker_deny_empty_allowlist_no_transport() {
 
 #[test]
 fn broker_allow_fixture_receipt() {
-    let facade = CoreFacade::new();
+    let facade = CoreFacade::new_legacy_lease_only_engineering();
     lease(&facade);
     facade
         .dispatch(req(

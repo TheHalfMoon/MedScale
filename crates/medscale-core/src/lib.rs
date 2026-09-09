@@ -1,12 +1,13 @@
-//! `MedScale` trusted core (Specs 001–006).
+//! `MedScale` trusted core (Specs 001–006, 024 OS IPC).
 //!
-//! OS IPC transports remain intentional for multi-process Desktop; Spec 006 ships
-//! an in-process CLI session over the same logical authority facade.
+//! Spec 024 qualifies localhost OS IPC (named pipe / UDS) over the same CoreFacade.
+//! Product runtime network egress remains DEFAULT_DENY.
 
 pub mod authority;
 pub mod cli_session;
 pub mod doctor;
 pub mod effects;
+pub mod ipc;
 pub mod process;
 pub mod text;
 pub mod validate;
@@ -18,7 +19,11 @@ pub use doctor::{
     build_doctor_report, build_doctor_report_full, build_doctor_report_with_allowlist,
     privacy_proof_artifact_present,
 };
+pub use ipc::{
+    HostIpcClient, HostIpcError, HostIpcServer, MAX_FRAME_BYTES, endpoint_for_vault_root,
+};
 pub use medscale_contracts::{MEDSCALE_VERSION, WorkspaceIdentity};
+pub use process::SessionEnforcement;
 pub use workflow::{JourneyConfig, run_minimum_lovable_journey};
 
 /// Non-authoritative bootstrap health report for operators.

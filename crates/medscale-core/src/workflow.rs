@@ -38,17 +38,23 @@ pub fn run_minimum_lovable_journey(
     let scope_id = AuthorityScopeId::new("workflow-scope");
     let mut next_req = 0u64;
     let mut steps = Vec::new();
+    let mut session_id: Option<OpaqueId> = None;
 
-    let mut req = |capability: Capability, body: RequestBody| -> AuthorityRequest {
+    let mut req = |session_id: &Option<OpaqueId>,
+                   capability: Capability,
+                   body: RequestBody|
+     -> AuthorityRequest {
         next_req += 1;
-        AuthorityRequest::new(
+        let mut r = AuthorityRequest::new(
             OpaqueId::new(format!("journey-req-{next_req}")),
             vault_id.clone(),
             realm_id.clone(),
             scope_id.clone(),
             capability,
             body,
-        )
+        );
+        r.session_id = session_id.clone();
+        r
     };
 
     // INSTALL — identity / version surface
@@ -62,9 +68,10 @@ pub fn run_minimum_lovable_journey(
         }),
     });
 
-    // START OFFLINE — acquire lease
+    // START OFFLINE — acquire lease + open Strict client session (Spec 024)
     let lease = facade
         .dispatch(req(
+            &session_id,
             Capability::AcquireLease,
             RequestBody::AcquireLease {
                 client_id: OpaqueId::new("journey-cli"),
@@ -72,11 +79,31 @@ pub fn run_minimum_lovable_journey(
             },
         ))
         .result?;
-    let ResponseBody::Lease { .. } = lease else {
+    let ResponseBody::Lease { holder_id, .. } = lease else {
         return Err(AuthorityError::InvalidArgument {
             message: "expected lease".to_owned(),
         });
     };
+    let opened = facade
+        .dispatch(req(
+            &session_id,
+            Capability::OpenSession,
+            RequestBody::OpenSession {
+                holder_id,
+                granted: Capability::operator_grants(),
+                ttl_ticks: 1_000_000,
+            },
+        ))
+        .result?;
+    let ResponseBody::Session {
+        session_id: sid, ..
+    } = opened
+    else {
+        return Err(AuthorityError::InvalidArgument {
+            message: "expected session".to_owned(),
+        });
+    };
+    session_id = Some(sid);
     steps.push(JourneyStepResult {
         step: JourneyStep::StartOffline,
         ok: true,
@@ -109,6 +136,7 @@ pub fn run_minimum_lovable_journey(
     // LOAD SYNTHETIC
     facade
         .dispatch(req(
+            &session_id,
             Capability::OpenSyntheticVault,
             RequestBody::OpenSyntheticVault {
                 vault_root: cfg.vault_root.clone(),
@@ -131,6 +159,7 @@ pub fn run_minimum_lovable_journey(
         })?;
     let ingested = facade
         .dispatch(req(
+            &session_id,
             Capability::IngestFhirSynthetic,
             RequestBody::IngestFhirSynthetic {
                 media_type: "application/fhir+json".to_owned(),
@@ -168,6 +197,7 @@ pub fn run_minimum_lovable_journey(
     let subject_ref = OpaqueId::new(&cfg.subject);
     let created = facade
         .dispatch(req(
+            &session_id,
             Capability::CreateProposal,
             RequestBody::CreateProposal {
                 subject_ref: Some(subject_ref.clone()),
@@ -187,6 +217,7 @@ pub fn run_minimum_lovable_journey(
     };
     let export = facade
         .dispatch(req(
+            &session_id,
             Capability::ExportFhirLossAware,
             RequestBody::ExportFhirLossAware {
                 resource: resource.clone(),
@@ -218,6 +249,7 @@ pub fn run_minimum_lovable_journey(
     if cfg.accept {
         let promoted = facade
             .dispatch(req(
+                &session_id,
                 Capability::PromoteProposal,
                 RequestBody::PromoteProposal {
                     proposal_id: proposal_id.clone(),
@@ -243,6 +275,7 @@ pub fn run_minimum_lovable_journey(
     } else {
         let rejected = facade
             .dispatch(req(
+                &session_id,
                 Capability::RejectProposal,
                 RequestBody::RejectProposal {
                     proposal_id: proposal_id.clone(),
@@ -268,6 +301,7 @@ pub fn run_minimum_lovable_journey(
     // TIMELINE / BRIEF / COVERAGE
     let timeline = facade
         .dispatch(req(
+            &session_id,
             Capability::GetTimeline,
             RequestBody::GetTimeline {
                 subject_ref: subject_ref.clone(),
@@ -276,6 +310,7 @@ pub fn run_minimum_lovable_journey(
         .result?;
     let brief = facade
         .dispatch(req(
+            &session_id,
             Capability::GetBrief,
             RequestBody::GetBrief {
                 subject_ref: subject_ref.clone(),
@@ -284,6 +319,7 @@ pub fn run_minimum_lovable_journey(
         .result?;
     let coverage = facade
         .dispatch(req(
+            &session_id,
             Capability::GetCoverage,
             RequestBody::GetCoverage {
                 subject_ref: subject_ref.clone(),
@@ -326,6 +362,7 @@ pub fn run_minimum_lovable_journey(
     if cfg.accept {
         let dd = facade
             .dispatch(req(
+                &session_id,
                 Capability::DrillDownPresentation,
                 RequestBody::DrillDownPresentation {
                     subject_ref: subject_ref.clone(),
@@ -357,7 +394,11 @@ pub fn run_minimum_lovable_journey(
 
     // CLOSE
     facade
-        .dispatch(req(Capability::CloseVault, RequestBody::CloseVault))
+        .dispatch(req(
+            &session_id,
+            Capability::CloseVault,
+            RequestBody::CloseVault,
+        ))
         .result?;
     steps.push(JourneyStepResult {
         step: JourneyStep::Close,
@@ -368,6 +409,7 @@ pub fn run_minimum_lovable_journey(
     // REOPEN (same process / same facade instance — two-process covered by integration test)
     facade
         .dispatch(req(
+            &session_id,
             Capability::OpenSyntheticVault,
             RequestBody::OpenSyntheticVault {
                 vault_root: cfg.vault_root.clone(),
@@ -383,6 +425,7 @@ pub fn run_minimum_lovable_journey(
     // VERIFY SAME RECORD
     let visibility = facade
         .dispatch(req(
+            &session_id,
             Capability::ReadCanonicalVisibility,
             RequestBody::ReadCanonicalVisibility {
                 source_id: source_id.clone(),
@@ -421,6 +464,7 @@ pub fn run_minimum_lovable_journey(
     // EXPORT
     let export2 = facade
         .dispatch(req(
+            &session_id,
             Capability::ExportFhirLossAware,
             RequestBody::ExportFhirLossAware {
                 resource: resource.clone(),
@@ -452,6 +496,7 @@ pub fn run_minimum_lovable_journey(
     }
     let disclosure = facade
         .dispatch(req(
+            &session_id,
             Capability::AppendDisclosure,
             RequestBody::AppendDisclosure {
                 purpose: "synthetic_journey_export".to_owned(),
@@ -487,6 +532,7 @@ pub fn run_minimum_lovable_journey(
     // BACKUP
     facade
         .dispatch(req(
+            &session_id,
             Capability::BackupVault,
             RequestBody::BackupVault {
                 destination: cfg.backup_dir.clone(),
@@ -522,6 +568,7 @@ pub fn run_minimum_lovable_journey(
     // RESTORE
     let restored = facade
         .dispatch(req(
+            &session_id,
             Capability::RestoreVault,
             RequestBody::RestoreVault {
                 source: cfg.backup_dir.clone(),

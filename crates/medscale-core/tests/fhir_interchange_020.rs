@@ -62,7 +62,7 @@ fn doctor_embeds_honest_matrix() {
 
 #[test]
 fn facade_get_fhir_support_matrix() {
-    let facade = CoreFacade::new();
+    let facade = CoreFacade::new_legacy_lease_only_engineering();
     let resp = facade.dispatch(req(
         Capability::GetFhirSupportMatrix,
         RequestBody::GetFhirSupportMatrix,
@@ -110,7 +110,7 @@ fn loss_aware_export_stub_documents_losses() {
 
 #[test]
 fn facade_export_fhir_loss_aware() {
-    let facade = CoreFacade::new();
+    let facade = CoreFacade::new_legacy_lease_only_engineering();
     let resource = json!({
         "resourceType": "Patient",
         "id": "p1",
@@ -144,7 +144,7 @@ fn facade_export_fhir_loss_aware() {
 
 #[test]
 fn capability_mismatch_rejected() {
-    let facade = CoreFacade::new();
+    let facade = CoreFacade::new_legacy_lease_only_engineering();
     let mut bad = req(Capability::Ping, RequestBody::GetFhirSupportMatrix);
     bad.schema_version = AUTHORITY_SCHEMA_VERSION;
     let resp = facade.dispatch(bad);

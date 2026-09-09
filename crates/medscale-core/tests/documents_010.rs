@@ -58,7 +58,7 @@ fn mime_deny_html_and_office() {
 
 #[test]
 fn admit_text_plain_then_ocr_asr_stubs() {
-    let facade = CoreFacade::new();
+    let facade = CoreFacade::new_legacy_lease_only_engineering();
     lease(&facade);
     let out = facade
         .dispatch(req(
@@ -118,7 +118,7 @@ fn admit_text_plain_then_ocr_asr_stubs() {
 
 #[test]
 fn quarantine_denied_mime_no_source() {
-    let facade = CoreFacade::new();
+    let facade = CoreFacade::new_legacy_lease_only_engineering();
     lease(&facade);
     let out = facade
         .dispatch(req(

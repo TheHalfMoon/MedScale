@@ -106,7 +106,7 @@ fn identity_unresolved_candidates() {
 
 #[test]
 fn amendment_lineage_append_only() {
-    let facade = CoreFacade::new();
+    let facade = CoreFacade::new_legacy_lease_only_engineering();
     let _holder = acquire_lease(&facade);
 
     let created = facade.dispatch(req(
