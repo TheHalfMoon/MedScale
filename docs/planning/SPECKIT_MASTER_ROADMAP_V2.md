@@ -48,7 +48,9 @@ Required lifecycle for each material executable spec:
 | 016 | `durable-trusted-record` | persist full trusted-record authority object graph across process restart (Q02) | 002–006 closed; Trusted V1 review | two-process restart + failure/backup qualification; not PRIVATE_DATA_READY |
 | 017 | `vault-privacy-qualification` | open-vault work/WAL wipe and privacy honesty (Q03) | 016 closed; 005 EncryptedVault | lifecycle wipe/detect; PRIVATE_DATA_READY only with measured evidence |
 | 018 | `host-client-authority` | authenticated local host/client sessions and scoped capabilities (Q04) | 016–017 | sessions/leases/revocation; not remote multi-tenant |
-| 019+ | `research-site-imaging-genomics-advanced` | deferred site/research/collab/imaging/genomics/plugin/browser/watch/vision expansion | evidence-driven later gates | no Trusted V1 implementation commitment |
+| 019 | `record-semantics` | precision-aware time, append-only amendments, explicit identity reconciliation, missingness (Q06) | 016 + 004 contracts | READY_BASE synthetic; RELEASE_READY false |
+| 020 | `fhir-support-matrix` | FHIR support matrix, validator evidence, loss-aware export/provenance (Q08) | 019 | bounded interchange claims; no false conformance |
+| 021+ | `research-site-imaging-genomics-advanced` | deferred site/research/collab/imaging/genomics/plugin/browser/watch/vision expansion | evidence-driven later gates | no Trusted V1 implementation commitment |
 
 ## 3. Corrected critical path
 
@@ -77,7 +79,9 @@ ONLINE ECOSYSTEM
 016 durable trusted record (Q02) after foundation
 017 vault privacy (Q03)
 018 host/client authority (Q04)
-019+ remains deferred
+019 record semantics (Q06)
+020 FHIR support matrix (Q08) READY next
+021+ remains deferred
 ```
 
 ## 4. Core process topology — decided for downstream specs

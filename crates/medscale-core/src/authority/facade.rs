@@ -266,6 +266,35 @@ impl CoreFacade {
                     audit_id: audit.header.id,
                 })
             }
+            RequestBody::AmendAssertion {
+                prior_assertion_id,
+                authorized_by,
+                payload,
+                effective_time,
+                kind,
+                rationale,
+            } => {
+                let mut store = self.store();
+                let (assertion, amendment, audit) = super::amend::amend_assertion(
+                    &mut store,
+                    super::amend::AmendAssertionInput {
+                        prior_assertion_id: &prior_assertion_id,
+                        authorized_by,
+                        payload,
+                        effective_time,
+                        kind,
+                        rationale,
+                        realm_id: &req.realm_id,
+                        scope_id: &req.authority_scope_id,
+                    },
+                )
+                .map_err(amend_err)?;
+                Ok(ResponseBody::Amended {
+                    assertion_id: assertion.header.id,
+                    amendment_id: amendment.header.id,
+                    audit_id: audit.header.id,
+                })
+            }
             RequestBody::CreateIdentityAssertion {
                 subject_id,
                 identifier_system,
@@ -498,11 +527,11 @@ impl CoreFacade {
                     },
                     projection_kind: kind,
                     built_from,
-                    built_at: MedicalTime {
-                        value: "1970-01-01T00:00:00Z".to_owned(),
-                        precision: TimePrecision::Instant,
-                        approximate: false,
-                    },
+                    built_at: MedicalTime::new(
+                        "1970-01-01T00:00:00Z",
+                        TimePrecision::Instant,
+                        false,
+                    ),
                     body,
                     authoritative: false,
                 };
@@ -1007,6 +1036,10 @@ fn capability_matches(cap: &Capability, body: &RequestBody) -> bool {
                 RequestBody::PromoteProposal { .. }
             )
             | (
+                Capability::AmendAssertion,
+                RequestBody::AmendAssertion { .. }
+            )
+            | (
                 Capability::CreateIdentityAssertion,
                 RequestBody::CreateIdentityAssertion { .. }
             )
@@ -1146,5 +1179,16 @@ fn promote_err(err: PromoteError) -> AuthorityError {
     match err {
         PromoteError::NotFound => AuthorityError::NotFound,
         PromoteError::WrongScope => AuthorityError::WrongScope,
+    }
+}
+
+fn amend_err(err: super::amend::AmendError) -> AuthorityError {
+    match err {
+        super::amend::AmendError::NotFound => AuthorityError::NotFound,
+        super::amend::AmendError::WrongScope => AuthorityError::WrongScope,
+        super::amend::AmendError::AlreadySuperseded => AuthorityError::IllegalTransition,
+        super::amend::AmendError::InvalidTime(message) => {
+            AuthorityError::InvalidArgument { message }
+        }
     }
 }

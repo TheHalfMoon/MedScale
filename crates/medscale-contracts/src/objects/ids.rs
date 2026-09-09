@@ -85,6 +85,7 @@ pub enum ObjectClass {
     Projection,
     IdentityAssertion,
     IdentityMergeDecision,
+    AmendmentRecord,
 }
 
 /// Common header fields for authority-bearing objects.

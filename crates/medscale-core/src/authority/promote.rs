@@ -23,11 +23,7 @@ pub fn promote_proposal(
 
     let assertion_id = store.alloc_id("assert");
     let audit_id = store.alloc_id("audit");
-    let recorded = MedicalTime {
-        value: "1970-01-01T00:00:00Z".to_owned(),
-        precision: TimePrecision::Instant,
-        approximate: false,
-    };
+    let recorded = MedicalTime::new("1970-01-01T00:00:00Z", TimePrecision::Instant, false);
 
     let assertion = ClinicalAssertion {
         header: ObjectHeader {

@@ -95,6 +95,32 @@ impl HostAuthorityDoctorStatus {
     }
 }
 
+/// Record semantics posture (Spec 019 Q06). READY_BASE; not release/privacy claims.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RecordSemanticsDoctorStatus {
+    pub present: bool,
+    pub ready_base: bool,
+    pub precision_aware_time: bool,
+    pub append_only_amendments: bool,
+    pub explicit_identity_reconciliation: bool,
+    pub release_ready: bool,
+}
+
+impl RecordSemanticsDoctorStatus {
+    #[must_use]
+    pub fn ready_base() -> Self {
+        Self {
+            present: true,
+            ready_base: true,
+            precision_aware_time: true,
+            append_only_amendments: true,
+            explicit_identity_reconciliation: true,
+            release_ready: false,
+        }
+    }
+}
+
 /// `medscale doctor` structured report (no secrets).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -121,6 +147,7 @@ pub struct DoctorReport {
     pub mesc_artifact: MescArtifactDoctorStatus,
     pub vault_privacy: VaultPrivacyDoctorStatus,
     pub host_authority: HostAuthorityDoctorStatus,
+    pub record_semantics: RecordSemanticsDoctorStatus,
     pub notes: Vec<String>,
 }
 

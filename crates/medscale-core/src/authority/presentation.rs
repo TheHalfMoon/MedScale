@@ -71,16 +71,20 @@ fn effective_for_timeline(assertion: &ClinicalAssertion, resource: &Value) -> Op
         .or_else(|| resource.get("effectiveInstant"))
         .or_else(|| resource.get("onsetDateTime"))
         .and_then(|v| v.as_str())?;
-    Some(MedicalTime {
-        value: s.to_owned(),
-        precision: TimePrecision::Instant,
-        approximate: false,
-    })
+    Some(MedicalTime::new(
+        s.to_owned(),
+        TimePrecision::Instant,
+        false,
+    ))
 }
 
 fn sort_key(effective: &Option<MedicalTime>, recorded: &MedicalTime, assertion_id: &str) -> String {
-    let eff = effective.as_ref().map(|t| t.value.as_str()).unwrap_or("~");
-    format!("{eff}|{}|{assertion_id}", recorded.value)
+    // Precision-aware: Year/Month/Unknown sort as ranges, never as false Instant.
+    let eff = effective
+        .as_ref()
+        .map(MedicalTime::timeline_sort_key)
+        .unwrap_or_else(|| "~|p00|~|~|_".to_owned());
+    format!("{eff}|{}|{assertion_id}", recorded.timeline_sort_key())
 }
 
 /// Build SubjectTimelineV1 from promoted ClinicalAssertions for a subject.
@@ -89,8 +93,12 @@ pub fn build_timeline(
     subject_ref: &OpaqueId,
     blob_lookup: &BlobLookupFn<'_>,
 ) -> SubjectTimelineV1 {
+    let superseded = store.superseded_assertion_ids();
     let mut events = Vec::new();
     for assertion in store.assertions_for_subject(subject_ref) {
+        if superseded.contains(assertion.header.id.as_str()) {
+            continue;
+        }
         let resource = resource_from_payload(&assertion.payload);
         let (bytes, ok) = resolve_blob(store, &assertion, blob_lookup);
         let ctx = build_ctx(store, &assertion, bytes.as_deref(), ok);
@@ -414,11 +422,7 @@ pub fn persist_projection(
         },
         projection_kind: kind.to_owned(),
         built_from,
-        built_at: MedicalTime {
-            value: "1970-01-01T00:00:00Z".to_owned(),
-            precision: TimePrecision::Instant,
-            approximate: false,
-        },
+        built_at: MedicalTime::new("1970-01-01T00:00:00Z", TimePrecision::Instant, false),
         body,
         authoritative: false,
     };
