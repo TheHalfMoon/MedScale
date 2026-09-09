@@ -158,6 +158,10 @@ impl EncryptedVault {
         dek: VaultDek,
         holder_id: &str,
     ) -> Result<Self, EncryptedVaultError> {
+        // Crash leftovers are not treated as sealed; wipe then restore from meta.sealed.
+        if Self::leftover_work_present(&root) {
+            Self::wipe_work_sidecars(&root)?;
+        }
         Self::unseal_meta_file(&root, &header.vault_id, &dek)?;
         let work = root.join(META_WORK);
         let meta = SqliteMetaStore::open_at(&work)?;
@@ -202,7 +206,7 @@ impl EncryptedVault {
             root.join(META_SEALED),
             serde_json::to_vec(&sealed).map_err(|_| EncryptedVaultError::Crypto)?,
         )?;
-        let _ = fs::remove_file(&work);
+        Self::wipe_work_sidecars(root)?;
         Ok(())
     }
 
@@ -247,8 +251,40 @@ impl EncryptedVault {
         } = self;
         drop(meta);
         Self::seal_meta_file(&root, &vault_id, &dek)?;
+        Self::wipe_work_sidecars(&root)?;
         let _ = fs::remove_file(root.join(LEASE_FILE));
         Ok(())
+    }
+
+    /// Remove plaintext work DB and SQLite sidecar files if present.
+    pub fn wipe_work_sidecars(root: &Path) -> Result<(), EncryptedVaultError> {
+        let work = root.join(META_WORK);
+        for path in [
+            work.clone(),
+            sqlite_sidecar(&work, "-wal"),
+            sqlite_sidecar(&work, "-shm"),
+            sqlite_sidecar(&work, "-journal"),
+        ] {
+            if path.exists() {
+                // Best-effort overwrite then remove (not a secure OS wipe claim).
+                if let Ok(meta) = fs::metadata(&path) {
+                    let len = meta.len() as usize;
+                    let _ = fs::write(&path, vec![0_u8; len.min(1024 * 1024)]);
+                }
+                let _ = fs::remove_file(&path);
+            }
+        }
+        Ok(())
+    }
+
+    /// True when plaintext work or journal sidecars remain on disk.
+    #[must_use]
+    pub fn leftover_work_present(root: &Path) -> bool {
+        let work = root.join(META_WORK);
+        work.exists()
+            || sqlite_sidecar(&work, "-wal").exists()
+            || sqlite_sidecar(&work, "-shm").exists()
+            || sqlite_sidecar(&work, "-journal").exists()
     }
 
     pub fn put_blob(&self, bytes: &[u8]) -> Result<DigestSha256, EncryptedVaultError> {
@@ -342,6 +378,12 @@ impl EncryptedVault {
         }
         self.blobs.plaintext_marker_absent(marker)
     }
+}
+
+fn sqlite_sidecar(work: &Path, suffix: &str) -> PathBuf {
+    let mut os = work.as_os_str().to_owned();
+    os.push(suffix);
+    PathBuf::from(os)
 }
 
 fn copy_dir(src: &Path, dest: &Path) -> Result<(), EncryptedVaultError> {

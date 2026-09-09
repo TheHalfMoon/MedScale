@@ -23,10 +23,12 @@
 
 ## Phase D — Converge (T08)
 
-- [ ] T08a fmt/clippy/locked tests/CI green on exact head
-- [ ] T08b Evidence SUMMARY + limitations; update BUILD_QUEUE; mark review package checklist items
-- [ ] T08c Exact-head review + merge; post-merge verify; start Q03 spec prep
+- [x] T08a fmt/clippy/locked tests/CI green on exact head
+- [x] T08b Evidence SUMMARY + limitations; update BUILD_QUEUE; mark review package checklist items
+- [x] T08c Exact-head review + merge; post-merge verify; start Q03 spec prep
 
 ## Dependency order
 
 T01 → T02 → T03 → T04* → (T05 ∥ T06) → T07 → T08
+
+**Closeout**: Spec 016 `CLOSED_CANONICAL` on main `419a468` (PR #35).
