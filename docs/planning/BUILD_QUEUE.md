@@ -5,18 +5,12 @@
 **Rule:** update this file whenever a unit enters or leaves a canonical state.
 
 **Autonomous stop status (historical V2 scoped closure):** superseded for Trusted V1 follow-on work.
-**Live follow-on status (2026-09-09):** Spec **016** durable trusted-record is `CLOSED_CANONICAL` (main `419a468`). Spec **017** vault privacy (Q03) is `READY`. Spec 012 remains `BLOCKED_BY_RELEASED_MESC_ARTIFACT`. Remaining advanced capabilities stay `018+` / `DEFERRED_BY_CANONICAL_DESIGN`. `RELEASE_READY = FALSE`. `PRIVATE_DATA_READY = FALSE`.
+**Live follow-on status (2026-09-09):** Spec **016** `CLOSED_CANONICAL`. Spec **017** vault privacy lifecycle wipe/honesty `CLOSED_CANONICAL` with `PRIVATE_DATA_READY = FALSE`. Spec **018** host/client authority (Q04) is `READY`. Spec 012 remains MESC-blocked. Advanced work `019+` deferred. `RELEASE_READY = FALSE`.
 
 ## 2026-09-09 planning refinement
 
-Historical V2 scoped closure is not product readiness.
-Review baseline: main `b49592c83d23542363f671afe6a9ae65fc65b276` (Trusted V1 checkpoint `e969833`; Spec 016 merge `419a468`).
-See [whole-product review](WHOLE_PRODUCT_REVIEW_2026-09-09.md),
-[delivery plan](TRUSTED_V1_DELIVERY_PLAN.md),
-[Spec 016](../../specs/016-durable-trusted-record/spec.md), and
-[Spec 017](../../specs/017-vault-privacy-qualification/spec.md).
-Next eligible unit: Spec 017 Q03 vault privacy lifecycle qualification.
-This does not promote unrelated advanced work or reopen previous scoped closures.
+See Trusted V1 delivery plan. Next eligible unit: Spec 018 Q04 authenticated host/client authority.
+Main after Spec 016: `419a468`. Spec 017 wipe landed via PR #36 (`0668359`); doctor closeout follows.
 
 ## Historical scoped queue (closures preserved)
 
@@ -39,8 +33,9 @@ This does not promote unrelated advanced work or reopen previous scoped closures
 | 014 | Controlled Actions / NPHIES | `CLOSED_CANONICAL` | READY_BASE: outbox + payload-bound intents; NPHIES remains external gate. |
 | 015 | HF + Online Pack Ecosystem | `CLOSED_CANONICAL` | READY_BASE deny path via Network Broker; HF online remains external gate. |
 | 016 | Durable Trusted Record (Q02) | `CLOSED_CANONICAL` | Full authority object graph persists across process restart; see evidence/016. |
-| 017 | Vault Privacy Qualification (Q03) | `READY` | Open-vault work/WAL wipe + privacy honesty; not PRIVATE_DATA_READY until measured. |
-| 018+ | Advanced deferred work | `DEFERRED_BY_CANONICAL_DESIGN` | Plugins/GraphRAG/replicas/imaging/CUDA/etc. — promote only with new evidence. |
+| 017 | Vault Privacy Qualification (Q03) | `CLOSED_CANONICAL` | Work/WAL wipe + doctor honesty; PRIVATE_DATA_READY remains FALSE. |
+| 018 | Host / Client Authority (Q04) | `READY` | Authenticated session/capabilities on top of Spec 016 writer lock. |
+| 019+ | Advanced deferred work | `DEFERRED_BY_CANONICAL_DESIGN` | Plugins/GraphRAG/replicas/imaging/CUDA/etc. |
 
 ## Automatic progression
 
