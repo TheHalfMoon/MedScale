@@ -10,6 +10,7 @@ pub mod effects;
 pub mod process;
 pub mod text;
 pub mod validate;
+pub mod workflow;
 
 pub use authority::CoreFacade;
 pub use cli_session::CliSession;
@@ -18,6 +19,7 @@ pub use doctor::{
     privacy_proof_artifact_present,
 };
 pub use medscale_contracts::{MEDSCALE_VERSION, WorkspaceIdentity};
+pub use workflow::{JourneyConfig, run_minimum_lovable_journey};
 
 /// Non-authoritative bootstrap health report for operators.
 #[derive(Debug, Clone, PartialEq, Eq)]

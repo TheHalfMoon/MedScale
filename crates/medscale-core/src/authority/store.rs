@@ -204,6 +204,33 @@ impl InMemoryAuthorityStore {
             .collect()
     }
 
+    /// Disclosure records appended in this realm/scope (Spec 021).
+    #[must_use]
+    pub fn list_disclosures(
+        &self,
+        realm_id: &RealmId,
+        scope_id: &AuthorityScopeId,
+    ) -> Vec<medscale_contracts::workflow::DisclosureRecord> {
+        self.objects
+            .values()
+            .filter_map(|o| match o {
+                StoredObject::Audit(a)
+                    if a.action == medscale_contracts::workflow::DISCLOSURE_APPEND_ACTION
+                        && &a.header.realm_id == realm_id
+                        && &a.header.authority_scope_id == scope_id =>
+                {
+                    a.detail.as_ref().and_then(|d| {
+                        serde_json::from_value::<medscale_contracts::workflow::DisclosureRecord>(
+                            d.clone(),
+                        )
+                        .ok()
+                    })
+                }
+                _ => None,
+            })
+            .collect()
+    }
+
     /// Raw object map for presentation orchestration (read-only scans).
     #[must_use]
     pub fn objects_raw(&self) -> &HashMap<String, StoredObject> {

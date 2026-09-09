@@ -13,6 +13,7 @@ use medscale_contracts::mobile::MobileDoctorStatus;
 use medscale_contracts::network::NetworkBrokerDoctorStatus;
 use medscale_contracts::online_packs::OnlinePacksDoctorStatus;
 use medscale_contracts::packs::PacksRuntimeDoctorStatus;
+use medscale_contracts::workflow::WorkflowDoctorStatus;
 use medscale_contracts::{MEDSCALE_PRODUCT_NAME, MEDSCALE_VERSION};
 use medscale_storage::{assert_claim_path, default_vault_root};
 
@@ -111,6 +112,7 @@ pub fn build_doctor_report_full(
         record_semantics: RecordSemanticsDoctorStatus::ready_base(),
         fhir_interchange: FhirInterchangeDoctorStatus::ready_base(),
         fhir_support_matrix: FhirSupportMatrix::trusted_v1_ready_base(),
+        workflow: WorkflowDoctorStatus::ready_base(),
         notes: vec![
             "CLI and Desktop call Core Host authority facade only".to_owned(),
             "Tauri/WebView not admitted in Spec 006".to_owned(),
@@ -124,6 +126,7 @@ pub fn build_doctor_report_full(
             "Host authority READY_BASE: in-process sessions; MULTI_CLIENT_RELEASE_READY=false".to_owned(),
             "Record semantics READY_BASE: precision-aware time, append-only amendments; RELEASE_READY=false".to_owned(),
             "FHIR interchange READY_BASE: honest support matrix; no full conformance; validator evidence != authority".to_owned(),
+            "Workflow READY_BASE: synthetic import-review-export-backup journey; WORKFLOW_READY_BASE=true; RELEASE_READY=false".to_owned(),
         ],
     }
 }
