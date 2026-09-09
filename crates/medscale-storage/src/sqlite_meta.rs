@@ -65,16 +65,73 @@ impl SqliteMetaStore {
         Self::open_at(&db_path)
     }
 
-    /// Open metadata DB at an explicit path (EncryptedVault working copy).
+    /// Open metadata DB at an explicit path (SyntheticVault / unkeyed plaintext-compatible).
     pub fn open_at(db_path: &Path) -> Result<Self, MetaError> {
+        let conn = Self::open_connection(db_path)?;
+        let store = Self { conn };
+        store.migrate()?;
+        Ok(store)
+    }
+
+    /// Open EncryptedVault work DB with SQLCipher key derived from VaultDek (Spec 023).
+    ///
+    /// Key material is applied via `PRAGMA key` before any schema read/write. Wrong keys
+    /// fail closed on the first schema touch. Never logs the key.
+    pub fn open_at_sqlcipher(db_path: &Path, key32: &[u8; 32]) -> Result<Self, MetaError> {
+        let conn = Self::open_connection(db_path)?;
+        apply_sqlcipher_key(&conn, key32)?;
+        verify_sqlcipher_readable(&conn)?;
+        let store = Self { conn };
+        store.migrate()?;
+        Ok(store)
+    }
+
+    /// Open work DB under VaultDek key, migrating legacy plaintext sealed work via rekey.
+    pub fn open_at_sqlcipher_or_rekey_legacy(
+        db_path: &Path,
+        key32: &[u8; 32],
+    ) -> Result<Self, MetaError> {
+        match Self::open_at_sqlcipher(db_path, key32) {
+            Ok(store) => Ok(store),
+            Err(primary) if db_path.exists() => {
+                // Pre-023 AES-GCM seals may contain plaintext SQLite pages.
+                let conn = Self::open_connection(db_path)?;
+                if verify_sqlcipher_readable(&conn).is_err() {
+                    return Err(primary);
+                }
+                apply_sqlcipher_rekey(&conn, key32)?;
+                verify_sqlcipher_readable(&conn)?;
+                let store = Self { conn };
+                store.migrate()?;
+                Ok(store)
+            }
+            Err(e) => Err(e),
+        }
+    }
+
+    fn open_connection(db_path: &Path) -> Result<Connection, MetaError> {
         if let Some(parent) = db_path.parent() {
             let _ = assert_claim_path(parent)?;
             std::fs::create_dir_all(parent)?;
         }
-        let conn = Connection::open(db_path)?;
-        let store = Self { conn };
-        store.migrate()?;
-        Ok(store)
+        Ok(Connection::open(db_path)?)
+    }
+
+    /// Embedded SQLCipher library version string (`PRAGMA cipher_version`).
+    pub fn sqlcipher_cipher_version(conn: &Connection) -> Result<String, MetaError> {
+        let v: String = conn.pragma_query_value(None, "cipher_version", |row| row.get(0))?;
+        Ok(v)
+    }
+
+    /// Report cipher_version for an already-open SQLCipher store.
+    pub fn cipher_version(&self) -> Result<String, MetaError> {
+        Self::sqlcipher_cipher_version(&self.conn)
+    }
+
+    /// True when workspace builds with the Spec 023 SQLCipher backend.
+    #[must_use]
+    pub fn sqlcipher_backend_active() -> bool {
+        cfg!(feature = "sqlcipher")
     }
 
     fn migrate(&self) -> Result<(), MetaError> {
@@ -438,4 +495,25 @@ fn parse_hex(name: &str) -> DigestSha256 {
         bytes[i] = u8::from_str_radix(s, 16).unwrap_or(0);
     }
     DigestSha256::from_bytes(bytes)
+}
+
+fn key_material_hex(key32: &[u8; 32]) -> String {
+    key32.iter().map(|b| format!("{b:02x}")).collect()
+}
+
+fn apply_sqlcipher_key(conn: &Connection, key32: &[u8; 32]) -> Result<(), MetaError> {
+    // Passphrase-style key material (hex of VaultDek). Never logged.
+    conn.pragma_update(None, "key", key_material_hex(key32))?;
+    Ok(())
+}
+
+fn apply_sqlcipher_rekey(conn: &Connection, key32: &[u8; 32]) -> Result<(), MetaError> {
+    conn.pragma_update(None, "rekey", key_material_hex(key32))?;
+    Ok(())
+}
+
+fn verify_sqlcipher_readable(conn: &Connection) -> Result<(), MetaError> {
+    // Wrong SQLCipher keys typically fail here with "file is not a database".
+    let _: i64 = conn.query_row("SELECT count(*) FROM sqlite_master", [], |row| row.get(0))?;
+    Ok(())
 }

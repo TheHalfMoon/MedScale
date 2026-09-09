@@ -112,7 +112,7 @@ pub enum WebViewScanStatus {
     Deferred,
 }
 
-/// Vault privacy posture (Spec 017). Never claims secrets.
+/// Vault privacy posture (Specs 017/023). Never claims secrets.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct VaultPrivacyDoctorStatus {
@@ -120,11 +120,14 @@ pub struct VaultPrivacyDoctorStatus {
     pub private_data_ready: bool,
     pub sealed_at_close: bool,
     pub open_work_plaintext_risk: bool,
+    /// Spec 023: EncryptedVault open-work pages encrypted via SQLCipher.
+    pub open_work_page_encrypted: bool,
     pub work_wipe_on_close: bool,
     pub sqlcipher_enabled: bool,
 }
 
 impl VaultPrivacyDoctorStatus {
+    /// Spec 017 posture before SQLCipher open-work (historical).
     #[must_use]
     pub fn spec_017_honest() -> Self {
         Self {
@@ -132,8 +135,24 @@ impl VaultPrivacyDoctorStatus {
             private_data_ready: false,
             sealed_at_close: true,
             open_work_plaintext_risk: true,
+            open_work_page_encrypted: false,
             work_wipe_on_close: true,
             sqlcipher_enabled: false,
+        }
+    }
+
+    /// Spec 023 READY_BASE: page-encrypted open work; PRIVATE_DATA_READY still false.
+    #[must_use]
+    pub fn spec_023_honest() -> Self {
+        Self {
+            present: true,
+            private_data_ready: false,
+            sealed_at_close: true,
+            // Residual OS swap/hibernate/snapshot risk; work file itself is page-encrypted.
+            open_work_plaintext_risk: true,
+            open_work_page_encrypted: true,
+            work_wipe_on_close: true,
+            sqlcipher_enabled: true,
         }
     }
 }

@@ -24,6 +24,7 @@ This file records blockers that require a real human/external authority. They do
 | SPEC_014_WORKFLOW_EVIDENCE | `PENDING` | Selected NPHIES/workflow profiles + terminology evidence | Spec 014 READY_BASE closed; NphiesInvoke remains ExternalGateRequired until this gate + PARTNER_EHR_NPHIES_ENDPOINT. |
 | HF_ONLINE_PACK_DISTRIBUTION | `NOT_GRANTED` | Hugging Face / online pack publish+fetch credentials and terms | Spec 015 READY_BASE deny path closed; OnlinePackAcquire remains ExternalGateRequired; offline Pack v0 only. |
 | REPO_BRANCH_PROTECTION_REQUIRED_CHECKS | `NOT_CONFIGURED_OWNER_SETTINGS` | GitHub branch protection, required status checks, and related repository rulesets for `main` | Spec 022 documents the gate and evidence pointer only. Do **not** change repository settings via API. Owner must configure protection/required checks; Cursor continues independent engineering and must not claim RELEASE_READY. |
+| OS_KEYRING_SWAP_SNAPSHOT_PRIVATE_DATA | `OPEN` | OS key custody (not MemoryMock), swap/hibernate, and snapshot artifact proof required for `PRIVATE_DATA_READY` | Spec 023 enables SQLCipher open-work page encryption but does **not** clear this gate or set `PRIVATE_DATA_READY`. Continue independent work; do not claim private-data readiness. |
 
 Cursor may add rows only when a blocker truly requires external authority. Never use this file for ordinary engineering uncertainty.
 

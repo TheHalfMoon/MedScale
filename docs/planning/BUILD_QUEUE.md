@@ -1,16 +1,15 @@
-# MedScale Autonomous Build Queue
+# BUILD_QUEUE.md — MedScale Autonomous Build Queue
 
 **Queue owner:** repository canonical plan  
 **Execution agent:** Cursor  
 **Rule:** update this file whenever a unit enters or leaves a canonical state.
 
 **Autonomous stop status (historical V2 scoped closure):** superseded for Trusted V1 follow-on work.
-**Live follow-on status (2026-09-09):** Spec **016**–**022** `CLOSED_CANONICAL`. Spec **022** is READY_BASE **prep** for Q05 release-qualification remnants (`RELEASE_READY = FALSE`). Spec 012 remains MESC-blocked. Deferred advanced work is **023+**. Ordinary in-repo Trusted V1 follow-on work is exhausted; remaining progress is `IMPLEMENTATION_COMPLETE_PENDING_EXTERNAL_GATES` style. Do **not** claim `RELEASE_READY`, `PRIVATE_DATA_READY`, or `MULTI_CLIENT_RELEASE_READY`.
+**Live follow-on status (2026-09-09):** Spec **016**–**023** `CLOSED_CANONICAL`. Spec **023** closes Q03 residual open-metadata privacy (SQLCipher EncryptedVault) as READY_BASE; `PRIVATE_DATA_READY` remains FALSE. Spec 022 is READY_BASE **prep** for Q05 (`RELEASE_READY = FALSE`). Spec 012 remains MESC-blocked. Deferred advanced work is **024+**. Do **not** claim `RELEASE_READY`, `PRIVATE_DATA_READY`, or `MULTI_CLIENT_RELEASE_READY`. Q03 is **not** fully complete for PRIVATE_DATA_READY (OS keyring / swap / snapshot still open).
 
 ## 2026-09-09 planning refinement
 
-See Trusted V1 delivery plan. Specs 018–022 READY_BASE closed (022 = Q05 prep only). Spec 012 MESC-blocked. Advanced **023+** deferred.
-Main after Spec 021: `7a2be94`. Spec 022 on branch `spec/022-release-qualification-prep`.
+See Trusted V1 delivery plan. Specs 018–023 READY_BASE closed (022 = Q05 prep only; 023 = Q03 open-metadata SQLCipher). Spec 012 MESC-blocked. Advanced **024+** deferred.
 
 ## Historical scoped queue (closures preserved)
 
@@ -39,7 +38,8 @@ Main after Spec 021: `7a2be94`. Spec 022 on branch `spec/022-release-qualificati
 | 020 | FHIR Interchange Qualification (Q08) | `CLOSED_CANONICAL` | READY_BASE: honest support matrix + loss-aware export; no full conformance; RELEASE_READY=false. |
 | 021 | Minimum Lovable Workflow (Q07) | `CLOSED_CANONICAL` | READY_BASE: synthetic restartable import-review-export-backup journey + disclosure; RELEASE_READY=false. |
 | 022 | Release Qualification Prep (Q05) | `CLOSED_CANONICAL` | READY_BASE prep: locked CI, evidence binding, doctor honesty; RELEASE_READY=false; branch protection EXTERNAL_GATES. |
-| 023+ | Advanced deferred work | `DEFERRED_BY_CANONICAL_DESIGN` | Plugins/GraphRAG/replicas/imaging/CUDA/etc. |
+| 023 | Vault Open-Metadata Privacy (Q03 residual) | `CLOSED_CANONICAL` | READY_BASE: SQLCipher page-encrypted EncryptedVault open work; PRIVATE_DATA_READY=false (OS key/swap/snapshot). |
+| 024+ | Advanced deferred work | `DEFERRED_BY_CANONICAL_DESIGN` | Plugins/GraphRAG/replicas/imaging/CUDA/etc. |
 
 ## Automatic progression
 
@@ -47,4 +47,4 @@ For the first `READY` unit: create/complete its Spec Kit package, analyze it, im
 
 Do not stop merely because a PR merged, one milestone passed, or an external optional gate exists.
 
-**Next eligible (honest):** `IMPLEMENTATION_COMPLETE_PENDING_EXTERNAL_GATES` for ordinary Trusted V1 in-repo follow-on. Spec 012 MESC-blocked. Branch protection / required checks need owner settings. Do **not** claim `RELEASE_READY`.
+**Next eligible (honest):** Spec 012 MESC-blocked. PRIVATE_DATA_READY still blocked by OS keyring / swap / snapshot qualification (not claimed complete by Spec 023). Branch protection / required checks need owner settings. Deferred advanced **024+**. Do **not** claim `RELEASE_READY` or `PRIVATE_DATA_READY`. Remaining ordinary Trusted V1 in-repo work may still include measured OS privacy follow-ons; do not treat Q03 as fully exhausted for PRIVATE_DATA_READY.
