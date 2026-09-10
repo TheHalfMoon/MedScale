@@ -45,6 +45,8 @@ pub struct ReleaseQualificationDoctorStatus {
     pub release_dry_run_verifier_present: bool,
     /// Spec 048: vault-level migration interrupt + backup/restore recovery READY_BASE.
     pub migration_recovery_ready_base: bool,
+    /// Spec 049: package upgrade/rollback dry-run scaffold present (no real installers).
+    pub package_upgrade_rollback_scaffold_present: bool,
     /// Spec 032: NOTICE/third-party inventory artifact present (not a license decision).
     pub notice_inventory_present: bool,
     /// Spec 032: public SPDX for MedScale crates — always false until EXTERNAL_GATES.
@@ -74,6 +76,7 @@ impl ReleaseQualificationDoctorStatus {
             sbom_lock_bound: true,
             release_dry_run_verifier_present: true,
             migration_recovery_ready_base: true,
+            package_upgrade_rollback_scaffold_present: true,
             notice_inventory_present: true,
             rights_license_decision: false,
             missing_evidence_classes: vec![
@@ -106,6 +109,7 @@ impl ReleaseQualificationDoctorStatus {
             && self.sbom_lock_bound
             && self.release_dry_run_verifier_present
             && self.migration_recovery_ready_base
+            && self.package_upgrade_rollback_scaffold_present
             && self.notice_inventory_present
             && !self.rights_license_decision
             && self
@@ -719,6 +723,7 @@ mod release_qualification_tests {
         assert!(s.sbom_lock_bound);
         assert!(s.release_dry_run_verifier_present);
         assert!(s.migration_recovery_ready_base);
+        assert!(s.package_upgrade_rollback_scaffold_present);
         assert!(s.notice_inventory_present);
         assert!(!s.rights_license_decision);
         assert!(
