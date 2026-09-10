@@ -38,3 +38,4 @@ Measured via `PRAGMA cipher_version` in `crates/medscale-storage/tests/vault_ope
 | Doctor | `sqlcipher_enabled=true`, `open_work_page_encrypted=true`, `private_data_ready=false` |
 | PRIVATE_DATA_READY | **FALSE** (OS keyring MemoryMock; swap/hibernate/snapshots unqualified) |
 | Windows build note | Vendored OpenSSL requires Perl on PATH (CI: Chocolatey StrawberryPerl) |
+| macOS build note (Spec 029) | CI installs Homebrew `openssl@3` + `perl` and sets `OPENSSL_DIR` for vendored/SQLCipher builds; macOS CI ≠ product PLATFORM_QUALIFIED |

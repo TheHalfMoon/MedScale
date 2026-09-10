@@ -64,7 +64,8 @@ Spec **025** is `CLOSED_CANONICAL` READY_BASE (Q10 versioned synthetic evidence 
 Spec **026** is `CLOSED_CANONICAL` READY_BASE (Q09 pack signer/anti-rollback + Linux Landlock measured; `platform_qualified=false`; `WORKER_OS_SANDBOX_PLATFORM_QUALIFIED` still OPEN).
 Spec **027** is `CLOSED_CANONICAL` READY_BASE (Q05 perf harness + SBOM/checksum scaffolds; budgets not claimed; `RELEASE_READY` still FALSE).
 Spec **028** is `CLOSED_CANONICAL` READY_BASE (Q03 OS keyring custody; `os_keyring_available`/`os_keyring_used`; `PRIVATE_DATA_READY` still FALSE — swap/snapshot residual).
-Spec 012 remains MESC-blocked. Deferred advanced work is **029+**.
+Spec **029** is `CLOSED_CANONICAL` READY_BASE (macOS CI matrix + CLI/fixture accessibility honesty; `macos_ci_present=true`; `macos_qualified=false`; no WCAG / `RELEASE_READY` claim).
+Spec 012 remains MESC-blocked. Deferred advanced work is **030+**.
 Do **not** claim `RELEASE_READY`, `PRIVATE_DATA_READY`, or `MULTI_CLIENT_RELEASE_READY`.
 Q03 residual page encryption landed in Spec 023; OS keyring READY_BASE in Spec 028; swap/snapshot still block PRIVATE_DATA_READY.
 Foundation and prep closure is not product or privacy release readiness.
