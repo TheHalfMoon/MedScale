@@ -6,7 +6,7 @@
 use serde::{Deserialize, Serialize};
 
 #[cfg(target_os = "linux")]
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 /// Qualification claim for an OS confinement backend.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -212,7 +212,8 @@ pub fn try_apply_os_sandbox(plan: &OsSandboxPlan) -> Result<(), OsSandboxApplyEr
 #[cfg(target_os = "linux")]
 fn apply_landlock_linux(plan: &OsSandboxPlan) -> Result<(), OsSandboxApplyError> {
     use landlock::{
-        ABI, AccessFs, Ruleset, RulesetAttr, RulesetCreatedAttr, RulesetStatus, path_beneath_rules,
+        ABI, Access, AccessFs, Ruleset, RulesetAttr, RulesetCreatedAttr, RulesetStatus,
+        path_beneath_rules,
     };
 
     let paths: Vec<PathBuf> = plan.allow_paths.iter().map(PathBuf::from).collect();
@@ -225,14 +226,15 @@ fn apply_landlock_linux(plan: &OsSandboxPlan) -> Result<(), OsSandboxApplyError>
     }
 
     let abi = ABI::V1;
+    let access = AccessFs::from_all(abi);
     let status = Ruleset::default()
-        .handle_access(AccessFs::from_all(abi))
+        .handle_access(access)
         .map_err(|e| OsSandboxApplyError::ApplyFailed(e.to_string()))?
         .create()
         .map_err(|e| OsSandboxApplyError::ApplyFailed(e.to_string()))?
         .add_rules(path_beneath_rules(
-            paths.iter().map(Path::as_path),
-            AccessFs::from_all(abi),
+            paths.iter().map(|p| p.as_path()),
+            access,
         ))
         .map_err(|e| OsSandboxApplyError::ApplyFailed(e.to_string()))?
         .restrict_self()
