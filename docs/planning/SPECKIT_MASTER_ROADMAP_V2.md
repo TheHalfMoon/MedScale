@@ -65,7 +65,11 @@ Required lifecycle for each material executable spec:
 | 033 | `windows-appcontainer-fs` | Windows AppContainer FS READY_BASE (Q09 residual) | 030 closed | CLOSED_CANONICAL READY_BASE; windows_appcontainer_fs_measured; platform_qualified=false; sandbox gate OPEN |
 | 034 | `durable-outbox-restart` | Durable outbox restart fixtures (Q12 residual) | 014+016 closed | CLOSED_CANONICAL READY_BASE; outbox_restart_qualified; NPHIES gated |
 | 035 | `encrypted-vault-authority-sync` | EncryptedVault authority graph sync (Q02/Q03 residual) | 016+023 closed | CLOSED_CANONICAL READY_BASE; encrypted_authority_sync_qualified; PRIVATE_DATA_READY=false |
-| 036+ | `research-site-imaging-genomics-advanced` | deferred site/research/collab/imaging/genomics/plugin/browser/watch/vision expansion | evidence-driven later gates | no Trusted V1 implementation commitment |
+| 036 | `mesc-synthetic-verifier` | MESC synthetic release-dir verifier (012 residual) | 012 gate-blocked | CLOSED_CANONICAL READY_BASE; verifier_ready_base; MESC_RELEASED_ARTIFACT still NOT_AVAILABLE |
+| 037 | `release-prep-transport-fail` | Required-checks + license counsel + checksum verify + transport-fail fixtures | 013/022/027/032 | CLOSED_CANONICAL READY_BASE; RELEASE_READY=false |
+| 038 | `windows-appcontainer-network` | Windows AppContainer network READY_BASE (Q09 residual) | 033 closed | CLOSED_CANONICAL READY_BASE; windows_appcontainer_network_measured; LPAC scaffold; platform_qualified=false |
+| 039 | `release-honesty-packets` | Entry-doc honesty + PHI readiness + signing/provenance prep packets | 022/037 | CLOSED_CANONICAL READY_BASE; no RELEASE_READY / PHI / signing credentials |
+| 040+ | `research-site-imaging-genomics-advanced` | deferred site/research/collab/imaging/genomics/plugin/browser/watch/vision expansion | evidence-driven later gates | no Trusted V1 implementation commitment |
 
 ## 3. Corrected critical path
 
@@ -108,7 +112,9 @@ ONLINE ECOSYSTEM
 030 Windows Job Object sandbox (Q09 residual) CLOSED_CANONICAL READY_BASE; windows_measured; AppContainer scaffold; platform_qualified=false; WORKER_OS_SANDBOX gate OPEN
 031 macOS Seatbelt sandbox (Q09 residual) CLOSED_CANONICAL READY_BASE; macos_measured; App Sandbox entitlements scaffold; platform_qualified=false; WORKER_OS_SANDBOX gate OPEN
 032 privacy probes + NOTICE inventory + perf binding CLOSED_CANONICAL READY_BASE; probes_present; notice_inventory_present; rights_license_decision=false; budgets_claimed_met=false; PRIVATE_DATA_READY=false
-Next: 012 MESC-blocked; swap/snapshot still block PRIVATE_DATA_READY (032 probes do not clear); AppContainer FS + product PLATFORM_QUALIFIED + WCAG/final-v0 open; 033+ deferred
+033–038 residual READY_BASE closed (AppContainer FS/network, outbox restart, EncryptedVault sync, MESC verifier, release-prep packets)
+039 release-honesty packets CLOSED_CANONICAL READY_BASE
+Next: 012 MESC-blocked; swap/snapshot still block PRIVATE_DATA_READY; LPAC + macOS App Sandbox entitlements + product PLATFORM_QUALIFIED + WCAG/final-v0 + SPDX/branch-protection/signing credentials open; 040+ deferred
 ```
 
 ## 4. Core process topology — decided for downstream specs
