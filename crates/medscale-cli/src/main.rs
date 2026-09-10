@@ -305,7 +305,7 @@ fn run() -> Result<()> {
                     report.mesc_artifact.gate
                 );
                 println!(
-                    "vault_privacy: ready={} sealed_at_close={} open_work_risk={} page_encrypted={} sqlcipher={} wipe_on_close={} os_keyring_available={} os_keyring_used={} probes_present={} residual_open={} pagefile={:?} hibernate={:?}",
+                    "vault_privacy: ready={} sealed_at_close={} open_work_risk={} page_encrypted={} sqlcipher={} wipe_on_close={} os_keyring_available={} os_keyring_used={} probes_present={} encrypted_authority_sync_qualified={} residual_open={} pagefile={:?} hibernate={:?}",
                     report.vault_privacy.private_data_ready,
                     report.vault_privacy.sealed_at_close,
                     report.vault_privacy.open_work_plaintext_risk,
@@ -315,6 +315,7 @@ fn run() -> Result<()> {
                     report.vault_privacy.os_keyring_available,
                     report.vault_privacy.os_keyring_used,
                     report.vault_privacy.probes_present,
+                    report.vault_privacy.encrypted_authority_sync_qualified,
                     report.vault_privacy.residual_risk_classes_open.join(","),
                     report.vault_privacy.pagefile_existence,
                     report.vault_privacy.hibernate_file_existence
@@ -750,6 +751,7 @@ mod tests {
             "os_keyring_used",
             "private_data_ready",
             "probes_present",
+            "encrypted_authority_sync_qualified",
             "residual_risk_classes_open",
             "pagefile_existence",
             "hibernate_file_existence",

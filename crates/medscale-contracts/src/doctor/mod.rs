@@ -240,6 +240,8 @@ pub struct VaultPrivacyDoctorStatus {
     pub vault_leftover_scan_available: bool,
     /// Spec 032: crash sidecar detection (Spec 017 wipe path) available.
     pub crash_sidecar_detect_available: bool,
+    /// Spec 035: EncryptedVault persists/reloads authority graph (SQLCipher meta).
+    pub encrypted_authority_sync_qualified: bool,
 }
 
 impl VaultPrivacyDoctorStatus {
@@ -271,6 +273,7 @@ impl VaultPrivacyDoctorStatus {
             hibernate_file_existence: OsResidualFileProbe::NotApplicable,
             vault_leftover_scan_available: true,
             crash_sidecar_detect_available: true,
+            encrypted_authority_sync_qualified: false,
         }
     }
 
@@ -294,6 +297,7 @@ impl VaultPrivacyDoctorStatus {
             hibernate_file_existence: OsResidualFileProbe::NotApplicable,
             vault_leftover_scan_available: true,
             crash_sidecar_detect_available: true,
+            encrypted_authority_sync_qualified: false,
         }
     }
 
@@ -317,10 +321,11 @@ impl VaultPrivacyDoctorStatus {
             hibernate_file_existence: OsResidualFileProbe::NotApplicable,
             vault_leftover_scan_available: true,
             crash_sidecar_detect_available: true,
+            encrypted_authority_sync_qualified: false,
         }
     }
 
-    /// Spec 032 READY_BASE: privacy probes present; PRIVATE_DATA_READY still false.
+    /// Spec 032/035 READY_BASE: privacy probes + EncryptedVault authority sync; PRIVATE_DATA_READY still false.
     #[must_use]
     pub fn spec_032_honest(
         os_keyring_available: bool,
@@ -344,6 +349,7 @@ impl VaultPrivacyDoctorStatus {
             hibernate_file_existence,
             vault_leftover_scan_available: true,
             crash_sidecar_detect_available: true,
+            encrypted_authority_sync_qualified: true,
         }
     }
 }

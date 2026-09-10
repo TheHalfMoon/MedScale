@@ -50,7 +50,8 @@ See Trusted V1 delivery plan. Specs 018–032 READY_BASE closed (022 = Q05 prep 
 | 032 | Privacy Probes + NOTICE + Perf Binding | `CLOSED_CANONICAL` | READY_BASE: probes_present + NOTICE inventory + perf binding; PRIVATE_DATA_READY=false; rights_license_decision=false; budgets not claimed. |
 | 033 | Windows AppContainer FS (Q09 residual) | `CLOSED_CANONICAL` | READY_BASE: AppContainer child FS deny (windows_appcontainer_fs_measured); network/LPAC scaffold; platform_qualified=false; WORKER_OS_SANDBOX gate OPEN. |
 | 034 | Durable Outbox Restart (Q12 residual) | `CLOSED_CANONICAL` | READY_BASE: SyntheticVault outbox reload + UNKNOWN reconcile; `outbox_restart_qualified`; NPHIES gated. |
-| 035+ | Advanced deferred work | `DEFERRED_BY_CANONICAL_DESIGN` | Plugins/GraphRAG/replicas/imaging/CUDA/etc. |
+| 035 | EncryptedVault Authority Sync (Q02/Q03 residual) | `CLOSED_CANONICAL` | READY_BASE: EncryptedVault persists/reloads authority graph; `encrypted_authority_sync_qualified`; PRIVATE_DATA_READY=false. |
+| 036+ | Advanced deferred work | `DEFERRED_BY_CANONICAL_DESIGN` | Plugins/GraphRAG/replicas/imaging/CUDA/etc. |
 
 ## Automatic progression
 
@@ -58,4 +59,4 @@ For the first `READY` unit: create/complete its Spec Kit package, analyze it, im
 
 Do not stop merely because a PR merged, one milestone passed, or an external optional gate exists.
 
-**Next eligible (honest):** Spec 012 MESC-blocked. PRIVATE_DATA_READY still blocked by swap / hibernate / snapshot qualification (OS keyring READY_BASE in Spec 028; probes in Spec 032 do not clear the gate). Branch protection / required checks need owner settings. Product PLATFORM_QUALIFIED OS sandbox (AppContainer network/LPAC + macOS App Sandbox entitlements + multi-OS composition) and WCAG/final-v0 accessibility remain open after Spec 029–033. Deferred advanced **035+**. Remaining ordinary Trusted V1 in-repo work may still include measured OS privacy follow-ons beyond probes and EncryptedVault authority sync if promoted; do not invent unauthorized product features. Do **not** claim `RELEASE_READY`, `PRIVATE_DATA_READY`, or `MULTI_CLIENT_RELEASE_READY`. Do not treat Q03 PRIVATE_DATA_READY or Q09 multi-OS PLATFORM_QUALIFIED as fully exhausted.
+**Next eligible (honest):** Spec 012 MESC-blocked. PRIVATE_DATA_READY still blocked by swap / hibernate / snapshot qualification (OS keyring READY_BASE in Spec 028; probes in Spec 032 do not clear the gate). Branch protection / required checks need owner settings. Product PLATFORM_QUALIFIED OS sandbox (AppContainer network/LPAC + macOS App Sandbox entitlements + multi-OS composition) and WCAG/final-v0 accessibility remain open after Spec 029–033. Deferred advanced **036+**. Remaining ordinary Trusted V1 residuals are largely external (swap/snapshot measured qualification, AppContainer network/LPAC, macOS App Sandbox entitlements, WCAG/final-v0, MESC assets, license, branch protection). Do not invent unauthorized product features. Do **not** claim `RELEASE_READY`, `PRIVATE_DATA_READY`, or `MULTI_CLIENT_RELEASE_READY`. Do not treat Q03 PRIVATE_DATA_READY or Q09 multi-OS PLATFORM_QUALIFIED as fully exhausted.
