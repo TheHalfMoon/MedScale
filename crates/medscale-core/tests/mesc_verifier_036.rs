@@ -1,6 +1,7 @@
 //! Spec 036 MESC synthetic verifier READY_BASE (does not clear MESC_RELEASED_ARTIFACT).
 //!
 //! Fixtures are written at runtime (LF bytes) so Windows checkout EOL cannot break digests.
+//! Each test uses a unique temp directory so parallel cargo tests do not race.
 
 use medscale_contracts::envelopes::{
     AuthorityError, AuthorityRequest, Capability, RequestBody, ResponseBody,
@@ -12,6 +13,7 @@ use medscale_contracts::objects::{AuthorityScopeId, DigestSha256, OpaqueId, Real
 use medscale_core::{CoreFacade, build_doctor_report};
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU64, Ordering};
 
 fn req(capability: Capability, body: RequestBody) -> AuthorityRequest {
     AuthorityRequest::new(
@@ -25,8 +27,8 @@ fn req(capability: Capability, body: RequestBody) -> AuthorityRequest {
 }
 
 fn tmp_root(label: &str) -> PathBuf {
-    static COUNTER: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
-    let n = COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    static COUNTER: AtomicU64 = AtomicU64::new(0);
+    let n = COUNTER.fetch_add(1, Ordering::Relaxed);
     let dir = std::env::temp_dir().join(format!(
         "mesc-036-it-{}-{}-{}",
         label,
@@ -98,7 +100,6 @@ fn write_good(dir: &Path) {
 fn clone_good(root: &Path, name: &str) -> PathBuf {
     let src = root.join("synthetic-good");
     let dst = root.join(name);
-    // Simple recursive copy for small fixture trees.
     fs::create_dir_all(&dst).unwrap();
     for entry in fs::read_dir(&src).unwrap() {
         let entry = entry.unwrap();
@@ -186,6 +187,11 @@ fn verify(facade: &CoreFacade, path: &Path) -> ResponseBody {
 #[test]
 fn synthetic_good_verifies_without_product_admit() {
     let root = tmp_root("good");
+    prepare_adversarial(&root);
+    let facade = CoreFacade::new_legacy_lease_only_engineering();
+    match verify(&facade, &root.join("synthetic-good")) {
+        ResponseBody::MescVerify { report } => {
+            assert_eq!(report.state, MescAdmissionState::Verified);
             assert_eq!(report.reason, MescVerifyReason::Ok);
             assert!(!report.product_admit_authorized);
             assert_eq!(
@@ -201,6 +207,9 @@ fn synthetic_good_verifies_without_product_admit() {
 #[test]
 fn adversarial_fixtures_reject_with_stable_reasons() {
     let root = tmp_root("adversarial");
+    prepare_adversarial(&root);
+    let facade = CoreFacade::new_legacy_lease_only_engineering();
+    let cases = [
         ("missing-manifest", MescVerifyReason::MissingManifest),
         ("digest-mismatch", MescVerifyReason::DigestMismatch),
         ("size-mismatch", MescVerifyReason::SizeMismatch),
@@ -227,6 +236,11 @@ fn adversarial_fixtures_reject_with_stable_reasons() {
 #[test]
 fn replay_rejects_second_identical_verified_epoch() {
     let root = tmp_root("replay");
+    prepare_adversarial(&root);
+    let facade = CoreFacade::new_legacy_lease_only_engineering();
+    match verify(&facade, &root.join("synthetic-good")) {
+        ResponseBody::MescVerify { report } => {
+            assert_eq!(report.reason, MescVerifyReason::Ok);
         }
         other => panic!("unexpected {other:?}"),
     }
@@ -243,6 +257,10 @@ fn replay_rejects_second_identical_verified_epoch() {
 #[test]
 fn admit_still_gate_blocked_after_synthetic_verify() {
     let root = tmp_root("admit");
+    prepare_adversarial(&root);
+    let facade = CoreFacade::new_legacy_lease_only_engineering();
+    let _ = verify(&facade, &root.join("synthetic-good"));
+    let out = facade.dispatch(req(
         Capability::MescArtifactAdmit,
         RequestBody::MescArtifactAdmit {
             request: MescArtifactAdmitRequest {
