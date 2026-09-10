@@ -13,6 +13,6 @@
 
 ## Non-claims
 
-- Not multi-OS PLATFORM_QUALIFIED; macOS Seatbelt still scaffold.
+- Not multi-OS PLATFORM_QUALIFIED; App Sandbox entitlements / Windows AppContainer FS still scaffold.
 - Not AppContainer filesystem/network isolation.
 - Not RELEASE_READY / PRIVATE_DATA_READY / MULTI_CLIENT_RELEASE_READY.

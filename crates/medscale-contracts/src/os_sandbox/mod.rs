@@ -1,9 +1,11 @@
-//! OS worker sandbox (Specs 008 / 026 / 030).
+//! OS worker sandbox (Specs 008 / 026 / 030 / 031).
 //!
 //! EXTERNAL_GATES: `WORKER_OS_SANDBOX_PLATFORM_QUALIFIED` remains OPEN until multi-OS
-//! measured PLATFORM_QUALIFIED evidence exists. Linux and Windows may report
-//! ReadyBaseMeasured only; macOS remains NotPlatformQualified scaffold.
+//! measured PLATFORM_QUALIFIED evidence exists (including Windows AppContainer FS).
+//! Linux, Windows (Job Object), and macOS (Seatbelt) may report ReadyBaseMeasured only.
 
+#[cfg(target_os = "macos")]
+mod macos_seatbelt;
 #[cfg(windows)]
 mod windows_job;
 
@@ -18,7 +20,7 @@ use std::path::PathBuf;
 pub enum OsSandboxQualification {
     /// Scaffold / research only — Spec 008 exit posture for non-measured backends.
     NotPlatformQualified,
-    /// Spec 026/030: measured READY_BASE — not full multi-OS PLATFORM_QUALIFIED.
+    /// Spec 026/030/031: measured READY_BASE — not full multi-OS PLATFORM_QUALIFIED.
     ReadyBaseMeasured,
     /// Reserved for multi-OS measured evidence + EXTERNAL_GATES close.
     PlatformQualified,
@@ -43,7 +45,7 @@ pub struct OsSandboxPlan {
     pub evidence_path: String,
     pub limitations: Vec<String>,
     /// Absolute paths allowed for ReadyBaseMeasured Landlock apply (read+write under hierarchy).
-    /// Unused for Windows Job Object READY_BASE (process-limit measurement).
+    /// Unused for Windows Job Object / macOS Seatbelt network-deny READY_BASE.
     #[serde(default)]
     pub allow_paths: Vec<String>,
 }
@@ -117,6 +119,34 @@ impl OsSandboxPlan {
         }
     }
 
+    /// Spec 031 macOS READY_BASE: Seatbelt `sandbox_init` network-deny measured.
+    /// App Sandbox entitlements / container FS remain scaffold-only.
+    #[must_use]
+    pub fn macos_seatbelt_ready_base() -> Self {
+        Self {
+            target: OsSandboxTarget::MacosSeatbeltSandbox,
+            qualification: OsSandboxQualification::ReadyBaseMeasured,
+            mechanisms: vec![
+                "sandbox_init_sbpl".to_owned(),
+                "seatbelt_network_deny".to_owned(),
+                "app_sandbox_entitlements_scaffold".to_owned(),
+            ],
+            evidence_path: "evidence/031-macos-seatbelt-sandbox/MACOS_SEATBELT_MEASURED.md"
+                .to_owned(),
+            limitations: vec![
+                "ReadyBaseMeasured Seatbelt network-deny only — not multi-OS PLATFORM_QUALIFIED"
+                    .to_owned(),
+                "App Sandbox entitlements / container FS isolation still scaffold (not measured in Spec 031)"
+                    .to_owned(),
+                "sandbox_init is deprecated in headers but still ships; not entitlement App Sandbox"
+                    .to_owned(),
+                "EXTERNAL_GATES WORKER_OS_SANDBOX_PLATFORM_QUALIFIED remains OPEN".to_owned(),
+            ],
+            allow_paths: vec![],
+        }
+    }
+
+    /// App Sandbox / XPC-oriented scaffold (NotPlatformQualified); Seatbelt READY_BASE is separate.
     #[must_use]
     pub fn macos_seatbelt_scaffold() -> Self {
         Self {
@@ -127,23 +157,24 @@ impl OsSandboxPlan {
                 "app_sandbox_candidate".to_owned(),
                 "xpc_pattern_candidate".to_owned(),
             ],
-            evidence_path: "evidence/008-local-ai-capability-fabric/OS_SANDBOX_SCAFFOLD.md"
-                .to_owned(),
+            evidence_path: "evidence/031-macos-seatbelt-sandbox/LIMITATIONS.md".to_owned(),
             limitations: vec![
                 "Not PLATFORM_QUALIFIED".to_owned(),
-                "No Seatbelt apply path in Spec 030".to_owned(),
+                "App Sandbox entitlements apply path not measured in Spec 031 (Seatbelt ReadyBaseMeasured is separate)"
+                    .to_owned(),
             ],
             allow_paths: vec![],
         }
     }
 
-    /// Scaffold / READY_BASE plans; Linux + Windows may claim ReadyBaseMeasured.
+    /// Scaffold / READY_BASE plans; Linux + Windows + macOS may claim ReadyBaseMeasured.
     #[must_use]
     pub fn all_plans() -> Vec<Self> {
         vec![
             Self::linux_landlock_ready_base(vec![]),
             Self::windows_job_object_ready_base(),
             Self::windows_appcontainer_scaffold(),
+            Self::macos_seatbelt_ready_base(),
             Self::macos_seatbelt_scaffold(),
         ]
     }
@@ -165,7 +196,7 @@ impl OsSandboxPlan {
     }
 }
 
-/// OS sandbox doctor axis (Specs 026 + 030).
+/// OS sandbox doctor axis (Specs 026 + 030 + 031).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct OsSandboxDoctorStatus {
@@ -174,6 +205,8 @@ pub struct OsSandboxDoctorStatus {
     pub linux_measured: bool,
     /// Spec 030: Windows Job Object ReadyBaseMeasured evidence exists in-tree.
     pub windows_measured: bool,
+    /// Spec 031: macOS Seatbelt ReadyBaseMeasured evidence exists in-tree.
+    pub macos_measured: bool,
     pub platform_qualified: bool,
     pub release_ready: bool,
 }
@@ -186,6 +219,7 @@ impl OsSandboxDoctorStatus {
             ready_base: true,
             linux_measured: true,
             windows_measured: true,
+            macos_measured: true,
             platform_qualified: false,
             release_ready: false,
         }
@@ -197,6 +231,7 @@ impl OsSandboxDoctorStatus {
             && self.ready_base
             && self.linux_measured
             && self.windows_measured
+            && self.macos_measured
             && !self.platform_qualified
             && !self.release_ready
     }
@@ -215,8 +250,9 @@ pub enum OsSandboxApplyError {
 ///
 /// - `ReadyBaseMeasured` + LinuxLandlock on Linux: Landlock allowlist apply.
 /// - `ReadyBaseMeasured` + WindowsAppContainerJobObject on Windows: Job Object limits.
+/// - `ReadyBaseMeasured` + MacosSeatbeltSandbox on macOS: Seatbelt network-deny.
 /// - `PlatformQualified`: still refused while EXTERNAL_GATES remains OPEN.
-/// - macOS / AppContainer scaffolds: NotPlatformQualified / NotReadyOnThisHost.
+/// - AppContainer / App Sandbox scaffolds: NotPlatformQualified.
 pub fn try_apply_os_sandbox(plan: &OsSandboxPlan) -> Result<(), OsSandboxApplyError> {
     if plan.claims_platform_qualified() {
         // Gate OPEN — never honor PlatformQualified without EXTERNAL_GATES close.
@@ -230,7 +266,7 @@ pub fn try_apply_os_sandbox(plan: &OsSandboxPlan) -> Result<(), OsSandboxApplyEr
     match plan.target {
         OsSandboxTarget::LinuxLandlock => apply_linux_ready_base(plan),
         OsSandboxTarget::WindowsAppContainerJobObject => apply_windows_ready_base(plan),
-        OsSandboxTarget::MacosSeatbeltSandbox => Err(OsSandboxApplyError::NotReadyOnThisHost),
+        OsSandboxTarget::MacosSeatbeltSandbox => apply_macos_ready_base(plan),
     }
 }
 
@@ -258,6 +294,18 @@ fn apply_windows_ready_base(_plan: &OsSandboxPlan) -> Result<(), OsSandboxApplyE
     }
 
     #[cfg(not(windows))]
+    {
+        Err(OsSandboxApplyError::NotReadyOnThisHost)
+    }
+}
+
+fn apply_macos_ready_base(_plan: &OsSandboxPlan) -> Result<(), OsSandboxApplyError> {
+    #[cfg(target_os = "macos")]
+    {
+        macos_seatbelt::apply_seatbelt_macos()
+    }
+
+    #[cfg(not(target_os = "macos"))]
     {
         Err(OsSandboxApplyError::NotReadyOnThisHost)
     }
@@ -311,10 +359,13 @@ mod tests {
         assert!(!OsSandboxPlan::windows_appcontainer_scaffold().claims_platform_qualified());
         assert!(!OsSandboxPlan::windows_appcontainer_scaffold().claims_ready_base_measured());
         assert!(!OsSandboxPlan::macos_seatbelt_scaffold().claims_platform_qualified());
+        assert!(!OsSandboxPlan::macos_seatbelt_scaffold().claims_ready_base_measured());
         assert!(!OsSandboxPlan::linux_landlock_ready_base(vec![]).claims_platform_qualified());
         assert!(OsSandboxPlan::linux_landlock_ready_base(vec![]).claims_ready_base_measured());
         assert!(OsSandboxPlan::windows_job_object_ready_base().claims_ready_base_measured());
         assert!(!OsSandboxPlan::windows_job_object_ready_base().claims_platform_qualified());
+        assert!(OsSandboxPlan::macos_seatbelt_ready_base().claims_ready_base_measured());
+        assert!(!OsSandboxPlan::macos_seatbelt_ready_base().claims_platform_qualified());
     }
 
     #[test]
@@ -329,6 +380,12 @@ mod tests {
         win.qualification = OsSandboxQualification::PlatformQualified;
         assert_eq!(
             try_apply_os_sandbox(&win),
+            Err(OsSandboxApplyError::NotPlatformQualified)
+        );
+        let mut mac = OsSandboxPlan::macos_seatbelt_ready_base();
+        mac.qualification = OsSandboxQualification::PlatformQualified;
+        assert_eq!(
+            try_apply_os_sandbox(&mac),
             Err(OsSandboxApplyError::NotPlatformQualified)
         );
     }
@@ -362,12 +419,23 @@ mod tests {
         );
     }
 
+    #[cfg(not(target_os = "macos"))]
+    #[test]
+    fn macos_ready_base_on_non_macos_is_not_ready() {
+        let plan = OsSandboxPlan::macos_seatbelt_ready_base();
+        assert_eq!(
+            try_apply_os_sandbox(&plan),
+            Err(OsSandboxApplyError::NotReadyOnThisHost)
+        );
+    }
+
     #[test]
     fn doctor_axis_honest() {
         let d = OsSandboxDoctorStatus::ready_base();
         assert!(d.is_honest_ready_base());
         assert!(d.windows_measured);
         assert!(d.linux_measured);
+        assert!(d.macos_measured);
         assert!(!d.platform_qualified);
         assert!(!d.release_ready);
     }
