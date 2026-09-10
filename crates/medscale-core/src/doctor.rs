@@ -1,12 +1,12 @@
-//! Doctor report aggregation (Spec 006 / 028 / 032).
+//! Doctor report aggregation (Spec 006 / 028 / 032 / 043).
 
 use std::path::Path;
 
 use medscale_contracts::actions::ControlledActionsDoctorStatus;
 use medscale_contracts::doctor::{
     AccessibilityDoctorStatus, DoctorReport, HostAuthorityDoctorStatus, KeyStoreAvailability,
-    OsResidualFileProbe, PrivacyFreshness, RecordSemanticsDoctorStatus,
-    ReleaseQualificationDoctorStatus, SyncRisk, VaultPrivacyDoctorStatus,
+    OsResidualFileProbe, PrivacyFreshness, ProbeHonestyClass, RecordSemanticsDoctorStatus,
+    ReleaseQualificationDoctorStatus, Spec043VaultPrivacyInput, SyncRisk, VaultPrivacyDoctorStatus,
 };
 use medscale_contracts::evidence::EvidenceCorpusDoctorStatus;
 use medscale_contracts::fhir::{FhirInterchangeDoctorStatus, FhirSupportMatrix};
@@ -20,7 +20,8 @@ use medscale_contracts::workflow::WorkflowDoctorStatus;
 use medscale_contracts::{MEDSCALE_PRODUCT_NAME, MEDSCALE_VERSION};
 use medscale_keys::KeyStoreDoctorPosture;
 use medscale_storage::{
-    OsFileProbeResult, assert_claim_path, default_vault_root, probe_os_privacy_surfaces,
+    OsFileProbeResult, ProbeHonestyClass as StorageHonesty, assert_claim_path, default_vault_root,
+    probe_os_privacy_surfaces,
 };
 
 use crate::authority::{DEFAULT_CORPUS_ID, DEFAULT_CORPUS_VERSION};
@@ -31,6 +32,15 @@ fn map_file_probe(p: OsFileProbeResult) -> OsResidualFileProbe {
         OsFileProbeResult::NotFound => OsResidualFileProbe::NotFound,
         OsFileProbeResult::NotReadable => OsResidualFileProbe::NotReadable,
         OsFileProbeResult::NotApplicable => OsResidualFileProbe::NotApplicable,
+    }
+}
+
+fn map_honesty(h: StorageHonesty) -> ProbeHonestyClass {
+    match h {
+        StorageHonesty::ConfigurationDetected => ProbeHonestyClass::ConfigurationDetected,
+        StorageHonesty::ProtectionMeasured => ProbeHonestyClass::ProtectionMeasured,
+        StorageHonesty::NotMeasurableOnHost => ProbeHonestyClass::NotMeasurableOnHost,
+        StorageHonesty::OwnerOrOsPolicyRequired => ProbeHonestyClass::OwnerOrOsPolicyRequired,
     }
 }
 
@@ -98,10 +108,16 @@ pub fn build_doctor_report_full(
 
     let probes = probe_os_privacy_surfaces();
     let residual_note = format!(
-        "Vault privacy Spec 032: probes_present; residual open={:?}; pagefile={}; hibernate={}; PRIVATE_DATA_READY=false",
+        "Vault privacy Spec 043: probes_present; swap_snapshot_honesty_present; residual open={:?}; pagefile={}/{}; swap={}/{}; snapshot={}/{}; core_dump={}/{}; PRIVATE_DATA_READY=false",
         probes.residual_risk_classes_open,
-        probes.pagefile_existence.as_str(),
-        probes.hibernate_file_existence.as_str()
+        probes.pagefile.existence.as_str(),
+        probes.pagefile.existence_honesty.as_str(),
+        probes.swap.existence.as_str(),
+        probes.swap.existence_honesty.as_str(),
+        probes.snapshot.existence.as_str(),
+        probes.snapshot.existence_honesty.as_str(),
+        probes.core_dump_config.existence.as_str(),
+        probes.core_dump_config.existence_honesty.as_str(),
     );
 
     DoctorReport {
@@ -142,12 +158,23 @@ pub fn build_doctor_report_full(
         controlled_actions: ControlledActionsDoctorStatus::ready_base(),
         online_packs: OnlinePacksDoctorStatus::ready_base(),
         mesc_artifact: MescArtifactDoctorStatus::gate_blocked(),
-        vault_privacy: VaultPrivacyDoctorStatus::spec_032_honest(
-            key_posture.os_keyring_available,
-            key_posture.os_keyring_used,
-            map_file_probe(probes.pagefile_existence),
-            map_file_probe(probes.hibernate_file_existence),
-        ),
+        vault_privacy: VaultPrivacyDoctorStatus::spec_043_honest(Spec043VaultPrivacyInput {
+            os_keyring_available: key_posture.os_keyring_available,
+            os_keyring_used: key_posture.os_keyring_used,
+            pagefile_existence: map_file_probe(probes.pagefile.existence),
+            hibernate_file_existence: map_file_probe(probes.hibernate.existence),
+            swap_existence: map_file_probe(probes.swap.existence),
+            snapshot_existence: map_file_probe(probes.snapshot.existence),
+            core_dump_config_existence: map_file_probe(probes.core_dump_config.existence),
+            pagefile_existence_honesty: map_honesty(probes.pagefile.existence_honesty),
+            pagefile_protection_honesty: map_honesty(probes.pagefile.protection_honesty),
+            swap_existence_honesty: map_honesty(probes.swap.existence_honesty),
+            swap_protection_honesty: map_honesty(probes.swap.protection_honesty),
+            snapshot_existence_honesty: map_honesty(probes.snapshot.existence_honesty),
+            snapshot_protection_honesty: map_honesty(probes.snapshot.protection_honesty),
+            core_dump_existence_honesty: map_honesty(probes.core_dump_config.existence_honesty),
+            core_dump_protection_honesty: map_honesty(probes.core_dump_config.protection_honesty),
+        }),
         host_authority: HostAuthorityDoctorStatus::ready_base(),
         record_semantics: RecordSemanticsDoctorStatus::ready_base(),
         fhir_interchange: FhirInterchangeDoctorStatus::ready_base(),

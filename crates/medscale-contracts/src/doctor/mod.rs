@@ -212,7 +212,17 @@ pub enum OsResidualFileProbe {
     NotApplicable,
 }
 
-/// Vault privacy posture (Specs 017/023/028/032). Never claims secrets.
+/// Honesty class for residual privacy surfaces (Spec 043).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ProbeHonestyClass {
+    ConfigurationDetected,
+    ProtectionMeasured,
+    NotMeasurableOnHost,
+    OwnerOrOsPolicyRequired,
+}
+
+/// Vault privacy posture (Specs 017/023/028/032/043). Never claims secrets.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct VaultPrivacyDoctorStatus {
@@ -230,12 +240,30 @@ pub struct VaultPrivacyDoctorStatus {
     pub os_keyring_used: bool,
     /// Spec 032: OS residual privacy probes wired (existence/scan only).
     pub probes_present: bool,
-    /// Spec 032: residual risk classes still OPEN (swap/hibernate/snapshot/pagefile).
+    /// Spec 043: swap/snapshot/core-dump honesty classification wired.
+    pub swap_snapshot_honesty_present: bool,
+    /// Spec 032/043: residual risk classes still OPEN.
     pub residual_risk_classes_open: Vec<String>,
     /// Spec 032: best-effort pagefile (or OS swap-class) existence probe.
     pub pagefile_existence: OsResidualFileProbe,
     /// Spec 032: best-effort hibernate/sleepimage existence probe.
     pub hibernate_file_existence: OsResidualFileProbe,
+    /// Spec 043: distinct swap existence (may equal pagefile-class on some OS).
+    pub swap_existence: OsResidualFileProbe,
+    /// Spec 043: best-effort filesystem/volume snapshot existence.
+    pub snapshot_existence: OsResidualFileProbe,
+    /// Spec 043: core/crash-dump configuration surface existence.
+    pub core_dump_config_existence: OsResidualFileProbe,
+    /// Spec 043: existence honesty for pagefile/swap-class.
+    pub pagefile_existence_honesty: ProbeHonestyClass,
+    /// Spec 043: protection honesty (never measured for residuals in this unit).
+    pub pagefile_protection_honesty: ProbeHonestyClass,
+    pub swap_existence_honesty: ProbeHonestyClass,
+    pub swap_protection_honesty: ProbeHonestyClass,
+    pub snapshot_existence_honesty: ProbeHonestyClass,
+    pub snapshot_protection_honesty: ProbeHonestyClass,
+    pub core_dump_existence_honesty: ProbeHonestyClass,
+    pub core_dump_protection_honesty: ProbeHonestyClass,
     /// Spec 032: vault temp/work leftover scan helper available.
     pub vault_leftover_scan_available: bool,
     /// Spec 032: crash sidecar detection (Spec 017 wipe path) available.
@@ -251,12 +279,45 @@ impl VaultPrivacyDoctorStatus {
             "hibernate".to_owned(),
             "snapshot".to_owned(),
             "pagefile".to_owned(),
+            "core_dump".to_owned(),
         ]
+    }
+
+    fn honesty_unmeasured() -> (
+        ProbeHonestyClass,
+        ProbeHonestyClass,
+        ProbeHonestyClass,
+        ProbeHonestyClass,
+        ProbeHonestyClass,
+        ProbeHonestyClass,
+        ProbeHonestyClass,
+        ProbeHonestyClass,
+    ) {
+        (
+            ProbeHonestyClass::NotMeasurableOnHost,
+            ProbeHonestyClass::OwnerOrOsPolicyRequired,
+            ProbeHonestyClass::NotMeasurableOnHost,
+            ProbeHonestyClass::OwnerOrOsPolicyRequired,
+            ProbeHonestyClass::NotMeasurableOnHost,
+            ProbeHonestyClass::OwnerOrOsPolicyRequired,
+            ProbeHonestyClass::NotMeasurableOnHost,
+            ProbeHonestyClass::OwnerOrOsPolicyRequired,
+        )
     }
 
     /// Spec 017 posture before SQLCipher open-work (historical).
     #[must_use]
     pub fn spec_017_honest() -> Self {
+        let (
+            pagefile_existence_honesty,
+            pagefile_protection_honesty,
+            swap_existence_honesty,
+            swap_protection_honesty,
+            snapshot_existence_honesty,
+            snapshot_protection_honesty,
+            core_dump_existence_honesty,
+            core_dump_protection_honesty,
+        ) = Self::honesty_unmeasured();
         Self {
             present: true,
             private_data_ready: false,
@@ -268,9 +329,21 @@ impl VaultPrivacyDoctorStatus {
             os_keyring_available: false,
             os_keyring_used: false,
             probes_present: false,
+            swap_snapshot_honesty_present: false,
             residual_risk_classes_open: Self::residual_classes_open(),
             pagefile_existence: OsResidualFileProbe::NotApplicable,
             hibernate_file_existence: OsResidualFileProbe::NotApplicable,
+            swap_existence: OsResidualFileProbe::NotApplicable,
+            snapshot_existence: OsResidualFileProbe::NotApplicable,
+            core_dump_config_existence: OsResidualFileProbe::NotApplicable,
+            pagefile_existence_honesty,
+            pagefile_protection_honesty,
+            swap_existence_honesty,
+            swap_protection_honesty,
+            snapshot_existence_honesty,
+            snapshot_protection_honesty,
+            core_dump_existence_honesty,
+            core_dump_protection_honesty,
             vault_leftover_scan_available: true,
             crash_sidecar_detect_available: true,
             encrypted_authority_sync_qualified: false,
@@ -280,6 +353,16 @@ impl VaultPrivacyDoctorStatus {
     /// Spec 023 READY_BASE: page-encrypted open work; PRIVATE_DATA_READY still false.
     #[must_use]
     pub fn spec_023_honest() -> Self {
+        let (
+            pagefile_existence_honesty,
+            pagefile_protection_honesty,
+            swap_existence_honesty,
+            swap_protection_honesty,
+            snapshot_existence_honesty,
+            snapshot_protection_honesty,
+            core_dump_existence_honesty,
+            core_dump_protection_honesty,
+        ) = Self::honesty_unmeasured();
         Self {
             present: true,
             private_data_ready: false,
@@ -292,9 +375,21 @@ impl VaultPrivacyDoctorStatus {
             os_keyring_available: false,
             os_keyring_used: false,
             probes_present: false,
+            swap_snapshot_honesty_present: false,
             residual_risk_classes_open: Self::residual_classes_open(),
             pagefile_existence: OsResidualFileProbe::NotApplicable,
             hibernate_file_existence: OsResidualFileProbe::NotApplicable,
+            swap_existence: OsResidualFileProbe::NotApplicable,
+            snapshot_existence: OsResidualFileProbe::NotApplicable,
+            core_dump_config_existence: OsResidualFileProbe::NotApplicable,
+            pagefile_existence_honesty,
+            pagefile_protection_honesty,
+            swap_existence_honesty,
+            swap_protection_honesty,
+            snapshot_existence_honesty,
+            snapshot_protection_honesty,
+            core_dump_existence_honesty,
+            core_dump_protection_honesty,
             vault_leftover_scan_available: true,
             crash_sidecar_detect_available: true,
             encrypted_authority_sync_qualified: false,
@@ -305,6 +400,16 @@ impl VaultPrivacyDoctorStatus {
     /// (swap/hibernate/snapshots unqualified; REAL_PHI unauthorized).
     #[must_use]
     pub fn spec_028_honest(os_keyring_available: bool, os_keyring_used: bool) -> Self {
+        let (
+            pagefile_existence_honesty,
+            pagefile_protection_honesty,
+            swap_existence_honesty,
+            swap_protection_honesty,
+            snapshot_existence_honesty,
+            snapshot_protection_honesty,
+            core_dump_existence_honesty,
+            core_dump_protection_honesty,
+        ) = Self::honesty_unmeasured();
         Self {
             present: true,
             private_data_ready: false,
@@ -316,16 +421,28 @@ impl VaultPrivacyDoctorStatus {
             os_keyring_available,
             os_keyring_used,
             probes_present: false,
+            swap_snapshot_honesty_present: false,
             residual_risk_classes_open: Self::residual_classes_open(),
             pagefile_existence: OsResidualFileProbe::NotApplicable,
             hibernate_file_existence: OsResidualFileProbe::NotApplicable,
+            swap_existence: OsResidualFileProbe::NotApplicable,
+            snapshot_existence: OsResidualFileProbe::NotApplicable,
+            core_dump_config_existence: OsResidualFileProbe::NotApplicable,
+            pagefile_existence_honesty,
+            pagefile_protection_honesty,
+            swap_existence_honesty,
+            swap_protection_honesty,
+            snapshot_existence_honesty,
+            snapshot_protection_honesty,
+            core_dump_existence_honesty,
+            core_dump_protection_honesty,
             vault_leftover_scan_available: true,
             crash_sidecar_detect_available: true,
             encrypted_authority_sync_qualified: false,
         }
     }
 
-    /// Spec 032/035 READY_BASE: privacy probes + EncryptedVault authority sync; PRIVATE_DATA_READY still false.
+    /// Spec 032 READY_BASE: privacy probes; PRIVATE_DATA_READY still false.
     #[must_use]
     pub fn spec_032_honest(
         os_keyring_available: bool,
@@ -333,6 +450,16 @@ impl VaultPrivacyDoctorStatus {
         pagefile_existence: OsResidualFileProbe,
         hibernate_file_existence: OsResidualFileProbe,
     ) -> Self {
+        let (
+            pagefile_existence_honesty,
+            pagefile_protection_honesty,
+            swap_existence_honesty,
+            swap_protection_honesty,
+            snapshot_existence_honesty,
+            snapshot_protection_honesty,
+            core_dump_existence_honesty,
+            core_dump_protection_honesty,
+        ) = Self::honesty_unmeasured();
         Self {
             present: true,
             private_data_ready: false,
@@ -344,14 +471,81 @@ impl VaultPrivacyDoctorStatus {
             os_keyring_available,
             os_keyring_used,
             probes_present: true,
+            swap_snapshot_honesty_present: false,
             residual_risk_classes_open: Self::residual_classes_open(),
             pagefile_existence,
             hibernate_file_existence,
+            swap_existence: OsResidualFileProbe::NotApplicable,
+            snapshot_existence: OsResidualFileProbe::NotApplicable,
+            core_dump_config_existence: OsResidualFileProbe::NotApplicable,
+            pagefile_existence_honesty,
+            pagefile_protection_honesty,
+            swap_existence_honesty,
+            swap_protection_honesty,
+            snapshot_existence_honesty,
+            snapshot_protection_honesty,
+            core_dump_existence_honesty,
+            core_dump_protection_honesty,
             vault_leftover_scan_available: true,
             crash_sidecar_detect_available: true,
             encrypted_authority_sync_qualified: true,
         }
     }
+
+    /// Spec 043 READY_BASE: classified swap/snapshot/core-dump honesty; PRIVATE_DATA_READY still false.
+    #[must_use]
+    pub fn spec_043_honest(input: Spec043VaultPrivacyInput) -> Self {
+        Self {
+            present: true,
+            private_data_ready: false,
+            sealed_at_close: true,
+            open_work_plaintext_risk: true,
+            open_work_page_encrypted: true,
+            work_wipe_on_close: true,
+            sqlcipher_enabled: true,
+            os_keyring_available: input.os_keyring_available,
+            os_keyring_used: input.os_keyring_used,
+            probes_present: true,
+            swap_snapshot_honesty_present: true,
+            residual_risk_classes_open: Self::residual_classes_open(),
+            pagefile_existence: input.pagefile_existence,
+            hibernate_file_existence: input.hibernate_file_existence,
+            swap_existence: input.swap_existence,
+            snapshot_existence: input.snapshot_existence,
+            core_dump_config_existence: input.core_dump_config_existence,
+            pagefile_existence_honesty: input.pagefile_existence_honesty,
+            pagefile_protection_honesty: input.pagefile_protection_honesty,
+            swap_existence_honesty: input.swap_existence_honesty,
+            swap_protection_honesty: input.swap_protection_honesty,
+            snapshot_existence_honesty: input.snapshot_existence_honesty,
+            snapshot_protection_honesty: input.snapshot_protection_honesty,
+            core_dump_existence_honesty: input.core_dump_existence_honesty,
+            core_dump_protection_honesty: input.core_dump_protection_honesty,
+            vault_leftover_scan_available: true,
+            crash_sidecar_detect_available: true,
+            encrypted_authority_sync_qualified: true,
+        }
+    }
+}
+
+/// Inputs for Spec 043 vault privacy doctor construction.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Spec043VaultPrivacyInput {
+    pub os_keyring_available: bool,
+    pub os_keyring_used: bool,
+    pub pagefile_existence: OsResidualFileProbe,
+    pub hibernate_file_existence: OsResidualFileProbe,
+    pub swap_existence: OsResidualFileProbe,
+    pub snapshot_existence: OsResidualFileProbe,
+    pub core_dump_config_existence: OsResidualFileProbe,
+    pub pagefile_existence_honesty: ProbeHonestyClass,
+    pub pagefile_protection_honesty: ProbeHonestyClass,
+    pub swap_existence_honesty: ProbeHonestyClass,
+    pub swap_protection_honesty: ProbeHonestyClass,
+    pub snapshot_existence_honesty: ProbeHonestyClass,
+    pub snapshot_protection_honesty: ProbeHonestyClass,
+    pub core_dump_existence_honesty: ProbeHonestyClass,
+    pub core_dump_protection_honesty: ProbeHonestyClass,
 }
 
 /// Host / client session authority posture (Spec 018).

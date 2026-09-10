@@ -76,10 +76,12 @@ Spec **037** is `CLOSED_CANONICAL` READY_BASE (required-checks packet + checksum
 Spec **038** is `CLOSED_CANONICAL` READY_BASE (Q09 AppContainer network measured; `windows_appcontainer_network_measured=true`; LPAC scaffold; sandbox gate still OPEN).
 Spec **039** is `CLOSED_CANONICAL` READY_BASE (entry-doc honesty + PHI readiness checklist + signing/provenance prep packets; no RELEASE_READY claim).
 Spec **040** is `CLOSED_CANONICAL` READY_BASE (Windows AppContainer LPAC ReadyBaseMeasured; `windows_appcontainer_lpac_measured`; `platform_qualified=false`).
-Spec **041** is promoted READY (macOS App Sandbox entitlements artifact/probe; enforcement_measured=false; see `SPEC_041_PROMOTION.md`).
-Spec 012 remains MESC-blocked. Deferred advanced work is **042+**.
+Spec **041** is `CLOSED_CANONICAL` READY_BASE (macOS App Sandbox entitlements artifact/probe; enforcement_measured=false; see `SPEC_041_PROMOTION.md`).
+Spec **042** is `CLOSED_CANONICAL` READY_BASE (delivery-plan scale perf harness; `budgets_claimed_met=false`).
+Spec **043** is promoted READY (swap/snapshot/core-dump honesty classification; `PRIVATE_DATA_READY` still FALSE; see `SPEC_043_PROMOTION.md`).
+Spec 012 remains MESC-blocked. Deferred advanced work is **044+**.
 Do **not** claim `RELEASE_READY`, `PRIVATE_DATA_READY`, or `MULTI_CLIENT_RELEASE_READY`.
-Q03 residual page encryption landed in Spec 023; OS keyring READY_BASE in Spec 028; Spec 032 probes do not clear swap/snapshot (still block PRIVATE_DATA_READY).
+Q03 residual page encryption landed in Spec 023; OS keyring READY_BASE in Spec 028; Spec 032/043 probes classify residuals but do not clear swap/snapshot (still block PRIVATE_DATA_READY).
 Foundation and prep closure is not product or privacy release readiness.
 
 ### Historical bootstrap requirements (already closed)
