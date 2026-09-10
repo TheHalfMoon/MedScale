@@ -71,6 +71,7 @@ pub fn crash_sidecar_leftovers_present(root: &Path) -> bool {
     EncryptedVault::leftover_work_present(root)
 }
 
+#[cfg(any(windows, target_os = "macos"))]
 fn probe_path(path: &Path) -> OsFileProbeResult {
     match std::fs::metadata(path) {
         Ok(_) => OsFileProbeResult::Detected,
