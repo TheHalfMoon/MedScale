@@ -15,6 +15,8 @@ pub struct TransportRequest {
 pub enum TransportError {
     #[error("external gate required for live partner")]
     ExternalGateRequired,
+    #[error("transport timeout: {0}")]
+    Timeout(String),
     #[error("transport failed: {0}")]
     Failed(String),
 }
@@ -24,20 +26,32 @@ pub trait BrokerTransport: Send + Sync {
 }
 
 /// Offline fixture transport — no sockets.
+///
+/// Synthetic failure fixture ids (Spec 037):
+/// - `fail:timeout` → `TransportError::Timeout`
+/// - `fail:transport` → `TransportError::Failed`
 #[derive(Debug, Default)]
 pub struct FixtureTransport;
 
 impl BrokerTransport for FixtureTransport {
     fn send(&self, req: &TransportRequest) -> Result<String, TransportError> {
         let id = req.fixture_id.as_deref().unwrap_or("default");
-        Ok(serde_json::json!({
-            "fixture": true,
-            "host": req.host,
-            "path": req.path,
-            "purpose": format!("{:?}", req.purpose),
-            "fixture_id": id,
-        })
-        .to_string())
+        match id {
+            "fail:timeout" => Err(TransportError::Timeout(
+                "synthetic fixture timeout".to_owned(),
+            )),
+            "fail:transport" => Err(TransportError::Failed(
+                "synthetic fixture transport failure".to_owned(),
+            )),
+            _ => Ok(serde_json::json!({
+                "fixture": true,
+                "host": req.host,
+                "path": req.path,
+                "purpose": format!("{:?}", req.purpose),
+                "fixture_id": id,
+            })
+            .to_string()),
+        }
     }
 }
 

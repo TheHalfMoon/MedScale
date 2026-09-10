@@ -5,11 +5,11 @@
 **Rule:** update this file whenever a unit enters or leaves a canonical state.
 
 **Autonomous stop status (historical V2 scoped closure):** superseded for Trusted V1 follow-on work.
-**Live follow-on status (2026-09-10):** Specs **016**–**035** `CLOSED_CANONICAL` on main; Spec **036** MESC synthetic verifier READY_BASE (this unit) — Spec **012** remains `BLOCKED_BY_RELEASED_MESC_ARTIFACT` (`MESC_RELEASED_ARTIFACT` NOT_AVAILABLE; residual `BLOCKED_BY_UPSTREAM_MESC_RELEASE_ASSETS`). Honesty: `PRIVATE_DATA_READY=false`; `RELEASE_READY=false`; `MULTI_CLIENT_RELEASE_READY=false`; `WORKER_OS_SANDBOX_PLATFORM_QUALIFIED` OPEN; `rights_license_decision=false`; budgets not claimed. Deferred advanced product work is **037+** (plugins/GraphRAG/replicas/imaging/CUDA/etc.). Do **not** claim RELEASE_READY / PRIVATE_DATA_READY / MULTI_CLIENT_RELEASE_READY.
+**Live follow-on status (2026-09-10):** Specs **016**–**037** `CLOSED_CANONICAL` READY_BASE on the Trusted V1 residual track (Spec **036** = MESC synthetic verifier; Spec **037** = release-prep packets + transport-fail fixtures). Spec **012** remains `BLOCKED_BY_RELEASED_MESC_ARTIFACT`. Honesty: `PRIVATE_DATA_READY=false`; `RELEASE_READY=false`; `MULTI_CLIENT_RELEASE_READY=false`; sandbox/platform gates OPEN; `rights_license_decision=false`; budgets not claimed. Deferred advanced product work is **038+**. Do **not** claim RELEASE_READY / PRIVATE_DATA_READY / MULTI_CLIENT_RELEASE_READY.
 
 ## 2026-09-10 planning refinement
 
-See Trusted V1 delivery plan. Specs 018–035 READY_BASE closed on main; Spec 036 = MESC synthetic verifier residual READY_BASE (does not clear Spec 012). Spec 012 MESC-blocked on upstream assets. Advanced **037+** deferred.
+See Trusted V1 delivery plan. Specs 018–037 READY_BASE closed on residual track; Spec 012 MESC-blocked on upstream assets. Advanced **038+** deferred.
 
 ## Historical scoped queue (closures preserved)
 
@@ -52,7 +52,8 @@ See Trusted V1 delivery plan. Specs 018–035 READY_BASE closed on main; Spec 03
 | 034 | Durable Outbox Restart (Q12 residual) | `CLOSED_CANONICAL` | READY_BASE: SyntheticVault outbox reload + UNKNOWN reconcile; `outbox_restart_qualified`; NPHIES gated. |
 | 035 | EncryptedVault Authority Sync (Q02/Q03 residual) | `CLOSED_CANONICAL` | READY_BASE: EncryptedVault persists/reloads authority graph; `encrypted_authority_sync_qualified`; PRIVATE_DATA_READY=false. |
 | 036 | MESC Synthetic Verifier (012 residual) | `CLOSED_CANONICAL` | READY_BASE: synthetic manifest verifier + fixtures; `verifier_ready_base=true`; Spec 012 / MESC_RELEASED_ARTIFACT still NOT_AVAILABLE. |
-| 037+ | Advanced deferred work | `DEFERRED_BY_CANONICAL_DESIGN` | Plugins/GraphRAG/replicas/imaging/CUDA/etc. |
+| 037 | Release Prep + Transport Fail Fixtures | `CLOSED_CANONICAL` | READY_BASE: REQUIRED_CHECKS packet + checksum verify + license counsel packet + broker transport fail fixtures; RELEASE_READY=false. |
+| 038+ | Advanced deferred work | `DEFERRED_BY_CANONICAL_DESIGN` | Plugins/GraphRAG/replicas/imaging/CUDA/etc. |
 
 ## Automatic progression
 
@@ -60,4 +61,4 @@ For the first `READY` unit: create/complete its Spec Kit package, analyze it, im
 
 Do not stop merely because a PR merged, one milestone passed, or an external optional gate exists.
 
-**Next eligible (honest):** Spec 012 MESC-blocked on upstream release assets (Spec 036 verifier READY_BASE does not clear the gate). PRIVATE_DATA_READY still blocked by swap / hibernate / snapshot qualification. Branch protection / required checks need owner settings. Product PLATFORM_QUALIFIED OS sandbox composition and WCAG/final-v0 accessibility remain open. Deferred advanced **037+**. Remaining ordinary Trusted V1 residuals are largely external or release-prep packets. Do not invent unauthorized product features. Do **not** claim `RELEASE_READY`, `PRIVATE_DATA_READY`, or `MULTI_CLIENT_RELEASE_READY`.
+**Next eligible (honest):** Spec 012 MESC-blocked on upstream release assets. PRIVATE_DATA_READY / PLATFORM_QUALIFIED / branch protection / SPDX / WCAG/final-v0 remain external or owner/founder. Spec 037 completed in-repo release-prep packets. Deferred advanced **038+**. Do not invent unauthorized product features. Do **not** claim `RELEASE_READY`, `PRIVATE_DATA_READY`, or `MULTI_CLIENT_RELEASE_READY`.
