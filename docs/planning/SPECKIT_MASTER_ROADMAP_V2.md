@@ -79,7 +79,8 @@ Required lifecycle for each material executable spec:
 | 047 | `release-dry-run-verifier` | Release dry-run + cross-verifier (Q05 residual) | 039/046 closed | CLOSED_CANONICAL READY_BASE; release_dry_run_verifier_present; RELEASE_READY=false |
 | 048 | `migration-recovery-release-bar` | Migration/recovery release-bar READY_BASE (Q05 residual) | 003/005/047 closed | CLOSED_CANONICAL READY_BASE; migration_recovery_ready_base; RELEASE_READY=false |
 | 049 | `package-upgrade-rollback` | Package upgrade/rollback dry-run scaffold (Q05 residual) | 047/048 closed | CLOSED_CANONICAL READY_BASE; package_upgrade_rollback_scaffold_present; RELEASE_READY=false |
-| 050+ | `research-site-imaging-genomics-advanced` | deferred site/research/collab/imaging/genomics/plugin/browser/watch/vision expansion | evidence-driven later gates | no Trusted V1 implementation commitment |
+| 050 | `host-perf-measurement` | Host-bound perf measurement path (Q05 residual) | 042/045 closed | READY — host_perf_measurement_path_present; budgets not claimed |
+| 051+ | `research-site-imaging-genomics-advanced` | deferred site/research/collab/imaging/genomics/plugin/browser/watch/vision expansion | evidence-driven later gates | no Trusted V1 implementation commitment |
 
 ## 3. Corrected critical path
 

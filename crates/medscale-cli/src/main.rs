@@ -358,7 +358,7 @@ fn run() -> Result<()> {
                     report.workflow.disclosure_append_supported
                 );
                 println!(
-                    "release_qualification: prep_ready_base={} release_ready={} locked={} macos_ci={} macos_qualified={} branch_protection={} perf_harness={} sbom_scaffold={} sbom_lock_bound={} dry_run_verifier={} migration_recovery={} pkg_upgrade_scaffold={} notice_inventory={} rights_license_decision={} missing={}",
+                    "release_qualification: prep_ready_base={} release_ready={} locked={} macos_ci={} macos_qualified={} branch_protection={} perf_harness={} sbom_scaffold={} sbom_lock_bound={} dry_run_verifier={} migration_recovery={} pkg_upgrade_scaffold={} host_perf_path={} notice_inventory={} rights_license_decision={} missing={}",
                     report.release_qualification.prep_ready_base,
                     report.release_qualification.release_ready,
                     report.release_qualification.locked_builds,
@@ -375,6 +375,9 @@ fn run() -> Result<()> {
                     report
                         .release_qualification
                         .package_upgrade_rollback_scaffold_present,
+                    report
+                        .release_qualification
+                        .host_perf_measurement_path_present,
                     report.release_qualification.notice_inventory_present,
                     report.release_qualification.rights_license_decision,
                     report.release_qualification.missing_evidence_classes.len()
@@ -755,6 +758,7 @@ mod tests {
             "release_dry_run_verifier_present",
             "migration_recovery_ready_base",
             "package_upgrade_rollback_scaffold_present",
+            "host_perf_measurement_path_present",
             "accessibility",
             "fixture_cli_labels_checked",
             "cli_keyboard_path_documented",
