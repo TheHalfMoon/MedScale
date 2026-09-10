@@ -70,8 +70,10 @@ Required lifecycle for each material executable spec:
 | 038 | `windows-appcontainer-network` | Windows AppContainer network READY_BASE (Q09 residual) | 033 closed | CLOSED_CANONICAL READY_BASE; windows_appcontainer_network_measured; LPAC scaffold; platform_qualified=false |
 | 039 | `release-honesty-packets` | Entry-doc honesty + PHI readiness + signing/provenance prep packets | 022/037 | CLOSED_CANONICAL READY_BASE; no RELEASE_READY / PHI / signing credentials |
 | 040 | `windows-appcontainer-lpac` | Windows AppContainer LPAC READY_BASE (Q09 residual) | 038 closed | CLOSED_CANONICAL READY_BASE; windows_appcontainer_lpac_measured; platform_qualified=false |
-| 041 | `macos-app-sandbox-entitlements` | macOS App Sandbox entitlements READY_BASE (Q09 residual) | 031/040 closed | READY — artifact/probe; enforcement_measured=false; platform_qualified=false |
-| 042+ | `research-site-imaging-genomics-advanced` | deferred site/research/collab/imaging/genomics/plugin/browser/watch/vision expansion | evidence-driven later gates | no Trusted V1 implementation commitment |
+| 041 | `macos-app-sandbox-entitlements` | macOS App Sandbox entitlements READY_BASE (Q09 residual) | 031/040 closed | CLOSED_CANONICAL READY_BASE; entitlements measured; enforcement_measured=false; platform_qualified=false |
+| 042 | `perf-delivery-plan-scale` | Delivery-plan scale perf harness (Q05 residual) | 027/032 closed | CLOSED_CANONICAL READY_BASE; budgets_claimed_met=false |
+| 043 | `swap-snapshot-honesty` | Swap/snapshot/core-dump honesty classification (Q03 residual) | 032 closed | READY — configuration vs protection honesty; PRIVATE_DATA_READY=false |
+| 044+ | `research-site-imaging-genomics-advanced` | deferred site/research/collab/imaging/genomics/plugin/browser/watch/vision expansion | evidence-driven later gates | no Trusted V1 implementation commitment |
 
 ## 3. Corrected critical path
 
