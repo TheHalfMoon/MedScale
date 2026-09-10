@@ -74,12 +74,14 @@ pub struct EvidenceCorpusDoctorStatus {
     pub clinical_quality_claimed: bool,
     /// Always false — Spec 025 does not establish RELEASE_READY.
     pub release_ready: bool,
+    /// Spec 045: procedural scale corpus generator present (not clinical quality).
+    pub scale_corpus_generator_present: bool,
     pub current_corpus_id: Option<String>,
     pub current_version: Option<String>,
 }
 
 impl EvidenceCorpusDoctorStatus {
-    /// Spec 025 READY_BASE honesty for the synthetic versioned corpus.
+    /// Spec 025/045 READY_BASE honesty for the synthetic versioned corpus.
     #[must_use]
     pub fn ready_base(corpus_id: impl Into<String>, version: impl Into<String>) -> Self {
         Self {
@@ -89,6 +91,7 @@ impl EvidenceCorpusDoctorStatus {
             synthetic_owned_only: true,
             clinical_quality_claimed: false,
             release_ready: false,
+            scale_corpus_generator_present: true,
             current_corpus_id: Some(corpus_id.into()),
             current_version: Some(version.into()),
         }

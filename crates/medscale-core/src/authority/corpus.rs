@@ -1,4 +1,4 @@
-//! Source-versioned local lexical evidence corpus (Spec 025 / Q10).
+//! Source-versioned local lexical evidence corpus (Spec 025 / Q10 / Spec 045 scale).
 
 use std::fs;
 use std::path::Path;
@@ -15,6 +15,13 @@ use thiserror::Error;
 pub const DEFAULT_CORPUS_ID: &str = "synthetic-lexical";
 /// Default admitted synthetic corpus version.
 pub const DEFAULT_CORPUS_VERSION: &str = "1.0.0";
+
+/// Spec 045 scale corpus identity (procedural; not the default retrieval corpus).
+pub const SCALE_CORPUS_ID: &str = "synthetic-lexical-scale";
+/// Spec 045 10k scale corpus version label (identity ≠ content hash).
+pub const SCALE_CORPUS_VERSION_10K: &str = "10k.0.0";
+/// Delivery-plan lexical scale document count.
+pub const SCALE_CORPUS_DOC_COUNT_10K: usize = 10_000;
 
 /// Corpus admission / load failures (fail-closed).
 #[derive(Debug, Error, PartialEq, Eq)]
@@ -163,6 +170,57 @@ pub fn default_synthetic_corpus() -> &'static EvidenceCorpusManifest {
     })
 }
 
+/// Spec 045: build a deterministic procedural synthetic scale corpus (no fixture dump).
+///
+/// Does **not** replace `default_synthetic_corpus`. Clinical quality / RELEASE_READY stay false.
+#[must_use]
+pub fn build_synthetic_lexical_scale_corpus(doc_count: usize) -> EvidenceCorpusManifest {
+    assert!(
+        doc_count > 0,
+        "scale corpus requires a positive document count"
+    );
+    let mut documents = Vec::with_capacity(doc_count);
+    for i in 0..doc_count {
+        let text = if i % 100 == 0 {
+            format!(
+                "synthetic scale doc {i:05}: hypertension blood pressure residual marker for lexical harness"
+            )
+        } else {
+            format!("synthetic scale doc {i:05}: filler content for Q10/Q05 scale residual")
+        };
+        let content_digest = DigestSha256::of(text.as_bytes());
+        documents.push(EvidenceCorpusDocument {
+            doc_id: format!("scale-{i:05}"),
+            text,
+            content_digest,
+            status: EvidenceDocStatus::Active,
+            freshness_marker: None,
+            conflict_marker: None,
+        });
+    }
+    let content_digest = compute_corpus_content_digest(&documents);
+    let version = if doc_count == SCALE_CORPUS_DOC_COUNT_10K {
+        SCALE_CORPUS_VERSION_10K.to_owned()
+    } else {
+        format!("scale-{doc_count}.0.0")
+    };
+    EvidenceCorpusManifest {
+        corpus_id: SCALE_CORPUS_ID.to_owned(),
+        version,
+        content_digest,
+        rights: EvidenceCorpusRights::SyntheticOwned,
+        rights_uri: "medscale://synthetic-owned/lexical-scale".to_owned(),
+        documents,
+    }
+}
+
+/// Spec 045: cached 10k-document scale corpus (procedural OnceLock).
+#[must_use]
+pub fn scale_synthetic_corpus_10k() -> &'static EvidenceCorpusManifest {
+    static CORPUS: OnceLock<EvidenceCorpusManifest> = OnceLock::new();
+    CORPUS.get_or_init(|| build_synthetic_lexical_scale_corpus(SCALE_CORPUS_DOC_COUNT_10K))
+}
+
 pub(crate) fn matches_request(m: &EvidenceCorpusManifest, request: &str) -> bool {
     request == m.corpus_id || request == m.source_identity()
 }
@@ -184,5 +242,17 @@ mod tests {
                 .iter()
                 .any(|d| matches!(d.status, EvidenceDocStatus::Retracted))
         );
+    }
+
+    #[test]
+    fn scale_10k_is_deterministic_and_distinct_from_builtin() {
+        let a = build_synthetic_lexical_scale_corpus(SCALE_CORPUS_DOC_COUNT_10K);
+        let b = build_synthetic_lexical_scale_corpus(SCALE_CORPUS_DOC_COUNT_10K);
+        assert_eq!(a.content_digest, b.content_digest);
+        assert_eq!(a.documents.len(), SCALE_CORPUS_DOC_COUNT_10K);
+        assert_eq!(a.corpus_id, SCALE_CORPUS_ID);
+        assert_eq!(a.version, SCALE_CORPUS_VERSION_10K);
+        assert_ne!(a.content_digest, default_synthetic_corpus().content_digest);
+        assert_ne!(a.source_identity(), a.content_digest.to_hex());
     }
 }

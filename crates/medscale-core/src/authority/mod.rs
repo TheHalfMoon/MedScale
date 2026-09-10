@@ -15,8 +15,9 @@ mod source_ops;
 mod store;
 
 pub use corpus::{
-    DEFAULT_CORPUS_ID, DEFAULT_CORPUS_VERSION, admit_corpus_bytes, admit_corpus_dir,
-    default_synthetic_corpus,
+    DEFAULT_CORPUS_ID, DEFAULT_CORPUS_VERSION, SCALE_CORPUS_DOC_COUNT_10K, SCALE_CORPUS_ID,
+    SCALE_CORPUS_VERSION_10K, admit_corpus_bytes, admit_corpus_dir,
+    build_synthetic_lexical_scale_corpus, default_synthetic_corpus, scale_synthetic_corpus_10k,
 };
 pub use document_ops::{document_worker_policy, mime_decision, voice_worker_policy};
 pub use facade::CoreFacade;
