@@ -117,7 +117,11 @@ fn prepare_adversarial(root: &Path) {
     let mut m: serde_json::Value =
         serde_json::from_slice(&fs::read(d.join("manifest.json")).unwrap()).unwrap();
     m["artifacts"][0]["byte_length"] = serde_json::json!(1);
-    fs::write(d.join("manifest.json"), serde_json::to_vec_pretty(&m).unwrap()).unwrap();
+    fs::write(
+        d.join("manifest.json"),
+        serde_json::to_vec_pretty(&m).unwrap(),
+    )
+    .unwrap();
 
     clone_good(root, "missing-file");
     fs::remove_file(root.join("missing-file/model.bin")).unwrap();
@@ -126,20 +130,32 @@ fn prepare_adversarial(root: &Path) {
     let mut m: serde_json::Value =
         serde_json::from_slice(&fs::read(d.join("manifest.json")).unwrap()).unwrap();
     m["schema_version"] = serde_json::json!(99);
-    fs::write(d.join("manifest.json"), serde_json::to_vec_pretty(&m).unwrap()).unwrap();
+    fs::write(
+        d.join("manifest.json"),
+        serde_json::to_vec_pretty(&m).unwrap(),
+    )
+    .unwrap();
 
     let d = clone_good(root, "unknown-field");
     let mut m: serde_json::Value =
         serde_json::from_slice(&fs::read(d.join("manifest.json")).unwrap()).unwrap();
     m["evil_extra"] = serde_json::json!(true);
-    fs::write(d.join("manifest.json"), serde_json::to_vec_pretty(&m).unwrap()).unwrap();
+    fs::write(
+        d.join("manifest.json"),
+        serde_json::to_vec_pretty(&m).unwrap(),
+    )
+    .unwrap();
 
     let d = clone_good(root, "duplicate-path");
     let mut m: serde_json::Value =
         serde_json::from_slice(&fs::read(d.join("manifest.json")).unwrap()).unwrap();
     let first = m["artifacts"][0].clone();
     m["artifacts"].as_array_mut().unwrap().push(first);
-    fs::write(d.join("manifest.json"), serde_json::to_vec_pretty(&m).unwrap()).unwrap();
+    fs::write(
+        d.join("manifest.json"),
+        serde_json::to_vec_pretty(&m).unwrap(),
+    )
+    .unwrap();
 
     clone_good(root, "missing-rights");
     fs::remove_file(root.join("missing-rights/NOTICE")).unwrap();
