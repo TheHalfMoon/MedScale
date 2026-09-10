@@ -304,7 +304,7 @@ fn run() -> Result<()> {
                     report.mesc_artifact.gate
                 );
                 println!(
-                    "vault_privacy: ready={} sealed_at_close={} open_work_risk={} page_encrypted={} sqlcipher={} wipe_on_close={} os_keyring_available={} os_keyring_used={}",
+                    "vault_privacy: ready={} sealed_at_close={} open_work_risk={} page_encrypted={} sqlcipher={} wipe_on_close={} os_keyring_available={} os_keyring_used={} probes_present={} residual_open={} pagefile={:?} hibernate={:?}",
                     report.vault_privacy.private_data_ready,
                     report.vault_privacy.sealed_at_close,
                     report.vault_privacy.open_work_plaintext_risk,
@@ -312,7 +312,11 @@ fn run() -> Result<()> {
                     report.vault_privacy.sqlcipher_enabled,
                     report.vault_privacy.work_wipe_on_close,
                     report.vault_privacy.os_keyring_available,
-                    report.vault_privacy.os_keyring_used
+                    report.vault_privacy.os_keyring_used,
+                    report.vault_privacy.probes_present,
+                    report.vault_privacy.residual_risk_classes_open.join(","),
+                    report.vault_privacy.pagefile_existence,
+                    report.vault_privacy.hibernate_file_existence
                 );
                 println!(
                     "host_authority: ready_base={} multi_client_release={} os_ipc={}",
@@ -348,7 +352,7 @@ fn run() -> Result<()> {
                     report.workflow.disclosure_append_supported
                 );
                 println!(
-                    "release_qualification: prep_ready_base={} release_ready={} locked={} macos_ci={} macos_qualified={} branch_protection={} perf_harness={} sbom_scaffold={} missing={}",
+                    "release_qualification: prep_ready_base={} release_ready={} locked={} macos_ci={} macos_qualified={} branch_protection={} perf_harness={} sbom_scaffold={} notice_inventory={} rights_license_decision={} missing={}",
                     report.release_qualification.prep_ready_base,
                     report.release_qualification.release_ready,
                     report.release_qualification.locked_builds,
@@ -357,6 +361,8 @@ fn run() -> Result<()> {
                     report.release_qualification.branch_protection_configured,
                     report.release_qualification.perf_harness_present,
                     report.release_qualification.sbom_scaffold_present,
+                    report.release_qualification.notice_inventory_present,
+                    report.release_qualification.rights_license_decision,
                     report.release_qualification.missing_evidence_classes.len()
                 );
                 println!(
@@ -739,6 +745,12 @@ mod tests {
             "os_keyring_available",
             "os_keyring_used",
             "private_data_ready",
+            "probes_present",
+            "residual_risk_classes_open",
+            "pagefile_existence",
+            "hibernate_file_existence",
+            "notice_inventory_present",
+            "rights_license_decision",
         ] {
             assert!(json.contains(key), "missing {key}");
         }

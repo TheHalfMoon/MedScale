@@ -36,6 +36,6 @@ Measured via `PRAGMA cipher_version` in `crates/medscale-storage/tests/vault_ope
 | Acquisition target note | Original Spec 005 pin referenced sqlcipher tag v4.17.0; **embedded measured string is authoritative** for this enablement |
 | Feature flag | `medscale-storage` default `sqlcipher` = on |
 | Doctor | `sqlcipher_enabled=true`, `open_work_page_encrypted=true`, `private_data_ready=false` |
-| PRIVATE_DATA_READY | **FALSE** (OS keyring MemoryMock; swap/hibernate/snapshots unqualified) |
+| PRIVATE_DATA_READY | **FALSE** (OsKeyStore READY_BASE in Spec 028; Spec 032 probes only; swap/hibernate/snapshots/pagefile unqualified) |
 | Windows build note | Vendored OpenSSL requires Perl on PATH (CI: Chocolatey StrawberryPerl) |
 | macOS build note (Spec 029) | CI installs Homebrew `openssl@3` + `perl` and sets `OPENSSL_DIR` for vendored/SQLCipher builds; macOS CI ≠ product PLATFORM_QUALIFIED |
