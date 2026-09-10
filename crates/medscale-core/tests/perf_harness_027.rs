@@ -329,7 +329,7 @@ fn perf_harness_027_runs_and_reports_numbers_without_budget_pass() {
     let vault_root = open_vault(&facade);
     let subject = OpaqueId::new("subject-027");
     let timeline_events = if delivery_plan_scale_requested() {
-        timeline_event_count().max(10_000).min(10_000)
+        10_000
     } else {
         timeline_event_count()
     };
