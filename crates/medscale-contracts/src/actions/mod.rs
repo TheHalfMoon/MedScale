@@ -1,4 +1,4 @@
-//! Controlled external-action contracts (Spec 014 READY_BASE).
+//! Controlled external-action contracts (Spec 014 / 034 READY_BASE).
 
 use serde::{Deserialize, Serialize};
 
@@ -10,22 +10,35 @@ use crate::objects::{DigestSha256, EffectState, OpaqueId};
 pub struct ControlledActionsDoctorStatus {
     pub present: bool,
     pub outbox_enabled: bool,
+    /// Spec 034: SyntheticVault restart fixture proves outbox reload (audit-class intents).
+    pub outbox_restart_qualified: bool,
     pub unknown_blind_retry: bool,
     pub nphies_authorized: bool,
     pub payload_digest_required: bool,
 }
 
 impl ControlledActionsDoctorStatus {
-    /// Spec 014 READY_BASE defaults.
+    /// Spec 014 + 034 READY_BASE defaults.
     #[must_use]
     pub fn ready_base() -> Self {
         Self {
             present: true,
             outbox_enabled: true,
+            outbox_restart_qualified: true,
             unknown_blind_retry: false,
             nphies_authorized: false,
             payload_digest_required: true,
         }
+    }
+
+    #[must_use]
+    pub fn is_honest_ready_base(&self) -> bool {
+        self.present
+            && self.outbox_enabled
+            && self.outbox_restart_qualified
+            && !self.unknown_blind_retry
+            && !self.nphies_authorized
+            && self.payload_digest_required
     }
 }
 

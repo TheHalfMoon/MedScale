@@ -52,7 +52,7 @@ confinement. The current facade is an internal trusted-process API, not an authe
 | Backup | sealed copy | explicit destination | header/meta.sealed/sealed_blobs copy | operator-chosen recipient | restore integrity and location qualification still required; `crates/medscale-storage/src/encrypted_vault.rs:278` |
 | Writer ownership | file marker + in-memory lease | supplied holder string | `<root>/.writer.lock`, instance-local registry | trusted process | not qualified OS-exclusive lock; `crates/medscale-storage/src/encrypted_vault.rs:227`, `crates/medscale-core/src/process/mod.rs:20` |
 | Broker | request receipt | facade chooses FixtureTransport | in-memory synthetic response | core caller | no socket; live transport refuses; `crates/medscale-network/src/transport.rs:48` |
-| Action outbox | intents/audit | CoreFacade store | memory only in current path | trusted process | no durable live-action guarantee; `crates/medscale-core/src/authority/facade.rs:855` |
+| Action outbox | intents/audit | CoreFacade store + Spec 016 `authority_objects` when SyntheticVault open | memory-only without open vault; Spec **034** qualifies SyntheticVault restart reload of audit-class intents / ListOutbox | trusted process | no live-partner guarantee; EncryptedVault authority sync not Spec 034; `crates/medscale-core/tests/outbox_restart_034.rs` |
 
 Paths are relative to the repository root at the recorded baseline. These describe actual
 consumers rather than assumed deployment defaults.
