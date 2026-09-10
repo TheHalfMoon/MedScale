@@ -5,11 +5,11 @@
 **Rule:** update this file whenever a unit enters or leaves a canonical state.
 
 **Autonomous stop status (historical V2 scoped closure):** superseded for Trusted V1 follow-on work.
-**Live follow-on status (2026-09-11):** Specs **016**–**047** `CLOSED_CANONICAL` READY_BASE. Spec **047** release dry-run + cross-verifier closed — see `SPEC_047_PROMOTION.md`. Spec **012** MESC-blocked. Honesty: `PRIVATE_DATA_READY=false`; `RELEASE_READY=false`; `budgets_claimed_met=false`; sandbox `platform_qualified=false`. Deferred advanced **048+**.
+**Live follow-on status (2026-09-11):** Specs **016**–**047** `CLOSED_CANONICAL` READY_BASE. Spec **048** (migration/recovery release-bar READY_BASE) promoted — see `SPEC_048_PROMOTION.md`. Spec **012** MESC-blocked. Honesty: `PRIVATE_DATA_READY=false`; `RELEASE_READY=false`; `budgets_claimed_met=false`; sandbox `platform_qualified=false`. Deferred advanced **049+**.
 
 ## 2026-09-11 planning refinement
 
-See Trusted V1 delivery plan. Specs 018–047 READY_BASE closed; Spec 012 MESC-blocked. Advanced **048+** deferred.
+See Trusted V1 delivery plan. Specs 018–047 READY_BASE closed; Spec 048 READY (Q05 residual). Spec 012 MESC-blocked. Advanced **049+** deferred.
 
 ## Historical scoped queue (closures preserved)
 
@@ -63,7 +63,8 @@ See Trusted V1 delivery plan. Specs 018–047 READY_BASE closed; Spec 012 MESC-b
 | 045 | Lexical 10k Corpus (Q10/Q05 residual) | `CLOSED_CANONICAL` | READY_BASE: procedural synthetic-lexical-scale@10k + harness wiring; clinical_quality/budgets/RELEASE_READY false. |
 | 046 | SBOM Lock Binding (Q05 residual) | `CLOSED_CANONICAL` | Cargo.lock digest in SBOM scaffold; sbom_lock_bound; not full release SBOM. See `SPEC_046_PROMOTION.md`. |
 | 047 | Release Dry-Run + Verifier (Q05 residual) | `CLOSED_CANONICAL` | READY_BASE: dry-run binds source/tree/lock + build env + native-deps honesty; cross-verifier present; RELEASE_READY=false. See `SPEC_047_PROMOTION.md`. |
-| 048+ | Advanced deferred work | `DEFERRED_BY_CANONICAL_DESIGN` | Plugins/GraphRAG/replicas/imaging/CUDA/etc. |
+| 048 | Migration/Recovery Release-Bar (Q05 residual) | `READY` | Interrupt fail-closed + backup/restore recovery + encrypted backup closure; migration_recovery_ready_base; RELEASE_READY=false. See `SPEC_048_PROMOTION.md`. |
+| 049+ | Advanced deferred work | `DEFERRED_BY_CANONICAL_DESIGN` | Plugins/GraphRAG/replicas/imaging/CUDA/etc. |
 
 ## Automatic progression
 
@@ -71,5 +72,5 @@ For the first `READY` unit: create/complete its Spec Kit package, analyze it, im
 
 Do not stop merely because a PR merged, one milestone passed, or an external optional gate exists.
 
-**Next eligible (honest):** Spec **048** candidates after fresh executability audit (migration/recovery release-bar proof; host perf measurement). Spec 012 MESC-blocked. Signed App Sandbox enforcement, branch protection, SPDX, signing credentials, WCAG/final-v0, MESC assets remain largely external. Deferred advanced product **048+** only if not a Trusted V1 residual. Do **not** claim `RELEASE_READY`, `PRIVATE_DATA_READY`, or `MULTI_CLIENT_RELEASE_READY`.
+**Next eligible (honest):** Spec **048** migration/recovery release-bar (`READY`). Spec 012 MESC-blocked. After 048: package upgrade/rollback, perf budget measurement, signed App Sandbox enforcement, branch protection, SPDX, signing credentials, WCAG/final-v0, MESC assets remain largely external. Deferred advanced **049+**. Do **not** claim `RELEASE_READY`, `PRIVATE_DATA_READY`, or `MULTI_CLIENT_RELEASE_READY`.
 

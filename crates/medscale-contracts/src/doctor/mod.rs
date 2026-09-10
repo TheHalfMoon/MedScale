@@ -43,6 +43,8 @@ pub struct ReleaseQualificationDoctorStatus {
     pub sbom_lock_bound: bool,
     /// Spec 047: release dry-run + manifest↔SBOM↔checksum cross-verifier present.
     pub release_dry_run_verifier_present: bool,
+    /// Spec 048: vault-level migration interrupt + backup/restore recovery READY_BASE.
+    pub migration_recovery_ready_base: bool,
     /// Spec 032: NOTICE/third-party inventory artifact present (not a license decision).
     pub notice_inventory_present: bool,
     /// Spec 032: public SPDX for MedScale crates — always false until EXTERNAL_GATES.
@@ -71,6 +73,7 @@ impl ReleaseQualificationDoctorStatus {
             sbom_scaffold_present: true,
             sbom_lock_bound: true,
             release_dry_run_verifier_present: true,
+            migration_recovery_ready_base: true,
             notice_inventory_present: true,
             rights_license_decision: false,
             missing_evidence_classes: vec![
@@ -82,7 +85,7 @@ impl ReleaseQualificationDoctorStatus {
                 "perf_budgets_attained_on_qualified_hardware".to_owned(),
                 "public_source_license_choice".to_owned(),
                 "checksums_provenance_signing_verification".to_owned(),
-                "release_bar_migration_recovery_proof".to_owned(),
+                "release_package_upgrade_rollback_proof".to_owned(),
                 "unresolved_material_findings_clearance".to_owned(),
                 "wcag_final_v0_ui_accessibility_qualification".to_owned(),
             ],
@@ -102,6 +105,7 @@ impl ReleaseQualificationDoctorStatus {
             && self.sbom_scaffold_present
             && self.sbom_lock_bound
             && self.release_dry_run_verifier_present
+            && self.migration_recovery_ready_base
             && self.notice_inventory_present
             && !self.rights_license_decision
             && self
@@ -116,6 +120,12 @@ impl ReleaseQualificationDoctorStatus {
             && self
                 .missing_evidence_classes
                 .contains(&"checksums_provenance_signing_verification".to_owned())
+            && self
+                .missing_evidence_classes
+                .contains(&"release_package_upgrade_rollback_proof".to_owned())
+            && !self
+                .missing_evidence_classes
+                .contains(&"release_bar_migration_recovery_proof".to_owned())
             && !self.missing_evidence_classes.is_empty()
     }
 }
@@ -708,6 +718,7 @@ mod release_qualification_tests {
         assert!(s.sbom_scaffold_present);
         assert!(s.sbom_lock_bound);
         assert!(s.release_dry_run_verifier_present);
+        assert!(s.migration_recovery_ready_base);
         assert!(s.notice_inventory_present);
         assert!(!s.rights_license_decision);
         assert!(
@@ -729,6 +740,14 @@ mod release_qualification_tests {
         assert!(
             s.missing_evidence_classes
                 .contains(&"checksums_provenance_signing_verification".to_owned())
+        );
+        assert!(
+            s.missing_evidence_classes
+                .contains(&"release_package_upgrade_rollback_proof".to_owned())
+        );
+        assert!(
+            !s.missing_evidence_classes
+                .contains(&"release_bar_migration_recovery_proof".to_owned())
         );
         assert!(
             s.missing_evidence_classes

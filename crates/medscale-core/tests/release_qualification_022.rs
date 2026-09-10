@@ -23,8 +23,17 @@ fn release_qualification_axis_is_honest_prep_not_release_ready() {
     assert!(rq.sbom_scaffold_present);
     assert!(rq.sbom_lock_bound);
     assert!(rq.release_dry_run_verifier_present);
+    assert!(rq.migration_recovery_ready_base);
     assert!(rq.notice_inventory_present);
     assert!(!rq.rights_license_decision);
+    assert!(
+        rq.missing_evidence_classes
+            .contains(&"release_package_upgrade_rollback_proof".to_owned())
+    );
+    assert!(
+        !rq.missing_evidence_classes
+            .contains(&"release_bar_migration_recovery_proof".to_owned())
+    );
     assert!(
         rq.missing_evidence_classes
             .contains(&"macos_platform_product_qualification".to_owned())
