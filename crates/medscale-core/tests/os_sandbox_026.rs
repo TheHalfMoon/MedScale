@@ -12,17 +12,22 @@ fn doctor_os_sandbox_and_pack_signer_honest() {
     assert!(report.os_sandbox.is_honest_ready_base());
     assert!(report.os_sandbox.linux_measured);
     assert!(report.os_sandbox.windows_measured);
+    assert!(report.os_sandbox.macos_measured);
     assert!(!report.os_sandbox.platform_qualified);
     assert!(!report.os_sandbox.release_ready);
     assert!(!report.pack_signer.release_ready);
 }
 
 #[test]
-fn windows_macos_remain_not_platform_qualified() {
+fn windows_appcontainer_and_macos_scaffold_remain_not_platform_qualified() {
     assert!(!OsSandboxPlan::windows_appcontainer_scaffold().claims_platform_qualified());
     assert!(!OsSandboxPlan::macos_seatbelt_scaffold().claims_platform_qualified());
     assert_eq!(
         try_apply_os_sandbox(&OsSandboxPlan::windows_appcontainer_scaffold()),
+        Err(OsSandboxApplyError::NotPlatformQualified)
+    );
+    assert_eq!(
+        try_apply_os_sandbox(&OsSandboxPlan::macos_seatbelt_scaffold()),
         Err(OsSandboxApplyError::NotPlatformQualified)
     );
 }
@@ -48,6 +53,7 @@ fn ready_base_linux_plan_not_ready_on_this_host() {
     let doctor = build_doctor_report(None, false, privacy_proof_artifact_present()).os_sandbox;
     assert!(doctor.linux_measured);
     assert!(doctor.windows_measured);
+    assert!(doctor.macos_measured);
     assert!(!doctor.platform_qualified);
 }
 
