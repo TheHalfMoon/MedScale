@@ -39,9 +39,9 @@ fn doctor_os_keyring_028_honesty() {
     let note = report
         .notes
         .iter()
-        .any(|n| n.contains("OsKeyStore") && n.contains("PRIVATE_DATA_READY=false"));
+        .any(|n| n.contains("PRIVATE_DATA_READY=false") && n.contains("Spec 032"));
     assert!(
         note,
-        "doctor notes must mention OsKeyStore + PRIVATE_DATA_READY=false"
+        "doctor notes must mention Spec 032 privacy probes + PRIVATE_DATA_READY=false"
     );
 }

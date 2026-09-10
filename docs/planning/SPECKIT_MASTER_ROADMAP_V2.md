@@ -61,7 +61,8 @@ Required lifecycle for each material executable spec:
 | 029 | `macos-ci-accessibility` | macOS CI matrix + CLI/fixture accessibility honesty | 022/027 + 006/021 | CLOSED_CANONICAL READY_BASE; macos_ci_present; macos_qualified=false; no WCAG; RELEASE_READY=false |
 | 030 | `windows-appcontainer-sandbox` | Windows Job Object READY_BASE (Q09 residual; AppContainer scaffold) | 026 closed | CLOSED_CANONICAL READY_BASE; windows_measured; platform_qualified=false; sandbox gate OPEN |
 | 031 | `macos-seatbelt-sandbox` | macOS Seatbelt READY_BASE (Q09 residual; App Sandbox entitlements scaffold) | 026/030 closed | CLOSED_CANONICAL READY_BASE; macos_measured; platform_qualified=false; sandbox gate OPEN |
-| 032+ | `research-site-imaging-genomics-advanced` | deferred site/research/collab/imaging/genomics/plugin/browser/watch/vision expansion | evidence-driven later gates | no Trusted V1 implementation commitment |
+| 032 | `privacy-probes-notice-perf` | Q03 privacy probes + Q05 NOTICE inventory + perf binding | 017/023/027/028 closed | CLOSED_CANONICAL READY_BASE; probes_present; notice_inventory; budgets not claimed; PRIVATE_DATA_READY=false; rights_license_decision=false |
+| 033+ | `research-site-imaging-genomics-advanced` | deferred site/research/collab/imaging/genomics/plugin/browser/watch/vision expansion | evidence-driven later gates | no Trusted V1 implementation commitment |
 
 ## 3. Corrected critical path
 
@@ -103,7 +104,8 @@ ONLINE ECOSYSTEM
 029 macOS CI + accessibility honesty CLOSED_CANONICAL READY_BASE; macos_ci_present; macos_qualified=false; no WCAG; RELEASE_READY=false
 030 Windows Job Object sandbox (Q09 residual) CLOSED_CANONICAL READY_BASE; windows_measured; AppContainer scaffold; platform_qualified=false; WORKER_OS_SANDBOX gate OPEN
 031 macOS Seatbelt sandbox (Q09 residual) CLOSED_CANONICAL READY_BASE; macos_measured; App Sandbox entitlements scaffold; platform_qualified=false; WORKER_OS_SANDBOX gate OPEN
-Next: 012 MESC-blocked; swap/snapshot still block PRIVATE_DATA_READY; AppContainer FS + product PLATFORM_QUALIFIED + WCAG/final-v0 open; 032+ deferred
+032 privacy probes + NOTICE inventory + perf binding CLOSED_CANONICAL READY_BASE; probes_present; notice_inventory_present; rights_license_decision=false; budgets_claimed_met=false; PRIVATE_DATA_READY=false
+Next: 012 MESC-blocked; swap/snapshot still block PRIVATE_DATA_READY (032 probes do not clear); AppContainer FS + product PLATFORM_QUALIFIED + WCAG/final-v0 open; 033+ deferred
 ```
 
 ## 4. Core process topology — decided for downstream specs

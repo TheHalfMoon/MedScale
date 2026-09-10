@@ -21,6 +21,8 @@ fn release_qualification_axis_is_honest_prep_not_release_ready() {
     assert!(rq.is_honest_prep());
     assert!(rq.perf_harness_present);
     assert!(rq.sbom_scaffold_present);
+    assert!(rq.notice_inventory_present);
+    assert!(!rq.rights_license_decision);
     assert!(
         rq.missing_evidence_classes
             .contains(&"macos_platform_product_qualification".to_owned())

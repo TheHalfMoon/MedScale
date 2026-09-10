@@ -8,8 +8,10 @@ use medscale_contracts::evidence::LexicalRetrieveRequest;
 use medscale_contracts::objects::{AuthorityScopeId, OpaqueId, RealmId, VaultId};
 use medscale_core::CoreFacade;
 use serde_json::{Value, json};
+use sha2::{Digest, Sha256};
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::process::Command;
 use std::time::{Duration, Instant};
 
 const WARMUP: usize = 3;
@@ -229,6 +231,61 @@ fn hardware_note() -> String {
     )
 }
 
+fn git_output(args: &[&str]) -> Option<String> {
+    let out = Command::new("git")
+        .args(args)
+        .current_dir(repo_root())
+        .output()
+        .ok()?;
+    if !out.status.success() {
+        return None;
+    }
+    let s = String::from_utf8_lossy(&out.stdout).trim().to_owned();
+    if s.is_empty() { None } else { Some(s) }
+}
+
+fn rustc_version_line() -> String {
+    Command::new("rustc")
+        .arg("--version")
+        .output()
+        .ok()
+        .and_then(|o| String::from_utf8(o.stdout).ok())
+        .map(|s| s.trim().to_owned())
+        .unwrap_or_else(|| "rustc-version-unavailable".to_owned())
+}
+
+fn cargo_lock_sha256() -> String {
+    let path = repo_root().join("Cargo.lock");
+    match fs::read(&path) {
+        Ok(bytes) => {
+            let digest = Sha256::digest(&bytes);
+            digest.iter().map(|b| format!("{b:02x}")).collect()
+        }
+        Err(_) => "cargo-lock-unreadable".to_owned(),
+    }
+}
+
+fn cpu_note() -> String {
+    #[cfg(windows)]
+    {
+        std::env::var("PROCESSOR_IDENTIFIER")
+            .or_else(|_| std::env::var("PROCESSOR_ARCHITECTURE"))
+            .unwrap_or_else(|_| "cpu-unknown".to_owned())
+    }
+    #[cfg(not(windows))]
+    {
+        fs::read_to_string("/proc/cpuinfo")
+            .ok()
+            .and_then(|s| {
+                s.lines()
+                    .find(|l| l.starts_with("model name"))
+                    .map(|l| l.split(':').nth(1).unwrap_or("").trim().to_owned())
+            })
+            .filter(|s| !s.is_empty())
+            .unwrap_or_else(|| format!("arch={}", std::env::consts::ARCH))
+    }
+}
+
 #[test]
 fn perf_harness_027_runs_and_reports_numbers_without_budget_pass() {
     let facade = CoreFacade::new_legacy_lease_only_engineering();
@@ -290,9 +347,31 @@ fn perf_harness_027_runs_and_reports_numbers_without_budget_pass() {
 
     let report = json!({
         "spec_id": "027-perf-sbom-release-evidence",
-        "schema_version": 1,
+        "schema_version": 2,
+        "binding_spec_id": "032-privacy-probes-notice-perf",
         "budgets_claimed_met": false,
         "release_ready": false,
+        "binding": {
+            "git_sha": git_output(&["rev-parse", "HEAD"]),
+            "git_tree": git_output(&["rev-parse", "HEAD^{tree}"]),
+            "rustc_version": rustc_version_line(),
+            "os": std::env::consts::OS,
+            "arch": std::env::consts::ARCH,
+            "hostname": std::env::var("COMPUTERNAME")
+                .or_else(|_| std::env::var("HOSTNAME"))
+                .ok(),
+            "cpu_note": cpu_note(),
+            "cargo_lock_sha256": cargo_lock_sha256(),
+            "fixture_identity": {
+                "timeline_events": TIMELINE_EVENTS,
+                "lexical_corpus_id": "synthetic-lexical",
+                "lexical_query": "hypertension blood pressure",
+                "fhir_version_hint": "4.0.1",
+                "fhir_ingest_target_bytes": fhir_target,
+                "warmup_runs": WARMUP,
+                "timed_runs": RUNS,
+            },
+        },
         "methodology": {
             "warmup_runs": WARMUP,
             "timed_runs": RUNS,
@@ -302,7 +381,11 @@ fn perf_harness_027_runs_and_reports_numbers_without_budget_pass() {
             "real_phi": false,
         },
         "hardware_note": hardware_note(),
-        "toolchain_note": format!("rustc channel via rust-toolchain.toml; CARGO_TARGET_DIR={:?}", std::env::var("CARGO_TARGET_DIR").ok()),
+        "toolchain_note": format!(
+            "rustc={}; CARGO_TARGET_DIR={:?}",
+            rustc_version_line(),
+            std::env::var("CARGO_TARGET_DIR").ok()
+        ),
         "delivery_plan_targets_not_claimed": {
             "timeline_10000_events_p95_ms": 250,
             "lexical_10000_records_p95_ms": 300,
@@ -323,6 +406,7 @@ fn perf_harness_027_runs_and_reports_numbers_without_budget_pass() {
             "Numbers are READY_BASE engineering measurements only.",
             "Do not treat p50/p95 as RELEASE_READY or budget attainment.",
             "Scale may differ from delivery-plan 10k / 1 MiB acceptance targets.",
+            "Spec 032 binding fields (git/rustc/lock/fixtures) do not imply budgets_claimed_met.",
         ],
         "vault_root_ephemeral": vault_root.display().to_string(),
     });
@@ -344,6 +428,17 @@ fn perf_harness_027_runs_and_reports_numbers_without_budget_pass() {
     assert!(Path::new(&out_path).is_file());
     assert!(!report["budgets_claimed_met"].as_bool().unwrap());
     assert!(!report["release_ready"].as_bool().unwrap());
+    assert!(
+        report["binding"]["cargo_lock_sha256"]
+            .as_str()
+            .unwrap()
+            .len()
+            >= 16
+    );
+    assert_eq!(
+        report["binding"]["fixture_identity"]["lexical_corpus_id"],
+        "synthetic-lexical"
+    );
 
     let _ = fs::remove_dir_all(&vault_root);
 }

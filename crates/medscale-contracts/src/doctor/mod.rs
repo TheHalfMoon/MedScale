@@ -12,7 +12,7 @@ use crate::os_sandbox::OsSandboxDoctorStatus;
 use crate::packs::{PackSignerDoctorStatus, PacksRuntimeDoctorStatus};
 use crate::workflow::WorkflowDoctorStatus;
 
-/// Release-qualification prep posture (Specs 022/027/029 / Trusted V1 Q05 remnants).
+/// Release-qualification prep posture (Specs 022/027/029/032 / Trusted V1 Q05 remnants).
 ///
 /// Always reports `release_ready = false` until a separate qualification package
 /// and external gates close. Lists missing evidence classes without claiming pass.
@@ -22,7 +22,7 @@ pub struct ReleaseQualificationDoctorStatus {
     pub present: bool,
     /// Spec 022 prep paths/evidence/locked CI documented and wired.
     pub prep_ready_base: bool,
-    /// Never true for Specs 022/027/029 READY_BASE.
+    /// Never true for Specs 022/027/029/032 READY_BASE.
     pub release_ready: bool,
     pub locked_builds: bool,
     pub immutable_ci_action_pins: bool,
@@ -39,12 +39,16 @@ pub struct ReleaseQualificationDoctorStatus {
     pub perf_harness_present: bool,
     /// Spec 027: cargo-metadata SBOM scaffold path present (not full release SBOM).
     pub sbom_scaffold_present: bool,
+    /// Spec 032: NOTICE/third-party inventory artifact present (not a license decision).
+    pub notice_inventory_present: bool,
+    /// Spec 032: public SPDX for MedScale crates — always false until EXTERNAL_GATES.
+    pub rights_license_decision: bool,
     pub missing_evidence_classes: Vec<String>,
 }
 
 impl ReleaseQualificationDoctorStatus {
-    /// Specs 022+027+029 READY_BASE: locked builds + evidence + perf/SBOM + macOS CI;
-    /// RELEASE_READY remains false; macOS product qualification remains open.
+    /// Specs 022+027+029+032 READY_BASE: locked builds + evidence + perf/SBOM + NOTICE
+    /// inventory + macOS CI; RELEASE_READY remains false; license decision remains open.
     #[must_use]
     pub fn prep_ready_base() -> Self {
         Self {
@@ -61,6 +65,8 @@ impl ReleaseQualificationDoctorStatus {
             branch_protection_configured: false,
             perf_harness_present: true,
             sbom_scaffold_present: true,
+            notice_inventory_present: true,
+            rights_license_decision: false,
             missing_evidence_classes: vec![
                 "macos_platform_product_qualification".to_owned(),
                 "mobile_app_release_qualification".to_owned(),
@@ -88,9 +94,14 @@ impl ReleaseQualificationDoctorStatus {
             && !self.branch_protection_configured
             && self.perf_harness_present
             && self.sbom_scaffold_present
+            && self.notice_inventory_present
+            && !self.rights_license_decision
             && self
                 .missing_evidence_classes
                 .contains(&"macos_platform_product_qualification".to_owned())
+            && self
+                .missing_evidence_classes
+                .contains(&"public_source_license_choice".to_owned())
             && !self.missing_evidence_classes.is_empty()
     }
 }
@@ -191,7 +202,17 @@ pub enum WebViewScanStatus {
     Deferred,
 }
 
-/// Vault privacy posture (Specs 017/023/028). Never claims secrets.
+/// Best-effort OS residual file existence (Spec 032 probes).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum OsResidualFileProbe {
+    Detected,
+    NotFound,
+    NotReadable,
+    NotApplicable,
+}
+
+/// Vault privacy posture (Specs 017/023/028/032). Never claims secrets.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct VaultPrivacyDoctorStatus {
@@ -207,9 +228,30 @@ pub struct VaultPrivacyDoctorStatus {
     pub os_keyring_available: bool,
     /// Spec 028: runtime prefers/uses OsKeyStore when available (not forced to Memory).
     pub os_keyring_used: bool,
+    /// Spec 032: OS residual privacy probes wired (existence/scan only).
+    pub probes_present: bool,
+    /// Spec 032: residual risk classes still OPEN (swap/hibernate/snapshot/pagefile).
+    pub residual_risk_classes_open: Vec<String>,
+    /// Spec 032: best-effort pagefile (or OS swap-class) existence probe.
+    pub pagefile_existence: OsResidualFileProbe,
+    /// Spec 032: best-effort hibernate/sleepimage existence probe.
+    pub hibernate_file_existence: OsResidualFileProbe,
+    /// Spec 032: vault temp/work leftover scan helper available.
+    pub vault_leftover_scan_available: bool,
+    /// Spec 032: crash sidecar detection (Spec 017 wipe path) available.
+    pub crash_sidecar_detect_available: bool,
 }
 
 impl VaultPrivacyDoctorStatus {
+    fn residual_classes_open() -> Vec<String> {
+        vec![
+            "swap".to_owned(),
+            "hibernate".to_owned(),
+            "snapshot".to_owned(),
+            "pagefile".to_owned(),
+        ]
+    }
+
     /// Spec 017 posture before SQLCipher open-work (historical).
     #[must_use]
     pub fn spec_017_honest() -> Self {
@@ -223,6 +265,12 @@ impl VaultPrivacyDoctorStatus {
             sqlcipher_enabled: false,
             os_keyring_available: false,
             os_keyring_used: false,
+            probes_present: false,
+            residual_risk_classes_open: Self::residual_classes_open(),
+            pagefile_existence: OsResidualFileProbe::NotApplicable,
+            hibernate_file_existence: OsResidualFileProbe::NotApplicable,
+            vault_leftover_scan_available: true,
+            crash_sidecar_detect_available: true,
         }
     }
 
@@ -240,6 +288,12 @@ impl VaultPrivacyDoctorStatus {
             sqlcipher_enabled: true,
             os_keyring_available: false,
             os_keyring_used: false,
+            probes_present: false,
+            residual_risk_classes_open: Self::residual_classes_open(),
+            pagefile_existence: OsResidualFileProbe::NotApplicable,
+            hibernate_file_existence: OsResidualFileProbe::NotApplicable,
+            vault_leftover_scan_available: true,
+            crash_sidecar_detect_available: true,
         }
     }
 
@@ -257,6 +311,39 @@ impl VaultPrivacyDoctorStatus {
             sqlcipher_enabled: true,
             os_keyring_available,
             os_keyring_used,
+            probes_present: false,
+            residual_risk_classes_open: Self::residual_classes_open(),
+            pagefile_existence: OsResidualFileProbe::NotApplicable,
+            hibernate_file_existence: OsResidualFileProbe::NotApplicable,
+            vault_leftover_scan_available: true,
+            crash_sidecar_detect_available: true,
+        }
+    }
+
+    /// Spec 032 READY_BASE: privacy probes present; PRIVATE_DATA_READY still false.
+    #[must_use]
+    pub fn spec_032_honest(
+        os_keyring_available: bool,
+        os_keyring_used: bool,
+        pagefile_existence: OsResidualFileProbe,
+        hibernate_file_existence: OsResidualFileProbe,
+    ) -> Self {
+        Self {
+            present: true,
+            private_data_ready: false,
+            sealed_at_close: true,
+            open_work_plaintext_risk: true,
+            open_work_page_encrypted: true,
+            work_wipe_on_close: true,
+            sqlcipher_enabled: true,
+            os_keyring_available,
+            os_keyring_used,
+            probes_present: true,
+            residual_risk_classes_open: Self::residual_classes_open(),
+            pagefile_existence,
+            hibernate_file_existence,
+            vault_leftover_scan_available: true,
+            crash_sidecar_detect_available: true,
         }
     }
 }
@@ -405,6 +492,8 @@ mod release_qualification_tests {
         assert!(!s.macos_qualified);
         assert!(s.perf_harness_present);
         assert!(s.sbom_scaffold_present);
+        assert!(s.notice_inventory_present);
+        assert!(!s.rights_license_decision);
         assert!(
             s.missing_evidence_classes
                 .contains(&"macos_platform_product_qualification".to_owned())

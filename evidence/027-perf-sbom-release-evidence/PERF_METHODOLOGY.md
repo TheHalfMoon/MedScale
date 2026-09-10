@@ -1,4 +1,4 @@
-# Perf harness methodology (Spec 027)
+# Perf harness methodology (Spec 027 + Spec 032 binding)
 
 ## Delivery-plan targets (NOT claimed met)
 
@@ -19,9 +19,21 @@ From `docs/planning/TRUSTED_V1_DELIVERY_PLAN.md`:
 5. Report milliseconds + hardware/toolchain note + measured scale.
 6. Set `budgets_claimed_met=false` and `release_ready=false` in JSON evidence.
 
+## Spec 032 evidence binding
+
+Each `perf_harness_latest.json` also records (schema_version ≥ 2):
+
+- `binding.git_sha` / `binding.git_tree`
+- `binding.rustc_version`
+- `binding.os` / `binding.arch` / `binding.hostname` / `binding.cpu_note`
+- `binding.cargo_lock_sha256`
+- `binding.fixture_identity` (timeline event count, lexical corpus/query, FHIR scale)
+
+Binding does **not** imply budget attainment or `RELEASE_READY`.
+
 ## CI policy
 
-Assert only that the harness executes and emits finite p50/p95 numbers.
+Assert only that the harness executes and emits finite p50/p95 numbers plus binding fields.
 **Do not** fail CI when measured times exceed delivery-plan budgets.
 
 ## Regenerating evidence
