@@ -5,11 +5,11 @@
 **Rule:** update this file whenever a unit enters or leaves a canonical state.
 
 **Autonomous stop status (historical V2 scoped closure):** superseded for Trusted V1 follow-on work.
-**Live follow-on status (2026-09-11):** Specs **016**–**048** `CLOSED_CANONICAL` READY_BASE. Spec **048** migration/recovery release-bar closed — see `SPEC_048_PROMOTION.md`. Spec **012** MESC-blocked. Honesty: `PRIVATE_DATA_READY=false`; `RELEASE_READY=false`; `budgets_claimed_met=false`; sandbox `platform_qualified=false`. Deferred advanced **049+**.
+**Live follow-on status (2026-09-11):** Specs **016**–**048** `CLOSED_CANONICAL` READY_BASE. Spec **049** (package upgrade/rollback scaffold) promoted — see `SPEC_049_PROMOTION.md`. Spec **012** MESC-blocked. Honesty: `PRIVATE_DATA_READY=false`; `RELEASE_READY=false`; `budgets_claimed_met=false`; sandbox `platform_qualified=false`. Deferred advanced **050+**.
 
 ## 2026-09-11 planning refinement
 
-See Trusted V1 delivery plan. Specs 018–048 READY_BASE closed; Spec 012 MESC-blocked. Advanced **049+** deferred.
+See Trusted V1 delivery plan. Specs 018–048 READY_BASE closed; Spec 049 READY (Q05 residual). Spec 012 MESC-blocked. Advanced **050+** deferred.
 
 ## Historical scoped queue (closures preserved)
 
@@ -64,7 +64,8 @@ See Trusted V1 delivery plan. Specs 018–048 READY_BASE closed; Spec 012 MESC-b
 | 046 | SBOM Lock Binding (Q05 residual) | `CLOSED_CANONICAL` | Cargo.lock digest in SBOM scaffold; sbom_lock_bound; not full release SBOM. See `SPEC_046_PROMOTION.md`. |
 | 047 | Release Dry-Run + Verifier (Q05 residual) | `CLOSED_CANONICAL` | READY_BASE: dry-run binds source/tree/lock + build env + native-deps honesty; cross-verifier present; RELEASE_READY=false. See `SPEC_047_PROMOTION.md`. |
 | 048 | Migration/Recovery Release-Bar (Q05 residual) | `CLOSED_CANONICAL` | READY_BASE: interrupt fail-closed + backup/restore recovery + encrypted backup closure; migration_recovery_ready_base; RELEASE_READY=false. See `SPEC_048_PROMOTION.md`. |
-| 049+ | Advanced deferred work | `DEFERRED_BY_CANONICAL_DESIGN` | Plugins/GraphRAG/replicas/imaging/CUDA/etc. |
+| 049 | Package Upgrade/Rollback Scaffold (Q05 residual) | `READY` | Unsigned dry-run upgrade/rollback scaffold; package_upgrade_rollback_scaffold_present; real installer proof still missing. See `SPEC_049_PROMOTION.md`. |
+| 050+ | Advanced deferred work | `DEFERRED_BY_CANONICAL_DESIGN` | Plugins/GraphRAG/replicas/imaging/CUDA/etc. |
 
 ## Automatic progression
 
@@ -72,5 +73,5 @@ For the first `READY` unit: create/complete its Spec Kit package, analyze it, im
 
 Do not stop merely because a PR merged, one milestone passed, or an external optional gate exists.
 
-**Next eligible (honest):** Spec **048** migration/recovery release-bar (`READY`). Spec 012 MESC-blocked. After 048: package upgrade/rollback, perf budget measurement, signed App Sandbox enforcement, branch protection, SPDX, signing credentials, WCAG/final-v0, MESC assets remain largely external. Deferred advanced **049+**. Do **not** claim `RELEASE_READY`, `PRIVATE_DATA_READY`, or `MULTI_CLIENT_RELEASE_READY`.
+**Next eligible (honest):** Spec **049** package upgrade/rollback scaffold (`READY`). Spec 012 MESC-blocked. After 049: real installer artifacts, perf budget measurement, signed App Sandbox enforcement, branch protection, SPDX, signing credentials, WCAG/final-v0, MESC assets remain largely external. Deferred advanced **050+**. Do **not** claim `RELEASE_READY`, `PRIVATE_DATA_READY`, or `MULTI_CLIENT_RELEASE_READY`.
 
