@@ -1,30 +1,106 @@
-//! Persist / reload `InMemoryAuthorityStore` through vault metadata (Spec 016).
+//! Persist / reload `InMemoryAuthorityStore` through vault metadata (Specs 016 / 035).
 
 use medscale_contracts::envelopes::AuthorityError;
 use medscale_contracts::objects::{
     ActionAuditRecord, AmendmentRecord, ClinicalAssertion, DerivedSourceArtifact, DigestSha256,
     EvaluationRecord, IdentityAssertion, IdentityMergeDecision, Projection, Proposal, SourceRecord,
 };
-use medscale_storage::{AuthorityObjectRow, FsBlobStore, SyntheticVault};
+use medscale_storage::{
+    AuthorityObjectRow, EncryptedVault, FsBlobStore, SqliteMetaStore, SyntheticVault,
+};
 use serde_json::Value;
 
 use super::store::{InMemoryAuthorityStore, StoredObject};
 
+trait BlobBackend {
+    fn put_bytes(&self, bytes: &[u8]) -> Result<DigestSha256, AuthorityError>;
+    fn get_bytes(&self, digest: &DigestSha256) -> Result<Vec<u8>, AuthorityError>;
+}
+
+impl BlobBackend for FsBlobStore {
+    fn put_bytes(&self, bytes: &[u8]) -> Result<DigestSha256, AuthorityError> {
+        Ok(self
+            .put_blob(bytes)
+            .map_err(|e| AuthorityError::InvalidArgument {
+                message: e.to_string(),
+            })?
+            .digest)
+    }
+
+    fn get_bytes(&self, digest: &DigestSha256) -> Result<Vec<u8>, AuthorityError> {
+        self.get_blob(digest)
+            .map_err(|e| AuthorityError::InvalidArgument {
+                message: e.to_string(),
+            })
+    }
+}
+
+struct EncryptedBlobBackend<'a>(&'a EncryptedVault);
+
+impl BlobBackend for EncryptedBlobBackend<'_> {
+    fn put_bytes(&self, bytes: &[u8]) -> Result<DigestSha256, AuthorityError> {
+        self.0
+            .put_blob(bytes)
+            .map_err(|e| AuthorityError::InvalidArgument {
+                message: e.to_string(),
+            })
+    }
+
+    fn get_bytes(&self, digest: &DigestSha256) -> Result<Vec<u8>, AuthorityError> {
+        self.0
+            .get_blob(digest)
+            .map_err(|e| AuthorityError::InvalidArgument {
+                message: e.to_string(),
+            })
+    }
+}
+
 pub fn sync_store_to_vault(
     vault: &SyntheticVault,
+    store: &InMemoryAuthorityStore,
+) -> Result<(), AuthorityError> {
+    sync_store_to_meta(&vault.meta, &vault.blobs, store)
+}
+
+pub fn load_store_from_vault(
+    vault: &SyntheticVault,
+    store: &mut InMemoryAuthorityStore,
+) -> Result<(), AuthorityError> {
+    load_store_from_meta(&vault.meta, &vault.blobs, store)?;
+    if store.objects_raw().is_empty() {
+        // Empty authority rows: reconstruct Source envelopes from sources + blobs (v1).
+        reconstruct_sources_from_meta(vault, store)?;
+    }
+    Ok(())
+}
+
+/// Spec 035: persist authority graph into open EncryptedVault (SQLCipher meta + sealed blobs).
+pub fn sync_store_to_encrypted(
+    vault: &EncryptedVault,
+    store: &InMemoryAuthorityStore,
+) -> Result<(), AuthorityError> {
+    sync_store_to_meta(&vault.meta, &EncryptedBlobBackend(vault), store)
+}
+
+/// Spec 035: reload authority graph from EncryptedVault.
+pub fn load_store_from_encrypted(
+    vault: &EncryptedVault,
+    store: &mut InMemoryAuthorityStore,
+) -> Result<(), AuthorityError> {
+    load_store_from_meta(&vault.meta, &EncryptedBlobBackend(vault), store)
+}
+
+fn sync_store_to_meta(
+    meta: &SqliteMetaStore,
+    blobs: &impl BlobBackend,
     store: &InMemoryAuthorityStore,
 ) -> Result<(), AuthorityError> {
     let mut rows = Vec::new();
     for obj in store.objects_raw().values() {
         match obj {
             StoredObject::Source(s) => {
-                vault
-                    .blobs
-                    .put_blob(&s.bytes)
-                    .map_err(|e| AuthorityError::InvalidArgument {
-                        message: e.to_string(),
-                    })?;
-                let _ = vault.meta.upsert_source(&medscale_storage::SourceMeta {
+                blobs.put_bytes(&s.bytes)?;
+                let _ = meta.upsert_source(&medscale_storage::SourceMeta {
                     source_id: s.header.id.clone(),
                     realm_id: s.header.realm_id.clone(),
                     authority_scope_id: s.header.authority_scope_id.clone(),
@@ -36,53 +112,38 @@ pub fn sync_store_to_vault(
                 });
             }
             StoredObject::Derived(d) => {
-                vault
-                    .blobs
-                    .put_blob(&d.bytes)
-                    .map_err(|e| AuthorityError::InvalidArgument {
-                        message: e.to_string(),
-                    })?;
+                blobs.put_bytes(&d.bytes)?;
             }
             _ => {}
         }
         rows.push(to_row(obj, store.next_seq())?);
     }
-    vault
-        .meta
-        .replace_authority_snapshot(&rows, store.next_seq())
+    meta.replace_authority_snapshot(&rows, store.next_seq())
         .map_err(|e| AuthorityError::InvalidArgument {
             message: e.to_string(),
         })?;
     Ok(())
 }
 
-pub fn load_store_from_vault(
-    vault: &SyntheticVault,
+fn load_store_from_meta(
+    meta: &SqliteMetaStore,
+    blobs: &impl BlobBackend,
     store: &mut InMemoryAuthorityStore,
 ) -> Result<(), AuthorityError> {
     store.clear();
-    let next_seq = vault
-        .meta
+    let next_seq = meta
         .get_next_seq()
         .map_err(|e| AuthorityError::InvalidArgument {
             message: e.to_string(),
         })?;
     store.set_next_seq(next_seq);
-    let rows =
-        vault
-            .meta
-            .list_authority_objects()
-            .map_err(|e| AuthorityError::InvalidArgument {
-                message: e.to_string(),
-            })?;
-    if rows.is_empty() {
-        // v1 vault: reconstruct Source envelopes from sources + blobs.
-        reconstruct_sources_from_meta(vault, store)?;
-        sync_store_to_vault(vault, store)?;
-        return Ok(());
-    }
+    let rows = meta
+        .list_authority_objects()
+        .map_err(|e| AuthorityError::InvalidArgument {
+            message: e.to_string(),
+        })?;
     for row in rows {
-        let obj = from_row(&row, &vault.blobs)?;
+        let obj = from_row(&row, blobs)?;
         store.insert(obj);
     }
     Ok(())
@@ -128,6 +189,8 @@ fn reconstruct_sources_from_meta(
     if max_seq > store.next_seq() {
         store.set_next_seq(max_seq);
     }
+    // Persist reconstructed authority snapshot for v1 synthetic vaults.
+    sync_store_to_vault(vault, store)?;
     Ok(())
 }
 
@@ -177,20 +240,19 @@ fn to_row(obj: &StoredObject, updated_seq: u64) -> Result<AuthorityObjectRow, Au
         StoredObject::Audit(a) => row_parts("audit", a)?,
         StoredObject::Identity(a) => row_parts("identity", a)?,
         StoredObject::Merge(a) => row_parts("merge", a)?,
-        StoredObject::Evaluation(a) => row_parts("evaluation", a)?,
-        StoredObject::Projection(a) => row_parts("projection", a)?,
+        StoredObject::Evaluation(e) => row_parts("evaluation", e)?,
+        StoredObject::Projection(p) => row_parts("projection", p)?,
         StoredObject::Amendment(a) => row_parts("amendment", a)?,
     };
-    let body_json = serde_json::to_string(&body).map_err(|e| AuthorityError::InvalidArgument {
-        message: e.to_string(),
-    })?;
     Ok(AuthorityObjectRow {
         object_id: id,
         object_class: class,
         realm_id: realm,
         authority_scope_id: scope,
-        body_json,
         content_digest_hex: digest,
+        body_json: serde_json::to_string(&body).map_err(|e| AuthorityError::InvalidArgument {
+            message: e.to_string(),
+        })?,
         updated_seq,
     })
 }
@@ -239,7 +301,10 @@ impl_header!(EvaluationRecord);
 impl_header!(Projection);
 impl_header!(AmendmentRecord);
 
-fn from_row(row: &AuthorityObjectRow, blobs: &FsBlobStore) -> Result<StoredObject, AuthorityError> {
+fn from_row(
+    row: &AuthorityObjectRow,
+    blobs: &impl BlobBackend,
+) -> Result<StoredObject, AuthorityError> {
     let value: Value =
         serde_json::from_str(&row.body_json).map_err(|e| AuthorityError::InvalidArgument {
             message: format!("corrupt object body: {e}"),
@@ -251,11 +316,7 @@ fn from_row(row: &AuthorityObjectRow, blobs: &FsBlobStore) -> Result<StoredObjec
                     message: format!("corrupt source: {e}"),
                 })?;
             let digest = source.content_digest.clone();
-            let bytes = blobs
-                .get_blob(&digest)
-                .map_err(|e| AuthorityError::InvalidArgument {
-                    message: format!("content missing: {e}"),
-                })?;
+            let bytes = blobs.get_bytes(&digest)?;
             if DigestSha256::of(&bytes) != digest {
                 return Err(AuthorityError::DigestMismatch);
             }
@@ -268,11 +329,7 @@ fn from_row(row: &AuthorityObjectRow, blobs: &FsBlobStore) -> Result<StoredObjec
                     message: format!("corrupt derived: {e}"),
                 })?;
             let digest = derived.content_digest.clone();
-            let bytes = blobs
-                .get_blob(&digest)
-                .map_err(|e| AuthorityError::InvalidArgument {
-                    message: format!("content missing: {e}"),
-                })?;
+            let bytes = blobs.get_bytes(&digest)?;
             if DigestSha256::of(&bytes) != digest {
                 return Err(AuthorityError::DigestMismatch);
             }

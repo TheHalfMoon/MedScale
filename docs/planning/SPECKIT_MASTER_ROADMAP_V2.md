@@ -64,7 +64,8 @@ Required lifecycle for each material executable spec:
 | 032 | `privacy-probes-notice-perf` | Q03 privacy probes + Q05 NOTICE inventory + perf binding | 017/023/027/028 closed | CLOSED_CANONICAL READY_BASE; probes_present; notice_inventory; budgets not claimed; PRIVATE_DATA_READY=false; rights_license_decision=false |
 | 033 | `windows-appcontainer-fs` | Windows AppContainer FS READY_BASE (Q09 residual) | 030 closed | CLOSED_CANONICAL READY_BASE; windows_appcontainer_fs_measured; platform_qualified=false; sandbox gate OPEN |
 | 034 | `durable-outbox-restart` | Durable outbox restart fixtures (Q12 residual) | 014+016 closed | CLOSED_CANONICAL READY_BASE; outbox_restart_qualified; NPHIES gated |
-| 035+ | `research-site-imaging-genomics-advanced` | deferred site/research/collab/imaging/genomics/plugin/browser/watch/vision expansion | evidence-driven later gates | no Trusted V1 implementation commitment |
+| 035 | `encrypted-vault-authority-sync` | EncryptedVault authority graph sync (Q02/Q03 residual) | 016+023 closed | CLOSED_CANONICAL READY_BASE; encrypted_authority_sync_qualified; PRIVATE_DATA_READY=false |
+| 036+ | `research-site-imaging-genomics-advanced` | deferred site/research/collab/imaging/genomics/plugin/browser/watch/vision expansion | evidence-driven later gates | no Trusted V1 implementation commitment |
 
 ## 3. Corrected critical path
 

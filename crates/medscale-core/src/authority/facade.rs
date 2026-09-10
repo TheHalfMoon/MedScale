@@ -139,11 +139,14 @@ impl CoreFacade {
     }
 
     fn persist_open_vault(&self) -> Result<(), AuthorityError> {
+        let store = self.store();
+        if let Some(enc) = self.encrypted().as_ref() {
+            return super::durable::sync_store_to_encrypted(enc, &store);
+        }
         let vault = self.vault();
         let Some(vault) = vault.as_ref() else {
             return Ok(());
         };
-        let store = self.store();
         super::durable::sync_store_to_vault(vault, &store)
     }
 
@@ -463,6 +466,12 @@ impl CoreFacade {
             }
             RequestBody::OpenSyntheticVault { vault_root } => {
                 self.require_lease(&req.vault_id)?;
+                if self.encrypted().is_some() {
+                    return Err(AuthorityError::InvalidArgument {
+                        message: "encrypted vault already open; close before opening synthetic"
+                            .to_owned(),
+                    });
+                }
                 let mut slot = self.vault();
                 let mut store = self.store();
                 ingest_ops::open_vault(&mut slot, &mut store, req.vault_id.as_str(), &vault_root)
@@ -709,6 +718,12 @@ impl CoreFacade {
                 passphrase,
             } => {
                 self.require_lease(&req.vault_id)?;
+                if self.vault().is_some() {
+                    return Err(AuthorityError::InvalidArgument {
+                        message: "synthetic vault already open; close before creating encrypted"
+                            .to_owned(),
+                    });
+                }
                 let mut slot = self.encrypted();
                 if slot.is_some() {
                     return Err(AuthorityError::InvalidArgument {
@@ -727,6 +742,11 @@ impl CoreFacade {
                     None,
                 )
                 .map_err(enc_err)?;
+                // Spec 035: empty authority snapshot for new encrypted vault.
+                {
+                    let store = self.store();
+                    super::durable::sync_store_to_encrypted(&vault, &store)?;
+                }
                 *slot = Some(vault);
                 Ok(ResponseBody::EncryptedVaultReady {
                     vault_root,
@@ -739,6 +759,12 @@ impl CoreFacade {
                 recovery_code,
             } => {
                 self.require_lease(&req.vault_id)?;
+                if self.vault().is_some() {
+                    return Err(AuthorityError::InvalidArgument {
+                        message: "synthetic vault already open; close before opening encrypted"
+                            .to_owned(),
+                    });
+                }
                 let mut slot = self.encrypted();
                 if slot.is_some() {
                     return Err(AuthorityError::InvalidArgument {
@@ -758,6 +784,10 @@ impl CoreFacade {
                     return Err(AuthorityError::MissingKeyMaterial);
                 }
                 .map_err(enc_err)?;
+                {
+                    let mut store = self.store();
+                    super::durable::load_store_from_encrypted(&vault, &mut store)?;
+                }
                 *slot = Some(vault);
                 Ok(ResponseBody::EncryptedVaultReady {
                     vault_root,
@@ -766,6 +796,13 @@ impl CoreFacade {
             }
             RequestBody::CloseEncryptedVault => {
                 self.require_lease(&req.vault_id)?;
+                {
+                    let enc = self.encrypted();
+                    if let Some(vault) = enc.as_ref() {
+                        let store = self.store();
+                        super::durable::sync_store_to_encrypted(vault, &store)?;
+                    }
+                }
                 let mut slot = self.encrypted();
                 if let Some(vault) = slot.take() {
                     vault.close().map_err(enc_err)?;
