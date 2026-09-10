@@ -6,4 +6,5 @@
 - OS swap, hibernation, and volume snapshots are not qualified (still blocks PRIVATE_DATA_READY after Spec 023)
 - SQLCipher enabled in Spec 023 via workspace-wide rusqlite sqlcipher features (ADR-023-001); ADR-017-001 historical deferral superseded for that path
 - SyntheticVault remains plaintext by design (engineering path)
-- OS keyring remains MemoryMock in CI (`KeyStoreAvailability::OsStoreDeferred`)
+- OS keyring READY_BASE in Spec **028** (`OsKeyStore`); Memory remains CI fallback when OS store unavailable (`MEDSCALE_FORCE_MEMORY_KEYSTORE=1`)
+- See `evidence/028-os-keyring-custody/` for honesty and Linux fail-soft notes

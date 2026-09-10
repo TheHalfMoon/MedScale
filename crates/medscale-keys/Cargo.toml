@@ -11,6 +11,7 @@ rust-version.workspace = true
 aes-gcm = { workspace = true }
 argon2 = { workspace = true }
 ed25519-dalek = { workspace = true }
+keyring = { workspace = true }
 medscale-contracts = { workspace = true }
 rand = { workspace = true }
 serde = { workspace = true }
