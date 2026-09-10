@@ -8,7 +8,7 @@ use medscale_contracts::evidence::{
 };
 use medscale_contracts::objects::{EvaluationRecord, ObjectHeader, OpaqueId};
 
-use super::corpus::{default_synthetic_corpus, matches_request};
+use super::corpus::{default_synthetic_corpus, matches_request, scale_synthetic_corpus_10k};
 use super::store::{InMemoryAuthorityStore, StoredObject};
 
 fn tokenize(s: &str) -> Vec<String> {
@@ -41,6 +41,10 @@ fn select_corpus<'a>(
     let default = default_synthetic_corpus();
     if matches_request(default, request_corpus_id) {
         return Ok(default);
+    }
+    let scale = scale_synthetic_corpus_10k();
+    if matches_request(scale, request_corpus_id) {
+        return Ok(scale);
     }
     if let Some(alt) = alternate {
         if matches_request(alt, request_corpus_id) {

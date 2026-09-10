@@ -382,11 +382,12 @@ fn run() -> Result<()> {
                     report.accessibility.release_ready
                 );
                 println!(
-                    "evidence_corpus: ready_base={} versioned={} synthetic_owned={} clinical_quality={} release_ready={} corpus={:?}@{:?}",
+                    "evidence_corpus: ready_base={} versioned={} synthetic_owned={} clinical_quality={} scale_generator={} release_ready={} corpus={:?}@{:?}",
                     report.evidence_corpus.ready_base,
                     report.evidence_corpus.versioned_corpus,
                     report.evidence_corpus.synthetic_owned_only,
                     report.evidence_corpus.clinical_quality_claimed,
+                    report.evidence_corpus.scale_corpus_generator_present,
                     report.evidence_corpus.release_ready,
                     report.evidence_corpus.current_corpus_id,
                     report.evidence_corpus.current_version

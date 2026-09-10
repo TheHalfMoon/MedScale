@@ -63,6 +63,22 @@ fn fhir_ingest_target_bytes() -> usize {
         .clamp(4_096, 1_000_000)
 }
 
+/// Spec 045: when set to 10000 (or under delivery-plan scale), use procedural scale corpus.
+fn lexical_scale_requested() -> bool {
+    match std::env::var("MEDSCALE_027_LEXICAL_SCALE").as_deref() {
+        Ok("10000") | Ok("10k") | Ok("10K") => true,
+        _ => delivery_plan_scale_requested(),
+    }
+}
+
+fn lexical_corpus_id() -> &'static str {
+    if lexical_scale_requested() {
+        medscale_core::SCALE_CORPUS_ID
+    } else {
+        "synthetic-lexical"
+    }
+}
+
 fn realm() -> RealmId {
     RealmId::new("realm-027")
 }
@@ -108,7 +124,9 @@ fn repo_root() -> PathBuf {
 }
 
 fn evidence_dir() -> PathBuf {
-    if delivery_plan_scale_requested() {
+    if lexical_scale_requested() && delivery_plan_scale_requested() {
+        repo_root().join("evidence/045-lexical-10k-corpus")
+    } else if delivery_plan_scale_requested() {
         repo_root().join("evidence/042-perf-delivery-plan-scale")
     } else {
         repo_root().join("evidence/027-perf-sbom-release-evidence")
@@ -358,7 +376,7 @@ fn perf_harness_027_runs_and_reports_numbers_without_budget_pass() {
                 RequestBody::RetrieveLexical {
                     request: LexicalRetrieveRequest {
                         query: "hypertension blood pressure".to_owned(),
-                        corpus_id: "synthetic-lexical".to_owned(),
+                        corpus_id: lexical_corpus_id().to_owned(),
                         max_hits: 5,
                         include_retracted: false,
                     },
@@ -390,7 +408,10 @@ fn perf_harness_027_runs_and_reports_numbers_without_budget_pass() {
             .unwrap();
     });
 
-    let spec_id = if delivery_plan_scale_requested() {
+    let lexical_scale = lexical_scale_requested();
+    let spec_id = if lexical_scale && delivery_plan_scale_requested() {
+        "045-lexical-10k-corpus"
+    } else if delivery_plan_scale_requested() {
         "042-perf-delivery-plan-scale"
     } else {
         "027-perf-sbom-release-evidence"
@@ -414,13 +435,15 @@ fn perf_harness_027_runs_and_reports_numbers_without_budget_pass() {
             "cargo_lock_sha256": cargo_lock_sha256(),
             "fixture_identity": {
                 "timeline_events": timeline_events,
-                "lexical_corpus_id": "synthetic-lexical",
+                "lexical_corpus_id": lexical_corpus_id(),
+                "lexical_doc_count": if lexical_scale { 10_000 } else { 0 },
                 "lexical_query": "hypertension blood pressure",
                 "fhir_version_hint": "4.0.1",
                 "fhir_ingest_target_bytes": fhir_target,
                 "warmup_runs": WARMUP,
                 "timed_runs": runs,
-                "delivery_plan_scale": delivery_plan_scale_requested()
+                "delivery_plan_scale": delivery_plan_scale_requested(),
+                "lexical_scale": lexical_scale
             },
         },
         "methodology": {
@@ -444,10 +467,15 @@ fn perf_harness_027_runs_and_reports_numbers_without_budget_pass() {
         },
         "measured_scale": {
             "timeline_events": timeline_events,
-            "lexical_corpus": "synthetic-lexical (builtin; not 10000 records)",
+            "lexical_corpus": if lexical_scale {
+                "synthetic-lexical-scale@10k.0.0 (procedural 10000 docs)"
+            } else {
+                "synthetic-lexical (builtin; not 10000 records)"
+            },
             "fhir_ingest_bytes": fhir_len,
-            "fhir_ingest_bytes_note": "CI default 128KiB; MEDSCALE_027_DELIVERY_PLAN_SCALE=1 selects 1MiB + 10k timeline",
-            "delivery_plan_scale": delivery_plan_scale_requested()
+            "fhir_ingest_bytes_note": "CI default 128KiB; MEDSCALE_027_DELIVERY_PLAN_SCALE=1 selects 1MiB + elevated timeline",
+            "delivery_plan_scale": delivery_plan_scale_requested(),
+            "lexical_scale": lexical_scale
         },
         "results_ms": {
             "timeline_projection": { "p50": tl_p50, "p95": tl_p95, "samples": tl_raw },
@@ -459,7 +487,7 @@ fn perf_harness_027_runs_and_reports_numbers_without_budget_pass() {
             "Do not treat p50/p95 as RELEASE_READY or budget attainment.",
             "Scale may differ from delivery-plan 10k / 1 MiB acceptance targets.",
             "Spec 032 binding fields (git/rustc/lock/fixtures) do not imply budgets_claimed_met.",
-            "Lexical corpus remains builtin (not 10000 records) even under delivery-plan scale flag.",
+            "Spec 045 procedural lexical scale does not claim clinical quality or RELEASE_READY.",
         ],
         "vault_root_ephemeral": vault_root.display().to_string(),
     });
@@ -495,7 +523,7 @@ fn perf_harness_027_runs_and_reports_numbers_without_budget_pass() {
     );
     assert_eq!(
         report["binding"]["fixture_identity"]["lexical_corpus_id"],
-        "synthetic-lexical"
+        lexical_corpus_id()
     );
 
     let _ = fs::remove_dir_all(&vault_root);

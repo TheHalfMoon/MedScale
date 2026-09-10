@@ -189,6 +189,7 @@ fn doctor_evidence_corpus_honesty() {
     assert!(report.evidence_corpus.versioned_corpus);
     assert!(report.evidence_corpus.synthetic_owned_only);
     assert!(!report.evidence_corpus.clinical_quality_claimed);
+    assert!(report.evidence_corpus.scale_corpus_generator_present);
     assert!(!report.evidence_corpus.release_ready);
     assert_eq!(
         report.evidence_corpus.current_corpus_id.as_deref(),
