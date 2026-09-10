@@ -56,10 +56,16 @@ pub fn broker_invoke(
                 transport_sent: false,
                 fixture_body: None,
             },
-            Err(_) => BrokerInvokeOutcome {
+            Err(TransportError::Timeout(_)) => BrokerInvokeOutcome {
                 decision: BrokerDecision::Deny,
-                reason: BrokerReasonCode::UnknownDestination,
-                transport_sent: false,
+                reason: BrokerReasonCode::TransportTimeout,
+                transport_sent: true,
+                fixture_body: None,
+            },
+            Err(TransportError::Failed(_)) => BrokerInvokeOutcome {
+                decision: BrokerDecision::Deny,
+                reason: BrokerReasonCode::TransportFailed,
+                transport_sent: true,
                 fixture_body: None,
             },
         },

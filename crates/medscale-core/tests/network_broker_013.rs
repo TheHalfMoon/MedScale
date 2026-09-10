@@ -226,3 +226,82 @@ fn purpose_mismatch_denies() {
         AllowlistDecision::Deny(BrokerReasonCode::PurposeMismatch)
     );
 }
+
+fn allow_partner(facade: &CoreFacade) {
+    facade
+        .dispatch(req(
+            Capability::SetEgressAllowlist,
+            RequestBody::SetEgressAllowlist {
+                entries: vec![EgressAllowlistEntry {
+                    host: "partner.fixture".to_owned(),
+                    path_prefix: "/fhir/".to_owned(),
+                    purposes: vec![EgressPurpose::FhirReadFixture],
+                    data_classes: vec![EgressDataClass::SyntheticFixture],
+                    enabled: true,
+                }],
+            },
+        ))
+        .result
+        .unwrap();
+}
+
+#[test]
+fn fixture_transport_timeout_maps_stable_reason() {
+    let facade = CoreFacade::new_legacy_lease_only_engineering();
+    lease(&facade);
+    allow_partner(&facade);
+    let out = facade
+        .dispatch(req(
+            Capability::NetworkBrokerInvoke,
+            RequestBody::NetworkBrokerInvoke {
+                request: NetworkBrokerRequest {
+                    destination_host: "partner.fixture".to_owned(),
+                    destination_path: "/fhir/Patient/1".to_owned(),
+                    purpose: EgressPurpose::FhirReadFixture,
+                    data_class: EgressDataClass::SyntheticFixture,
+                    authorization_token_id: None,
+                    body_digest: None,
+                    fixture_id: Some("fail:timeout".to_owned()),
+                },
+            },
+        ))
+        .result
+        .unwrap();
+    let ResponseBody::NetworkBroker { result } = out else {
+        panic!("expected broker");
+    };
+    assert_eq!(result.decision, BrokerDecision::Deny);
+    assert_eq!(result.reason, BrokerReasonCode::TransportTimeout);
+    assert!(result.transport_sent);
+    assert!(result.fixture_body.is_none());
+}
+
+#[test]
+fn fixture_transport_failed_maps_stable_reason() {
+    let facade = CoreFacade::new_legacy_lease_only_engineering();
+    lease(&facade);
+    allow_partner(&facade);
+    let out = facade
+        .dispatch(req(
+            Capability::NetworkBrokerInvoke,
+            RequestBody::NetworkBrokerInvoke {
+                request: NetworkBrokerRequest {
+                    destination_host: "partner.fixture".to_owned(),
+                    destination_path: "/fhir/Patient/1".to_owned(),
+                    purpose: EgressPurpose::FhirReadFixture,
+                    data_class: EgressDataClass::SyntheticFixture,
+                    authorization_token_id: None,
+                    body_digest: None,
+                    fixture_id: Some("fail:transport".to_owned()),
+                },
+            },
+        ))
+        .result
+        .unwrap();
+    let ResponseBody::NetworkBroker { result } = out else {
+        panic!("expected broker");
+    };
+    assert_eq!(result.decision, BrokerDecision::Deny);
+    assert_eq!(result.reason, BrokerReasonCode::TransportFailed);
+    assert!(result.transport_sent);
+}

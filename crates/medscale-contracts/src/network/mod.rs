@@ -47,6 +47,8 @@ pub enum BrokerReasonCode {
     EmptyAllowlist,
     ExternalGateRequired,
     TransportFixtureOk,
+    TransportTimeout,
+    TransportFailed,
     IntegrityMismatch,
     Ok,
 }
