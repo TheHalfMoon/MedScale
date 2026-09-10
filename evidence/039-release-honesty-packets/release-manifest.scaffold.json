@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "spec_id": "039-release-honesty-packets",
+  "release_ready": false,
+  "signed": false,
+  "notarized": false,
+  "note": "Unsigned release-manifest scaffold only. Fill digests at dry-run time; never claim RELEASE_READY from this file alone.",
+  "source": {
+    "git_sha": null,
+    "tree_sha": null,
+    "cargo_lock_sha256": null
+  },
+  "artifacts": [],
+  "sbom_path": "evidence/027-perf-sbom-release-evidence/sbom-scaffold.json",
+  "checksums_path": "evidence/027-perf-sbom-release-evidence/package-checksums.json",
+  "privacy": {
+    "private_data_ready": false,
+    "real_phi_authorized": false
+  },
+  "sandbox": {
+    "platform_qualified": false,
+    "windows_appcontainer_network_measured": true,
+    "windows_appcontainer_lpac_measured": false
+  },
+  "rights": {
+    "public_source_license_choice": "PENDING"
+  }
+}

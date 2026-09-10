@@ -1,4 +1,4 @@
-# MedScale ‚Äî Start Here
+# MedScale ó Start Here
 
 ## 1. Current gate
 
@@ -12,7 +12,7 @@ REAL_PHI = NOT_AUTHORIZED
 MESC_MUTATION = NOT_AUTHORIZED
 ```
 
-The earlier planning-only gate has been superseded by `IMPLEMENTATION_AUTHORITY.md`. Cursor must follow live BUILD_QUEUE.md; Specs 001ñ011 and 013ñ015 are CLOSED_CANONICAL; Spec 012 remains MESC-artifact gated. It must not ask the founder for ordinary engineering decisions already governed by the plan.
+The earlier planning-only gate has been superseded by `IMPLEMENTATION_AUTHORITY.md`. Cursor must follow live BUILD_QUEUE.md; Specs 001ù011 and 013ù015 are CLOSED_CANONICAL; Spec 012 remains MESC-artifact gated. It must not ask the founder for ordinary engineering decisions already governed by the plan.
 
 ## 2. Mandatory read order
 
@@ -57,21 +57,25 @@ Then dependency-controlled tracks:
 
 Read [whole-product review](WHOLE_PRODUCT_REVIEW_2026-09-09.md),
 [delivery plan](TRUSTED_V1_DELIVERY_PLAN.md), and live [BUILD_QUEUE.md](BUILD_QUEUE.md).
-Specs 016ñ023 are `CLOSED_CANONICAL` READY_BASE (022 = Q05 release-qualification **prep** only;
+Specs 016ù023 are `CLOSED_CANONICAL` READY_BASE (022 = Q05 release-qualification **prep** only;
 023 = Q03 open-metadata SQLCipher; `PRIVATE_DATA_READY` still FALSE).
 Spec **024** is `CLOSED_CANONICAL` READY_BASE (Q04 host OS IPC; `MULTI_CLIENT_RELEASE_READY` still FALSE).
 Spec **025** is `CLOSED_CANONICAL` READY_BASE (Q10 versioned synthetic evidence corpus; clinical quality / `RELEASE_READY` still FALSE).
 Spec **026** is `CLOSED_CANONICAL` READY_BASE (Q09 pack signer/anti-rollback + Linux Landlock measured; `platform_qualified=false`; `WORKER_OS_SANDBOX_PLATFORM_QUALIFIED` still OPEN).
 Spec **027** is `CLOSED_CANONICAL` READY_BASE (Q05 perf harness + SBOM/checksum scaffolds; budgets not claimed; `RELEASE_READY` still FALSE).
-Spec **028** is `CLOSED_CANONICAL` READY_BASE (Q03 OS keyring custody; `os_keyring_available`/`os_keyring_used`; `PRIVATE_DATA_READY` still FALSE ó swap/snapshot residual).
+Spec **028** is `CLOSED_CANONICAL` READY_BASE (Q03 OS keyring custody; `os_keyring_available`/`os_keyring_used`; `PRIVATE_DATA_READY` still FALSE ù swap/snapshot residual).
 Spec **029** is `CLOSED_CANONICAL` READY_BASE (macOS CI matrix + CLI/fixture accessibility honesty; `macos_ci_present=true`; `macos_qualified=false`; no WCAG / `RELEASE_READY` claim).
 Spec **030** is `CLOSED_CANONICAL` READY_BASE (Q09 Windows Job Object measured; `windows_measured=true`; AppContainer scaffold; `platform_qualified=false`; sandbox gate still OPEN).
 Spec **031** is `CLOSED_CANONICAL` READY_BASE (Q09 macOS Seatbelt measured; `macos_measured=true`; App Sandbox entitlements scaffold; `platform_qualified=false`; sandbox gate still OPEN).
 Spec **032** is `CLOSED_CANONICAL` READY_BASE (Q03 privacy probes + Q05 NOTICE inventory + perf binding; `probes_present=true`; residual classes open; `notice_inventory_present=true`; `rights_license_decision=false`; `budgets_claimed_met=false`; `PRIVATE_DATA_READY` / `RELEASE_READY` still FALSE).
-Spec **033** is `CLOSED_CANONICAL` READY_BASE (Q09 Windows AppContainer FS measured; `windows_appcontainer_fs_measured=true`; network/LPAC scaffold; `platform_qualified=false`; sandbox gate still OPEN).
+Spec **033** is `CLOSED_CANONICAL` READY_BASE (Q09 Windows AppContainer FS measured; `windows_appcontainer_fs_measured=true`; `platform_qualified=false`).
 Spec **034** is `CLOSED_CANONICAL` READY_BASE (Q12 durable outbox restart; `outbox_restart_qualified=true`; NPHIES still gated).
 Spec **035** is `CLOSED_CANONICAL` READY_BASE (EncryptedVault authority sync; `encrypted_authority_sync_qualified=true`; `PRIVATE_DATA_READY` still FALSE).
-Spec 012 remains MESC-blocked. Deferred advanced work is **036+**.
+Spec **036** is `CLOSED_CANONICAL` READY_BASE (MESC synthetic verifier; `verifier_ready_base=true`; Spec 012 / `MESC_RELEASED_ARTIFACT` still NOT_AVAILABLE).
+Spec **037** is `CLOSED_CANONICAL` READY_BASE (required-checks packet + checksum verify + license counsel packet + broker transport-fail fixtures; `RELEASE_READY` still FALSE).
+Spec **038** is `CLOSED_CANONICAL` READY_BASE (Q09 AppContainer network measured; `windows_appcontainer_network_measured=true`; LPAC scaffold; sandbox gate still OPEN).
+Spec **039** is `CLOSED_CANONICAL` READY_BASE (entry-doc honesty + PHI readiness checklist + signing/provenance prep packets; no RELEASE_READY claim).
+Spec 012 remains MESC-blocked. Deferred advanced work is **040+**.
 Do **not** claim `RELEASE_READY`, `PRIVATE_DATA_READY`, or `MULTI_CLIENT_RELEASE_READY`.
 Q03 residual page encryption landed in Spec 023; OS keyring READY_BASE in Spec 028; Spec 032 probes do not clear swap/snapshot (still block PRIVATE_DATA_READY).
 Foundation and prep closure is not product or privacy release readiness.

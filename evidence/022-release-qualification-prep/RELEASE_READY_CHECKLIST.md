@@ -11,7 +11,7 @@ Trusted V1 `RELEASE_READY` requires all of the following. Spec 022 records hones
 | Reproducible package contents | FALSE | No release package pipeline |
 | SBOM incl. native/model assets | FALSE | deny.toml / supply-chain scaffold ≠ release SBOM |
 | Rights / license decision | FALSE | `PUBLIC_SOURCE_LICENSE_CHOICE` pending |
-| Checksums / provenance / signing verification | FALSE | External / later |
+| Checksums / provenance / signing verification | FALSE | Spec **039** `SIGNING_PROVENANCE_PREP.md` is prep only — no credentials |
 | Migration + recovery proof at release bar | PARTIAL | Spec 016 backup/restart READY_BASE ≠ full release proof |
 | Source-linked claims + limitations | PARTIAL | Evidence LIMITATIONS present; not a release dossier |
 | No unresolved material findings | UNKNOWN | Not asserted |
