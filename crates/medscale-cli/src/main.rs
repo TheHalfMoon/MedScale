@@ -358,7 +358,7 @@ fn run() -> Result<()> {
                     report.workflow.disclosure_append_supported
                 );
                 println!(
-                    "release_qualification: prep_ready_base={} release_ready={} locked={} macos_ci={} macos_qualified={} branch_protection={} perf_harness={} sbom_scaffold={} sbom_lock_bound={} notice_inventory={} rights_license_decision={} missing={}",
+                    "release_qualification: prep_ready_base={} release_ready={} locked={} macos_ci={} macos_qualified={} branch_protection={} perf_harness={} sbom_scaffold={} sbom_lock_bound={} dry_run_verifier={} notice_inventory={} rights_license_decision={} missing={}",
                     report.release_qualification.prep_ready_base,
                     report.release_qualification.release_ready,
                     report.release_qualification.locked_builds,
@@ -368,6 +368,9 @@ fn run() -> Result<()> {
                     report.release_qualification.perf_harness_present,
                     report.release_qualification.sbom_scaffold_present,
                     report.release_qualification.sbom_lock_bound,
+                    report
+                        .release_qualification
+                        .release_dry_run_verifier_present,
                     report.release_qualification.notice_inventory_present,
                     report.release_qualification.rights_license_decision,
                     report.release_qualification.missing_evidence_classes.len()
@@ -745,6 +748,7 @@ mod tests {
             "perf_harness_present",
             "sbom_scaffold_present",
             "sbom_lock_bound",
+            "release_dry_run_verifier_present",
             "accessibility",
             "fixture_cli_labels_checked",
             "cli_keyboard_path_documented",

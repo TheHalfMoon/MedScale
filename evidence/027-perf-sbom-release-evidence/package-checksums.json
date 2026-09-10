@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "spec_id": "027-perf-sbom-release-evidence",
-  "generated_at": "2026-09-09T23:41:51.8269192Z",
+  "generated_at": "2026-09-10T21:44:41.3312979Z",
   "release_ready": false,
   "signed": false,
   "note": "Workspace source + lock digests only; not a reproducible binary package or signed release.",
@@ -9,13 +9,13 @@
     {
       "path": "Cargo.lock",
       "kind": "lockfile",
-      "sha256": "0f70c03cd8e3e7e46c377958b6622c04acdc73ca0deb312ab2565dd6144964e1"
+      "sha256": "427c4fe7bc1bbdbccba58c2598616e7b5bd480ff23b883ec3976a3df6ea7fe84"
     },
     {
       "path": "crates/medscale-cli",
       "kind": "crate_source_tree",
       "file_count": 2,
-      "tree_sha256": "88e6a9adc0d36f842b4ad157226a71520d7cde3e936935097bdd6d6493f43ab3",
+      "tree_sha256": "87daaad70264fa1a9c8ccc328607c3ae387c15ebed4edc32ca5b0b22dffe4917",
       "files": [
         {
           "path": "crates/medscale-cli/Cargo.toml",
@@ -23,27 +23,31 @@
         },
         {
           "path": "crates/medscale-cli/src/main.rs",
-          "sha256": "f5c3b62fcbffa361afc3fb147b95a2b1acc0640d69feafdacaaab179c62d7a9f"
+          "sha256": "bcd289c1f2ab150c0180021c7b9c73f835155d277eb1bc10be009ec4216ccaac"
         }
       ]
     },
     {
       "path": "crates/medscale-contracts",
       "kind": "crate_source_tree",
-      "file_count": 33,
-      "tree_sha256": "2110a09b0fbaea0174e772f36ed29ab54367ef23e765f7455045f000e1a3c143",
+      "file_count": 44,
+      "tree_sha256": "ab74d624d0f281c5762c36f7739a91d6ef95170593fcd549254329f85d730334",
       "files": [
         {
           "path": "crates/medscale-contracts/Cargo.toml",
-          "sha256": "624cc2bf8849b84dc775d2bf3f6f6667148b7c8fd80b2201a77b8292b95859b1"
+          "sha256": "95406bdf0660d70579fd1abaf8301c2d01af9e17b9c2db546ce3e00205c9df65"
         },
         {
           "path": "crates/medscale-contracts/src/actions/mod.rs",
-          "sha256": "54ae61725b54fcdecb3002544e5a590b062da020d7f8855d4581ef30060f5c9b"
+          "sha256": "f7a482cc73f49a586eb01554144db6c3291d8ae94869213d734d94fcb77fd402"
+        },
+        {
+          "path": "crates/medscale-contracts/src/bin/os_sandbox_probe.rs",
+          "sha256": "366124f7e3461f67982f625b6494d2871f169769d0244987103e5e73ebffe0f8"
         },
         {
           "path": "crates/medscale-contracts/src/doctor/mod.rs",
-          "sha256": "3643424079632c1cdf07a7c6da2b38506fad4416578112bf3c8ace6c580b29fc"
+          "sha256": "cd4d519b5740cd2e970ed4114c4c0da3b4a3b4502ce7a249fea4d0f069d93f0f"
         },
         {
           "path": "crates/medscale-contracts/src/documents/mod.rs",
@@ -51,11 +55,11 @@
         },
         {
           "path": "crates/medscale-contracts/src/envelopes/mod.rs",
-          "sha256": "2fffbf2424318e4d9a37dd3c36b84043a186a4a44f77d4f48cfff0b812592f1a"
+          "sha256": "48e9ecd601e8b6741b2982b7ccaa4862efce3fe92cf886f5fdec0f3be23a42c4"
         },
         {
           "path": "crates/medscale-contracts/src/evidence/mod.rs",
-          "sha256": "c6577a23acfc6485d9da11cbc13efbebb2e95e1a8702b017eb5023ebf704d830"
+          "sha256": "2b3b1d0ff6df27f3e0156351a0d6fd801bd2af9396872a88526d4208a825959c"
         },
         {
           "path": "crates/medscale-contracts/src/ffi_policy/mod.rs",
@@ -67,7 +71,7 @@
         },
         {
           "path": "crates/medscale-contracts/src/fixture_ui/mod.rs",
-          "sha256": "af2790e6a7d6f56577a717032ce7c4edcd3ae092b853107bf6d1f7787dc6d5b6"
+          "sha256": "8cdfc430f031cd5010b61ad869c713992a2cbee55d6a1fc908378f25f2f91dcc"
         },
         {
           "path": "crates/medscale-contracts/src/ingest/mod.rs",
@@ -79,11 +83,11 @@
         },
         {
           "path": "crates/medscale-contracts/src/lib.rs",
-          "sha256": "68fefccdfbc7b996dae00d0b76faf7dffe36e54873002f3f073671a75efda865"
+          "sha256": "ab9df34fdfd082fae4f8d435af6f115fe2b97626002fc9ee46cd207b05aea848"
         },
         {
           "path": "crates/medscale-contracts/src/mesc/mod.rs",
-          "sha256": "0d6c76fa39971a27dc0d25bdada4d60799bf913066f837fc912d78f9d147743f"
+          "sha256": "ec5447c885ebed1e945fb1be8dc18215a4fd5334439927393cd52c7c6dcf3f6e"
         },
         {
           "path": "crates/medscale-contracts/src/mobile/mod.rs",
@@ -91,7 +95,7 @@
         },
         {
           "path": "crates/medscale-contracts/src/network/mod.rs",
-          "sha256": "4dedb0ef3cb27795e83e5a430f8599a3ac1252a34e1f3ee380b06f1249b0678b"
+          "sha256": "406d72c5feb058b340f1f17c57c755ffad5f1d0c441a9df20063e74f6040f998"
         },
         {
           "path": "crates/medscale-contracts/src/objects/authority_classes.rs",
@@ -107,7 +111,7 @@
         },
         {
           "path": "crates/medscale-contracts/src/objects/ids.rs",
-          "sha256": "6f8352343c23ec5924a9c525d508a5fa47f539bd8d32d929627b8deb426a3733"
+          "sha256": "46f3407034fb99fdcdede12012f744d379fb62fb993a361912a4db0677f3da34"
         },
         {
           "path": "crates/medscale-contracts/src/objects/mod.rs",
@@ -134,8 +138,24 @@
           "sha256": "9df83b00dd3a570c856f689fcc52bcf072bb2e57b3e6477d606bd4dcebc5c13d"
         },
         {
+          "path": "crates/medscale-contracts/src/os_sandbox/macos_app_sandbox.rs",
+          "sha256": "eae67932209af684052250a4be612e4f28d05fbf7f2e1d1d0db00329bd8bd333"
+        },
+        {
+          "path": "crates/medscale-contracts/src/os_sandbox/macos_seatbelt.rs",
+          "sha256": "440e0f8625f4d9bc4bdbadb90951d6f06077f741aa1c857e9eaac1900599ae64"
+        },
+        {
           "path": "crates/medscale-contracts/src/os_sandbox/mod.rs",
-          "sha256": "bcdb4211099cc14a315ec52d16e46da8629a71ff769b69957c19cf2bc1d0d43f"
+          "sha256": "81c8b0555a6f8a3b842fd65d251183e15a3c8f0a5478dcd3af368a2ad41040cf"
+        },
+        {
+          "path": "crates/medscale-contracts/src/os_sandbox/windows_appcontainer.rs",
+          "sha256": "a492e681aeddf43c5ab67e8fc5ae42bb3da1cffc8adf9ff8513806f4c51c92c8"
+        },
+        {
+          "path": "crates/medscale-contracts/src/os_sandbox/windows_job.rs",
+          "sha256": "c2689dd1801b7df7cd8e4b39e7969803e782c94e8bec9b7ffc249f78414b6a6b"
         },
         {
           "path": "crates/medscale-contracts/src/packs/mod.rs",
@@ -164,18 +184,42 @@
         {
           "path": "crates/medscale-contracts/tests/object_roundtrip.rs",
           "sha256": "a8d3199998030154d8069c5d521f057d5c16dcc732356d44fbc916ea6abf5634"
+        },
+        {
+          "path": "crates/medscale-contracts/tests/os_sandbox_030.rs",
+          "sha256": "6e43203b9b19fe6928db6b6e341270693acebd2877558f263f08b2cf7b18ce58"
+        },
+        {
+          "path": "crates/medscale-contracts/tests/os_sandbox_031.rs",
+          "sha256": "e197e0d57fe30d00fe29848937c19de680906553bb03d22b606f0cbb5b484dce"
+        },
+        {
+          "path": "crates/medscale-contracts/tests/os_sandbox_033.rs",
+          "sha256": "96c3e1b80b4f4575d04de4e5c3f42131181a6c35ffa4d45d9a8caa21ba0d29cc"
+        },
+        {
+          "path": "crates/medscale-contracts/tests/os_sandbox_038.rs",
+          "sha256": "15b8354a32066deecc59a6bbb7adcbbd844c6976dd6d324a34a9b7196901c96a"
+        },
+        {
+          "path": "crates/medscale-contracts/tests/os_sandbox_040.rs",
+          "sha256": "ba40cda1033f1d90c0ae41bc3d14e5763f5bfcfd397b813d828b751988f36be9"
+        },
+        {
+          "path": "crates/medscale-contracts/tests/os_sandbox_041.rs",
+          "sha256": "595758c7d1961ede314a17c8049f3017b94fd9455e5a5c40a53e12dcc7b1e061"
         }
       ]
     },
     {
       "path": "crates/medscale-core",
       "kind": "crate_source_tree",
-      "file_count": 58,
-      "tree_sha256": "192f735cfa935fe2f8ab4e6a794a5f22834b51f0e0218fafdceabacafd197ecf",
+      "file_count": 67,
+      "tree_sha256": "3980e9cf2d8fe0663c301b4d62dae2dbadd3a92f62ccbafe652093e959147268",
       "files": [
         {
           "path": "crates/medscale-core/Cargo.toml",
-          "sha256": "33812dea1f91846eb97dfec2f62b48bc69f65e334d473cbdec3ff5f0ed89d208"
+          "sha256": "eef528f6940a3c6194b409d66b88e8636f851c9469787c5921ca458f5aa01cec"
         },
         {
           "path": "crates/medscale-core/src/authority/amend.rs",
@@ -183,7 +227,7 @@
         },
         {
           "path": "crates/medscale-core/src/authority/corpus.rs",
-          "sha256": "267e444a57bd7c51309df59c4e2994afbd918a0457c90917ece4fc28cf5f36ba"
+          "sha256": "7b70ce3892b1e336697d4ac71a1b347b3d20ebacbb9687ae00a51f6c70df9e7e"
         },
         {
           "path": "crates/medscale-core/src/authority/document_ops.rs",
@@ -191,11 +235,11 @@
         },
         {
           "path": "crates/medscale-core/src/authority/durable.rs",
-          "sha256": "dac3816ba74f24986ee0c0fd43d9651c94c0e5988d18b41347a6ea6dc1551da5"
+          "sha256": "0faaf2aae18adeceff0ea5555b17eb3275cab058a4c89dfcfe95cc479af76fc9"
         },
         {
           "path": "crates/medscale-core/src/authority/facade.rs",
-          "sha256": "9ffbb46fa4e17a5d5438e3b13ace161c5178e6a2eef0ab2f59f5ea78923297cc"
+          "sha256": "2aba9621f0fc4143dba74f27de905081517bcc8a01fb03edb9aebe2083d9fe55"
         },
         {
           "path": "crates/medscale-core/src/authority/handles.rs",
@@ -211,7 +255,7 @@
         },
         {
           "path": "crates/medscale-core/src/authority/mod.rs",
-          "sha256": "b725ff18077dacf1ae12f182be67ebfe7c82df55e93dc22e7dff763db9e61446"
+          "sha256": "920121d43f2640c34c4f1324f34a603f791b8096685fc5d46f137449641008a4"
         },
         {
           "path": "crates/medscale-core/src/authority/presentation.rs",
@@ -223,7 +267,7 @@
         },
         {
           "path": "crates/medscale-core/src/authority/retrieval.rs",
-          "sha256": "bc2aa4aaee77b2639ef81fa43ea6c83115a1397a9e62922ef5aac8065c2ad7a7"
+          "sha256": "b2d702f1792105cebd699c8b464673c50f8e9cee493fb4478202e72a29a3b459"
         },
         {
           "path": "crates/medscale-core/src/authority/source_ops.rs",
@@ -239,7 +283,7 @@
         },
         {
           "path": "crates/medscale-core/src/doctor.rs",
-          "sha256": "5db45fa5b2e659eb96809c44567d6a935a73e2bd774fe830b092e206b8fff0e3"
+          "sha256": "6d3d7806da36c82d6c020125d6b13012014fb52749f4fbf82fdaad0bc3c6df17"
         },
         {
           "path": "crates/medscale-core/src/effects/mod.rs",
@@ -255,7 +299,7 @@
         },
         {
           "path": "crates/medscale-core/src/lib.rs",
-          "sha256": "3656d5b44b92f0c1ca65ab98fdfb44e30c0f3ce758f9f841cc0f4baf303027f2"
+          "sha256": "5ffcf24a6cb491436a42380b06506ada361279258d5c1acd434c4fc8f2fc7adc"
         },
         {
           "path": "crates/medscale-core/src/process/mod.rs",
@@ -283,7 +327,7 @@
         },
         {
           "path": "crates/medscale-core/tests/actions_014.rs",
-          "sha256": "f7eec14d6a0aaa80bf1f8f08d97919c4bf9b5076ad473659e9538e24aec8ece3"
+          "sha256": "b23b6b8a749e65cbf80f2766c934364bf9d8d18a65cd93887076cd3c179070e9"
         },
         {
           "path": "crates/medscale-core/tests/documents_010.rs",
@@ -298,8 +342,12 @@
           "sha256": "7c4f6dc144b0496a603d7609c79547e62e94fb67b377af5313802a395befd5db"
         },
         {
+          "path": "crates/medscale-core/tests/encrypted_authority_035.rs",
+          "sha256": "9778546ef85d900fa26a41a3f8d9d7a3c0e04bba2096c4d8ccc8f0a97805fc6f"
+        },
+        {
           "path": "crates/medscale-core/tests/evidence_corpus_025.rs",
-          "sha256": "8bad64734eb50c9bbc5b19c312049cc81a6d6fe0961cc01f0beac05216c976c9"
+          "sha256": "1b524ef944734196b5e7b86b0a35c827596ca14dbc33e293ab84b42665cba9f8"
         },
         {
           "path": "crates/medscale-core/tests/ffi_admission_validate.rs",
@@ -334,12 +382,24 @@
           "sha256": "f829d213185a129fda7ad8e53d34c9923c639f760b613b50ffcb4b3e7eebf355"
         },
         {
+          "path": "crates/medscale-core/tests/lexical_scale_045.rs",
+          "sha256": "c8404b1193a6c92456126135d382bb89dd4867b8212eff945a140567ad7e7121"
+        },
+        {
+          "path": "crates/medscale-core/tests/macos_ci_accessibility_029.rs",
+          "sha256": "8029b0b476fb48ad25c5608098d3b15f21f77c722103983328cde4da11c11fb7"
+        },
+        {
           "path": "crates/medscale-core/tests/mesc_admit_012.rs",
-          "sha256": "56f812bd2f31cf856c3ac497eeec4913768761905b3c7a01cee316c296c5ac8b"
+          "sha256": "c888547cbcc368e7c2a383d1dfdd1c9689bfe092507a7eb37d628efe8b9b0555"
         },
         {
           "path": "crates/medscale-core/tests/mesc_boundary_012.rs",
           "sha256": "8bcd876a468733886c1572abd08e0feb122a134e3758bf52a62909e0082b6821"
+        },
+        {
+          "path": "crates/medscale-core/tests/mesc_verifier_036.rs",
+          "sha256": "d397a6776d32c836f651168781fd348d32c341a6d17804fa3ccfd2e3be7cd19b"
         },
         {
           "path": "crates/medscale-core/tests/mobile_009.rs",
@@ -347,7 +407,7 @@
         },
         {
           "path": "crates/medscale-core/tests/network_broker_013.rs",
-          "sha256": "a0b3ba4f9189237ee7b779793081fdbbd5de42541471b1d33a6591955367841f"
+          "sha256": "1c9d3c1a1a5c159ea2b77a9e602259e9a85aa2e855222410f45a17dbac272601"
         },
         {
           "path": "crates/medscale-core/tests/online_packs_015.rs",
@@ -355,7 +415,15 @@
         },
         {
           "path": "crates/medscale-core/tests/os_sandbox_026.rs",
-          "sha256": "ddaedd812159cf2c8a389de74b5dd938a1718c2526c568b32c5340abf5042d36"
+          "sha256": "936ecf8a13d795331bc39f0ac05ccf6da8b4af69d45e163e39bff084ef2ed3f1"
+        },
+        {
+          "path": "crates/medscale-core/tests/os_sandbox_044.rs",
+          "sha256": "b98b8d5294c9b8878f4fb1fed106f2cc614f537527af74c1b809da757345980a"
+        },
+        {
+          "path": "crates/medscale-core/tests/outbox_restart_034.rs",
+          "sha256": "1e1e9b753204f6073dc2c393c415c1f0a483f434eb86fb87bb94323742f15308"
         },
         {
           "path": "crates/medscale-core/tests/pack_signer_026.rs",
@@ -367,7 +435,15 @@
         },
         {
           "path": "crates/medscale-core/tests/perf_harness_027.rs",
-          "sha256": "7689f4f497606d5bd640ef96f9f3926ae7da794e4209c75e15188682d2c3cde8"
+          "sha256": "40791f7f2bf45f4cc85c1e228f3c6f38f75121edf8513313804903ce36c3c0e5"
+        },
+        {
+          "path": "crates/medscale-core/tests/privacy_honesty_043.rs",
+          "sha256": "e8872849b4814e4c55f999e76d621d55d3bda50b80f6260e5e2342ce2ec4368c"
+        },
+        {
+          "path": "crates/medscale-core/tests/privacy_probes_032.rs",
+          "sha256": "1aa3fa7464320400a58cea32b483833fa32be7680d679eb4cf08b6367e5ba978"
         },
         {
           "path": "crates/medscale-core/tests/promote_and_identity.rs",
@@ -378,8 +454,12 @@
           "sha256": "5ff17a0604f87bc03028a7333ee690c27c68c2823a635bad781ba18f189a29a5"
         },
         {
+          "path": "crates/medscale-core/tests/release_dry_run_047.rs",
+          "sha256": "93766d70648c6e0fce69d085599f0358fc4fad8a6ac2ceb1cde9445f6a72b697"
+        },
+        {
           "path": "crates/medscale-core/tests/release_qualification_022.rs",
-          "sha256": "82f78e4a7044807f09e02d6d5f358cb0c4d81236ae0f599699fc0e44b3ffb16c"
+          "sha256": "b172c59a5785e4faa169bbc3d306a5a1e499f8260bf04ee8609a280ff3ca0354"
         },
         {
           "path": "crates/medscale-core/tests/retrieval_011.rs",
@@ -395,7 +475,7 @@
         },
         {
           "path": "crates/medscale-core/tests/vault_privacy_023.rs",
-          "sha256": "7224574faed3e7357e779971149c80f8e2b91f3d280f0322c0daa4f08d8b9598"
+          "sha256": "252a7cf80997597232d37a4994b58ecc826566eae11f06226b741ece7831c4ba"
         },
         {
           "path": "crates/medscale-core/tests/worker_policy_deny_default.rs",
@@ -427,11 +507,11 @@
       "path": "crates/medscale-fhir",
       "kind": "crate_source_tree",
       "file_count": 5,
-      "tree_sha256": "422ea130e0bd1cdf1349a168d5d89683e4bd4086eb284722d435da5784005f5d",
+      "tree_sha256": "a98635017ff1fd36aabd9c6e1137fae90c4ed028fbcd910aca5936a3c1981c1c",
       "files": [
         {
           "path": "crates/medscale-fhir/Cargo.toml",
-          "sha256": "7e304e486b96181d6de9334c20c2d16abf0b8c55521defa16bdda3dd45cc4dd8"
+          "sha256": "5eae0c337eac64b45e74882ba423a99376489e8ec5b8b0055cd8f72161268ced"
         },
         {
           "path": "crates/medscale-fhir/src/extractors/mod.rs",
@@ -443,7 +523,7 @@
         },
         {
           "path": "crates/medscale-fhir/src/lib.rs",
-          "sha256": "b3df393e454dcdf985d25b78b89a318ab0deb7591daf2fa32914d82fe2325e60"
+          "sha256": "cacb7ac617d39d8a4af799b0687e7f30e16427b31b9f12f35345adb7d4d4b1e4"
         },
         {
           "path": "crates/medscale-fhir/src/units/mod.rs",
@@ -455,11 +535,11 @@
       "path": "crates/medscale-keys",
       "kind": "crate_source_tree",
       "file_count": 7,
-      "tree_sha256": "aad69284b1f1d1d3f8439798b21151a2ba73456a7833e5e47227baa44134ee69",
+      "tree_sha256": "68d3946ec23df21a27d0ea77119657dcd7964e05bc30f4953cfb5509f6346be9",
       "files": [
         {
           "path": "crates/medscale-keys/Cargo.toml",
-          "sha256": "0b1f6e6935bc10b3d89f112efbfa5e1de5168e51cba70e255a3cc2133f031c15"
+          "sha256": "0d533c8c75605c3c98eef11493ca19eedfa90aaae5a64c44740d0d2271504290"
         },
         {
           "path": "crates/medscale-keys/src/aead_wrap.rs",
@@ -467,11 +547,11 @@
         },
         {
           "path": "crates/medscale-keys/src/keystore.rs",
-          "sha256": "402334d377823c2a9c782c3721d40685b98dbce821d64e70449c74d36439caf5"
+          "sha256": "61f2e977992a09ed2a1d7757de0423f3f5e59948ea3bd73c2ad9287837aef11a"
         },
         {
           "path": "crates/medscale-keys/src/lib.rs",
-          "sha256": "6011b00f1fd6ff3869d8817becdae2e2f390cdc28d97969b355f9f8938c6cdd2"
+          "sha256": "469df4048055eef840cc9daa06514786125ed46dd20715946d68a85ff1813a82"
         },
         {
           "path": "crates/medscale-keys/src/pack_trust.rs",
@@ -491,7 +571,7 @@
       "path": "crates/medscale-network",
       "kind": "crate_source_tree",
       "file_count": 5,
-      "tree_sha256": "e94cc14b9f59e262d3730ab855f20432edf6afb3045ce9924ceb95762a3eb291",
+      "tree_sha256": "0334382b7be13acea9e745758097ba83fad7f441ab59654c3217597cca3269d1",
       "files": [
         {
           "path": "crates/medscale-network/Cargo.toml",
@@ -507,23 +587,23 @@
         },
         {
           "path": "crates/medscale-network/src/lib.rs",
-          "sha256": "70ae789469ecd0c8a00f42a66a208137ea81cde0cdc3f57a8b24d3cb43ba9294"
+          "sha256": "72c25fd1f5390eea7a2e9623a8da46e642402e0c770ddccc5f39085d6da32a20"
         },
         {
           "path": "crates/medscale-network/src/transport.rs",
-          "sha256": "f86d974a220098f9b6aa79955047a9915db8ea8521432585a1fe41fa90c3303c"
+          "sha256": "7a4fe247ea1f2fe22ef0dac98648802a2feb8c7748f674b32bc539cc716a3f16"
         }
       ]
     },
     {
       "path": "crates/medscale-pack",
       "kind": "crate_source_tree",
-      "file_count": 5,
-      "tree_sha256": "7515cddf018824aeaae38b87785228c3e045216a9165b186e82c345f0c6bb9d4",
+      "file_count": 6,
+      "tree_sha256": "67a90d2e55d0e829454d4b844459f483e4a26e54df58fe7cb7ff12b05656f737",
       "files": [
         {
           "path": "crates/medscale-pack/Cargo.toml",
-          "sha256": "62b98b5080f42abb6581c1a175e8ed902bd7592bd42d412fa3c8deadf49db488"
+          "sha256": "d0b582d7deddc8e7414c0ab40063dcbf532bd63869993ab5d3eaea044068646f"
         },
         {
           "path": "crates/medscale-pack/src/format.rs",
@@ -531,7 +611,11 @@
         },
         {
           "path": "crates/medscale-pack/src/lib.rs",
-          "sha256": "10f7279b7828b32ace43a09103786678a10a9bb6be593241d98c9bc19ff4e3bc"
+          "sha256": "75182e6892ed2e03507292956644e9faf6a0673b723143e5524f1634f4f06289"
+        },
+        {
+          "path": "crates/medscale-pack/src/mesc_verify.rs",
+          "sha256": "21670e989364015bf4f6970e8bb8d9ff11030c1775b47498f49db383585b1a03"
         },
         {
           "path": "crates/medscale-pack/src/runtime.rs",
@@ -546,8 +630,8 @@
     {
       "path": "crates/medscale-storage",
       "kind": "crate_source_tree",
-      "file_count": 15,
-      "tree_sha256": "d5d9fe24d545ffced7f4e11046e15afe30b3082d69560f1ca119cace7d2e4329",
+      "file_count": 16,
+      "tree_sha256": "f61dc8183648187c88d0d2e671898a5b982ecaaee47ce5aedaba7f7bb895c7bb",
       "files": [
         {
           "path": "crates/medscale-storage/Cargo.toml",
@@ -563,7 +647,7 @@
         },
         {
           "path": "crates/medscale-storage/src/claim.rs",
-          "sha256": "4fb9c659b237a984eaeb15c0669255998fdf60bd43eca6c6d942c6eb50eb9983"
+          "sha256": "03851c4693e3fcf96232a1ec583079a83576e4dc0b5ce866aad31eac0b7cf31a"
         },
         {
           "path": "crates/medscale-storage/src/encrypted_vault.rs",
@@ -575,11 +659,15 @@
         },
         {
           "path": "crates/medscale-storage/src/lib.rs",
-          "sha256": "9faf2ae11cffbe36883b76b58c0777a0505b88d1f8ea380ce43f9920d97e5527"
+          "sha256": "881edcfa7cf2670060ad36ac198a8c9e25d348ab313c2890b4e787b403d380c2"
         },
         {
           "path": "crates/medscale-storage/src/migrate.rs",
           "sha256": "2973cfbef5bbd71923e26581c4ba077f00579adce46cc9499c853909e855d7fb"
+        },
+        {
+          "path": "crates/medscale-storage/src/privacy_probes.rs",
+          "sha256": "dbe55b0cdb50605bfc9904693400acabf5475de42c9f67788d0800b0d095e140"
         },
         {
           "path": "crates/medscale-storage/src/sealed_blob.rs",

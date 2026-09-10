@@ -6,7 +6,8 @@
 ## What Cursor already completed
 
 - Unsigned package checksum scaffold + verify script (`scripts/generate-package-checksums.ps1`, `scripts/verify-package-checksums.ps1`)
-- SBOM scaffold (`scripts/generate-sbom-scaffold.ps1`)
+- SBOM scaffold (`scripts/generate-sbom-scaffold.ps1`) + Spec **046** Cargo.lock binding
+- Spec **047** release dry-run + cross-verifier (`scripts/release-dry-run.ps1`, `scripts/verify-release-manifest.ps1`)
 - Required-check inventory for CI (Spec 037)
 - License counsel packet (Spec 037) — SPDX still PENDING
 
@@ -16,7 +17,7 @@
 
 | Field | Value |
 |---|---|
-| ARTIFACT_TO_SIGN | Future MSI/MSIX/portable ZIP from release dry-run (not produced yet) |
+| ARTIFACT_TO_SIGN | Future MSI/MSIX/portable ZIP after package pipeline (dry-run binds source digests only; Spec 047) |
 | SIGNING_STAGE | After reproducible package build; before public distribution |
 | EXPECTED_IDENTITY | Owner-chosen Authenticode certificate (TBD) |
 | VERIFICATION_COMMAND | `Get-AuthenticodeSignature <artifact>` → Status Valid |

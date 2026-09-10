@@ -72,8 +72,12 @@ Required lifecycle for each material executable spec:
 | 040 | `windows-appcontainer-lpac` | Windows AppContainer LPAC READY_BASE (Q09 residual) | 038 closed | CLOSED_CANONICAL READY_BASE; windows_appcontainer_lpac_measured; platform_qualified=false |
 | 041 | `macos-app-sandbox-entitlements` | macOS App Sandbox entitlements READY_BASE (Q09 residual) | 031/040 closed | CLOSED_CANONICAL READY_BASE; entitlements measured; enforcement_measured=false; platform_qualified=false |
 | 042 | `perf-delivery-plan-scale` | Delivery-plan scale perf harness (Q05 residual) | 027/032 closed | CLOSED_CANONICAL READY_BASE; budgets_claimed_met=false |
-| 043 | `swap-snapshot-honesty` | Swap/snapshot/core-dump honesty classification (Q03 residual) | 032 closed | READY — configuration vs protection honesty; PRIVATE_DATA_READY=false |
-| 044+ | `research-site-imaging-genomics-advanced` | deferred site/research/collab/imaging/genomics/plugin/browser/watch/vision expansion | evidence-driven later gates | no Trusted V1 implementation commitment |
+| 043 | `swap-snapshot-honesty` | Swap/snapshot/core-dump honesty classification (Q03 residual) | 032 closed | CLOSED_CANONICAL READY_BASE; PRIVATE_DATA_READY=false |
+| 044 | `sandbox-composition-honesty` | Multi-OS sandbox composition honesty (Q09 residual) | 041 closed | CLOSED_CANONICAL READY_BASE; composition_inventory_present; platform_qualified=false |
+| 045 | `lexical-10k-corpus` | Procedural synthetic lexical 10k corpus (Q10/Q05 residual) | 025/042 closed | CLOSED_CANONICAL READY_BASE; clinical_quality/budgets/RELEASE_READY false |
+| 046 | `sbom-lock-binding` | SBOM Cargo.lock binding (Q05 residual) | 027 closed | CLOSED_CANONICAL READY_BASE; sbom_lock_bound; not full release SBOM |
+| 047 | `release-dry-run-verifier` | Release dry-run + cross-verifier (Q05 residual) | 039/046 closed | READY — release_dry_run_verifier_present; RELEASE_READY=false |
+| 048+ | `research-site-imaging-genomics-advanced` | deferred site/research/collab/imaging/genomics/plugin/browser/watch/vision expansion | evidence-driven later gates | no Trusted V1 implementation commitment |
 
 ## 3. Corrected critical path
 
