@@ -5,4 +5,4 @@
 - [x] LPAC measure + probe args + OsSandboxPlan/Doctor flag
 - [x] Unit/integration tests (Windows measured; non-Windows NotReady)
 - [x] Evidence packet + doctor/CLI honesty
-- [ ] CI green + PR + merge; mark CLOSED_CANONICAL; continue next residual
+- [x] CI green + PR + merge; mark CLOSED_CANONICAL; continue next residual

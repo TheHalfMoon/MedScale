@@ -1,11 +1,12 @@
-//! OS worker sandbox (Specs 008 / 026 / 030 / 031 / 033 / 038 / 040).
+//! OS worker sandbox (Specs 008 / 026 / 030 / 031 / 033 / 038 / 040 / 041).
 //!
 //! EXTERNAL_GATES: `WORKER_OS_SANDBOX_PLATFORM_QUALIFIED` remains OPEN until multi-OS
 //! measured PLATFORM_QUALIFIED evidence exists (stronger composition than per-OS READY_BASE).
-//! Linux Landlock, Windows Job Object + AppContainer FS/network/LPAC, and macOS Seatbelt may
-//! report ReadyBaseMeasured only — not PlatformQualified. macOS App Sandbox entitlements remain
-//! scaffold after Spec 040.
+//! Linux Landlock, Windows Job Object + AppContainer FS/network/LPAC, macOS Seatbelt, and
+//! macOS App Sandbox entitlements (artifact/probe) may report ReadyBaseMeasured only —
+//! not PlatformQualified. Signed App Sandbox **enforcement** remains external after Spec 041.
 
+mod macos_app_sandbox;
 #[cfg(target_os = "macos")]
 mod macos_seatbelt;
 #[cfg(windows)]
@@ -20,6 +21,11 @@ pub use windows_appcontainer::{
     appcontainer_fs_child_exit_code, appcontainer_lpac_child_exit_code,
     appcontainer_net_child_exit_code, measure_appcontainer_fs_deny, measure_appcontainer_lpac_deny,
     measure_appcontainer_net_deny, resolve_appcontainer_child_exe,
+};
+
+pub use macos_app_sandbox::{
+    ENTITLEMENTS_REL_PATH, app_sandbox_container_active, resolve_entitlements_path,
+    validate_entitlements_artifact,
 };
 
 use serde::{Deserialize, Serialize};
@@ -52,6 +58,8 @@ pub enum OsSandboxTarget {
     /// Spec 040: LPAC (ALL_APPLICATION_PACKAGES_OPT_OUT) + identity/FS/network deny.
     WindowsAppContainerLpac,
     MacosSeatbeltSandbox,
+    /// Spec 041: App Sandbox entitlements artifact + detection probe (not signed enforcement).
+    MacosAppSandboxEntitlements,
 }
 
 /// Documented plan for one OS.
@@ -217,7 +225,7 @@ impl OsSandboxPlan {
     }
 
     /// Spec 031 macOS READY_BASE: Seatbelt `sandbox_init` network-deny measured.
-    /// App Sandbox entitlements / container FS remain scaffold-only.
+    /// App Sandbox entitlements ReadyBaseMeasured is Spec 041 (separate).
     #[must_use]
     pub fn macos_seatbelt_ready_base() -> Self {
         Self {
@@ -226,14 +234,13 @@ impl OsSandboxPlan {
             mechanisms: vec![
                 "sandbox_init_sbpl".to_owned(),
                 "seatbelt_network_deny".to_owned(),
-                "app_sandbox_entitlements_scaffold".to_owned(),
             ],
             evidence_path: "evidence/031-macos-seatbelt-sandbox/MACOS_SEATBELT_MEASURED.md"
                 .to_owned(),
             limitations: vec![
                 "ReadyBaseMeasured Seatbelt network-deny only — not multi-OS PLATFORM_QUALIFIED"
                     .to_owned(),
-                "App Sandbox entitlements / container FS isolation still scaffold (not measured in Spec 031)"
+                "App Sandbox entitlements ReadyBaseMeasured is Spec 041; signed enforcement still external"
                     .to_owned(),
                 "sandbox_init is deprecated in headers but still ships; not entitlement App Sandbox"
                     .to_owned(),
@@ -243,21 +250,46 @@ impl OsSandboxPlan {
         }
     }
 
-    /// App Sandbox / XPC-oriented scaffold (NotPlatformQualified); Seatbelt READY_BASE is separate.
+    /// Spec 041 macOS READY_BASE: App Sandbox entitlements artifact + detection probe.
+    /// Signed runtime enforcement remains external (`enforcement_measured=false`).
+    #[must_use]
+    pub fn macos_app_sandbox_entitlements_ready_base() -> Self {
+        Self {
+            target: OsSandboxTarget::MacosAppSandboxEntitlements,
+            qualification: OsSandboxQualification::ReadyBaseMeasured,
+            mechanisms: vec![
+                "entitlements_plist_artifact".to_owned(),
+                "app_sandbox_container_id_probe".to_owned(),
+            ],
+            evidence_path:
+                "evidence/041-macos-app-sandbox-entitlements/MACOS_APP_SANDBOX_ENTITLEMENTS_MEASURED.md"
+                    .to_owned(),
+            limitations: vec![
+                "ReadyBaseMeasured entitlements artifact + detection probe only — not signed enforcement"
+                    .to_owned(),
+                "Runtime App Sandbox enforcement requires codesign (SIGNING_ACTION external)"
+                    .to_owned(),
+                "Seatbelt Spec 031 is separate and is not App Sandbox".to_owned(),
+                "EXTERNAL_GATES WORKER_OS_SANDBOX_PLATFORM_QUALIFIED remains OPEN".to_owned(),
+            ],
+            allow_paths: vec![],
+        }
+    }
+
+    /// Residual scaffold (NotPlatformQualified): XPC / signed-enforcement composition candidates.
     #[must_use]
     pub fn macos_seatbelt_scaffold() -> Self {
         Self {
             target: OsSandboxTarget::MacosSeatbeltSandbox,
             qualification: OsSandboxQualification::NotPlatformQualified,
             mechanisms: vec![
-                "seatbelt_profile_candidate".to_owned(),
-                "app_sandbox_candidate".to_owned(),
                 "xpc_pattern_candidate".to_owned(),
+                "signed_app_sandbox_enforcement_candidate".to_owned(),
             ],
-            evidence_path: "evidence/031-macos-seatbelt-sandbox/LIMITATIONS.md".to_owned(),
+            evidence_path: "evidence/041-macos-app-sandbox-entitlements/LIMITATIONS.md".to_owned(),
             limitations: vec![
                 "Not PLATFORM_QUALIFIED".to_owned(),
-                "App Sandbox entitlements apply path not measured in Spec 031 (Seatbelt ReadyBaseMeasured is separate)"
+                "App Sandbox entitlements artifact/probe is Spec 041; signed enforcement still external"
                     .to_owned(),
             ],
             allow_paths: vec![],
@@ -275,6 +307,7 @@ impl OsSandboxPlan {
             Self::windows_appcontainer_lpac_ready_base(),
             Self::windows_appcontainer_scaffold(),
             Self::macos_seatbelt_ready_base(),
+            Self::macos_app_sandbox_entitlements_ready_base(),
             Self::macos_seatbelt_scaffold(),
         ]
     }
@@ -313,6 +346,10 @@ pub struct OsSandboxDoctorStatus {
     pub windows_appcontainer_lpac_measured: bool,
     /// Spec 031: macOS Seatbelt ReadyBaseMeasured evidence exists in-tree.
     pub macos_measured: bool,
+    /// Spec 041: macOS App Sandbox entitlements artifact/probe ReadyBaseMeasured.
+    pub macos_app_sandbox_entitlements_measured: bool,
+    /// Spec 041 honesty: signed App Sandbox runtime enforcement not measured.
+    pub macos_app_sandbox_enforcement_measured: bool,
     pub platform_qualified: bool,
     pub release_ready: bool,
 }
@@ -329,6 +366,8 @@ impl OsSandboxDoctorStatus {
             windows_appcontainer_network_measured: true,
             windows_appcontainer_lpac_measured: true,
             macos_measured: true,
+            macos_app_sandbox_entitlements_measured: true,
+            macos_app_sandbox_enforcement_measured: false,
             platform_qualified: false,
             release_ready: false,
         }
@@ -344,6 +383,8 @@ impl OsSandboxDoctorStatus {
             && self.windows_appcontainer_network_measured
             && self.windows_appcontainer_lpac_measured
             && self.macos_measured
+            && self.macos_app_sandbox_entitlements_measured
+            && !self.macos_app_sandbox_enforcement_measured
             && !self.platform_qualified
             && !self.release_ready
     }
@@ -389,6 +430,9 @@ pub fn try_apply_os_sandbox(plan: &OsSandboxPlan) -> Result<(), OsSandboxApplyEr
             apply_windows_appcontainer_lpac_ready_base(plan)
         }
         OsSandboxTarget::MacosSeatbeltSandbox => apply_macos_ready_base(plan),
+        OsSandboxTarget::MacosAppSandboxEntitlements => {
+            apply_macos_app_sandbox_entitlements_ready_base(plan)
+        }
     }
 }
 
@@ -475,6 +519,14 @@ fn apply_macos_ready_base(_plan: &OsSandboxPlan) -> Result<(), OsSandboxApplyErr
     }
 }
 
+fn apply_macos_app_sandbox_entitlements_ready_base(
+    _plan: &OsSandboxPlan,
+) -> Result<(), OsSandboxApplyError> {
+    // Artifact + env probe are host-portable; signed enforcement remains external.
+    let _ = _plan;
+    macos_app_sandbox::apply_macos_app_sandbox_entitlements()
+}
+
 #[cfg(target_os = "linux")]
 fn apply_landlock_linux(plan: &OsSandboxPlan) -> Result<(), OsSandboxApplyError> {
     use landlock::{
@@ -540,6 +592,12 @@ mod tests {
         assert!(!OsSandboxPlan::windows_appcontainer_lpac_ready_base().claims_platform_qualified());
         assert!(OsSandboxPlan::macos_seatbelt_ready_base().claims_ready_base_measured());
         assert!(!OsSandboxPlan::macos_seatbelt_ready_base().claims_platform_qualified());
+        assert!(
+            OsSandboxPlan::macos_app_sandbox_entitlements_ready_base().claims_ready_base_measured()
+        );
+        assert!(
+            !OsSandboxPlan::macos_app_sandbox_entitlements_ready_base().claims_platform_qualified()
+        );
     }
 
     #[test]
@@ -640,6 +698,8 @@ mod tests {
         assert!(d.windows_appcontainer_lpac_measured);
         assert!(d.linux_measured);
         assert!(d.macos_measured);
+        assert!(d.macos_app_sandbox_entitlements_measured);
+        assert!(!d.macos_app_sandbox_enforcement_measured);
         assert!(!d.platform_qualified);
         assert!(!d.release_ready);
     }

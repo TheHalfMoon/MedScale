@@ -5,11 +5,11 @@
 **Rule:** update this file whenever a unit enters or leaves a canonical state.
 
 **Autonomous stop status (historical V2 scoped closure):** superseded for Trusted V1 follow-on work.
-**Live follow-on status (2026-09-10):** Specs **016**–**039** `CLOSED_CANONICAL` READY_BASE on the Trusted V1 residual track. Spec **040** (Windows AppContainer LPAC ReadyBaseMeasured) promoted as existing Q09 residual — see `SPEC_040_PROMOTION.md`. Spec **012** remains MESC-blocked. Honesty: `PRIVATE_DATA_READY=false`; `RELEASE_READY=false`; sandbox `platform_qualified=false`. Deferred advanced product work is **041+**.
+**Live follow-on status (2026-09-10):** Specs **016**–**040** `CLOSED_CANONICAL` READY_BASE on the Trusted V1 residual track (Spec **040** = Windows AppContainer LPAC ReadyBaseMeasured). Spec **041** (macOS App Sandbox entitlements ReadyBaseMeasured) promoted as existing Q09 residual — see `SPEC_041_PROMOTION.md`. Spec **012** remains MESC-blocked. Honesty: `PRIVATE_DATA_READY=false`; `RELEASE_READY=false`; sandbox `platform_qualified=false`. Deferred advanced product work is **042+**.
 
 ## 2026-09-10 planning refinement
 
-See Trusted V1 delivery plan. Specs 018–039 READY_BASE closed on residual track; Spec 012 MESC-blocked. Spec **040** LPAC promoted (`EXISTING_Q09_RESIDUAL_ELIGIBLE_FOR_PROMOTION`). Advanced **041+** deferred.
+See Trusted V1 delivery plan. Specs 018–040 READY_BASE closed on residual track; Spec 012 MESC-blocked. Spec **041** App Sandbox entitlements promoted (`EXISTING_Q09_RESIDUAL_ELIGIBLE_FOR_PROMOTION`). Advanced **042+** deferred.
 
 ## Historical scoped queue (closures preserved)
 
@@ -55,8 +55,9 @@ See Trusted V1 delivery plan. Specs 018–039 READY_BASE closed on residual trac
 | 037 | Release Prep + Transport Fail Fixtures | `CLOSED_CANONICAL` | READY_BASE: REQUIRED_CHECKS packet + checksum verify + license counsel packet + broker transport fail fixtures; RELEASE_READY=false. |
 | 038 | Windows AppContainer Network (Q09 residual) | `CLOSED_CANONICAL` | READY_BASE: AppContainer TCP deny (`windows_appcontainer_network_measured`); LPAC scaffold; platform_qualified=false. |
 | 039 | Release Honesty Packets | `CLOSED_CANONICAL` | READY_BASE: START_HERE/SPECKIT sync + PHI readiness checklist + signing/provenance prep + unsigned release-manifest scaffold. |
-| 040 | Windows AppContainer LPAC (Q09 residual) | `READY` | Promote+implement: LPAC ReadyBaseMeasured on Spec 030/033/038 AppContainer path; `platform_qualified=false`; sandbox gate stays OPEN. See `SPEC_040_PROMOTION.md`. |
-| 041+ | Advanced deferred work | `DEFERRED_BY_CANONICAL_DESIGN` | Plugins/GraphRAG/replicas/imaging/CUDA/etc. |
+| 040 | Windows AppContainer LPAC (Q09 residual) | `CLOSED_CANONICAL` | READY_BASE: LPAC ReadyBaseMeasured (`windows_appcontainer_lpac_measured`); platform_qualified=false; sandbox gate OPEN. |
+| 041 | macOS App Sandbox Entitlements (Q09 residual) | `READY` | Entitlements artifact + detection probe ReadyBaseMeasured; enforcement_measured=false (signing external); platform_qualified=false. See `SPEC_041_PROMOTION.md`. |
+| 042+ | Advanced deferred work | `DEFERRED_BY_CANONICAL_DESIGN` | Plugins/GraphRAG/replicas/imaging/CUDA/etc. |
 
 ## Automatic progression
 
@@ -64,4 +65,4 @@ For the first `READY` unit: create/complete its Spec Kit package, analyze it, im
 
 Do not stop merely because a PR merged, one milestone passed, or an external optional gate exists.
 
-**Next eligible (honest):** Spec **040** Windows AppContainer LPAC ReadyBaseMeasured (`READY`). Spec 012 MESC-blocked. After 040: macOS App Sandbox entitlements + multi-OS PLATFORM_QUALIFIED composition, swap/snapshot PRIVATE_DATA_READY, branch protection settings, SPDX choice, signing credentials, WCAG/final-v0, MESC assets. Deferred advanced **041+**. Do **not** claim `RELEASE_READY`, `PRIVATE_DATA_READY`, or `MULTI_CLIENT_RELEASE_READY`.
+**Next eligible (honest):** Spec **041** macOS App Sandbox entitlements ReadyBaseMeasured (`READY`). Spec 012 MESC-blocked. After 041: multi-OS PLATFORM_QUALIFIED composition, delivery-plan perf scale, swap/snapshot PRIVATE_DATA_READY, branch protection, SPDX, signing credentials, WCAG/final-v0, MESC assets. Deferred advanced **042+**. Do **not** claim `RELEASE_READY`, `PRIVATE_DATA_READY`, or `MULTI_CLIENT_RELEASE_READY`.

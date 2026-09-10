@@ -16,6 +16,8 @@ fn doctor_os_sandbox_and_pack_signer_honest() {
     assert!(report.os_sandbox.windows_appcontainer_network_measured);
     assert!(report.os_sandbox.windows_appcontainer_lpac_measured);
     assert!(report.os_sandbox.macos_measured);
+    assert!(report.os_sandbox.macos_app_sandbox_entitlements_measured);
+    assert!(!report.os_sandbox.macos_app_sandbox_enforcement_measured);
     assert!(!report.os_sandbox.platform_qualified);
     assert!(!report.os_sandbox.release_ready);
     assert!(!report.pack_signer.release_ready);
