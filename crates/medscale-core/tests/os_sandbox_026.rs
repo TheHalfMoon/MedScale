@@ -1,8 +1,7 @@
 //! Spec 026 OS sandbox honesty + Linux measured apply.
 
 use medscale_contracts::os_sandbox::{
-    OsSandboxApplyError, OsSandboxDoctorStatus, OsSandboxPlan, OsSandboxQualification,
-    try_apply_os_sandbox,
+    OsSandboxApplyError, OsSandboxPlan, OsSandboxQualification, try_apply_os_sandbox,
 };
 use medscale_core::{build_doctor_report, privacy_proof_artifact_present};
 
@@ -45,8 +44,9 @@ fn ready_base_linux_plan_not_ready_on_this_host() {
         try_apply_os_sandbox(&plan),
         Err(OsSandboxApplyError::NotReadyOnThisHost)
     );
-    assert!(OsSandboxDoctorStatus::ready_base().linux_measured);
-    assert!(!OsSandboxDoctorStatus::ready_base().platform_qualified);
+    let doctor = build_doctor_report(None, false, privacy_proof_artifact_present()).os_sandbox;
+    assert!(doctor.linux_measured);
+    assert!(!doctor.platform_qualified);
 }
 
 #[cfg(target_os = "linux")]
