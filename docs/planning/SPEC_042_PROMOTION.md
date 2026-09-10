@@ -9,7 +9,8 @@ Trusted V1 delivery plan targets (10k timeline / 1MiB FHIR) remain unmeasured at
 Lexical 10k records still require corpus work — honestly not claimed in this unit.
 
 ## Scope
-- Env `MEDSCALE_027_DELIVERY_PLAN_SCALE=1` → 10k timeline + 1MiB FHIR
+- Env `MEDSCALE_027_DELIVERY_PLAN_SCALE=1` → FHIR 1 MiB + elevated timeline (CI uses 1000; host may set `MEDSCALE_027_TIMELINE_EVENTS=10000`)
 - Evidence under `evidence/042-perf-delivery-plan-scale/`
 - Keep `budgets_claimed_met=false`; no RELEASE_READY
+- Lexical 10k still limited (builtin corpus)
 - Advanced product remains **043+**

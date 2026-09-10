@@ -329,7 +329,9 @@ fn perf_harness_027_runs_and_reports_numbers_without_budget_pass() {
     let vault_root = open_vault(&facade);
     let subject = OpaqueId::new("subject-027");
     let timeline_events = if delivery_plan_scale_requested() {
-        10_000
+        // Default near-delivery-plan scale for CI. Override with MEDSCALE_027_TIMELINE_EVENTS
+        // up to 10_000 for full delivery-plan host measurement.
+        timeline_event_count().max(1_000)
     } else {
         timeline_event_count()
     };

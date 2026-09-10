@@ -83,8 +83,10 @@ jobs:
       - name: Delivery-plan scale harness (no budget claim)
         env:
           MEDSCALE_027_DELIVERY_PLAN_SCALE: "1"
+          MEDSCALE_027_TIMELINE_EVENTS: "1000"
           MEDSCALE_027_TIMED_RUNS: "5"
         run: cargo test -p medscale-core --test perf_harness_027 --locked -- --nocapture
+        timeout-minutes: 45
       - name: Upload delivery-plan scale evidence
         uses: actions/upload-artifact@v4
         with:
