@@ -1,4 +1,4 @@
-//! Doctor report aggregation (Spec 006).
+//! Doctor report aggregation (Spec 006 / 028).
 
 use std::path::Path;
 
@@ -18,6 +18,7 @@ use medscale_contracts::os_sandbox::OsSandboxDoctorStatus;
 use medscale_contracts::packs::{PackSignerDoctorStatus, PacksRuntimeDoctorStatus};
 use medscale_contracts::workflow::WorkflowDoctorStatus;
 use medscale_contracts::{MEDSCALE_PRODUCT_NAME, MEDSCALE_VERSION};
+use medscale_keys::KeyStoreDoctorPosture;
 use medscale_storage::{assert_claim_path, default_vault_root};
 
 use crate::authority::{DEFAULT_CORPUS_ID, DEFAULT_CORPUS_VERSION};
@@ -74,6 +75,16 @@ pub fn build_doctor_report_full(
         }
     };
 
+    let key_posture = KeyStoreDoctorPosture::detect();
+    let key_store = if key_posture.os_keyring_used {
+        KeyStoreAvailability::OsStoreAvailable
+    } else if key_posture.os_keyring_available {
+        // Available but forced to Memory via MEDSCALE_FORCE_MEMORY_KEYSTORE.
+        KeyStoreAvailability::MemoryMockAvailable
+    } else {
+        KeyStoreAvailability::MemoryMockAvailable
+    };
+
     DoctorReport {
         product_name: MEDSCALE_PRODUCT_NAME.to_owned(),
         version: MEDSCALE_VERSION.to_owned(),
@@ -85,7 +96,7 @@ pub fn build_doctor_report_full(
         vault_open,
         sync_risk,
         filesystem_claim_ok,
-        key_store: KeyStoreAvailability::MemoryMockAvailable,
+        key_store,
         privacy_proof_freshness: if privacy_proof_present {
             PrivacyFreshness::Present
         } else {
@@ -112,7 +123,10 @@ pub fn build_doctor_report_full(
         controlled_actions: ControlledActionsDoctorStatus::ready_base(),
         online_packs: OnlinePacksDoctorStatus::ready_base(),
         mesc_artifact: MescArtifactDoctorStatus::gate_blocked(),
-        vault_privacy: VaultPrivacyDoctorStatus::spec_023_honest(),
+        vault_privacy: VaultPrivacyDoctorStatus::spec_028_honest(
+            key_posture.os_keyring_available,
+            key_posture.os_keyring_used,
+        ),
         host_authority: HostAuthorityDoctorStatus::ready_base(),
         record_semantics: RecordSemanticsDoctorStatus::ready_base(),
         fhir_interchange: FhirInterchangeDoctorStatus::ready_base(),
@@ -134,7 +148,7 @@ pub fn build_doctor_report_full(
             "Controlled actions READY_BASE: outbox + UNKNOWN reconcile; NPHIES gated".to_owned(),
             "Online packs READY_BASE: acquire denied; HF not a runtime dependency".to_owned(),
             "MESC ARTIFACT_IMPORT blocked: MESC_RELEASED_ARTIFACT not available".to_owned(),
-            "Vault privacy Spec 023: SQLCipher page-encrypted open work; PRIVATE_DATA_READY=false (OS keyring/swap/snapshot)".to_owned(),
+            "Vault privacy Spec 028: OsKeyStore READY_BASE; PRIVATE_DATA_READY=false (swap/hibernate/snapshot)".to_owned(),
             "Host authority READY_BASE: localhost OS IPC + strict sessions; MULTI_CLIENT_RELEASE_READY=false".to_owned(),
             "Record semantics READY_BASE: precision-aware time, append-only amendments; RELEASE_READY=false".to_owned(),
             "FHIR interchange READY_BASE: honest support matrix; no full conformance; validator evidence != authority".to_owned(),

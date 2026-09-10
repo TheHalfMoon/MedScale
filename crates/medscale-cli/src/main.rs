@@ -304,13 +304,15 @@ fn run() -> Result<()> {
                     report.mesc_artifact.gate
                 );
                 println!(
-                    "vault_privacy: ready={} sealed_at_close={} open_work_risk={} page_encrypted={} sqlcipher={} wipe_on_close={}",
+                    "vault_privacy: ready={} sealed_at_close={} open_work_risk={} page_encrypted={} sqlcipher={} wipe_on_close={} os_keyring_available={} os_keyring_used={}",
                     report.vault_privacy.private_data_ready,
                     report.vault_privacy.sealed_at_close,
                     report.vault_privacy.open_work_plaintext_risk,
                     report.vault_privacy.open_work_page_encrypted,
                     report.vault_privacy.sqlcipher_enabled,
-                    report.vault_privacy.work_wipe_on_close
+                    report.vault_privacy.work_wipe_on_close,
+                    report.vault_privacy.os_keyring_available,
+                    report.vault_privacy.os_keyring_used
                 );
                 println!(
                     "host_authority: ready_base={} multi_client_release={} os_ipc={}",
@@ -713,6 +715,9 @@ mod tests {
             "os_sandbox",
             "linux_measured",
             "platform_qualified",
+            "os_keyring_available",
+            "os_keyring_used",
+            "private_data_ready",
         ] {
             assert!(json.contains(key), "missing {key}");
         }

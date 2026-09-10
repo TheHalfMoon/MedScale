@@ -100,6 +100,9 @@ pub enum SyncRisk {
 #[serde(rename_all = "snake_case")]
 pub enum KeyStoreAvailability {
     MemoryMockAvailable,
+    /// Platform credential store probed successfully (Spec 028).
+    OsStoreAvailable,
+    /// Historical: OS store deferred before Spec 028 READY_BASE.
     OsStoreDeferred,
     Unavailable,
 }
@@ -123,7 +126,7 @@ pub enum WebViewScanStatus {
     Deferred,
 }
 
-/// Vault privacy posture (Specs 017/023). Never claims secrets.
+/// Vault privacy posture (Specs 017/023/028). Never claims secrets.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct VaultPrivacyDoctorStatus {
@@ -135,6 +138,10 @@ pub struct VaultPrivacyDoctorStatus {
     pub open_work_page_encrypted: bool,
     pub work_wipe_on_close: bool,
     pub sqlcipher_enabled: bool,
+    /// Spec 028: OS credential store put/get/delete probe succeeded on this host.
+    pub os_keyring_available: bool,
+    /// Spec 028: runtime prefers/uses OsKeyStore when available (not forced to Memory).
+    pub os_keyring_used: bool,
 }
 
 impl VaultPrivacyDoctorStatus {
@@ -149,6 +156,8 @@ impl VaultPrivacyDoctorStatus {
             open_work_page_encrypted: false,
             work_wipe_on_close: true,
             sqlcipher_enabled: false,
+            os_keyring_available: false,
+            os_keyring_used: false,
         }
     }
 
@@ -164,6 +173,25 @@ impl VaultPrivacyDoctorStatus {
             open_work_page_encrypted: true,
             work_wipe_on_close: true,
             sqlcipher_enabled: true,
+            os_keyring_available: false,
+            os_keyring_used: false,
+        }
+    }
+
+    /// Spec 028 READY_BASE: OS keyring custody fields; PRIVATE_DATA_READY still false
+    /// (swap/hibernate/snapshots unqualified; REAL_PHI unauthorized).
+    #[must_use]
+    pub fn spec_028_honest(os_keyring_available: bool, os_keyring_used: bool) -> Self {
+        Self {
+            present: true,
+            private_data_ready: false,
+            sealed_at_close: true,
+            open_work_plaintext_risk: true,
+            open_work_page_encrypted: true,
+            work_wipe_on_close: true,
+            sqlcipher_enabled: true,
+            os_keyring_available,
+            os_keyring_used,
         }
     }
 }
@@ -292,7 +320,7 @@ impl PrivacyProof {
                 "Does not claim zero packets system-wide outside MedScale process boundary".to_owned(),
                 "Tauri/WebView privacy qualification deferred; Desktop is non-WebView scaffold only".to_owned(),
                 "REAL_PHI remains unauthorized; synthetic-only".to_owned(),
-                "OS keyring stores deferred; MemoryKeyStore used for CI proofs".to_owned(),
+                "OS keyring READY_BASE in Spec 028; PRIVATE_DATA_READY still false (swap/snapshot)".to_owned(),
             ],
         }
     }

@@ -57,7 +57,8 @@ Required lifecycle for each material executable spec:
 | 025 | `evidence-corpus-lifecycle` | Source-versioned local lexical evidence corpus (Q10) | 011 + 016/019 | CLOSED_CANONICAL READY_BASE; synthetic-owned; clinical quality / RELEASE_READY=false |
 | 026 | `pack-signer-os-sandbox` | Pack signer/trust/anti-rollback + Linux Landlock READY_BASE (Q09) | 008 | CLOSED_CANONICAL READY_BASE; linux_measured; platform_qualified=false; sandbox gate OPEN |
 | 027 | `perf-sbom-release-evidence` | Perf harness + SBOM scaffold + package checksums (Q05 remnants) | 022 closed | CLOSED_CANONICAL READY_BASE; budgets not claimed; RELEASE_READY=false |
-| 028+ | `research-site-imaging-genomics-advanced` | deferred site/research/collab/imaging/genomics/plugin/browser/watch/vision expansion | evidence-driven later gates | no Trusted V1 implementation commitment |
+| 028 | `os-keyring-custody` | OS keyring wrapped-DEK custody (Q03 residual) | 023 closed; admission 005-keyring | CLOSED_CANONICAL READY_BASE; os_keyring_*; PRIVATE_DATA_READY=false (swap/snapshot) |
+| 029+ | `research-site-imaging-genomics-advanced` | deferred site/research/collab/imaging/genomics/plugin/browser/watch/vision expansion | evidence-driven later gates | no Trusted V1 implementation commitment |
 
 ## 3. Corrected critical path
 
@@ -95,7 +96,8 @@ ONLINE ECOSYSTEM
 025 evidence corpus lifecycle (Q10) CLOSED_CANONICAL READY_BASE; synthetic-lexical@version; clinical quality / RELEASE_READY=false
 026 pack signer + OS sandbox (Q09) CLOSED_CANONICAL READY_BASE; linux_measured; platform_qualified=false; WORKER_OS_SANDBOX gate OPEN
 027 perf harness + SBOM/checksum evidence (Q05 remnants) CLOSED_CANONICAL READY_BASE; budgets not claimed; RELEASE_READY=false
-Next: 012 MESC-blocked; OS key/swap/snapshot still block PRIVATE_DATA_READY; 028+ deferred
+028 OS keyring custody (Q03 residual) CLOSED_CANONICAL READY_BASE; os_keyring_*; PRIVATE_DATA_READY=false (swap/snapshot)
+Next: 012 MESC-blocked; swap/snapshot still block PRIVATE_DATA_READY; 029+ deferred
 ```
 
 ## 4. Core process topology — decided for downstream specs

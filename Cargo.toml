@@ -45,6 +45,13 @@ anyhow = "1.0.100"
 interprocess = "2.4.4"
 ureq = { version = "3.0.12", default-features = false, features = ["rustls", "json"] }
 ed25519-dalek = { version = "2.2.0", features = ["std"] }
+# Spec 028: OS credential stores; no default features (keyring 3.x requires explicit platforms).
+# keyring 4.x needs rustc >= 1.88; workspace rust-version is 1.85 → pin 3.6.3.
+keyring = { version = "3.6.3", default-features = false, features = [
+    "windows-native",
+    "apple-native",
+    "linux-native",
+] }
 medscale-contracts = { path = "crates/medscale-contracts", version = "0.1.0" }
 medscale-storage = { path = "crates/medscale-storage", version = "0.1.0" }
 medscale-fhir = { path = "crates/medscale-fhir", version = "0.1.0" }
