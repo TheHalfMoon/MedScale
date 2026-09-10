@@ -127,7 +127,7 @@ pub fn appcontainer_lpac_net_child_exit_code() -> i32 {
             return 0;
         }
 
-        let s = socket(AF_INET as i32, SOCK_STREAM as i32, IPPROTO_TCP as i32);
+        let s = socket(AF_INET as i32, SOCK_STREAM, IPPROTO_TCP);
         if s == INVALID_SOCKET {
             let _ = WSACleanup();
             return 0; // socket creation denied
