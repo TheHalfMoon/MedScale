@@ -1,8 +1,7 @@
 //! Spec 026 OS sandbox honesty + Linux measured apply.
 
 use medscale_contracts::os_sandbox::{
-    OsSandboxApplyError, OsSandboxDoctorStatus, OsSandboxPlan, OsSandboxQualification,
-    try_apply_os_sandbox,
+    OsSandboxApplyError, OsSandboxPlan, OsSandboxQualification, try_apply_os_sandbox,
 };
 use medscale_core::{build_doctor_report, privacy_proof_artifact_present};
 
