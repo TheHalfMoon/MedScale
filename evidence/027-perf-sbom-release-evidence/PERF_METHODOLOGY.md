@@ -46,3 +46,14 @@ cargo test -p medscale-core --test perf_harness_027 --locked -- --nocapture
 ```
 
 Output: `evidence/027-perf-sbom-release-evidence/perf_harness_latest.json`
+
+### Spec 042 delivery-plan scale
+
+```powershell
+$env:MEDSCALE_027_DELIVERY_PLAN_SCALE = "1"   # timeline 10_000 + FHIR 1 MiB
+$env:MEDSCALE_027_TIMED_RUNS = "5"            # optional (default 5 under delivery-plan scale)
+cargo test -p medscale-core --test perf_harness_027 --locked -- --nocapture
+```
+
+Output: `evidence/042-perf-delivery-plan-scale/perf_harness_delivery_plan_scale.json`  
+CI job `perf delivery-plan scale (windows)` runs this path. Lexical remains builtin (not 10k). `budgets_claimed_met=false`.

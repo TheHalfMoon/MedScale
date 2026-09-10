@@ -15,18 +15,51 @@ use std::process::Command;
 use std::time::{Duration, Instant};
 
 const WARMUP: usize = 3;
-const RUNS: usize = 30;
-/// READY_BASE timeline event count (delivery-plan target is 10_000; not claimed here).
-const TIMELINE_EVENTS: usize = 64;
+const RUNS_DEFAULT: usize = 30;
+
+fn timed_run_count() -> usize {
+    let default = if delivery_plan_scale_requested() {
+        5
+    } else {
+        RUNS_DEFAULT
+    };
+    std::env::var("MEDSCALE_027_TIMED_RUNS")
+        .ok()
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(default)
+        .clamp(3, 30)
+}
+/// READY_BASE timeline event count (delivery-plan target is 10_000; Spec 042 env override).
+const TIMELINE_EVENTS_DEFAULT: usize = 64;
 /// Default bounded FHIR ingest size for CI (under MAX_INGEST_BYTES). Override with
 /// `MEDSCALE_027_FHIR_BYTES` up to 1_000_000 for local near-budget measurements.
 const FHIR_INGEST_DEFAULT_BYTES: usize = 128 * 1024;
 
+fn timeline_event_count() -> usize {
+    std::env::var("MEDSCALE_027_TIMELINE_EVENTS")
+        .ok()
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(TIMELINE_EVENTS_DEFAULT)
+        .clamp(1, 10_000)
+}
+
+fn delivery_plan_scale_requested() -> bool {
+    matches!(
+        std::env::var("MEDSCALE_027_DELIVERY_PLAN_SCALE").as_deref(),
+        Ok("1") | Ok("true") | Ok("TRUE") | Ok("yes")
+    )
+}
+
 fn fhir_ingest_target_bytes() -> usize {
+    let default = if delivery_plan_scale_requested() {
+        1_000_000
+    } else {
+        FHIR_INGEST_DEFAULT_BYTES
+    };
     std::env::var("MEDSCALE_027_FHIR_BYTES")
         .ok()
         .and_then(|s| s.parse().ok())
-        .unwrap_or(FHIR_INGEST_DEFAULT_BYTES)
+        .unwrap_or(default)
         .clamp(4_096, 1_000_000)
 }
 
@@ -75,7 +108,11 @@ fn repo_root() -> PathBuf {
 }
 
 fn evidence_dir() -> PathBuf {
-    repo_root().join("evidence/027-perf-sbom-release-evidence")
+    if delivery_plan_scale_requested() {
+        repo_root().join("evidence/042-perf-delivery-plan-scale")
+    } else {
+        repo_root().join("evidence/027-perf-sbom-release-evidence")
+    }
 }
 
 fn open_vault(facade: &CoreFacade) -> PathBuf {
@@ -291,9 +328,17 @@ fn perf_harness_027_runs_and_reports_numbers_without_budget_pass() {
     let facade = CoreFacade::new_legacy_lease_only_engineering();
     let vault_root = open_vault(&facade);
     let subject = OpaqueId::new("subject-027");
-    seed_timeline(&facade, &subject, TIMELINE_EVENTS);
+    let timeline_events = if delivery_plan_scale_requested() {
+        // Default near-delivery-plan scale for CI. Override with MEDSCALE_027_TIMELINE_EVENTS
+        // up to 10_000 for full delivery-plan host measurement.
+        timeline_event_count().max(1_000)
+    } else {
+        timeline_event_count()
+    };
+    seed_timeline(&facade, &subject, timeline_events);
 
-    let (tl_p50, tl_p95, tl_raw) = measure_ms(WARMUP, RUNS, || {
+    let runs = timed_run_count();
+    let (tl_p50, tl_p95, tl_raw) = measure_ms(WARMUP, runs, || {
         let resp = facade
             .dispatch(req(
                 Capability::GetTimeline,
@@ -306,7 +351,7 @@ fn perf_harness_027_runs_and_reports_numbers_without_budget_pass() {
         assert!(matches!(resp, ResponseBody::Timeline { .. }));
     });
 
-    let (lex_p50, lex_p95, lex_raw) = measure_ms(WARMUP, RUNS, || {
+    let (lex_p50, lex_p95, lex_raw) = measure_ms(WARMUP, runs, || {
         let resp = facade
             .dispatch(req(
                 Capability::RetrieveLexical,
@@ -327,7 +372,7 @@ fn perf_harness_027_runs_and_reports_numbers_without_budget_pass() {
     let fhir_target = fhir_ingest_target_bytes();
     let mut fhir_salt = 0_u64;
     let mut fhir_len = 0_usize;
-    let (fhir_p50, fhir_p95, fhir_raw) = measure_ms(WARMUP, RUNS, || {
+    let (fhir_p50, fhir_p95, fhir_raw) = measure_ms(WARMUP, runs, || {
         fhir_salt += 1;
         let bytes = padded_fhir_bytes(fhir_target, fhir_salt);
         fhir_len = bytes.len();
@@ -345,8 +390,13 @@ fn perf_harness_027_runs_and_reports_numbers_without_budget_pass() {
             .unwrap();
     });
 
+    let spec_id = if delivery_plan_scale_requested() {
+        "042-perf-delivery-plan-scale"
+    } else {
+        "027-perf-sbom-release-evidence"
+    };
     let report = json!({
-        "spec_id": "027-perf-sbom-release-evidence",
+        "spec_id": spec_id,
         "schema_version": 2,
         "binding_spec_id": "032-privacy-probes-notice-perf",
         "budgets_claimed_met": false,
@@ -363,18 +413,19 @@ fn perf_harness_027_runs_and_reports_numbers_without_budget_pass() {
             "cpu_note": cpu_note(),
             "cargo_lock_sha256": cargo_lock_sha256(),
             "fixture_identity": {
-                "timeline_events": TIMELINE_EVENTS,
+                "timeline_events": timeline_events,
                 "lexical_corpus_id": "synthetic-lexical",
                 "lexical_query": "hypertension blood pressure",
                 "fhir_version_hint": "4.0.1",
                 "fhir_ingest_target_bytes": fhir_target,
                 "warmup_runs": WARMUP,
-                "timed_runs": RUNS,
+                "timed_runs": runs,
+                "delivery_plan_scale": delivery_plan_scale_requested()
             },
         },
         "methodology": {
             "warmup_runs": WARMUP,
-            "timed_runs": RUNS,
+            "timed_runs": runs,
             "percentile_method": "sort ascending; p50=index floor(n*50/100); p95=index floor(n*95/100) clamped to n-1",
             "units": "milliseconds",
             "synthetic_only": true,
@@ -392,10 +443,11 @@ fn perf_harness_027_runs_and_reports_numbers_without_budget_pass() {
             "fhir_1mib_ingest_p95_ms": 500,
         },
         "measured_scale": {
-            "timeline_events": TIMELINE_EVENTS,
+            "timeline_events": timeline_events,
             "lexical_corpus": "synthetic-lexical (builtin; not 10000 records)",
             "fhir_ingest_bytes": fhir_len,
-            "fhir_ingest_bytes_note": "CI default 128KiB; set MEDSCALE_027_FHIR_BYTES<=1000000 for larger local runs",
+            "fhir_ingest_bytes_note": "CI default 128KiB; MEDSCALE_027_DELIVERY_PLAN_SCALE=1 selects 1MiB + 10k timeline",
+            "delivery_plan_scale": delivery_plan_scale_requested()
         },
         "results_ms": {
             "timeline_projection": { "p50": tl_p50, "p95": tl_p95, "samples": tl_raw },
@@ -407,6 +459,7 @@ fn perf_harness_027_runs_and_reports_numbers_without_budget_pass() {
             "Do not treat p50/p95 as RELEASE_READY or budget attainment.",
             "Scale may differ from delivery-plan 10k / 1 MiB acceptance targets.",
             "Spec 032 binding fields (git/rustc/lock/fixtures) do not imply budgets_claimed_met.",
+            "Lexical corpus remains builtin (not 10000 records) even under delivery-plan scale flag.",
         ],
         "vault_root_ephemeral": vault_root.display().to_string(),
     });
@@ -419,7 +472,12 @@ fn perf_harness_027_runs_and_reports_numbers_without_budget_pass() {
 
     let out_dir = evidence_dir();
     fs::create_dir_all(&out_dir).unwrap();
-    let out_path = out_dir.join("perf_harness_latest.json");
+    let out_name = if delivery_plan_scale_requested() {
+        "perf_harness_delivery_plan_scale.json"
+    } else {
+        "perf_harness_latest.json"
+    };
+    let out_path = out_dir.join(out_name);
     fs::write(
         &out_path,
         serde_json::to_string_pretty(&report).expect("serialize"),

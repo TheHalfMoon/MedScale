@@ -64,6 +64,35 @@ jobs:
       - name: Test
         run: cargo test --workspace --locked
 
+  perf-delivery-plan-scale:
+    name: perf delivery-plan scale (windows)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@d1031067263f94b142dd6c0ce24c5eb9d02d52a0
+        with:
+          toolchain: "1.97.1"
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6
+      - name: Install Perl (Windows OpenSSL vendor build)
+        shell: pwsh
+        run: |
+          choco install strawberryperl -y --no-progress
+          echo "C:\Strawberry\perl\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+      - name: Delivery-plan scale harness (no budget claim)
+        env:
+          MEDSCALE_027_DELIVERY_PLAN_SCALE: "1"
+          MEDSCALE_027_TIMELINE_EVENTS: "1000"
+          MEDSCALE_027_TIMED_RUNS: "5"
+        run: cargo test -p medscale-core --test perf_harness_027 --locked -- --nocapture
+        timeout-minutes: 45
+      - name: Upload delivery-plan scale evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: perf-delivery-plan-scale
+          path: evidence/042-perf-delivery-plan-scale/
+
   cargo-deny:
     name: cargo-deny
     runs-on: ubuntu-latest
