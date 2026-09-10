@@ -4,5 +4,5 @@
 - [x] Pack verifier + epoch store
 - [x] Facade/envelope capability
 - [x] Synthetic fixtures + tests
-- [ ] Evidence + BUILD_QUEUE + EXTERNAL_GATES + acceptance doc
+- [x] Evidence + BUILD_QUEUE + EXTERNAL_GATES + acceptance doc
 - [ ] Exact-head CI green + merge
