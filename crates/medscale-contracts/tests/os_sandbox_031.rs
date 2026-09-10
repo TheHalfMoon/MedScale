@@ -10,6 +10,7 @@ fn doctor_macos_measured_honest() {
     assert!(d.is_honest_ready_base());
     assert!(d.macos_measured);
     assert!(d.windows_measured);
+    assert!(d.windows_appcontainer_fs_measured);
     assert!(d.linux_measured);
     assert!(!d.platform_qualified);
     assert!(!d.release_ready);
