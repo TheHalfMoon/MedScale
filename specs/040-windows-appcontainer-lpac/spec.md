@@ -2,7 +2,7 @@
 
 **Feature Branch**: `spec/040-windows-appcontainer-lpac`  
 **Created**: 2026-09-10  
-**Status**: READY (implementation in progress)  
+**Status**: CLOSED_CANONICAL READY_BASE  
 **Depends on**: Spec 038 AppContainer network CLOSED  
 **Promotion**: `EXISTING_Q09_RESIDUAL_ELIGIBLE_FOR_PROMOTION` — see `docs/planning/SPEC_040_PROMOTION.md`  
 **Does not**: claim PLATFORM_QUALIFIED; clear WORKER_OS_SANDBOX_PLATFORM_QUALIFIED; RELEASE_READY; expand into plugins/CUDA/generic sandbox framework.

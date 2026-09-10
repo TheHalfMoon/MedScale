@@ -178,7 +178,7 @@ pub fn build_doctor_report_full(
             "Release qualification READY_BASE (022+027+029+032): locked CI + macOS CI present + perf/SBOM + NOTICE inventory; macos_qualified=false; rights_license_decision=false; RELEASE_READY=false; budgets not claimed; branch protection EXTERNAL_GATES".to_owned(),
             "Accessibility READY_BASE: fixture/CLI labels + disclosure clarity checked; WCAG not claimed; final v0 UI absent".to_owned(),
             "Evidence corpus READY_BASE: versioned synthetic-lexical@1.0.0; relevance != authority; clinical quality not claimed".to_owned(),
-            "OS sandbox READY_BASE: Linux Landlock + Windows Job Object + AppContainer FS/network/LPAC + macOS Seatbelt measured; App Sandbox entitlements scaffold; platform_qualified=false; WORKER_OS_SANDBOX_PLATFORM_QUALIFIED OPEN".to_owned(),
+            "OS sandbox READY_BASE: Linux Landlock + Windows Job Object + AppContainer FS/network/LPAC + macOS Seatbelt + App Sandbox entitlements probe measured; signed App Sandbox enforcement external; platform_qualified=false; WORKER_OS_SANDBOX_PLATFORM_QUALIFIED OPEN".to_owned(),
         ],
     }
 }
