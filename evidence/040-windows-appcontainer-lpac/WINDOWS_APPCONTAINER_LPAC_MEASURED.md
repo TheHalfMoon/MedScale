@@ -14,8 +14,8 @@
 
 | Field | Value |
 |---|---|
-| SOURCE_SHA | `4fa430369f29eb2b759fd31ae6f4005b2b634c5d` |
-| TREE_SHA | `2c708601222895ae11f1b2ab6e8bdc60681bbd6a` |
+| SOURCE_SHA | `4ce0eaddb0a852bbdff3ac3ef1ea4fc0751a8675` |
+| TREE_SHA | `914f771cc3a6f122c071c82d5abcc61665937d51` |
 | OS | Windows 10/11 (win32 10.0.26200 local) + windows-latest CI |
 | RUNNER | local host + `rust (windows-latest)` |
 | TEST/PROBE | `medscale-os-sandbox-probe appcontainer-lpac` / `os_sandbox_040::appcontainer_lpac_measured_identity_fs_network` |
