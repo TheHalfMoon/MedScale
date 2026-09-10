@@ -19,6 +19,21 @@ Write-Host "Generating SBOM scaffold via cargo metadata..."
 $metadataJson = cargo metadata --format-version 1 --locked | Out-String
 $metadata = $metadataJson | ConvertFrom-Json
 
+$lockPath = Join-Path $repoRoot "Cargo.lock"
+if (-not (Test-Path $lockPath)) {
+    throw "Cargo.lock missing; refuse unbound SBOM scaffold"
+}
+$lockHash = (Get-FileHash -Algorithm SHA256 -Path $lockPath).Hash.ToLowerInvariant()
+$sourceSha = ""
+$treeSha = ""
+try {
+    $sourceSha = (git -C $repoRoot rev-parse HEAD 2>$null)
+    $treeSha = (git -C $repoRoot rev-parse "HEAD^{tree}" 2>$null)
+} catch {
+    $sourceSha = ""
+    $treeSha = ""
+}
+
 $components = @()
 foreach ($pkg in $metadata.packages) {
     $licenses = @()
@@ -44,14 +59,14 @@ $bom = [ordered]@{
     bomFormat     = 'CycloneDX'
     specVersion   = '1.5'
     version       = 1
-    serialNumber  = "urn:uuid:medscale-027-sbom-scaffold"
+    serialNumber  = "urn:uuid:medscale-046-sbom-scaffold"
     metadata      = [ordered]@{
         timestamp = (Get-Date).ToUniversalTime().ToString('o')
         tools     = @(
             @{
                 vendor  = 'MedScale'
                 name    = 'generate-sbom-scaffold.ps1'
-                version = '027'
+                version = '046'
             }
         )
         component = [ordered]@{
@@ -60,10 +75,13 @@ $bom = [ordered]@{
             version = '0.0.0-workspace'
         }
         properties = @(
-            @{ name = 'medscale:sbom_kind'; value = 'scaffold_cargo_metadata' }
+            @{ name = 'medscale:sbom_kind'; value = 'scaffold_cargo_metadata_lock_bound' }
             @{ name = 'medscale:release_ready'; value = 'false' }
             @{ name = 'medscale:includes_native_model_assets'; value = 'false' }
-            @{ name = 'medscale:limitations'; value = 'Crates from cargo metadata only; not a signed release SBOM; native/model assets missing' }
+            @{ name = 'medscale:cargo_lock_sha256'; value = $lockHash }
+            @{ name = 'medscale:source_sha'; value = "$sourceSha" }
+            @{ name = 'medscale:tree_sha'; value = "$treeSha" }
+            @{ name = 'medscale:limitations'; value = 'Crates from cargo metadata + Cargo.lock digest; not a signed release SBOM; native/model assets missing' }
         )
     }
     components = $components

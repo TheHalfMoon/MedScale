@@ -5,11 +5,11 @@
 **Rule:** update this file whenever a unit enters or leaves a canonical state.
 
 **Autonomous stop status (historical V2 scoped closure):** superseded for Trusted V1 follow-on work.
-**Live follow-on status (2026-09-10):** Specs **016**–**045** `CLOSED_CANONICAL` READY_BASE on the Trusted V1 residual track. Spec **012** remains MESC-blocked. Honesty: `PRIVATE_DATA_READY=false`; `RELEASE_READY=false`; `budgets_claimed_met=false`; sandbox `platform_qualified=false`; App Sandbox enforcement signing-external. Deferred advanced product work is **046+**.
+**Live follow-on status (2026-09-10):** Specs **016**–**045** `CLOSED_CANONICAL` READY_BASE. Spec **046** (SBOM lock binding) promoted as existing Q05 residual — see `SPEC_046_PROMOTION.md`. Spec **012** MESC-blocked. Honesty: `PRIVATE_DATA_READY=false`; `RELEASE_READY=false`; `budgets_claimed_met=false`; sandbox `platform_qualified=false`. Deferred advanced **047+**.
 
 ## 2026-09-10 planning refinement
 
-See Trusted V1 delivery plan. Specs 018–045 READY_BASE closed; Spec 012 MESC-blocked. Advanced **046+** deferred.
+See Trusted V1 delivery plan. Specs 018–045 READY_BASE closed; Spec **046** SBOM lock binding promoted; Spec 012 MESC-blocked. Advanced **047+** deferred.
 
 ## Historical scoped queue (closures preserved)
 
@@ -60,8 +60,9 @@ See Trusted V1 delivery plan. Specs 018–045 READY_BASE closed; Spec 012 MESC-b
 | 042 | Perf Delivery-Plan Scale (Q05 residual) | `CLOSED_CANONICAL` | READY_BASE: near-delivery-plan harness (CI 1000 events + 1MiB FHIR) + Windows CI job; host may set TIMELINE_EVENTS=10000; budgets_claimed_met=false; lexical 10k still limited. |
 | 043 | Swap/Snapshot Honesty (Q03 residual) | `CLOSED_CANONICAL` | READY_BASE: classified swap/pagefile/hibernate/snapshot/core-dump existence vs protection; PRIVATE_DATA_READY=false. |
 | 044 | Sandbox Composition Honesty (Q09 residual) | `CLOSED_CANONICAL` | READY_BASE: composition inventory present; residuals listed; platform_qualified=false; sandbox gate OPEN. |
-| 045 | Lexical 10k Corpus (Q10/Q05 residual) | `READY` | Procedural synthetic-lexical-scale@10k; harness wiring; no clinical/budget claim. See `SPEC_045_PROMOTION.md`. |
-| 046+ | Advanced deferred work | `DEFERRED_BY_CANONICAL_DESIGN` | Plugins/GraphRAG/replicas/imaging/CUDA/etc. |
+| 045 | Lexical 10k Corpus (Q10/Q05 residual) | `CLOSED_CANONICAL` | READY_BASE: procedural synthetic-lexical-scale@10k + harness wiring; clinical_quality/budgets/RELEASE_READY false. |
+| 046 | SBOM Lock Binding (Q05 residual) | `READY` | Cargo.lock digest in SBOM scaffold; sbom_lock_bound; not full release SBOM. See `SPEC_046_PROMOTION.md`. |
+| 047+ | Advanced deferred work | `DEFERRED_BY_CANONICAL_DESIGN` | Plugins/GraphRAG/replicas/imaging/CUDA/etc. |
 
 ## Automatic progression
 

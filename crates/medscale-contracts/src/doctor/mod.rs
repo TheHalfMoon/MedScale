@@ -39,6 +39,8 @@ pub struct ReleaseQualificationDoctorStatus {
     pub perf_harness_present: bool,
     /// Spec 027: cargo-metadata SBOM scaffold path present (not full release SBOM).
     pub sbom_scaffold_present: bool,
+    /// Spec 046: SBOM scaffold binds Cargo.lock digest (still not full release SBOM).
+    pub sbom_lock_bound: bool,
     /// Spec 032: NOTICE/third-party inventory artifact present (not a license decision).
     pub notice_inventory_present: bool,
     /// Spec 032: public SPDX for MedScale crates — always false until EXTERNAL_GATES.
@@ -65,6 +67,7 @@ impl ReleaseQualificationDoctorStatus {
             branch_protection_configured: false,
             perf_harness_present: true,
             sbom_scaffold_present: true,
+            sbom_lock_bound: true,
             notice_inventory_present: true,
             rights_license_decision: false,
             missing_evidence_classes: vec![
@@ -94,6 +97,7 @@ impl ReleaseQualificationDoctorStatus {
             && !self.branch_protection_configured
             && self.perf_harness_present
             && self.sbom_scaffold_present
+            && self.sbom_lock_bound
             && self.notice_inventory_present
             && !self.rights_license_decision
             && self
@@ -692,6 +696,7 @@ mod release_qualification_tests {
         assert!(!s.macos_qualified);
         assert!(s.perf_harness_present);
         assert!(s.sbom_scaffold_present);
+        assert!(s.sbom_lock_bound);
         assert!(s.notice_inventory_present);
         assert!(!s.rights_license_decision);
         assert!(
