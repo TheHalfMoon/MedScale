@@ -1,15 +1,15 @@
-# BUILD_QUEUE.md — MedScale Autonomous Build Queue
+﻿# BUILD_QUEUE.md â€” MedScale Autonomous Build Queue
 
 **Queue owner:** repository canonical plan  
 **Execution agent:** Cursor  
 **Rule:** update this file whenever a unit enters or leaves a canonical state.
 
 **Autonomous stop status (historical V2 scoped closure):** superseded for Trusted V1 follow-on work.
-**Live follow-on status (2026-09-10):** Specs **016**–**045** `CLOSED_CANONICAL` READY_BASE. Spec **046** (SBOM lock binding) promoted as existing Q05 residual — see `SPEC_046_PROMOTION.md`. Spec **012** MESC-blocked. Honesty: `PRIVATE_DATA_READY=false`; `RELEASE_READY=false`; `budgets_claimed_met=false`; sandbox `platform_qualified=false`. Deferred advanced **047+**.
+**Live follow-on status (2026-09-10):** Specs **016**â€“**045** `CLOSED_CANONICAL` READY_BASE. Spec **046** (SBOM lock binding) promoted as existing Q05 residual â€” see `SPEC_046_PROMOTION.md`. Spec **012** MESC-blocked. Honesty: `PRIVATE_DATA_READY=false`; `RELEASE_READY=false`; `budgets_claimed_met=false`; sandbox `platform_qualified=false`. Deferred advanced **047+**.
 
 ## 2026-09-10 planning refinement
 
-See Trusted V1 delivery plan. Specs 018–045 READY_BASE closed; Spec **046** SBOM lock binding promoted; Spec 012 MESC-blocked. Advanced **047+** deferred.
+See Trusted V1 delivery plan. Specs 018â€“045 READY_BASE closed; Specs 018–046 READY_BASE closed; Spec 012 MESC-blocked. Advanced **047+** deferred.
 
 ## Historical scoped queue (closures preserved)
 
@@ -61,7 +61,7 @@ See Trusted V1 delivery plan. Specs 018–045 READY_BASE closed; Spec **046** SB
 | 043 | Swap/Snapshot Honesty (Q03 residual) | `CLOSED_CANONICAL` | READY_BASE: classified swap/pagefile/hibernate/snapshot/core-dump existence vs protection; PRIVATE_DATA_READY=false. |
 | 044 | Sandbox Composition Honesty (Q09 residual) | `CLOSED_CANONICAL` | READY_BASE: composition inventory present; residuals listed; platform_qualified=false; sandbox gate OPEN. |
 | 045 | Lexical 10k Corpus (Q10/Q05 residual) | `CLOSED_CANONICAL` | READY_BASE: procedural synthetic-lexical-scale@10k + harness wiring; clinical_quality/budgets/RELEASE_READY false. |
-| 046 | SBOM Lock Binding (Q05 residual) | `READY` | Cargo.lock digest in SBOM scaffold; sbom_lock_bound; not full release SBOM. See `SPEC_046_PROMOTION.md`. |
+| 046 | SBOM Lock Binding (Q05 residual) | `CLOSED_CANONICAL` | Cargo.lock digest in SBOM scaffold; sbom_lock_bound; not full release SBOM. See `SPEC_046_PROMOTION.md`. |
 | 047+ | Advanced deferred work | `DEFERRED_BY_CANONICAL_DESIGN` | Plugins/GraphRAG/replicas/imaging/CUDA/etc. |
 
 ## Automatic progression
@@ -71,3 +71,4 @@ For the first `READY` unit: create/complete its Spec Kit package, analyze it, im
 Do not stop merely because a PR merged, one milestone passed, or an external optional gate exists.
 
 **Next eligible (honest):** Spec **045** lexical 10k corpus (`READY`). Spec 012 MESC-blocked. After 045: signed App Sandbox enforcement, branch protection, SPDX, signing credentials, WCAG/final-v0, MESC assets remain largely external. Deferred advanced **046+**. Do **not** claim `RELEASE_READY`, `PRIVATE_DATA_READY`, or `MULTI_CLIENT_RELEASE_READY`.
+
