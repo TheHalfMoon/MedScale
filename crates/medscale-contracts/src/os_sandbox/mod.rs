@@ -329,7 +329,7 @@ impl OsSandboxPlan {
     }
 }
 
-/// OS sandbox doctor axis (Specs 026 + 030 + 031 + 033 + 038 + 040).
+/// OS sandbox doctor axis (Specs 026 + 030 + 031 + 033 + 038 + 040 + 041 + 044).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct OsSandboxDoctorStatus {
@@ -350,6 +350,10 @@ pub struct OsSandboxDoctorStatus {
     pub macos_app_sandbox_entitlements_measured: bool,
     /// Spec 041 honesty: signed App Sandbox runtime enforcement not measured.
     pub macos_app_sandbox_enforcement_measured: bool,
+    /// Spec 044: multi-OS composition inventory present (does not imply PLATFORM_QUALIFIED).
+    pub composition_inventory_present: bool,
+    /// Spec 044: residual axes still blocking PLATFORM_QUALIFIED.
+    pub composition_residuals_open: Vec<String>,
     pub platform_qualified: bool,
     pub release_ready: bool,
 }
@@ -368,6 +372,8 @@ impl OsSandboxDoctorStatus {
             macos_measured: true,
             macos_app_sandbox_entitlements_measured: true,
             macos_app_sandbox_enforcement_measured: false,
+            composition_inventory_present: true,
+            composition_residuals_open: composition_residuals_open(),
             platform_qualified: false,
             release_ready: false,
         }
@@ -385,8 +391,54 @@ impl OsSandboxDoctorStatus {
             && self.macos_measured
             && self.macos_app_sandbox_entitlements_measured
             && !self.macos_app_sandbox_enforcement_measured
+            && self.composition_inventory_present
+            && !self.composition_residuals_open.is_empty()
             && !self.platform_qualified
             && !self.release_ready
+    }
+}
+
+/// Residual axes that keep WORKER_OS_SANDBOX_PLATFORM_QUALIFIED OPEN (Spec 044).
+#[must_use]
+pub fn composition_residuals_open() -> Vec<String> {
+    vec![
+        "macos_app_sandbox_signed_enforcement".to_owned(),
+        "multi_os_platform_qualified_composition".to_owned(),
+    ]
+}
+
+/// Inventory of ReadyBaseMeasured OS sandbox axes (Spec 044). Never claims PLATFORM_QUALIFIED.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct OsSandboxCompositionInventory {
+    pub axes_ready_base_measured: Vec<String>,
+    pub residuals_open: Vec<String>,
+    pub platform_qualified: bool,
+}
+
+impl OsSandboxCompositionInventory {
+    #[must_use]
+    pub fn trusted_v1_ready_base() -> Self {
+        Self {
+            axes_ready_base_measured: vec![
+                "linux_landlock".to_owned(),
+                "windows_job_object".to_owned(),
+                "windows_appcontainer_fs".to_owned(),
+                "windows_appcontainer_network".to_owned(),
+                "windows_appcontainer_lpac".to_owned(),
+                "macos_seatbelt".to_owned(),
+                "macos_app_sandbox_entitlements".to_owned(),
+            ],
+            residuals_open: composition_residuals_open(),
+            platform_qualified: false,
+        }
+    }
+
+    #[must_use]
+    pub fn is_honest(&self) -> bool {
+        !self.platform_qualified
+            && !self.axes_ready_base_measured.is_empty()
+            && !self.residuals_open.is_empty()
     }
 }
 
@@ -700,7 +752,12 @@ mod tests {
         assert!(d.macos_measured);
         assert!(d.macos_app_sandbox_entitlements_measured);
         assert!(!d.macos_app_sandbox_enforcement_measured);
+        assert!(d.composition_inventory_present);
+        assert!(!d.composition_residuals_open.is_empty());
         assert!(!d.platform_qualified);
         assert!(!d.release_ready);
+        let inv = OsSandboxCompositionInventory::trusted_v1_ready_base();
+        assert!(inv.is_honest());
+        assert_eq!(inv.axes_ready_base_measured.len(), 7);
     }
 }
