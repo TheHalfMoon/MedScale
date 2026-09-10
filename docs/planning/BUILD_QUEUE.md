@@ -5,11 +5,11 @@
 **Rule:** update this file whenever a unit enters or leaves a canonical state.
 
 **Autonomous stop status (historical V2 scoped closure):** superseded for Trusted V1 follow-on work.
-**Live follow-on status (2026-09-10):** Specs **016**–**042** `CLOSED_CANONICAL` READY_BASE on the Trusted V1 residual track. Spec **043** (swap/snapshot honesty) promoted as existing Q03 residual — see `SPEC_043_PROMOTION.md`. Spec **012** remains MESC-blocked. Honesty: `PRIVATE_DATA_READY=false`; `RELEASE_READY=false`; `budgets_claimed_met=false`; sandbox `platform_qualified=false`; App Sandbox enforcement signing-external. Deferred advanced product work is **044+**.
+**Live follow-on status (2026-09-10):** Specs **016**–**043** `CLOSED_CANONICAL` READY_BASE on the Trusted V1 residual track. Spec **044** (multi-OS sandbox composition honesty) promoted as existing Q09 residual — see `SPEC_044_PROMOTION.md`. Spec **012** remains MESC-blocked. Honesty: `PRIVATE_DATA_READY=false`; `RELEASE_READY=false`; `budgets_claimed_met=false`; sandbox `platform_qualified=false`; App Sandbox enforcement signing-external. Deferred advanced product work is **045+**.
 
 ## 2026-09-10 planning refinement
 
-See Trusted V1 delivery plan. Specs 018–042 READY_BASE closed; Spec **043** swap/snapshot honesty promoted; Spec 012 MESC-blocked. Advanced **044+** deferred.
+See Trusted V1 delivery plan. Specs 018–043 READY_BASE closed; Spec **044** sandbox composition honesty promoted; Spec 012 MESC-blocked. Advanced **045+** deferred.
 
 ## Historical scoped queue (closures preserved)
 
@@ -58,8 +58,9 @@ See Trusted V1 delivery plan. Specs 018–042 READY_BASE closed; Spec **043** sw
 | 040 | Windows AppContainer LPAC (Q09 residual) | `CLOSED_CANONICAL` | READY_BASE: LPAC ReadyBaseMeasured (`windows_appcontainer_lpac_measured`); platform_qualified=false; sandbox gate OPEN. |
 | 041 | macOS App Sandbox Entitlements (Q09 residual) | `CLOSED_CANONICAL` | READY_BASE: entitlements artifact + detection probe; `macos_app_sandbox_entitlements_measured`; enforcement_measured=false; platform_qualified=false. |
 | 042 | Perf Delivery-Plan Scale (Q05 residual) | `CLOSED_CANONICAL` | READY_BASE: near-delivery-plan harness (CI 1000 events + 1MiB FHIR) + Windows CI job; host may set TIMELINE_EVENTS=10000; budgets_claimed_met=false; lexical 10k still limited. |
-| 043 | Swap/Snapshot Honesty (Q03 residual) | `READY` | Classify swap/pagefile/hibernate/snapshot/core-dump existence vs protection; never claim PRIVATE_DATA_READY. See `SPEC_043_PROMOTION.md`. |
-| 044+ | Advanced deferred work | `DEFERRED_BY_CANONICAL_DESIGN` | Plugins/GraphRAG/replicas/imaging/CUDA/etc. |
+| 043 | Swap/Snapshot Honesty (Q03 residual) | `CLOSED_CANONICAL` | READY_BASE: classified swap/pagefile/hibernate/snapshot/core-dump existence vs protection; PRIVATE_DATA_READY=false. |
+| 044 | Sandbox Composition Honesty (Q09 residual) | `READY` | Inventory ReadyBaseMeasured axes + residuals; platform_qualified=false. See `SPEC_044_PROMOTION.md`. |
+| 045+ | Advanced deferred work | `DEFERRED_BY_CANONICAL_DESIGN` | Plugins/GraphRAG/replicas/imaging/CUDA/etc. |
 
 ## Automatic progression
 
@@ -67,4 +68,4 @@ For the first `READY` unit: create/complete its Spec Kit package, analyze it, im
 
 Do not stop merely because a PR merged, one milestone passed, or an external optional gate exists.
 
-**Next eligible (honest):** Spec **043** swap/snapshot honesty (`READY`). Spec 012 MESC-blocked. After 043: multi-OS PLATFORM_QUALIFIED composition + signed App Sandbox enforcement, branch protection, SPDX, signing credentials, WCAG/final-v0, MESC assets, optional full 10k timeline / lexical-10k. Deferred advanced **044+**. Do **not** claim `RELEASE_READY`, `PRIVATE_DATA_READY`, or `MULTI_CLIENT_RELEASE_READY`.
+**Next eligible (honest):** Spec **044** sandbox composition honesty (`READY`). Spec 012 MESC-blocked. After 044: signed App Sandbox enforcement (SIGNING_ACTION), branch protection, SPDX, signing credentials, WCAG/final-v0, MESC assets, optional full 10k timeline / lexical-10k / release-prep residuals. Deferred advanced **045+**. Do **not** claim `RELEASE_READY`, `PRIVATE_DATA_READY`, or `MULTI_CLIENT_RELEASE_READY`.
