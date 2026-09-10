@@ -342,7 +342,9 @@ fn apply_windows_job_ready_base(_plan: &OsSandboxPlan) -> Result<(), OsSandboxAp
     }
 }
 
-fn apply_windows_appcontainer_fs_ready_base(_plan: &OsSandboxPlan) -> Result<(), OsSandboxApplyError> {
+fn apply_windows_appcontainer_fs_ready_base(
+    _plan: &OsSandboxPlan,
+) -> Result<(), OsSandboxApplyError> {
     #[cfg(windows)]
     {
         windows_appcontainer::apply_appcontainer_fs_windows()

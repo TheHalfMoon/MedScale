@@ -22,7 +22,10 @@ pub const APPCONTAINER_FS_CHILD_ARG: &str = "appcontainer-fs-child";
 pub const APPCONTAINER_FS_PARENT_ARG: &str = "appcontainer-fs";
 
 fn wide_null(s: &str) -> Vec<u16> {
-    OsStr::new(s).encode_wide().chain(std::iter::once(0)).collect()
+    OsStr::new(s)
+        .encode_wide()
+        .chain(std::iter::once(0))
+        .collect()
 }
 
 fn path_wide_null(path: &Path) -> Vec<u16> {
@@ -119,17 +122,17 @@ fn measure_with_profile(
     child_exe: &Path,
     marker: &Path,
 ) -> Result<(), OsSandboxApplyError> {
-    use windows_sys::Win32::Foundation::{CloseHandle, LocalFree, HANDLE};
+    use windows_sys::Win32::Foundation::{CloseHandle, HANDLE, LocalFree};
     use windows_sys::Win32::Security::Authorization::ConvertSidToStringSidW;
     use windows_sys::Win32::Security::Isolation::{
         CreateAppContainerProfile, DeriveAppContainerSidFromAppContainerName,
     };
     use windows_sys::Win32::Security::{FreeSid, PSID, SECURITY_CAPABILITIES};
     use windows_sys::Win32::System::Threading::{
-        CreateProcessW, DeleteProcThreadAttributeList, GetExitCodeProcess,
-        InitializeProcThreadAttributeList, UpdateProcThreadAttribute, WaitForSingleObject,
-        EXTENDED_STARTUPINFO_PRESENT, PROCESS_INFORMATION,
-        PROC_THREAD_ATTRIBUTE_SECURITY_CAPABILITIES, STARTUPINFOEXW,
+        CreateProcessW, DeleteProcThreadAttributeList, EXTENDED_STARTUPINFO_PRESENT,
+        GetExitCodeProcess, InitializeProcThreadAttributeList,
+        PROC_THREAD_ATTRIBUTE_SECURITY_CAPABILITIES, PROCESS_INFORMATION, STARTUPINFOEXW,
+        UpdateProcThreadAttribute, WaitForSingleObject,
     };
 
     let name_w = wide_null(profile_name);
