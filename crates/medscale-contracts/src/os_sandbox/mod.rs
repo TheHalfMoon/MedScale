@@ -1,7 +1,11 @@
-//! OS worker sandbox (Spec 008 scaffold + Spec 026 Linux ReadyBaseMeasured).
+//! OS worker sandbox (Specs 008 / 026 / 030).
 //!
 //! EXTERNAL_GATES: `WORKER_OS_SANDBOX_PLATFORM_QUALIFIED` remains OPEN until multi-OS
-//! measured PLATFORM_QUALIFIED evidence exists. Linux may report ReadyBaseMeasured only.
+//! measured PLATFORM_QUALIFIED evidence exists. Linux and Windows may report
+//! ReadyBaseMeasured only; macOS remains NotPlatformQualified scaffold.
+
+#[cfg(windows)]
+mod windows_job;
 
 use serde::{Deserialize, Serialize};
 
@@ -12,9 +16,9 @@ use std::path::PathBuf;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum OsSandboxQualification {
-    /// Scaffold / research only — Spec 008 exit posture for non-Linux (and pre-026).
+    /// Scaffold / research only — Spec 008 exit posture for non-measured backends.
     NotPlatformQualified,
-    /// Spec 026: Linux Landlock measured READY_BASE — not full multi-OS PLATFORM_QUALIFIED.
+    /// Spec 026/030: measured READY_BASE — not full multi-OS PLATFORM_QUALIFIED.
     ReadyBaseMeasured,
     /// Reserved for multi-OS measured evidence + EXTERNAL_GATES close.
     PlatformQualified,
@@ -38,7 +42,8 @@ pub struct OsSandboxPlan {
     pub mechanisms: Vec<String>,
     pub evidence_path: String,
     pub limitations: Vec<String>,
-    /// Absolute paths allowed for ReadyBaseMeasured apply (read+write under hierarchy).
+    /// Absolute paths allowed for ReadyBaseMeasured Landlock apply (read+write under hierarchy).
+    /// Unused for Windows Job Object READY_BASE (process-limit measurement).
     #[serde(default)]
     pub allow_paths: Vec<String>,
 }
@@ -65,6 +70,33 @@ impl OsSandboxPlan {
         }
     }
 
+    /// Spec 030 Windows READY_BASE: Job Object active-process limit measured.
+    /// AppContainer profile/FS/network isolation remains scaffold-only.
+    #[must_use]
+    pub fn windows_job_object_ready_base() -> Self {
+        Self {
+            target: OsSandboxTarget::WindowsAppContainerJobObject,
+            qualification: OsSandboxQualification::ReadyBaseMeasured,
+            mechanisms: vec![
+                "job_object_active_process_limit".to_owned(),
+                "job_object_kill_on_job_close".to_owned(),
+                "appcontainer_profile_scaffold".to_owned(),
+            ],
+            evidence_path: "evidence/030-windows-appcontainer-sandbox/WINDOWS_JOB_OBJECT_MEASURED.md"
+                .to_owned(),
+            limitations: vec![
+                "ReadyBaseMeasured Job Object process-limit only — not multi-OS PLATFORM_QUALIFIED"
+                    .to_owned(),
+                "AppContainer filesystem/network isolation still scaffold (not measured in Spec 030)"
+                    .to_owned(),
+                "Job Objects do not provide Landlock-equivalent path allowlists".to_owned(),
+                "EXTERNAL_GATES WORKER_OS_SANDBOX_PLATFORM_QUALIFIED remains OPEN".to_owned(),
+            ],
+            allow_paths: vec![],
+        }
+    }
+
+    /// AppContainer-oriented scaffold (NotPlatformQualified); Job Object READY_BASE is separate.
     #[must_use]
     pub fn windows_appcontainer_scaffold() -> Self {
         Self {
@@ -75,11 +107,11 @@ impl OsSandboxPlan {
                 "job_object_candidate".to_owned(),
                 "brokered_handles_candidate".to_owned(),
             ],
-            evidence_path: "evidence/008-local-ai-capability-fabric/OS_SANDBOX_SCAFFOLD.md"
-                .to_owned(),
+            evidence_path: "evidence/030-windows-appcontainer-sandbox/LIMITATIONS.md".to_owned(),
             limitations: vec![
                 "Not PLATFORM_QUALIFIED".to_owned(),
-                "No AppContainer apply path in Spec 026".to_owned(),
+                "AppContainer apply path not measured in Spec 030 (Job Object ReadyBaseMeasured is separate)"
+                    .to_owned(),
             ],
             allow_paths: vec![],
         }
@@ -99,17 +131,18 @@ impl OsSandboxPlan {
                 .to_owned(),
             limitations: vec![
                 "Not PLATFORM_QUALIFIED".to_owned(),
-                "No Seatbelt apply path in Spec 026".to_owned(),
+                "No Seatbelt apply path in Spec 030".to_owned(),
             ],
             allow_paths: vec![],
         }
     }
 
-    /// Scaffold / READY_BASE plans; only Linux may claim ReadyBaseMeasured.
+    /// Scaffold / READY_BASE plans; Linux + Windows may claim ReadyBaseMeasured.
     #[must_use]
     pub fn all_plans() -> Vec<Self> {
         vec![
             Self::linux_landlock_ready_base(vec![]),
+            Self::windows_job_object_ready_base(),
             Self::windows_appcontainer_scaffold(),
             Self::macos_seatbelt_scaffold(),
         ]
@@ -132,13 +165,15 @@ impl OsSandboxPlan {
     }
 }
 
-/// OS sandbox doctor axis (Spec 026).
+/// OS sandbox doctor axis (Specs 026 + 030).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct OsSandboxDoctorStatus {
     pub present: bool,
     pub ready_base: bool,
     pub linux_measured: bool,
+    /// Spec 030: Windows Job Object ReadyBaseMeasured evidence exists in-tree.
+    pub windows_measured: bool,
     pub platform_qualified: bool,
     pub release_ready: bool,
 }
@@ -150,6 +185,7 @@ impl OsSandboxDoctorStatus {
             present: true,
             ready_base: true,
             linux_measured: true,
+            windows_measured: true,
             platform_qualified: false,
             release_ready: false,
         }
@@ -160,6 +196,7 @@ impl OsSandboxDoctorStatus {
         self.present
             && self.ready_base
             && self.linux_measured
+            && self.windows_measured
             && !self.platform_qualified
             && !self.release_ready
     }
@@ -177,8 +214,9 @@ pub enum OsSandboxApplyError {
 /// Apply OS sandbox according to plan qualification.
 ///
 /// - `ReadyBaseMeasured` + LinuxLandlock on Linux: Landlock allowlist apply.
+/// - `ReadyBaseMeasured` + WindowsAppContainerJobObject on Windows: Job Object limits.
 /// - `PlatformQualified`: still refused while EXTERNAL_GATES remains OPEN.
-/// - Windows/macOS scaffolds: NotPlatformQualified / NotReadyOnThisHost.
+/// - macOS / AppContainer scaffolds: NotPlatformQualified / NotReadyOnThisHost.
 pub fn try_apply_os_sandbox(plan: &OsSandboxPlan) -> Result<(), OsSandboxApplyError> {
     if plan.claims_platform_qualified() {
         // Gate OPEN — never honor PlatformQualified without EXTERNAL_GATES close.
@@ -189,10 +227,14 @@ pub fn try_apply_os_sandbox(plan: &OsSandboxPlan) -> Result<(), OsSandboxApplyEr
         return Err(OsSandboxApplyError::NotPlatformQualified);
     }
 
-    if plan.target != OsSandboxTarget::LinuxLandlock {
-        return Err(OsSandboxApplyError::NotReadyOnThisHost);
+    match plan.target {
+        OsSandboxTarget::LinuxLandlock => apply_linux_ready_base(plan),
+        OsSandboxTarget::WindowsAppContainerJobObject => apply_windows_ready_base(plan),
+        OsSandboxTarget::MacosSeatbeltSandbox => Err(OsSandboxApplyError::NotReadyOnThisHost),
     }
+}
 
+fn apply_linux_ready_base(plan: &OsSandboxPlan) -> Result<(), OsSandboxApplyError> {
     if plan.allow_paths.is_empty() {
         return Err(OsSandboxApplyError::EmptyAllowlist);
     }
@@ -205,6 +247,18 @@ pub fn try_apply_os_sandbox(plan: &OsSandboxPlan) -> Result<(), OsSandboxApplyEr
     #[cfg(not(target_os = "linux"))]
     {
         let _ = plan;
+        Err(OsSandboxApplyError::NotReadyOnThisHost)
+    }
+}
+
+fn apply_windows_ready_base(_plan: &OsSandboxPlan) -> Result<(), OsSandboxApplyError> {
+    #[cfg(windows)]
+    {
+        windows_job::apply_job_object_windows()
+    }
+
+    #[cfg(not(windows))]
+    {
         Err(OsSandboxApplyError::NotReadyOnThisHost)
     }
 }
@@ -253,11 +307,14 @@ mod tests {
     use super::*;
 
     #[test]
-    fn non_linux_plans_are_not_platform_qualified() {
+    fn scaffolds_and_ready_base_claims() {
         assert!(!OsSandboxPlan::windows_appcontainer_scaffold().claims_platform_qualified());
+        assert!(!OsSandboxPlan::windows_appcontainer_scaffold().claims_ready_base_measured());
         assert!(!OsSandboxPlan::macos_seatbelt_scaffold().claims_platform_qualified());
         assert!(!OsSandboxPlan::linux_landlock_ready_base(vec![]).claims_platform_qualified());
         assert!(OsSandboxPlan::linux_landlock_ready_base(vec![]).claims_ready_base_measured());
+        assert!(OsSandboxPlan::windows_job_object_ready_base().claims_ready_base_measured());
+        assert!(!OsSandboxPlan::windows_job_object_ready_base().claims_platform_qualified());
     }
 
     #[test]
@@ -268,10 +325,16 @@ mod tests {
             try_apply_os_sandbox(&plan),
             Err(OsSandboxApplyError::NotPlatformQualified)
         );
+        let mut win = OsSandboxPlan::windows_job_object_ready_base();
+        win.qualification = OsSandboxQualification::PlatformQualified;
+        assert_eq!(
+            try_apply_os_sandbox(&win),
+            Err(OsSandboxApplyError::NotPlatformQualified)
+        );
     }
 
     #[test]
-    fn ready_base_without_allowlist_fails() {
+    fn ready_base_linux_without_allowlist_fails() {
         let plan = OsSandboxPlan::linux_landlock_ready_base(vec![]);
         assert_eq!(
             try_apply_os_sandbox(&plan),
@@ -281,8 +344,18 @@ mod tests {
 
     #[cfg(not(target_os = "linux"))]
     #[test]
-    fn ready_base_on_non_linux_is_not_ready() {
+    fn linux_ready_base_on_non_linux_is_not_ready() {
         let plan = OsSandboxPlan::linux_landlock_ready_base(vec!["C:\\tmp".to_owned()]);
+        assert_eq!(
+            try_apply_os_sandbox(&plan),
+            Err(OsSandboxApplyError::NotReadyOnThisHost)
+        );
+    }
+
+    #[cfg(not(windows))]
+    #[test]
+    fn windows_ready_base_on_non_windows_is_not_ready() {
+        let plan = OsSandboxPlan::windows_job_object_ready_base();
         assert_eq!(
             try_apply_os_sandbox(&plan),
             Err(OsSandboxApplyError::NotReadyOnThisHost)
@@ -293,5 +366,9 @@ mod tests {
     fn doctor_axis_honest() {
         let d = OsSandboxDoctorStatus::ready_base();
         assert!(d.is_honest_ready_base());
+        assert!(d.windows_measured);
+        assert!(d.linux_measured);
+        assert!(!d.platform_qualified);
+        assert!(!d.release_ready);
     }
 }
