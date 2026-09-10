@@ -396,11 +396,12 @@ fn run() -> Result<()> {
                     report.pack_signer.release_ready
                 );
                 println!(
-                    "os_sandbox: ready_base={} linux_measured={} windows_measured={} windows_appcontainer_fs_measured={} macos_measured={} platform_qualified={} release_ready={}",
+                    "os_sandbox: ready_base={} linux_measured={} windows_measured={} windows_appcontainer_fs_measured={} windows_appcontainer_network_measured={} macos_measured={} platform_qualified={} release_ready={}",
                     report.os_sandbox.ready_base,
                     report.os_sandbox.linux_measured,
                     report.os_sandbox.windows_measured,
                     report.os_sandbox.windows_appcontainer_fs_measured,
+                    report.os_sandbox.windows_appcontainer_network_measured,
                     report.os_sandbox.macos_measured,
                     report.os_sandbox.platform_qualified,
                     report.os_sandbox.release_ready
@@ -746,6 +747,7 @@ mod tests {
             "linux_measured",
             "windows_measured",
             "windows_appcontainer_fs_measured",
+            "windows_appcontainer_network_measured",
             "macos_measured",
             "platform_qualified",
             "os_keyring_available",

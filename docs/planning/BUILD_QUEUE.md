@@ -5,11 +5,11 @@
 **Rule:** update this file whenever a unit enters or leaves a canonical state.
 
 **Autonomous stop status (historical V2 scoped closure):** superseded for Trusted V1 follow-on work.
-**Live follow-on status (2026-09-10):** Specs **016**–**037** `CLOSED_CANONICAL` READY_BASE on the Trusted V1 residual track (Spec **036** = MESC synthetic verifier; Spec **037** = release-prep packets + transport-fail fixtures). Spec **012** remains `BLOCKED_BY_RELEASED_MESC_ARTIFACT`. Honesty: `PRIVATE_DATA_READY=false`; `RELEASE_READY=false`; `MULTI_CLIENT_RELEASE_READY=false`; sandbox/platform gates OPEN; `rights_license_decision=false`; budgets not claimed. Deferred advanced product work is **038+**. Do **not** claim RELEASE_READY / PRIVATE_DATA_READY / MULTI_CLIENT_RELEASE_READY.
+**Live follow-on status (2026-09-10):** Specs **016**–**038** `CLOSED_CANONICAL` READY_BASE on the Trusted V1 residual track (Spec **038** = AppContainer network ReadyBaseMeasured; LPAC still scaffold). Spec **012** remains MESC-blocked. Honesty: `PRIVATE_DATA_READY=false`; `RELEASE_READY=false`; sandbox `platform_qualified=false`. Deferred advanced product work is **039+**.
 
 ## 2026-09-10 planning refinement
 
-See Trusted V1 delivery plan. Specs 018–037 READY_BASE closed on residual track; Spec 012 MESC-blocked on upstream assets. Advanced **038+** deferred.
+See Trusted V1 delivery plan. Specs 018–038 READY_BASE closed on residual track; Spec 012 MESC-blocked. Advanced **039+** deferred.
 
 ## Historical scoped queue (closures preserved)
 
@@ -53,7 +53,8 @@ See Trusted V1 delivery plan. Specs 018–037 READY_BASE closed on residual trac
 | 035 | EncryptedVault Authority Sync (Q02/Q03 residual) | `CLOSED_CANONICAL` | READY_BASE: EncryptedVault persists/reloads authority graph; `encrypted_authority_sync_qualified`; PRIVATE_DATA_READY=false. |
 | 036 | MESC Synthetic Verifier (012 residual) | `CLOSED_CANONICAL` | READY_BASE: synthetic manifest verifier + fixtures; `verifier_ready_base=true`; Spec 012 / MESC_RELEASED_ARTIFACT still NOT_AVAILABLE. |
 | 037 | Release Prep + Transport Fail Fixtures | `CLOSED_CANONICAL` | READY_BASE: REQUIRED_CHECKS packet + checksum verify + license counsel packet + broker transport fail fixtures; RELEASE_READY=false. |
-| 038+ | Advanced deferred work | `DEFERRED_BY_CANONICAL_DESIGN` | Plugins/GraphRAG/replicas/imaging/CUDA/etc. |
+| 038 | Windows AppContainer Network (Q09 residual) | `CLOSED_CANONICAL` | READY_BASE: AppContainer TCP deny (`windows_appcontainer_network_measured`); LPAC scaffold; platform_qualified=false. |
+| 039+ | Advanced deferred work | `DEFERRED_BY_CANONICAL_DESIGN` | Plugins/GraphRAG/replicas/imaging/CUDA/etc. |
 
 ## Automatic progression
 
@@ -61,4 +62,4 @@ For the first `READY` unit: create/complete its Spec Kit package, analyze it, im
 
 Do not stop merely because a PR merged, one milestone passed, or an external optional gate exists.
 
-**Next eligible (honest):** Spec 012 MESC-blocked on upstream release assets. PRIVATE_DATA_READY / PLATFORM_QUALIFIED / branch protection / SPDX / WCAG/final-v0 remain external or owner/founder. Spec 037 completed in-repo release-prep packets. Deferred advanced **038+**. Do not invent unauthorized product features. Do **not** claim `RELEASE_READY`, `PRIVATE_DATA_READY`, or `MULTI_CLIENT_RELEASE_READY`.
+**Next eligible (honest):** Spec 012 MESC-blocked. PRIVATE_DATA_READY / PLATFORM_QUALIFIED (LPAC + macOS App Sandbox entitlements + multi-OS composition) / branch protection / SPDX / WCAG/final-v0 remain external or owner/founder. Spec 038 completed AppContainer network ReadyBaseMeasured. Deferred advanced **039+**. Do **not** claim `RELEASE_READY`, `PRIVATE_DATA_READY`, or `MULTI_CLIENT_RELEASE_READY`.

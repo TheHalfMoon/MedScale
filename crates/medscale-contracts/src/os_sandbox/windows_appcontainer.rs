@@ -1,9 +1,13 @@
-//! Windows AppContainer filesystem ReadyBaseMeasured (Spec 033).
+//! Windows AppContainer filesystem + network ReadyBaseMeasured (Specs 033 / 038).
 //!
-//! Measures: create/derive per-user AppContainer profile, launch a child with
+//! Spec 033: create/derive per-user AppContainer profile, launch a child with
 //! `SECURITY_CAPABILITIES`, prove the child cannot read a host-temp marker file
-//! outside the profile folder. Does **not** claim multi-OS PLATFORM_QUALIFIED
-//! or clear EXTERNAL_GATES `WORKER_OS_SANDBOX_PLATFORM_QUALIFIED`.
+//! outside the profile folder.
+//!
+//! Spec 038: same profile launch with **zero** capability SIDs, prove the child
+//! cannot complete a TCP connect (network deny). LPAC capability matrix remains
+//! scaffold. Does **not** claim multi-OS PLATFORM_QUALIFIED or clear
+//! EXTERNAL_GATES `WORKER_OS_SANDBOX_PLATFORM_QUALIFIED`.
 
 #![allow(unsafe_code)]
 
@@ -20,6 +24,12 @@ pub const APPCONTAINER_FS_CHILD_ARG: &str = "appcontainer-fs-child";
 
 /// Parent argv token: run measured AppContainer FS deny using this executable as child.
 pub const APPCONTAINER_FS_PARENT_ARG: &str = "appcontainer-fs";
+
+/// Child argv token: attempt TCP connect; exit 0 on sandbox deny, 2 if ambient network.
+pub const APPCONTAINER_NET_CHILD_ARG: &str = "appcontainer-net-child";
+
+/// Parent argv token: run measured AppContainer network deny using this executable as child.
+pub const APPCONTAINER_NET_PARENT_ARG: &str = "appcontainer-net";
 
 fn wide_null(s: &str) -> Vec<u16> {
     OsStr::new(s)
@@ -46,7 +56,42 @@ pub fn appcontainer_fs_child_exit_code(marker: &Path) -> i32 {
     }
 }
 
-/// Locate the AppContainer FS child helper executable.
+/// Child entry: attempt TCP connect; only sandbox-style denials count as PASS.
+#[must_use]
+pub fn appcontainer_net_child_exit_code() -> i32 {
+    use std::io::ErrorKind;
+    use std::net::{SocketAddr, TcpStream};
+    use std::time::Duration;
+
+    // TEST-NET-3 documentation address (not a live public dependency). Prefer this over
+    // loopback: some AppContainer configurations still allow 127.0.0.1.
+    let addr: SocketAddr = "203.0.113.1:9"
+        .parse()
+        .expect("static TEST-NET-3 discard endpoint");
+    match TcpStream::connect_timeout(&addr, Duration::from_millis(800)) {
+        Ok(_) => 2, // FAIL: outbound TCP succeeded
+        Err(err) => {
+            let denied = err.kind() == ErrorKind::PermissionDenied
+                || err.raw_os_error() == Some(5) // ERROR_ACCESS_DENIED
+                || err.raw_os_error() == Some(10013) // WSAEACCES
+                || err.to_string().contains("Permission denied")
+                || err
+                    .to_string()
+                    .contains("An attempt was made to access a socket in a way forbidden")
+                || err
+                    .to_string()
+                    .contains("forbidden by its access permissions");
+            if denied {
+                0
+            } else {
+                // TimedOut / ConnectionRefused / Unreachable => network stack was usable.
+                2
+            }
+        }
+    }
+}
+
+/// Locate the AppContainer child helper executable.
 #[must_use]
 pub fn resolve_appcontainer_child_exe() -> Option<PathBuf> {
     if let Ok(p) = std::env::var("CARGO_BIN_EXE_medscale-os-sandbox-probe") {
@@ -87,8 +132,39 @@ pub fn measure_appcontainer_fs_deny(child_exe: &Path) -> Result<(), OsSandboxApp
         OsSandboxApplyError::ApplyFailed(format!("failed to plant host marker: {e}"))
     })?;
 
-    let result = measure_with_profile(&profile_name, child_exe, &marker);
+    let cmdline_extra = format!("{APPCONTAINER_FS_CHILD_ARG} \"{}\"", marker.display());
+    let result = measure_with_profile(
+        &profile_name,
+        "MedScale Spec 033 AppContainer",
+        "Synthetic AppContainer FS ReadyBaseMeasured profile",
+        child_exe,
+        &cmdline_extra,
+        "FS",
+    );
     let _ = fs::remove_file(&marker);
+    let _ = delete_profile(&profile_name);
+    result
+}
+
+/// Create AppContainer profile (zero capabilities), launch net-child, expect TCP deny.
+pub fn measure_appcontainer_net_deny(child_exe: &Path) -> Result<(), OsSandboxApplyError> {
+    if !child_exe.is_file() {
+        return Err(OsSandboxApplyError::ApplyFailed(format!(
+            "AppContainer network child exe missing: {}",
+            child_exe.display()
+        )));
+    }
+
+    let pid = std::process::id();
+    let profile_name = format!("medscale.ac.038.{pid}");
+    let result = measure_with_profile(
+        &profile_name,
+        "MedScale Spec 038 AppContainer",
+        "Synthetic AppContainer network ReadyBaseMeasured profile",
+        child_exe,
+        APPCONTAINER_NET_CHILD_ARG,
+        "network",
+    );
     let _ = delete_profile(&profile_name);
     result
 }
@@ -102,6 +178,17 @@ pub(super) fn apply_appcontainer_fs_windows() -> Result<(), OsSandboxApplyError>
         )
     })?;
     measure_appcontainer_fs_deny(&child)
+}
+
+/// ReadyBaseMeasured apply: resolve probe helper and measure network deny.
+pub(super) fn apply_appcontainer_net_windows() -> Result<(), OsSandboxApplyError> {
+    let child = resolve_appcontainer_child_exe().ok_or_else(|| {
+        OsSandboxApplyError::ApplyFailed(
+            "AppContainer network measure needs medscale-os-sandbox-probe on PATH/sibling/CARGO_BIN_EXE"
+                .to_owned(),
+        )
+    })?;
+    measure_appcontainer_net_deny(&child)
 }
 
 fn delete_profile(profile_name: &str) -> Result<(), OsSandboxApplyError> {
@@ -119,8 +206,11 @@ fn delete_profile(profile_name: &str) -> Result<(), OsSandboxApplyError> {
 
 fn measure_with_profile(
     profile_name: &str,
+    display: &str,
+    desc: &str,
     child_exe: &Path,
-    marker: &Path,
+    child_args: &str,
+    kind: &str,
 ) -> Result<(), OsSandboxApplyError> {
     use windows_sys::Win32::Foundation::{CloseHandle, HANDLE, LocalFree};
     use windows_sys::Win32::Security::Authorization::ConvertSidToStringSidW;
@@ -136,8 +226,8 @@ fn measure_with_profile(
     };
 
     let name_w = wide_null(profile_name);
-    let display_w = wide_null("MedScale Spec 033 AppContainer");
-    let desc_w = wide_null("Synthetic AppContainer FS ReadyBaseMeasured profile");
+    let display_w = wide_null(display);
+    let desc_w = wide_null(desc);
 
     let mut sid: PSID = ptr::null_mut();
 
@@ -171,7 +261,6 @@ fn measure_with_profile(
             ));
         }
 
-        // Optional: prove folder path API works (existence of profile store).
         let mut sid_str: windows_sys::core::PWSTR = ptr::null_mut();
         if ConvertSidToStringSidW(sid, &mut sid_str) == 0 || sid_str.is_null() {
             FreeSid(sid);
@@ -181,6 +270,7 @@ fn measure_with_profile(
         }
         LocalFree(sid_str.cast());
 
+        // Zero capabilities: no InternetClient / privateNetworkClientServer grants.
         let mut caps = SECURITY_CAPABILITIES {
             AppContainerSid: sid,
             Capabilities: ptr::null_mut(),
@@ -234,13 +324,7 @@ fn measure_with_profile(
         };
 
         let app = path_wide_null(child_exe);
-        // Quote paths for CreateProcess command line.
-        let cmdline_str = format!(
-            "\"{}\" {} \"{}\"",
-            child_exe.display(),
-            APPCONTAINER_FS_CHILD_ARG,
-            marker.display()
-        );
+        let cmdline_str = format!("\"{}\" {child_args}", child_exe.display());
         let mut cmdline = wide_null(&cmdline_str);
 
         let created = CreateProcessW(
@@ -260,9 +344,9 @@ fn measure_with_profile(
         FreeSid(sid);
 
         if created == 0 {
-            return Err(OsSandboxApplyError::ApplyFailed(
-                "CreateProcessW into AppContainer failed".to_owned(),
-            ));
+            return Err(OsSandboxApplyError::ApplyFailed(format!(
+                "CreateProcessW into AppContainer ({kind}) failed"
+            )));
         }
 
         let process: HANDLE = pi.hProcess;
@@ -275,11 +359,11 @@ fn measure_with_profile(
 
         match code {
             0 => Ok(()),
-            2 => Err(OsSandboxApplyError::ApplyFailed(
-                "AppContainer child could read host marker (FS isolation not observed)".to_owned(),
-            )),
+            2 => Err(OsSandboxApplyError::ApplyFailed(format!(
+                "AppContainer child ambient {kind} still allowed (deny not observed)"
+            ))),
             other => Err(OsSandboxApplyError::ApplyFailed(format!(
-                "AppContainer FS child exited unexpectedly: {other}"
+                "AppContainer {kind} child exited unexpectedly: {other}"
             ))),
         }
     }
