@@ -174,8 +174,11 @@ fn nphies_invoke_requires_workflow_evidence_gate() {
 fn doctor_controlled_actions_axis() {
     let m = ControlledActionsDoctorStatus::ready_base();
     assert!(m.present);
+    assert!(m.outbox_restart_qualified);
     assert!(!m.nphies_authorized);
     assert!(!m.unknown_blind_retry);
+    assert!(m.is_honest_ready_base());
     let report = build_doctor_report(None, false, false);
     assert!(!report.controlled_actions.nphies_authorized);
+    assert!(report.controlled_actions.outbox_restart_qualified);
 }

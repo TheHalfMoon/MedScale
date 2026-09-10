@@ -286,8 +286,9 @@ fn run() -> Result<()> {
                     report.mobile.page_size_16kb_claim
                 );
                 println!(
-                    "controlled_actions: present={} nphies={} blind_retry={}",
+                    "controlled_actions: present={} outbox_restart_qualified={} nphies={} blind_retry={}",
                     report.controlled_actions.present,
+                    report.controlled_actions.outbox_restart_qualified,
                     report.controlled_actions.nphies_authorized,
                     report.controlled_actions.unknown_blind_retry
                 );
@@ -711,6 +712,7 @@ mod tests {
             "mobile",
             "apps_shipped",
             "controlled_actions",
+            "outbox_restart_qualified",
             "nphies_authorized",
             "online_packs",
             "broker_required",
@@ -764,6 +766,7 @@ mod tests {
         assert!(report.packs_runtime.offline_only);
         assert!(!report.packs_runtime.online_download_authorized);
         assert!(!report.mobile.apps_shipped);
+        assert!(report.controlled_actions.is_honest_ready_base());
         assert!(!report.controlled_actions.nphies_authorized);
         assert!(!report.controlled_actions.unknown_blind_retry);
         assert!(!report.online_packs.online_download_authorized);
