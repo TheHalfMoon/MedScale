@@ -5,11 +5,11 @@
 **Rule:** update this file whenever a unit enters or leaves a canonical state.
 
 **Autonomous stop status (historical V2 scoped closure):** superseded for Trusted V1 follow-on work.
-**Live follow-on status (2026-09-10):** Specs **016**–**041** `CLOSED_CANONICAL` READY_BASE on the Trusted V1 residual track. Spec **042** (delivery-plan scale perf) promoted as existing Q05 residual — see `SPEC_042_PROMOTION.md`. Spec **012** remains MESC-blocked. Honesty: `PRIVATE_DATA_READY=false`; `RELEASE_READY=false`; `budgets_claimed_met=false`; sandbox `platform_qualified=false`. Deferred advanced product work is **043+**.
+**Live follow-on status (2026-09-10):** Specs **016**–**042** `CLOSED_CANONICAL` READY_BASE on the Trusted V1 residual track. Spec **012** remains MESC-blocked. Honesty: `PRIVATE_DATA_READY=false`; `RELEASE_READY=false`; `budgets_claimed_met=false`; sandbox `platform_qualified=false`; App Sandbox enforcement signing-external. Deferred advanced product work is **043+**.
 
 ## 2026-09-10 planning refinement
 
-See Trusted V1 delivery plan. Specs 018–041 READY_BASE closed; Spec 012 MESC-blocked. Spec **042** perf delivery-plan scale promoted. Advanced **043+** deferred.
+See Trusted V1 delivery plan. Specs 018–042 READY_BASE closed; Spec 012 MESC-blocked. Advanced **043+** deferred.
 
 ## Historical scoped queue (closures preserved)
 
@@ -57,7 +57,7 @@ See Trusted V1 delivery plan. Specs 018–041 READY_BASE closed; Spec 012 MESC-b
 | 039 | Release Honesty Packets | `CLOSED_CANONICAL` | READY_BASE: START_HERE/SPECKIT sync + PHI readiness checklist + signing/provenance prep + unsigned release-manifest scaffold. |
 | 040 | Windows AppContainer LPAC (Q09 residual) | `CLOSED_CANONICAL` | READY_BASE: LPAC ReadyBaseMeasured (`windows_appcontainer_lpac_measured`); platform_qualified=false; sandbox gate OPEN. |
 | 041 | macOS App Sandbox Entitlements (Q09 residual) | `CLOSED_CANONICAL` | READY_BASE: entitlements artifact + detection probe; `macos_app_sandbox_entitlements_measured`; enforcement_measured=false; platform_qualified=false. |
-| 042 | Perf Delivery-Plan Scale (Q05 residual) | `READY` | Measure timeline@10k + FHIR@1MiB via harness env; keep budgets_claimed_met=false; lexical 10k still limited. See `SPEC_042_PROMOTION.md`. |
+| 042 | Perf Delivery-Plan Scale (Q05 residual) | `CLOSED_CANONICAL` | READY_BASE: near-delivery-plan harness (CI 1000 events + 1MiB FHIR) + Windows CI job; host may set TIMELINE_EVENTS=10000; budgets_claimed_met=false; lexical 10k still limited. |
 | 043+ | Advanced deferred work | `DEFERRED_BY_CANONICAL_DESIGN` | Plugins/GraphRAG/replicas/imaging/CUDA/etc. |
 
 ## Automatic progression
@@ -66,4 +66,4 @@ For the first `READY` unit: create/complete its Spec Kit package, analyze it, im
 
 Do not stop merely because a PR merged, one milestone passed, or an external optional gate exists.
 
-**Next eligible (honest):** Spec **042** delivery-plan scale perf (`READY`). Spec 012 MESC-blocked. After 042: multi-OS PLATFORM_QUALIFIED composition, swap/snapshot PRIVATE_DATA_READY, branch protection, SPDX, signing credentials, WCAG/final-v0, MESC assets, lexical-10k corpus if promoted. Deferred advanced **043+**. Do **not** claim `RELEASE_READY`, `PRIVATE_DATA_READY`, or `MULTI_CLIENT_RELEASE_READY`.
+**Next eligible (honest):** Spec 012 MESC-blocked. Remaining Trusted V1 residuals are largely external/owner or composition (swap/snapshot PRIVATE_DATA_READY, multi-OS PLATFORM_QUALIFIED + signed App Sandbox enforcement, branch protection settings, SPDX choice, signing credentials, WCAG/final-v0, MESC assets, optional full 10k timeline host measure / lexical-10k corpus). Deferred advanced **043+**. Do **not** claim `RELEASE_READY`, `PRIVATE_DATA_READY`, or `MULTI_CLIENT_RELEASE_READY`.
