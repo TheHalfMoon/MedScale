@@ -371,9 +371,7 @@ fn run() -> Result<()> {
                     report
                         .release_qualification
                         .release_dry_run_verifier_present,
-                    report
-                        .release_qualification
-                        .migration_recovery_ready_base,
+                    report.release_qualification.migration_recovery_ready_base,
                     report.release_qualification.notice_inventory_present,
                     report.release_qualification.rights_license_decision,
                     report.release_qualification.missing_evidence_classes.len()
