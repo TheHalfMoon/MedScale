@@ -102,8 +102,9 @@ impl OsSandboxPlan {
                 "job_object_kill_on_job_close".to_owned(),
                 "appcontainer_profile_scaffold".to_owned(),
             ],
-            evidence_path: "evidence/030-windows-appcontainer-sandbox/WINDOWS_JOB_OBJECT_MEASURED.md"
-                .to_owned(),
+            evidence_path:
+                "evidence/030-windows-appcontainer-sandbox/WINDOWS_JOB_OBJECT_MEASURED.md"
+                    .to_owned(),
             limitations: vec![
                 "ReadyBaseMeasured Job Object process-limit only — not multi-OS PLATFORM_QUALIFIED"
                     .to_owned(),
@@ -384,7 +385,9 @@ pub fn try_apply_os_sandbox(plan: &OsSandboxPlan) -> Result<(), OsSandboxApplyEr
         OsSandboxTarget::WindowsAppContainerNetwork => {
             apply_windows_appcontainer_net_ready_base(plan)
         }
-        OsSandboxTarget::WindowsAppContainerLpac => apply_windows_appcontainer_lpac_ready_base(plan),
+        OsSandboxTarget::WindowsAppContainerLpac => {
+            apply_windows_appcontainer_lpac_ready_base(plan)
+        }
         OsSandboxTarget::MacosSeatbeltSandbox => apply_macos_ready_base(plan),
     }
 }

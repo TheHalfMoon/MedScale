@@ -114,8 +114,8 @@ pub fn appcontainer_net_child_exit_code() -> i32 {
 #[must_use]
 pub fn appcontainer_lpac_net_child_exit_code() -> i32 {
     use windows_sys::Win32::Networking::WinSock::{
-        AF_INET, INVALID_SOCKET, IPPROTO_TCP, SOCKADDR, SOCKADDR_IN, SOCKET_ERROR, SOCK_STREAM,
-        WSACleanup, WSAStartup, closesocket, connect, htons, socket, WSADATA,
+        AF_INET, INVALID_SOCKET, IPPROTO_TCP, SOCK_STREAM, SOCKADDR, SOCKADDR_IN, SOCKET_ERROR,
+        WSACleanup, WSADATA, WSAStartup, closesocket, connect, htons, socket,
     };
 
     // SAFETY: WinSock2 startup/connect/cleanup for a one-shot deny probe.
@@ -159,9 +159,7 @@ pub fn appcontainer_lpac_net_child_exit_code() -> i32 {
 /// True if current process token is an AppContainer.
 fn token_is_app_container() -> Result<bool, ()> {
     use windows_sys::Win32::Foundation::{CloseHandle, HANDLE};
-    use windows_sys::Win32::Security::{
-        GetTokenInformation, TOKEN_QUERY, TokenIsAppContainer,
-    };
+    use windows_sys::Win32::Security::{GetTokenInformation, TOKEN_QUERY, TokenIsAppContainer};
     use windows_sys::Win32::System::Threading::{GetCurrentProcess, OpenProcessToken};
 
     // SAFETY: standard token query on current process.
@@ -236,7 +234,7 @@ pub fn appcontainer_lpac_child_exit_code(marker: &Path) -> i32 {
     }
 
     match token_has_all_application_packages() {
-        Ok(false) => {} // LPAC: ALL APPLICATION PACKAGES omitted
+        Ok(false) => {}       // LPAC: ALL APPLICATION PACKAGES omitted
         Ok(true) => return 2, // regular AppContainer — not LPAC
         Err(14) => return 14,
         Err(_) => return 13,
