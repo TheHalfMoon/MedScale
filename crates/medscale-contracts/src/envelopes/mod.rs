@@ -10,7 +10,7 @@ use crate::documents::{
 };
 use crate::evidence::{LexicalRetrieveRequest, LexicalRetrieveResult};
 use crate::ingest::{BackupManifest, IngestReceipt};
-use crate::mesc::MescArtifactAdmitRequest;
+use crate::mesc::{MescArtifactAdmitRequest, MescArtifactVerifyRequest, MescVerifyReport};
 use crate::network::{EgressAllowlistEntry, NetworkBrokerRequest, NetworkBrokerResult};
 use crate::objects::{AmendmentKind, DigestSha256, EffectState, MedicalTime, OpaqueId, VaultId};
 use crate::online_packs::OnlinePackAcquireRequest;
@@ -65,6 +65,7 @@ pub enum Capability {
     NphiesInvoke,
     OnlinePackAcquire,
     MescArtifactAdmit,
+    MescArtifactVerify,
     OpenSession,
     RevokeSession,
     AmendAssertion,
@@ -156,6 +157,7 @@ impl Capability {
             Self::NphiesInvoke,
             Self::OnlinePackAcquire,
             Self::MescArtifactAdmit,
+            Self::MescArtifactVerify,
             Self::AmendAssertion,
             Self::GetFhirSupportMatrix,
             Self::ExportFhirLossAware,
@@ -322,6 +324,9 @@ pub enum RequestBody {
     MescArtifactAdmit {
         request: MescArtifactAdmitRequest,
     },
+    MescArtifactVerify {
+        request: MescArtifactVerifyRequest,
+    },
     OpenSession {
         holder_id: OpaqueId,
         granted: Vec<Capability>,
@@ -486,6 +491,9 @@ pub enum ResponseBody {
     },
     DisclosureList {
         records: Vec<DisclosureRecord>,
+    },
+    MescVerify {
+        report: MescVerifyReport,
     },
 }
 

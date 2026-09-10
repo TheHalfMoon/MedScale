@@ -36,6 +36,7 @@ pub struct CoreFacade {
     encrypted: Mutex<Option<EncryptedVault>>,
     allowlist: Mutex<Vec<EgressAllowlistEntry>>,
     packs: Mutex<medscale_pack::PackStore>,
+    mesc_epochs: Mutex<medscale_pack::MescEpochStore>,
 }
 
 impl Default for CoreFacade {
@@ -57,6 +58,7 @@ impl CoreFacade {
             encrypted: Mutex::new(None),
             allowlist: Mutex::new(Vec::new()),
             packs: Mutex::new(medscale_pack::PackStore::default()),
+            mesc_epochs: Mutex::new(medscale_pack::MescEpochStore::new()),
         }
     }
 
@@ -109,6 +111,12 @@ impl CoreFacade {
 
     fn packs(&self) -> std::sync::MutexGuard<'_, medscale_pack::PackStore> {
         self.packs
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+    }
+
+    fn mesc_epochs(&self) -> std::sync::MutexGuard<'_, medscale_pack::MescEpochStore> {
+        self.mesc_epochs
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner)
     }
@@ -1109,6 +1117,33 @@ impl CoreFacade {
                     gate: "MESC_RELEASED_ARTIFACT".to_owned(),
                 })
             }
+            RequestBody::MescArtifactVerify { request } => {
+                if request.release_dir.trim().is_empty() {
+                    return Err(AuthorityError::InvalidArgument {
+                        message: "MESC verify requires non-empty release_dir".to_owned(),
+                    });
+                }
+                let path = std::path::Path::new(&request.release_dir);
+                match medscale_pack::verify_mesc_release_dir(path) {
+                    Ok(report) => {
+                        let producer = report
+                            .producer_id
+                            .clone()
+                            .unwrap_or_else(|| "unknown".to_owned());
+                        let epoch = report.epoch.unwrap_or(0);
+                        if let Err(e) = self.mesc_epochs().admit_epoch(&producer, epoch) {
+                            return Ok(ResponseBody::MescVerify {
+                                report: e.report().clone(),
+                            });
+                        }
+                        debug_assert!(!report.product_admit_authorized);
+                        Ok(ResponseBody::MescVerify { report })
+                    }
+                    Err(e) => Ok(ResponseBody::MescVerify {
+                        report: e.report().clone(),
+                    }),
+                }
+            }
             RequestBody::GetFhirSupportMatrix => Ok(ResponseBody::FhirSupportMatrix {
                 matrix: medscale_contracts::fhir::FhirSupportMatrix::trusted_v1_ready_base(),
             }),
@@ -1334,6 +1369,10 @@ fn capability_matches(cap: &Capability, body: &RequestBody) -> bool {
             | (
                 Capability::MescArtifactAdmit,
                 RequestBody::MescArtifactAdmit { .. }
+            )
+            | (
+                Capability::MescArtifactVerify,
+                RequestBody::MescArtifactVerify { .. }
             )
             | (Capability::OpenSession, RequestBody::OpenSession { .. })
             | (Capability::RevokeSession, RequestBody::RevokeSession { .. })
