@@ -1,12 +1,18 @@
-//! Windows AppContainer filesystem + network ReadyBaseMeasured (Specs 033 / 038).
+//! Windows AppContainer filesystem + network + LPAC ReadyBaseMeasured
+//! (Specs 033 / 038 / 040).
 //!
 //! Spec 033: create/derive per-user AppContainer profile, launch a child with
 //! `SECURITY_CAPABILITIES`, prove the child cannot read a host-temp marker file
 //! outside the profile folder.
 //!
 //! Spec 038: same profile launch with **zero** capability SIDs, prove the child
-//! cannot complete a TCP connect (network deny). LPAC capability matrix remains
-//! scaffold. Does **not** claim multi-OS PLATFORM_QUALIFIED or clear
+//! cannot complete a TCP connect (network deny).
+//!
+//! Spec 040: same zero-capability launch plus
+//! `PROC_THREAD_ATTRIBUTE_ALL_APPLICATION_PACKAGES_POLICY` =
+//! `PROCESS_CREATION_ALL_APPLICATION_PACKAGES_OPT_OUT` (LPAC). Child proves
+//! AppContainer identity, absence of ALL APPLICATION PACKAGES, FS deny, and
+//! TCP deny. Does **not** claim multi-OS PLATFORM_QUALIFIED or clear
 //! EXTERNAL_GATES `WORKER_OS_SANDBOX_PLATFORM_QUALIFIED`.
 
 #![allow(unsafe_code)]
@@ -30,6 +36,15 @@ pub const APPCONTAINER_NET_CHILD_ARG: &str = "appcontainer-net-child";
 
 /// Parent argv token: run measured AppContainer network deny using this executable as child.
 pub const APPCONTAINER_NET_PARENT_ARG: &str = "appcontainer-net";
+
+/// Child argv token: LPAC identity + FS deny + network deny (Spec 040).
+pub const APPCONTAINER_LPAC_CHILD_ARG: &str = "appcontainer-lpac-child";
+
+/// Parent argv token: run measured LPAC AppContainer using this executable as child.
+pub const APPCONTAINER_LPAC_PARENT_ARG: &str = "appcontainer-lpac";
+
+/// `PROCESS_CREATION_ALL_APPLICATION_PACKAGES_OPT_OUT` (windows-sys WindowsProgramming).
+const PROCESS_CREATION_ALL_APPLICATION_PACKAGES_OPT_OUT: u32 = 1;
 
 fn wide_null(s: &str) -> Vec<u16> {
     OsStr::new(s)
@@ -57,6 +72,7 @@ pub fn appcontainer_fs_child_exit_code(marker: &Path) -> i32 {
 }
 
 /// Child entry: attempt TCP connect; only sandbox-style denials count as PASS.
+/// Uses Rust `TcpStream` (WSAStartup via std) — fine for regular AppContainer (Spec 038).
 #[must_use]
 pub fn appcontainer_net_child_exit_code() -> i32 {
     use std::io::ErrorKind;
@@ -89,6 +105,149 @@ pub fn appcontainer_net_child_exit_code() -> i32 {
             }
         }
     }
+}
+
+/// Panic-free TCP deny probe for LPAC (Spec 040).
+///
+/// LPAC can make `std::net` WSAStartup assert (WSANOTINITIALISED / init failure). Raw
+/// WinSock treats startup/socket/connect failures as measured deny (PASS).
+#[must_use]
+pub fn appcontainer_lpac_net_child_exit_code() -> i32 {
+    use windows_sys::Win32::Networking::WinSock::{
+        AF_INET, INVALID_SOCKET, IPPROTO_TCP, SOCKADDR, SOCKADDR_IN, SOCKET_ERROR, SOCK_STREAM,
+        WSACleanup, WSAStartup, closesocket, connect, htons, socket, WSADATA,
+    };
+
+    // SAFETY: WinSock2 startup/connect/cleanup for a one-shot deny probe.
+    unsafe {
+        let mut wsa: WSADATA = std::mem::zeroed();
+        let startup = WSAStartup(0x0202, &mut wsa);
+        if startup != 0 {
+            // Cannot initialize sockets under this token — measured network deny.
+            return 0;
+        }
+
+        let s = socket(AF_INET as i32, SOCK_STREAM as i32, IPPROTO_TCP as i32);
+        if s == INVALID_SOCKET {
+            let _ = WSACleanup();
+            return 0; // socket creation denied
+        }
+
+        // 203.0.113.1:9 TEST-NET-3 discard
+        let mut addr: SOCKADDR_IN = std::mem::zeroed();
+        addr.sin_family = AF_INET;
+        addr.sin_port = htons(9);
+        let ip = u32::from_be_bytes([203, 0, 113, 1]);
+        addr.sin_addr.S_un.S_addr = ip;
+
+        let rc = connect(
+            s,
+            (&raw const addr).cast::<SOCKADDR>(),
+            size_of::<SOCKADDR_IN>() as i32,
+        );
+        let _ = closesocket(s);
+        let _ = WSACleanup();
+
+        if rc == SOCKET_ERROR {
+            0 // connect denied / failed closed
+        } else {
+            2 // FAIL: connect succeeded
+        }
+    }
+}
+
+/// True if current process token is an AppContainer.
+fn token_is_app_container() -> Result<bool, ()> {
+    use windows_sys::Win32::Foundation::{CloseHandle, HANDLE};
+    use windows_sys::Win32::Security::{
+        GetTokenInformation, TOKEN_QUERY, TokenIsAppContainer,
+    };
+    use windows_sys::Win32::System::Threading::{GetCurrentProcess, OpenProcessToken};
+
+    // SAFETY: standard token query on current process.
+    unsafe {
+        let mut token: HANDLE = ptr::null_mut();
+        if OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &mut token) == 0 {
+            return Err(());
+        }
+        let mut is_ac: u32 = 0;
+        let mut ret_len: u32 = 0;
+        let ok = GetTokenInformation(
+            token,
+            TokenIsAppContainer,
+            (&raw mut is_ac).cast(),
+            size_of::<u32>() as u32,
+            &mut ret_len,
+        );
+        let _ = CloseHandle(token);
+        if ok == 0 {
+            return Err(());
+        }
+        Ok(is_ac != 0)
+    }
+}
+
+/// True if ALL APPLICATION PACKAGES (`WinBuiltinAnyPackageSid`) is an enabled group.
+/// Err(14) = CreateWellKnownSid failed; Err(13) = CheckTokenMembership failed.
+fn token_has_all_application_packages() -> Result<bool, i32> {
+    use windows_sys::Win32::Security::{
+        CheckTokenMembership, CreateWellKnownSid, WinBuiltinAnyPackageSid,
+    };
+
+    // SAFETY: well-known SID + membership against current process/thread token (NULL handle).
+    unsafe {
+        let mut sid_buf = [0u8; 68];
+        let mut sid_size = sid_buf.len() as u32;
+        if CreateWellKnownSid(
+            WinBuiltinAnyPackageSid,
+            ptr::null_mut(),
+            sid_buf.as_mut_ptr().cast(),
+            &mut sid_size,
+        ) == 0
+        {
+            return Err(14);
+        }
+
+        let mut is_member: i32 = 0;
+        // NULL token => use calling thread's effective token (works inside AppContainer/LPAC).
+        let ok = CheckTokenMembership(ptr::null_mut(), sid_buf.as_mut_ptr().cast(), &mut is_member);
+        if ok == 0 {
+            return Err(13);
+        }
+        Ok(is_member != 0)
+    }
+}
+
+/// Child entry (Spec 040): LPAC identity + FS deny + network deny.
+///
+/// Exit codes:
+/// - 0 = PASS
+/// - 2 = ambient FS/network allow, or not AppContainer, or ALL_APP_PACKAGES still present
+/// - 11 = TokenIsAppContainer query failed
+/// - 13 = ALL_APPLICATION_PACKAGES membership check failed
+/// - 14 = CreateWellKnownSid failed
+/// - 1 = other unexpected
+#[must_use]
+pub fn appcontainer_lpac_child_exit_code(marker: &Path) -> i32 {
+    match token_is_app_container() {
+        Ok(true) => {}
+        Ok(false) => return 2, // not AppContainer
+        Err(()) => return 11,
+    }
+
+    match token_has_all_application_packages() {
+        Ok(false) => {} // LPAC: ALL APPLICATION PACKAGES omitted
+        Ok(true) => return 2, // regular AppContainer — not LPAC
+        Err(14) => return 14,
+        Err(_) => return 13,
+    }
+
+    let fs_code = appcontainer_fs_child_exit_code(marker);
+    if fs_code != 0 {
+        return fs_code;
+    }
+
+    appcontainer_lpac_net_child_exit_code()
 }
 
 /// Locate the AppContainer child helper executable.
@@ -140,6 +299,7 @@ pub fn measure_appcontainer_fs_deny(child_exe: &Path) -> Result<(), OsSandboxApp
         child_exe,
         &cmdline_extra,
         "FS",
+        false,
     );
     let _ = fs::remove_file(&marker);
     let _ = delete_profile(&profile_name);
@@ -164,7 +324,39 @@ pub fn measure_appcontainer_net_deny(child_exe: &Path) -> Result<(), OsSandboxAp
         child_exe,
         APPCONTAINER_NET_CHILD_ARG,
         "network",
+        false,
     );
+    let _ = delete_profile(&profile_name);
+    result
+}
+
+/// Create LPAC AppContainer (zero caps + ALL_APPLICATION_PACKAGES_OPT_OUT), measure child.
+pub fn measure_appcontainer_lpac_deny(child_exe: &Path) -> Result<(), OsSandboxApplyError> {
+    if !child_exe.is_file() {
+        return Err(OsSandboxApplyError::ApplyFailed(format!(
+            "AppContainer LPAC child exe missing: {}",
+            child_exe.display()
+        )));
+    }
+
+    let pid = std::process::id();
+    let profile_name = format!("medscale.ac.040.{pid}");
+    let marker = std::env::temp_dir().join(format!("medscale-ac-040-{pid}.marker"));
+    fs::write(&marker, b"medscale-040-host-marker").map_err(|e| {
+        OsSandboxApplyError::ApplyFailed(format!("failed to plant host marker: {e}"))
+    })?;
+
+    let cmdline_extra = format!("{APPCONTAINER_LPAC_CHILD_ARG} \"{}\"", marker.display());
+    let result = measure_with_profile(
+        &profile_name,
+        "MedScale Spec 040 AppContainer LPAC",
+        "Synthetic AppContainer LPAC ReadyBaseMeasured profile",
+        child_exe,
+        &cmdline_extra,
+        "LPAC",
+        true,
+    );
+    let _ = fs::remove_file(&marker);
     let _ = delete_profile(&profile_name);
     result
 }
@@ -191,6 +383,17 @@ pub(super) fn apply_appcontainer_net_windows() -> Result<(), OsSandboxApplyError
     measure_appcontainer_net_deny(&child)
 }
 
+/// ReadyBaseMeasured apply: resolve probe helper and measure LPAC.
+pub(super) fn apply_appcontainer_lpac_windows() -> Result<(), OsSandboxApplyError> {
+    let child = resolve_appcontainer_child_exe().ok_or_else(|| {
+        OsSandboxApplyError::ApplyFailed(
+            "AppContainer LPAC measure needs medscale-os-sandbox-probe on PATH/sibling/CARGO_BIN_EXE"
+                .to_owned(),
+        )
+    })?;
+    measure_appcontainer_lpac_deny(&child)
+}
+
 fn delete_profile(profile_name: &str) -> Result<(), OsSandboxApplyError> {
     use windows_sys::Win32::Security::Isolation::DeleteAppContainerProfile;
 
@@ -211,6 +414,7 @@ fn measure_with_profile(
     child_exe: &Path,
     child_args: &str,
     kind: &str,
+    lpac: bool,
 ) -> Result<(), OsSandboxApplyError> {
     use windows_sys::Win32::Foundation::{CloseHandle, HANDLE, LocalFree};
     use windows_sys::Win32::Security::Authorization::ConvertSidToStringSidW;
@@ -221,6 +425,7 @@ fn measure_with_profile(
     use windows_sys::Win32::System::Threading::{
         CreateProcessW, DeleteProcThreadAttributeList, EXTENDED_STARTUPINFO_PRESENT,
         GetExitCodeProcess, InitializeProcThreadAttributeList,
+        PROC_THREAD_ATTRIBUTE_ALL_APPLICATION_PACKAGES_POLICY,
         PROC_THREAD_ATTRIBUTE_SECURITY_CAPABILITIES, PROCESS_INFORMATION, STARTUPINFOEXW,
         UpdateProcThreadAttribute, WaitForSingleObject,
     };
@@ -228,6 +433,7 @@ fn measure_with_profile(
     let name_w = wide_null(profile_name);
     let display_w = wide_null(display);
     let desc_w = wide_null(desc);
+    let attr_count: u32 = if lpac { 2 } else { 1 };
 
     let mut sid: PSID = ptr::null_mut();
 
@@ -279,7 +485,7 @@ fn measure_with_profile(
         };
 
         let mut attr_size: usize = 0;
-        let _ = InitializeProcThreadAttributeList(ptr::null_mut(), 1, 0, &mut attr_size);
+        let _ = InitializeProcThreadAttributeList(ptr::null_mut(), attr_count, 0, &mut attr_size);
         if attr_size == 0 {
             FreeSid(sid);
             return Err(OsSandboxApplyError::ApplyFailed(
@@ -288,7 +494,7 @@ fn measure_with_profile(
         }
         let mut attr_buf = vec![0u8; attr_size];
         let attr_list = attr_buf.as_mut_ptr().cast();
-        if InitializeProcThreadAttributeList(attr_list, 1, 0, &mut attr_size) == 0 {
+        if InitializeProcThreadAttributeList(attr_list, attr_count, 0, &mut attr_size) == 0 {
             FreeSid(sid);
             return Err(OsSandboxApplyError::ApplyFailed(
                 "InitializeProcThreadAttributeList failed".to_owned(),
@@ -309,6 +515,26 @@ fn measure_with_profile(
             FreeSid(sid);
             return Err(OsSandboxApplyError::ApplyFailed(
                 "UpdateProcThreadAttribute(SECURITY_CAPABILITIES) failed".to_owned(),
+            ));
+        }
+
+        let mut lpac_policy = PROCESS_CREATION_ALL_APPLICATION_PACKAGES_OPT_OUT;
+        if lpac
+            && UpdateProcThreadAttribute(
+                attr_list,
+                0,
+                PROC_THREAD_ATTRIBUTE_ALL_APPLICATION_PACKAGES_POLICY as usize,
+                (&raw mut lpac_policy).cast(),
+                size_of::<u32>(),
+                ptr::null_mut(),
+                ptr::null(),
+            ) == 0
+        {
+            DeleteProcThreadAttributeList(attr_list);
+            FreeSid(sid);
+            return Err(OsSandboxApplyError::ApplyFailed(
+                "UpdateProcThreadAttribute(ALL_APPLICATION_PACKAGES_POLICY / LPAC) failed"
+                    .to_owned(),
             ));
         }
 
@@ -360,8 +586,18 @@ fn measure_with_profile(
         match code {
             0 => Ok(()),
             2 => Err(OsSandboxApplyError::ApplyFailed(format!(
-                "AppContainer child ambient {kind} still allowed (deny not observed)"
+                "AppContainer child ambient {kind} still allowed or LPAC identity not observed"
             ))),
+            11 => Err(OsSandboxApplyError::ApplyFailed(
+                "AppContainer LPAC child TokenIsAppContainer query failed".to_owned(),
+            )),
+            13 => Err(OsSandboxApplyError::ApplyFailed(
+                "AppContainer LPAC child ALL_APPLICATION_PACKAGES membership check failed"
+                    .to_owned(),
+            )),
+            14 => Err(OsSandboxApplyError::ApplyFailed(
+                "AppContainer LPAC child CreateWellKnownSid failed".to_owned(),
+            )),
             other => Err(OsSandboxApplyError::ApplyFailed(format!(
                 "AppContainer {kind} child exited unexpectedly: {other}"
             ))),

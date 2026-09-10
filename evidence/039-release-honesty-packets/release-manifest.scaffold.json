@@ -20,7 +20,7 @@
   "sandbox": {
     "platform_qualified": false,
     "windows_appcontainer_network_measured": true,
-    "windows_appcontainer_lpac_measured": false
+    "windows_appcontainer_lpac_measured": true
   },
   "rights": {
     "public_source_license_choice": "PENDING"

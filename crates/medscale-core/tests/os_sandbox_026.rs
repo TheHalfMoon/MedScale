@@ -14,6 +14,7 @@ fn doctor_os_sandbox_and_pack_signer_honest() {
     assert!(report.os_sandbox.windows_measured);
     assert!(report.os_sandbox.windows_appcontainer_fs_measured);
     assert!(report.os_sandbox.windows_appcontainer_network_measured);
+    assert!(report.os_sandbox.windows_appcontainer_lpac_measured);
     assert!(report.os_sandbox.macos_measured);
     assert!(!report.os_sandbox.platform_qualified);
     assert!(!report.os_sandbox.release_ready);
@@ -57,6 +58,7 @@ fn ready_base_linux_plan_not_ready_on_this_host() {
     assert!(doctor.windows_measured);
     assert!(doctor.windows_appcontainer_fs_measured);
     assert!(doctor.windows_appcontainer_network_measured);
+    assert!(doctor.windows_appcontainer_lpac_measured);
     assert!(doctor.macos_measured);
     assert!(!doctor.platform_qualified);
 }

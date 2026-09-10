@@ -1,4 +1,4 @@
-//! Spec 030/031/033/038 probe: apply OS sandbox READY_BASE, then prove a denied ambient capability.
+//! Spec 030/031/033/038/040 probe: apply OS sandbox READY_BASE, then prove a denied ambient capability.
 //!
 //! Exit codes:
 //! - 0: apply succeeded and measured deny observed (PASS)
@@ -11,6 +11,8 @@
 //! - `appcontainer-fs`: parent measure FS deny
 //! - `appcontainer-net-child`: child entry inside AppContainer (network)
 //! - `appcontainer-net`: parent measure network deny
+//! - `appcontainer-lpac-child <marker>`: child entry inside LPAC (identity+FS+net)
+//! - `appcontainer-lpac`: parent measure LPAC
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
@@ -18,10 +20,11 @@ fn main() {
     #[cfg(windows)]
     {
         use medscale_contracts::os_sandbox::{
-            APPCONTAINER_FS_CHILD_ARG, APPCONTAINER_FS_PARENT_ARG, APPCONTAINER_NET_CHILD_ARG,
-            APPCONTAINER_NET_PARENT_ARG, OsSandboxPlan, appcontainer_fs_child_exit_code,
+            APPCONTAINER_FS_CHILD_ARG, APPCONTAINER_FS_PARENT_ARG, APPCONTAINER_LPAC_CHILD_ARG,
+            APPCONTAINER_LPAC_PARENT_ARG, APPCONTAINER_NET_CHILD_ARG, APPCONTAINER_NET_PARENT_ARG,
+            OsSandboxPlan, appcontainer_fs_child_exit_code, appcontainer_lpac_child_exit_code,
             appcontainer_net_child_exit_code, measure_appcontainer_fs_deny,
-            measure_appcontainer_net_deny, try_apply_os_sandbox,
+            measure_appcontainer_lpac_deny, measure_appcontainer_net_deny, try_apply_os_sandbox,
         };
         use std::path::Path;
         use std::process::Command;
@@ -33,6 +36,11 @@ fn main() {
 
         if args.get(1).map(String::as_str) == Some(APPCONTAINER_NET_CHILD_ARG) {
             std::process::exit(appcontainer_net_child_exit_code());
+        }
+
+        if args.get(1).map(String::as_str) == Some(APPCONTAINER_LPAC_CHILD_ARG) {
+            let marker = args.get(2).map(Path::new).unwrap_or_else(|| Path::new(""));
+            std::process::exit(appcontainer_lpac_child_exit_code(marker));
         }
 
         if args.get(1).map(String::as_str) == Some(APPCONTAINER_FS_PARENT_ARG) {
@@ -54,6 +62,20 @@ fn main() {
             match measure_appcontainer_net_deny(&child) {
                 Ok(()) => {
                     eprintln!("OK: AppContainer network deny measured");
+                    std::process::exit(0);
+                }
+                Err(e) => {
+                    eprintln!("apply/measure failed: {e:?}");
+                    std::process::exit(1);
+                }
+            }
+        }
+
+        if args.get(1).map(String::as_str) == Some(APPCONTAINER_LPAC_PARENT_ARG) {
+            let child = std::env::current_exe().unwrap_or_default();
+            match measure_appcontainer_lpac_deny(&child) {
+                Ok(()) => {
+                    eprintln!("OK: AppContainer LPAC deny measured");
                     std::process::exit(0);
                 }
                 Err(e) => {
