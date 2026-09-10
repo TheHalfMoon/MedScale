@@ -327,7 +327,11 @@ mod tests {
         let dir = std::env::temp_dir().join(format!("mesc-036-bad-{}", std::process::id()));
         let _ = fs::remove_dir_all(&dir);
         write_good_fixture(&dir);
-        fs::write(dir.join("model.bin"), b"X".repeat(b"synthetic-model-bytes-v1".len())).unwrap();
+        fs::write(
+            dir.join("model.bin"),
+            b"X".repeat(b"synthetic-model-bytes-v1".len()),
+        )
+        .unwrap();
         let err = verify_mesc_release_dir(&dir).unwrap_err();
         assert_eq!(err.report().reason, MescVerifyReason::DigestMismatch);
         let _ = fs::remove_dir_all(&dir);
