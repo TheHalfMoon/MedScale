@@ -59,7 +59,8 @@ Required lifecycle for each material executable spec:
 | 027 | `perf-sbom-release-evidence` | Perf harness + SBOM scaffold + package checksums (Q05 remnants) | 022 closed | CLOSED_CANONICAL READY_BASE; budgets not claimed; RELEASE_READY=false |
 | 028 | `os-keyring-custody` | OS keyring wrapped-DEK custody (Q03 residual) | 023 closed; admission 005-keyring | CLOSED_CANONICAL READY_BASE; os_keyring_*; PRIVATE_DATA_READY=false (swap/snapshot) |
 | 029 | `macos-ci-accessibility` | macOS CI matrix + CLI/fixture accessibility honesty | 022/027 + 006/021 | CLOSED_CANONICAL READY_BASE; macos_ci_present; macos_qualified=false; no WCAG; RELEASE_READY=false |
-| 030+ | `research-site-imaging-genomics-advanced` | deferred site/research/collab/imaging/genomics/plugin/browser/watch/vision expansion | evidence-driven later gates | no Trusted V1 implementation commitment |
+| 030 | `windows-appcontainer-sandbox` | Windows Job Object READY_BASE (Q09 residual; AppContainer scaffold) | 026 closed | CLOSED_CANONICAL READY_BASE; windows_measured; platform_qualified=false; sandbox gate OPEN |
+| 031+ | `research-site-imaging-genomics-advanced` | deferred site/research/collab/imaging/genomics/plugin/browser/watch/vision expansion | evidence-driven later gates | no Trusted V1 implementation commitment |
 
 ## 3. Corrected critical path
 
@@ -99,7 +100,8 @@ ONLINE ECOSYSTEM
 027 perf harness + SBOM/checksum evidence (Q05 remnants) CLOSED_CANONICAL READY_BASE; budgets not claimed; RELEASE_READY=false
 028 OS keyring custody (Q03 residual) CLOSED_CANONICAL READY_BASE; os_keyring_*; PRIVATE_DATA_READY=false (swap/snapshot)
 029 macOS CI + accessibility honesty CLOSED_CANONICAL READY_BASE; macos_ci_present; macos_qualified=false; no WCAG; RELEASE_READY=false
-Next: 012 MESC-blocked; swap/snapshot still block PRIVATE_DATA_READY; macOS product qualification + WCAG/final-v0 open; 030+ deferred
+030 Windows Job Object sandbox (Q09 residual) CLOSED_CANONICAL READY_BASE; windows_measured; AppContainer scaffold; platform_qualified=false; WORKER_OS_SANDBOX gate OPEN
+Next: 012 MESC-blocked; swap/snapshot still block PRIVATE_DATA_READY; macOS Seatbelt + product qualification + WCAG/final-v0 open; 031+ deferred
 ```
 
 ## 4. Core process topology — decided for downstream specs

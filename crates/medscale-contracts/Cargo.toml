@@ -17,3 +17,14 @@ sha2 = "0.11.0"
 
 [target.'cfg(target_os = "linux")'.dependencies]
 landlock = "0.4.4"
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61.2", features = [
+    "Win32_Foundation",
+    "Win32_System_JobObjects",
+    "Win32_System_Threading",
+] }
+
+[[bin]]
+name = "medscale-os-sandbox-probe"
+path = "src/bin/os_sandbox_probe.rs"

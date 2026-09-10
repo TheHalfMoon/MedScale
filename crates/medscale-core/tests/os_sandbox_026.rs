@@ -11,6 +11,7 @@ fn doctor_os_sandbox_and_pack_signer_honest() {
     assert!(report.pack_signer.is_honest_ready_base());
     assert!(report.os_sandbox.is_honest_ready_base());
     assert!(report.os_sandbox.linux_measured);
+    assert!(report.os_sandbox.windows_measured);
     assert!(!report.os_sandbox.platform_qualified);
     assert!(!report.os_sandbox.release_ready);
     assert!(!report.pack_signer.release_ready);
@@ -46,6 +47,7 @@ fn ready_base_linux_plan_not_ready_on_this_host() {
     );
     let doctor = build_doctor_report(None, false, privacy_proof_artifact_present()).os_sandbox;
     assert!(doctor.linux_measured);
+    assert!(doctor.windows_measured);
     assert!(!doctor.platform_qualified);
 }
 
