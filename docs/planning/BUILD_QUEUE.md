@@ -5,11 +5,11 @@
 **Rule:** update this file whenever a unit enters or leaves a canonical state.
 
 **Autonomous stop status (historical V2 scoped closure):** superseded for Trusted V1 follow-on work.
-**Live follow-on status (2026-09-11):** Specs **016**–**047** `CLOSED_CANONICAL` READY_BASE. Spec **048** (migration/recovery release-bar READY_BASE) promoted — see `SPEC_048_PROMOTION.md`. Spec **012** MESC-blocked. Honesty: `PRIVATE_DATA_READY=false`; `RELEASE_READY=false`; `budgets_claimed_met=false`; sandbox `platform_qualified=false`. Deferred advanced **049+**.
+**Live follow-on status (2026-09-11):** Specs **016**–**048** `CLOSED_CANONICAL` READY_BASE. Spec **048** migration/recovery release-bar closed — see `SPEC_048_PROMOTION.md`. Spec **012** MESC-blocked. Honesty: `PRIVATE_DATA_READY=false`; `RELEASE_READY=false`; `budgets_claimed_met=false`; sandbox `platform_qualified=false`. Deferred advanced **049+**.
 
 ## 2026-09-11 planning refinement
 
-See Trusted V1 delivery plan. Specs 018–047 READY_BASE closed; Spec 048 READY (Q05 residual). Spec 012 MESC-blocked. Advanced **049+** deferred.
+See Trusted V1 delivery plan. Specs 018–048 READY_BASE closed; Spec 012 MESC-blocked. Advanced **049+** deferred.
 
 ## Historical scoped queue (closures preserved)
 
@@ -63,7 +63,7 @@ See Trusted V1 delivery plan. Specs 018–047 READY_BASE closed; Spec 048 READY 
 | 045 | Lexical 10k Corpus (Q10/Q05 residual) | `CLOSED_CANONICAL` | READY_BASE: procedural synthetic-lexical-scale@10k + harness wiring; clinical_quality/budgets/RELEASE_READY false. |
 | 046 | SBOM Lock Binding (Q05 residual) | `CLOSED_CANONICAL` | Cargo.lock digest in SBOM scaffold; sbom_lock_bound; not full release SBOM. See `SPEC_046_PROMOTION.md`. |
 | 047 | Release Dry-Run + Verifier (Q05 residual) | `CLOSED_CANONICAL` | READY_BASE: dry-run binds source/tree/lock + build env + native-deps honesty; cross-verifier present; RELEASE_READY=false. See `SPEC_047_PROMOTION.md`. |
-| 048 | Migration/Recovery Release-Bar (Q05 residual) | `READY` | Interrupt fail-closed + backup/restore recovery + encrypted backup closure; migration_recovery_ready_base; RELEASE_READY=false. See `SPEC_048_PROMOTION.md`. |
+| 048 | Migration/Recovery Release-Bar (Q05 residual) | `CLOSED_CANONICAL` | READY_BASE: interrupt fail-closed + backup/restore recovery + encrypted backup closure; migration_recovery_ready_base; RELEASE_READY=false. See `SPEC_048_PROMOTION.md`. |
 | 049+ | Advanced deferred work | `DEFERRED_BY_CANONICAL_DESIGN` | Plugins/GraphRAG/replicas/imaging/CUDA/etc. |
 
 ## Automatic progression
