@@ -348,15 +348,26 @@ fn run() -> Result<()> {
                     report.workflow.disclosure_append_supported
                 );
                 println!(
-                    "release_qualification: prep_ready_base={} release_ready={} locked={} macos_qualified={} branch_protection={} perf_harness={} sbom_scaffold={} missing={}",
+                    "release_qualification: prep_ready_base={} release_ready={} locked={} macos_ci={} macos_qualified={} branch_protection={} perf_harness={} sbom_scaffold={} missing={}",
                     report.release_qualification.prep_ready_base,
                     report.release_qualification.release_ready,
                     report.release_qualification.locked_builds,
+                    report.release_qualification.macos_ci_present,
                     report.release_qualification.macos_qualified,
                     report.release_qualification.branch_protection_configured,
                     report.release_qualification.perf_harness_present,
                     report.release_qualification.sbom_scaffold_present,
                     report.release_qualification.missing_evidence_classes.len()
+                );
+                println!(
+                    "accessibility: ready_base={} fixture_labels={} cli_keyboard={} disclosure={} wcag_claimed={} final_v0={} release_ready={}",
+                    report.accessibility.ready_base,
+                    report.accessibility.fixture_cli_labels_checked,
+                    report.accessibility.cli_keyboard_path_documented,
+                    report.accessibility.disclosure_clarity_checked,
+                    report.accessibility.wcag_conformance_claimed,
+                    report.accessibility.final_v0_ui_present,
+                    report.accessibility.release_ready
                 );
                 println!(
                     "evidence_corpus: ready_base={} versioned={} synthetic_owned={} clinical_quality={} release_ready={} corpus={:?}@{:?}",
@@ -706,9 +717,15 @@ mod tests {
             "workflow_ready_base",
             "release_qualification",
             "prep_ready_base",
+            "macos_ci_present",
             "missing_evidence_classes",
             "perf_harness_present",
             "sbom_scaffold_present",
+            "accessibility",
+            "fixture_cli_labels_checked",
+            "cli_keyboard_path_documented",
+            "disclosure_clarity_checked",
+            "wcag_conformance_claimed",
             "pack_signer",
             "synthetic_trust_root",
             "anti_rollback",
@@ -743,9 +760,66 @@ mod tests {
         assert!(report.workflow.workflow_ready_base);
         assert!(!report.workflow.release_ready);
         assert!(report.release_qualification.is_honest_prep());
+        assert!(report.release_qualification.macos_ci_present);
+        assert!(!report.release_qualification.macos_qualified);
         assert!(!report.release_qualification.release_ready);
+        assert!(report.accessibility.is_honest_ready_base());
+        assert!(!report.accessibility.wcag_conformance_claimed);
         assert!(report.pack_signer.is_honest_ready_base());
         assert!(report.os_sandbox.is_honest_ready_base());
+    }
+
+    #[test]
+    fn fixture_ui_and_cli_help_surface_required_a11y_labels_without_wcag_claim() {
+        use clap::CommandFactory;
+
+        let report = build_doctor_report(None, false, false);
+        let vm = FixtureUiViewModel::from_doctor(&report);
+        assert!(vm.has_required_a11y_labels());
+        assert!(FixtureUiViewModel::required_surface_labels().contains(&vm.title.as_str()));
+        assert!(!report.accessibility.wcag_conformance_claimed);
+        assert!(!report.accessibility.release_ready);
+
+        let mut help = Vec::new();
+        Cli::command()
+            .write_long_help(&mut help)
+            .expect("render CLI help");
+        let help_text = String::from_utf8(help).expect("utf8 help").to_lowercase();
+        for required in [
+            "doctor",
+            "vault",
+            "ingest",
+            "timeline",
+            "brief",
+            "coverage",
+            "privacy-proof",
+            "fixture-ui",
+            "journey",
+            "host-ipc",
+        ] {
+            assert!(
+                help_text.contains(required),
+                "CLI help missing required label/path: {required}"
+            );
+        }
+
+        // --json lives on subcommands (keyboard/operator path), not top-level about.
+        let mut doctor_help = Vec::new();
+        Cli::command()
+            .find_subcommand_mut("doctor")
+            .expect("doctor subcommand")
+            .write_long_help(&mut doctor_help)
+            .expect("render doctor help");
+        let doctor_help = String::from_utf8(doctor_help).expect("utf8").to_lowercase();
+        assert!(
+            doctor_help.contains("--json"),
+            "doctor help must expose --json for operator keyboard path"
+        );
+
+        let err = CliJsonError::new("vault_required", "open a vault first");
+        assert_eq!(err.code, "vault_required");
+        assert!(err.synthetic_only);
+        assert_eq!(err.error, "cli_error");
     }
 
     #[test]

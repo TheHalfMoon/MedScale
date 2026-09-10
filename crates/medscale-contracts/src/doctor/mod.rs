@@ -12,7 +12,7 @@ use crate::os_sandbox::OsSandboxDoctorStatus;
 use crate::packs::{PackSignerDoctorStatus, PacksRuntimeDoctorStatus};
 use crate::workflow::WorkflowDoctorStatus;
 
-/// Release-qualification prep posture (Specs 022/027 / Trusted V1 Q05 remnants).
+/// Release-qualification prep posture (Specs 022/027/029 / Trusted V1 Q05 remnants).
 ///
 /// Always reports `release_ready = false` until a separate qualification package
 /// and external gates close. Lists missing evidence classes without claiming pass.
@@ -22,12 +22,15 @@ pub struct ReleaseQualificationDoctorStatus {
     pub present: bool,
     /// Spec 022 prep paths/evidence/locked CI documented and wired.
     pub prep_ready_base: bool,
-    /// Never true for Specs 022/027 READY_BASE.
+    /// Never true for Specs 022/027/029 READY_BASE.
     pub release_ready: bool,
     pub locked_builds: bool,
     pub immutable_ci_action_pins: bool,
     pub cargo_lock_committed: bool,
     pub windows_linux_ci_baseline: bool,
+    /// Spec 029: CI rust matrix includes `macos-latest` (baseline build/test only).
+    pub macos_ci_present: bool,
+    /// Product macOS PLATFORM_QUALIFIED — still false after Spec 029 CI expansion.
     pub macos_qualified: bool,
     pub mobile_release_qualified: bool,
     /// Owner settings EXTERNAL_GATES; not configured by MedScale code.
@@ -40,8 +43,8 @@ pub struct ReleaseQualificationDoctorStatus {
 }
 
 impl ReleaseQualificationDoctorStatus {
-    /// Specs 022+027 READY_BASE: locked builds + evidence + perf/SBOM scaffolds;
-    /// RELEASE_READY remains false.
+    /// Specs 022+027+029 READY_BASE: locked builds + evidence + perf/SBOM + macOS CI;
+    /// RELEASE_READY remains false; macOS product qualification remains open.
     #[must_use]
     pub fn prep_ready_base() -> Self {
         Self {
@@ -52,13 +55,14 @@ impl ReleaseQualificationDoctorStatus {
             immutable_ci_action_pins: true,
             cargo_lock_committed: true,
             windows_linux_ci_baseline: true,
+            macos_ci_present: true,
             macos_qualified: false,
             mobile_release_qualified: false,
             branch_protection_configured: false,
             perf_harness_present: true,
             sbom_scaffold_present: true,
             missing_evidence_classes: vec![
-                "qualified_os_matrix_macos".to_owned(),
+                "macos_platform_product_qualification".to_owned(),
                 "mobile_app_release_qualification".to_owned(),
                 "repo_branch_protection_required_checks".to_owned(),
                 "reproducible_release_package_contents".to_owned(),
@@ -68,6 +72,7 @@ impl ReleaseQualificationDoctorStatus {
                 "checksums_provenance_signing_verification".to_owned(),
                 "release_bar_migration_recovery_proof".to_owned(),
                 "unresolved_material_findings_clearance".to_owned(),
+                "wcag_final_v0_ui_accessibility_qualification".to_owned(),
             ],
         }
     }
@@ -77,12 +82,72 @@ impl ReleaseQualificationDoctorStatus {
         self.present
             && self.prep_ready_base
             && !self.release_ready
+            && self.macos_ci_present
             && !self.macos_qualified
             && !self.mobile_release_qualified
             && !self.branch_protection_configured
             && self.perf_harness_present
             && self.sbom_scaffold_present
+            && self
+                .missing_evidence_classes
+                .contains(&"macos_platform_product_qualification".to_owned())
             && !self.missing_evidence_classes.is_empty()
+    }
+}
+
+/// Fixture/CLI accessibility honesty (Spec 029). Not a WCAG audit.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AccessibilityDoctorStatus {
+    pub present: bool,
+    /// Fixture/CLI keyboard-path and disclosure clarity checks exist (READY_BASE).
+    pub ready_base: bool,
+    /// FixtureUiViewModel surfaces expose stable accessible labels.
+    pub fixture_cli_labels_checked: bool,
+    /// CLI help exposes named subcommands/flags for keyboard/operator navigation.
+    pub cli_keyboard_path_documented: bool,
+    /// Disclosure / doctor honesty fields remain explicit (synthetic_only, non-claims).
+    pub disclosure_clarity_checked: bool,
+    /// Never true in Spec 029.
+    pub wcag_conformance_claimed: bool,
+    /// Final v0 visual UI not present in-repo for this unit.
+    pub final_v0_ui_present: bool,
+    /// Never true in Spec 029.
+    pub release_ready: bool,
+    pub limitations: Vec<String>,
+}
+
+impl AccessibilityDoctorStatus {
+    #[must_use]
+    pub fn ready_base() -> Self {
+        Self {
+            present: true,
+            ready_base: true,
+            fixture_cli_labels_checked: true,
+            cli_keyboard_path_documented: true,
+            disclosure_clarity_checked: true,
+            wcag_conformance_claimed: false,
+            final_v0_ui_present: false,
+            release_ready: false,
+            limitations: vec![
+                "No full WCAG 2.x audit or assistive-technology product qualification".to_owned(),
+                "No final v0 UI artifact; FINAL_V0_UI_ARTIFACT remains external".to_owned(),
+                "READY_BASE covers fixture/CLI label and disclosure honesty only".to_owned(),
+            ],
+        }
+    }
+
+    #[must_use]
+    pub fn is_honest_ready_base(&self) -> bool {
+        self.present
+            && self.ready_base
+            && self.fixture_cli_labels_checked
+            && self.cli_keyboard_path_documented
+            && self.disclosure_clarity_checked
+            && !self.wcag_conformance_claimed
+            && !self.final_v0_ui_present
+            && !self.release_ready
+            && !self.limitations.is_empty()
     }
 }
 
@@ -276,6 +341,7 @@ pub struct DoctorReport {
     pub fhir_support_matrix: FhirSupportMatrix,
     pub workflow: WorkflowDoctorStatus,
     pub release_qualification: ReleaseQualificationDoctorStatus,
+    pub accessibility: AccessibilityDoctorStatus,
     pub evidence_corpus: crate::evidence::EvidenceCorpusDoctorStatus,
     pub pack_signer: PackSignerDoctorStatus,
     pub os_sandbox: OsSandboxDoctorStatus,
@@ -328,15 +394,21 @@ impl PrivacyProof {
 
 #[cfg(test)]
 mod release_qualification_tests {
-    use super::ReleaseQualificationDoctorStatus;
+    use super::{AccessibilityDoctorStatus, ReleaseQualificationDoctorStatus};
 
     #[test]
     fn prep_ready_base_never_claims_release_ready() {
         let s = ReleaseQualificationDoctorStatus::prep_ready_base();
         assert!(s.is_honest_prep());
         assert!(!s.release_ready);
+        assert!(s.macos_ci_present);
+        assert!(!s.macos_qualified);
         assert!(s.perf_harness_present);
         assert!(s.sbom_scaffold_present);
+        assert!(
+            s.missing_evidence_classes
+                .contains(&"macos_platform_product_qualification".to_owned())
+        );
         assert!(
             s.missing_evidence_classes
                 .contains(&"repo_branch_protection_required_checks".to_owned())
@@ -349,5 +421,18 @@ mod release_qualification_tests {
             s.missing_evidence_classes
                 .contains(&"release_sbom_native_model_assets".to_owned())
         );
+        assert!(
+            s.missing_evidence_classes
+                .contains(&"wcag_final_v0_ui_accessibility_qualification".to_owned())
+        );
+    }
+
+    #[test]
+    fn accessibility_ready_base_never_claims_wcag_or_release() {
+        let s = AccessibilityDoctorStatus::ready_base();
+        assert!(s.is_honest_ready_base());
+        assert!(!s.wcag_conformance_claimed);
+        assert!(!s.final_v0_ui_present);
+        assert!(!s.release_ready);
     }
 }
