@@ -1,16 +1,45 @@
-//! Spec 030/031 probe: apply OS sandbox READY_BASE, then prove a denied ambient capability.
+//! Spec 030/031/033 probe: apply OS sandbox READY_BASE, then prove a denied ambient capability.
 //!
 //! Exit codes:
 //! - 0: apply succeeded and measured deny observed (PASS)
 //! - 1: apply failed
 //! - 2: apply succeeded but ambient capability was still allowed (FAIL)
 //! - 3: not applicable on this host OS
+//!
+//! Windows AppContainer FS modes:
+//! - `appcontainer-fs-child <marker>`: child entry inside AppContainer
+//! - `appcontainer-fs`: parent measure using this exe as child helper
 
 fn main() {
+    let args: Vec<String> = std::env::args().collect();
+
     #[cfg(windows)]
     {
-        use medscale_contracts::os_sandbox::{OsSandboxPlan, try_apply_os_sandbox};
+        use medscale_contracts::os_sandbox::{
+            APPCONTAINER_FS_CHILD_ARG, APPCONTAINER_FS_PARENT_ARG, OsSandboxPlan,
+            appcontainer_fs_child_exit_code, measure_appcontainer_fs_deny, try_apply_os_sandbox,
+        };
+        use std::path::Path;
         use std::process::Command;
+
+        if args.get(1).map(String::as_str) == Some(APPCONTAINER_FS_CHILD_ARG) {
+            let marker = args.get(2).map(Path::new).unwrap_or_else(|| Path::new(""));
+            std::process::exit(appcontainer_fs_child_exit_code(marker));
+        }
+
+        if args.get(1).map(String::as_str) == Some(APPCONTAINER_FS_PARENT_ARG) {
+            let child = std::env::current_exe().unwrap_or_default();
+            match measure_appcontainer_fs_deny(&child) {
+                Ok(()) => {
+                    eprintln!("OK: AppContainer FS deny measured");
+                    std::process::exit(0);
+                }
+                Err(e) => {
+                    eprintln!("apply/measure failed: {e:?}");
+                    std::process::exit(1);
+                }
+            }
+        }
 
         let plan = OsSandboxPlan::windows_job_object_ready_base();
         if let Err(e) = try_apply_os_sandbox(&plan) {
@@ -39,6 +68,8 @@ fn main() {
         use std::io::ErrorKind;
         use std::net::{SocketAddr, TcpStream};
         use std::time::Duration;
+
+        let _ = args;
 
         let plan = OsSandboxPlan::macos_seatbelt_ready_base();
         if let Err(e) = try_apply_os_sandbox(&plan) {
@@ -73,6 +104,7 @@ fn main() {
 
     #[cfg(not(any(windows, target_os = "macos")))]
     {
+        let _ = args;
         eprintln!("medscale-os-sandbox-probe: not applicable on this host");
         std::process::exit(3);
     }

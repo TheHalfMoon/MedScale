@@ -68,7 +68,8 @@ Spec **029** is `CLOSED_CANONICAL` READY_BASE (macOS CI matrix + CLI/fixture acc
 Spec **030** is `CLOSED_CANONICAL` READY_BASE (Q09 Windows Job Object measured; `windows_measured=true`; AppContainer scaffold; `platform_qualified=false`; sandbox gate still OPEN).
 Spec **031** is `CLOSED_CANONICAL` READY_BASE (Q09 macOS Seatbelt measured; `macos_measured=true`; App Sandbox entitlements scaffold; `platform_qualified=false`; sandbox gate still OPEN).
 Spec **032** is `CLOSED_CANONICAL` READY_BASE (Q03 privacy probes + Q05 NOTICE inventory + perf binding; `probes_present=true`; residual classes open; `notice_inventory_present=true`; `rights_license_decision=false`; `budgets_claimed_met=false`; `PRIVATE_DATA_READY` / `RELEASE_READY` still FALSE).
-Spec 012 remains MESC-blocked. Deferred advanced work is **033+**.
+Spec **033** is `CLOSED_CANONICAL` READY_BASE (Q09 Windows AppContainer FS measured; `windows_appcontainer_fs_measured=true`; network/LPAC scaffold; `platform_qualified=false`; sandbox gate still OPEN).
+Spec 012 remains MESC-blocked. Deferred advanced work is **034+**.
 Do **not** claim `RELEASE_READY`, `PRIVATE_DATA_READY`, or `MULTI_CLIENT_RELEASE_READY`.
 Q03 residual page encryption landed in Spec 023; OS keyring READY_BASE in Spec 028; Spec 032 probes do not clear swap/snapshot (still block PRIVATE_DATA_READY).
 Foundation and prep closure is not product or privacy release readiness.
