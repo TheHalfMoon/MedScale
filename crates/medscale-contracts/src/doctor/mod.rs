@@ -494,23 +494,7 @@ impl VaultPrivacyDoctorStatus {
 
     /// Spec 043 READY_BASE: classified swap/snapshot/core-dump honesty; PRIVATE_DATA_READY still false.
     #[must_use]
-    pub fn spec_043_honest(
-        os_keyring_available: bool,
-        os_keyring_used: bool,
-        pagefile_existence: OsResidualFileProbe,
-        hibernate_file_existence: OsResidualFileProbe,
-        swap_existence: OsResidualFileProbe,
-        snapshot_existence: OsResidualFileProbe,
-        core_dump_config_existence: OsResidualFileProbe,
-        pagefile_existence_honesty: ProbeHonestyClass,
-        pagefile_protection_honesty: ProbeHonestyClass,
-        swap_existence_honesty: ProbeHonestyClass,
-        swap_protection_honesty: ProbeHonestyClass,
-        snapshot_existence_honesty: ProbeHonestyClass,
-        snapshot_protection_honesty: ProbeHonestyClass,
-        core_dump_existence_honesty: ProbeHonestyClass,
-        core_dump_protection_honesty: ProbeHonestyClass,
-    ) -> Self {
+    pub fn spec_043_honest(input: Spec043VaultPrivacyInput) -> Self {
         Self {
             present: true,
             private_data_ready: false,
@@ -519,29 +503,49 @@ impl VaultPrivacyDoctorStatus {
             open_work_page_encrypted: true,
             work_wipe_on_close: true,
             sqlcipher_enabled: true,
-            os_keyring_available,
-            os_keyring_used,
+            os_keyring_available: input.os_keyring_available,
+            os_keyring_used: input.os_keyring_used,
             probes_present: true,
             swap_snapshot_honesty_present: true,
             residual_risk_classes_open: Self::residual_classes_open(),
-            pagefile_existence,
-            hibernate_file_existence,
-            swap_existence,
-            snapshot_existence,
-            core_dump_config_existence,
-            pagefile_existence_honesty,
-            pagefile_protection_honesty,
-            swap_existence_honesty,
-            swap_protection_honesty,
-            snapshot_existence_honesty,
-            snapshot_protection_honesty,
-            core_dump_existence_honesty,
-            core_dump_protection_honesty,
+            pagefile_existence: input.pagefile_existence,
+            hibernate_file_existence: input.hibernate_file_existence,
+            swap_existence: input.swap_existence,
+            snapshot_existence: input.snapshot_existence,
+            core_dump_config_existence: input.core_dump_config_existence,
+            pagefile_existence_honesty: input.pagefile_existence_honesty,
+            pagefile_protection_honesty: input.pagefile_protection_honesty,
+            swap_existence_honesty: input.swap_existence_honesty,
+            swap_protection_honesty: input.swap_protection_honesty,
+            snapshot_existence_honesty: input.snapshot_existence_honesty,
+            snapshot_protection_honesty: input.snapshot_protection_honesty,
+            core_dump_existence_honesty: input.core_dump_existence_honesty,
+            core_dump_protection_honesty: input.core_dump_protection_honesty,
             vault_leftover_scan_available: true,
             crash_sidecar_detect_available: true,
             encrypted_authority_sync_qualified: true,
         }
     }
+}
+
+/// Inputs for Spec 043 vault privacy doctor construction.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Spec043VaultPrivacyInput {
+    pub os_keyring_available: bool,
+    pub os_keyring_used: bool,
+    pub pagefile_existence: OsResidualFileProbe,
+    pub hibernate_file_existence: OsResidualFileProbe,
+    pub swap_existence: OsResidualFileProbe,
+    pub snapshot_existence: OsResidualFileProbe,
+    pub core_dump_config_existence: OsResidualFileProbe,
+    pub pagefile_existence_honesty: ProbeHonestyClass,
+    pub pagefile_protection_honesty: ProbeHonestyClass,
+    pub swap_existence_honesty: ProbeHonestyClass,
+    pub swap_protection_honesty: ProbeHonestyClass,
+    pub snapshot_existence_honesty: ProbeHonestyClass,
+    pub snapshot_protection_honesty: ProbeHonestyClass,
+    pub core_dump_existence_honesty: ProbeHonestyClass,
+    pub core_dump_protection_honesty: ProbeHonestyClass,
 }
 
 /// Host / client session authority posture (Spec 018).
