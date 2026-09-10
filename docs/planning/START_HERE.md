@@ -81,7 +81,7 @@ Spec **042** is `CLOSED_CANONICAL` READY_BASE (delivery-plan scale perf harness;
 Spec **046** is `CLOSED_CANONICAL` READY_BASE (SBOM Cargo.lock binding; `sbom_lock_bound`; not full release SBOM).
 Spec **047** is `CLOSED_CANONICAL` READY_BASE (release dry-run + cross-verifier; `release_dry_run_verifier_present`; RELEASE_READY still FALSE; see `SPEC_047_PROMOTION.md`).
 Spec **048** is `CLOSED_CANONICAL` READY_BASE (migration/recovery release-bar; `migration_recovery_ready_base`; RELEASE_READY still FALSE; see `SPEC_048_PROMOTION.md`).
-Spec **049** is promoted READY (package upgrade/rollback dry-run scaffold; `package_upgrade_rollback_scaffold_present`; RELEASE_READY still FALSE; see `SPEC_049_PROMOTION.md`).
+Spec **049** is `CLOSED_CANONICAL` READY_BASE (package upgrade/rollback dry-run scaffold; `package_upgrade_rollback_scaffold_present`; RELEASE_READY still FALSE; see `SPEC_049_PROMOTION.md`).
 Spec 012 remains MESC-blocked. Deferred advanced work is **050+**.
 Do **not** claim `RELEASE_READY`, `PRIVATE_DATA_READY`, or `MULTI_CLIENT_RELEASE_READY`.
 Q03 residual page encryption landed in Spec 023; OS keyring READY_BASE in Spec 028; Spec 032/043 probes classify residuals but do not clear swap/snapshot (still block PRIVATE_DATA_READY).
