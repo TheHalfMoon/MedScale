@@ -41,6 +41,8 @@ pub struct ReleaseQualificationDoctorStatus {
     pub sbom_scaffold_present: bool,
     /// Spec 046: SBOM scaffold binds Cargo.lock digest (still not full release SBOM).
     pub sbom_lock_bound: bool,
+    /// Spec 047: release dry-run + manifest↔SBOM↔checksum cross-verifier present.
+    pub release_dry_run_verifier_present: bool,
     /// Spec 032: NOTICE/third-party inventory artifact present (not a license decision).
     pub notice_inventory_present: bool,
     /// Spec 032: public SPDX for MedScale crates — always false until EXTERNAL_GATES.
@@ -68,6 +70,7 @@ impl ReleaseQualificationDoctorStatus {
             perf_harness_present: true,
             sbom_scaffold_present: true,
             sbom_lock_bound: true,
+            release_dry_run_verifier_present: true,
             notice_inventory_present: true,
             rights_license_decision: false,
             missing_evidence_classes: vec![
@@ -98,6 +101,7 @@ impl ReleaseQualificationDoctorStatus {
             && self.perf_harness_present
             && self.sbom_scaffold_present
             && self.sbom_lock_bound
+            && self.release_dry_run_verifier_present
             && self.notice_inventory_present
             && !self.rights_license_decision
             && self
@@ -106,6 +110,12 @@ impl ReleaseQualificationDoctorStatus {
             && self
                 .missing_evidence_classes
                 .contains(&"public_source_license_choice".to_owned())
+            && self
+                .missing_evidence_classes
+                .contains(&"release_sbom_native_model_assets".to_owned())
+            && self
+                .missing_evidence_classes
+                .contains(&"checksums_provenance_signing_verification".to_owned())
             && !self.missing_evidence_classes.is_empty()
     }
 }
@@ -697,6 +707,7 @@ mod release_qualification_tests {
         assert!(s.perf_harness_present);
         assert!(s.sbom_scaffold_present);
         assert!(s.sbom_lock_bound);
+        assert!(s.release_dry_run_verifier_present);
         assert!(s.notice_inventory_present);
         assert!(!s.rights_license_decision);
         assert!(
@@ -714,6 +725,10 @@ mod release_qualification_tests {
         assert!(
             s.missing_evidence_classes
                 .contains(&"release_sbom_native_model_assets".to_owned())
+        );
+        assert!(
+            s.missing_evidence_classes
+                .contains(&"checksums_provenance_signing_verification".to_owned())
         );
         assert!(
             s.missing_evidence_classes

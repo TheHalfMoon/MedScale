@@ -22,6 +22,7 @@ fn release_qualification_axis_is_honest_prep_not_release_ready() {
     assert!(rq.perf_harness_present);
     assert!(rq.sbom_scaffold_present);
     assert!(rq.sbom_lock_bound);
+    assert!(rq.release_dry_run_verifier_present);
     assert!(rq.notice_inventory_present);
     assert!(!rq.rights_license_decision);
     assert!(
