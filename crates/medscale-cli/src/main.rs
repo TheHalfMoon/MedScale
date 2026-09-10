@@ -299,9 +299,10 @@ fn run() -> Result<()> {
                     report.online_packs.broker_required
                 );
                 println!(
-                    "mesc_artifact: present={} admitted={} gate={}",
+                    "mesc_artifact: present={} admitted={} verifier_ready_base={} gate={}",
                     report.mesc_artifact.present,
                     report.mesc_artifact.artifact_admitted,
+                    report.mesc_artifact.verifier_ready_base,
                     report.mesc_artifact.gate
                 );
                 println!(

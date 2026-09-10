@@ -67,8 +67,11 @@ fn mesc_admit_requires_pack_path_flag() {
 fn doctor_mesc_axis_gate_blocked() {
     let s = MescArtifactDoctorStatus::gate_blocked();
     assert!(!s.artifact_admitted);
+    assert!(s.verifier_ready_base);
     assert!(!s.python_runtime_imported);
     assert_eq!(s.gate, "MESC_RELEASED_ARTIFACT");
+    assert!(s.is_honest_ready_base());
     let report = build_doctor_report(None, false, false);
     assert!(!report.mesc_artifact.artifact_admitted);
+    assert!(report.mesc_artifact.verifier_ready_base);
 }

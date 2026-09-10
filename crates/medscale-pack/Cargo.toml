@@ -1,6 +1,6 @@
 [package]
 name = "medscale-pack"
-description = "Offline Pack v0 admission + fixture runtime (Specs 008/026)"
+description = "Offline Pack v0 admission + MESC synthetic verifier (Specs 008/026/036)"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

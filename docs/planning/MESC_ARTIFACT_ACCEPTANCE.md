@@ -1,44 +1,49 @@
 # MESC artifact acceptance contract
 
-Status: DESIGN_ONLY; Spec 012 remains BLOCKED_BY_RELEASED_MESC_ARTIFACT.
-MESC is an independent upstream. MedScale does not edit its repository, import training code,
-share authority or treat a tag as a distributable model. Observed 2026-09-09: v0.1.0 release
-has no assets; a v0.2.0 tag does not satisfy the released-artifact gate.
+Status: Spec **012** remains `BLOCKED_BY_RELEASED_MESC_ARTIFACT`. Spec **036** delivers MedScale
+synthetic verifier **READY_BASE**. MESC is an independent upstream. MedScale does not edit its
+repository, import training code, share authority, or treat a tag as a distributable model.
+Observed historically: v0.1.0 release has no assets; a v0.2.0 tag does not satisfy the
+released-artifact gate.
 
-## Future verifier input
+## Verifier input (Spec 036 READY_BASE)
 
-The owning follow-on spec must version a manifest containing artifact identifier/version,
-immutable upstream release/revision, byte length and digest for every file, format/runtime
-compatibility, model/tokenizer/config dependencies, publisher identity and verifiable signature,
-rights/license notices with redistribution and intended-use constraints, SBOM/native closure,
-model card, evaluation dataset provenance and result digests, resource limits and supported
-platforms. Evidence URLs alone are insufficient: retrieve under broker policy, pin content and
-verify it. Existing request fields are a stub contract, not this complete verifier.
+MedScale verifies a local release directory against `manifest.json` (`MescReleaseManifestV0`,
+`schema_version=1`, deny unknown fields) containing: producer/release/tag/source commit/tree;
+model/tokenizer/base-model/corpus identities; training and evaluation receipt digests; SBOM
+path+digest; rights license + notice path; provenance note; limitations; runtime requirements;
+monotonic epoch; and artifact enumeration (kind, relative path, byte length, sha256).
+
+`Capability::MescArtifactVerify` returns `MescVerifyReport`. Successful synthetic verify yields
+state `Verified` with **`product_admit_authorized=false`**. Digests establish byte identity only —
+not publisher trust, rights to redistribute, quality, or clinical safety. Model bytes are never
+executed to decide trustworthiness.
+
+Reject reasons are stable (`MescVerifyReason`): missing/malformed/unsupported schema, duplicate
+paths, missing fields/files, size/digest mismatch, missing rights/SBOM/evaluation/training
+receipts, anti-rollback, replay. In-process `MescEpochStore` records producer→epoch after a
+successful verify.
 
 ## Admission state machine
 
 `DISCOVERED -> QUARANTINED -> VERIFIED -> QUALIFIED -> INSTALLED_DISABLED -> ENABLED`.
-Any missing, malformed, expired, incompatible, untrusted or revoked prerequisite transitions
-to `REJECTED` with a stable reason code. A interrupted download remains quarantined. Never
-execute files to determine whether they are trustworthy. Digest checks establish byte identity,
-not publisher trust, rights, quality or clinical safety.
+Spec 036 covers synthetic discovery→verify only. Product admit remains
+`ExternalGateRequired(MESC_RELEASED_ARTIFACT)`. Any missing/malformed prerequisite → `REJECTED`.
 
-Verification order: bounded manifest parsing; trust/signature policy; size/digest checks;
-rights and SBOM completeness; compatible format/resource limits; qualified sandbox/runtime;
-owned synthetic smoke/evaluation fixtures; atomic installation; explicit local enablement.
-No shell installers, arbitrary hooks, ambient network, patient-data upload or database access.
-Model output is a proposal with model/prompt/input lineage and uncertainty, never a canonical
-assertion without the existing promotion path. Core record workflows work without this Pack.
+Remaining before gate clearance: real immutable upstream assets; publisher trust/signature
+policy; brokered retrieval; rights/SBOM/evaluation for that release; qualified sandbox/runtime;
+owned smoke fixtures; atomic install + explicit enable. No shell installers, ambient network,
+patient-data upload, or database access. Model output remains a proposal.
 
 ## Acceptance evidence and recovery
 
-Use synthetic manifests for missing asset, mismatched digest, bad signature, unknown signer,
-expired metadata, rollback, unsupported format, oversized archive, missing rights/SBOM/evaluation,
-interrupted installation and disabled network cases. Assert no canonical mutation or execution
-on rejection. Test uninstall, revocation and restoration to the previous qualified version;
-retain historical output provenance without retaining executable revoked assets unnecessarily.
-Publisher key rotation and rollback policy must be explicit, not inferred from semantic version.
+Synthetic fixtures live under `evidence/012-mesc-artifact-integration/fixtures/` (good +
+adversarial). Assert no product admit authorization on success or rejection. Gate clearance still
+requires an actual immutable released asset and independently recorded verifier/rights/platform
+evidence. Engineering preparation for verify is READY_BASE; artifact admission is not.
 
-Gate clearance requires an actual immutable released asset and independently recorded verifier,
-rights and platform evidence. Engineering preparation can proceed now; actual artifact admission
-cannot. No upstream availability date or performance result is assumed.
+External residual after Spec 036:
+
+```text
+BLOCKED_BY_UPSTREAM_MESC_RELEASE_ASSETS
+```
