@@ -24,8 +24,15 @@ fn req(capability: Capability, body: RequestBody) -> AuthorityRequest {
     )
 }
 
-fn tmp_root() -> PathBuf {
-    let dir = std::env::temp_dir().join(format!("mesc-036-it-{}", std::process::id()));
+fn tmp_root(label: &str) -> PathBuf {
+    static COUNTER: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+    let n = COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    let dir = std::env::temp_dir().join(format!(
+        "mesc-036-it-{}-{}-{}",
+        label,
+        std::process::id(),
+        n
+    ));
     let _ = fs::remove_dir_all(&dir);
     fs::create_dir_all(&dir).unwrap();
     dir
@@ -178,12 +185,7 @@ fn verify(facade: &CoreFacade, path: &Path) -> ResponseBody {
 
 #[test]
 fn synthetic_good_verifies_without_product_admit() {
-    let root = tmp_root();
-    prepare_adversarial(&root);
-    let facade = CoreFacade::new_legacy_lease_only_engineering();
-    match verify(&facade, &root.join("synthetic-good")) {
-        ResponseBody::MescVerify { report } => {
-            assert_eq!(report.state, MescAdmissionState::Verified);
+    let root = tmp_root("good");
             assert_eq!(report.reason, MescVerifyReason::Ok);
             assert!(!report.product_admit_authorized);
             assert_eq!(
@@ -198,10 +200,7 @@ fn synthetic_good_verifies_without_product_admit() {
 
 #[test]
 fn adversarial_fixtures_reject_with_stable_reasons() {
-    let root = tmp_root();
-    prepare_adversarial(&root);
-    let facade = CoreFacade::new_legacy_lease_only_engineering();
-    let cases = [
+    let root = tmp_root("adversarial");
         ("missing-manifest", MescVerifyReason::MissingManifest),
         ("digest-mismatch", MescVerifyReason::DigestMismatch),
         ("size-mismatch", MescVerifyReason::SizeMismatch),
@@ -227,12 +226,7 @@ fn adversarial_fixtures_reject_with_stable_reasons() {
 
 #[test]
 fn replay_rejects_second_identical_verified_epoch() {
-    let root = tmp_root();
-    prepare_adversarial(&root);
-    let facade = CoreFacade::new_legacy_lease_only_engineering();
-    match verify(&facade, &root.join("synthetic-good")) {
-        ResponseBody::MescVerify { report } => {
-            assert_eq!(report.reason, MescVerifyReason::Ok);
+    let root = tmp_root("replay");
         }
         other => panic!("unexpected {other:?}"),
     }
@@ -248,11 +242,7 @@ fn replay_rejects_second_identical_verified_epoch() {
 
 #[test]
 fn admit_still_gate_blocked_after_synthetic_verify() {
-    let root = tmp_root();
-    prepare_adversarial(&root);
-    let facade = CoreFacade::new_legacy_lease_only_engineering();
-    let _ = verify(&facade, &root.join("synthetic-good"));
-    let out = facade.dispatch(req(
+    let root = tmp_root("admit");
         Capability::MescArtifactAdmit,
         RequestBody::MescArtifactAdmit {
             request: MescArtifactAdmitRequest {
