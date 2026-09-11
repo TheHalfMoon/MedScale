@@ -84,7 +84,8 @@ Spec **048** is `CLOSED_CANONICAL` READY_BASE (migration/recovery release-bar; `
 Spec **049** is `CLOSED_CANONICAL` READY_BASE (package upgrade/rollback dry-run scaffold; `package_upgrade_rollback_scaffold_present`; RELEASE_READY still FALSE; see `SPEC_049_PROMOTION.md`).
 Spec **050** is `CLOSED_CANONICAL` READY_BASE (host perf measurement path; `host_perf_measurement_path_present`; budgets still not claimed; see `SPEC_050_PROMOTION.md`).
 Spec **051** is `CLOSED_CANONICAL` READY_BASE (REQUIRED_CHECKS live CI sync; `required_checks_packet_synced`; branch protection still `NOT_CONFIGURED_OWNER_SETTINGS`; see `SPEC_051_PROMOTION.md`).
-Spec 012 remains MESC-blocked. Deferred advanced work is **052+**.
+Spec **052** is `CLOSED_CANONICAL` READY_BASE (Linux Landlock FS+TCP+rlimit composition; `linux_landlock_composition_measured`; seccomp still open; `platform_qualified=false`; see `SPEC_052_PROMOTION.md`).
+Spec 012 remains MESC-blocked. Deferred advanced work is **053+**.
 Do **not** claim `RELEASE_READY`, `PRIVATE_DATA_READY`, or `MULTI_CLIENT_RELEASE_READY`.
 Q03 residual page encryption landed in Spec 023; OS keyring READY_BASE in Spec 028; Spec 032/043 probes classify residuals but do not clear swap/snapshot (still block PRIVATE_DATA_READY).
 Foundation and prep closure is not product or privacy release readiness.
