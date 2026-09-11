@@ -5,11 +5,11 @@
 **Rule:** update this file whenever a unit enters or leaves a canonical state.
 
 **Autonomous stop status (historical V2 scoped closure):** superseded for Trusted V1 follow-on work.
-**Live follow-on status (2026-09-11):** Specs **016**–**052** `CLOSED_CANONICAL` READY_BASE. Spec **052** Linux Landlock FS+TCP+rlimit composition closed — see `SPEC_052_PROMOTION.md`. Spec **012** MESC-blocked. Honesty: `PRIVATE_DATA_READY=false`; `RELEASE_READY=false`; `budgets_claimed_met=false`; sandbox `platform_qualified=false`. Deferred advanced **053+**.
+**Live follow-on status (2026-09-11):** Specs **016**–**052** `CLOSED_CANONICAL` READY_BASE. Spec **052** Linux Landlock FS+TCP+rlimit composition closed — see `SPEC_052_PROMOTION.md`. Spec **012** DEFERRED_BY_CANONICAL_DESIGN (optional MESC integration). Honesty: `PRIVATE_DATA_READY=false`; `RELEASE_READY=false`; `budgets_claimed_met=false`; sandbox `platform_qualified=false`. Deferred advanced **053+**.
 
 ## 2026-09-11 planning refinement
 
-See Trusted V1 delivery plan. Specs 018–052 READY_BASE closed; Spec 012 MESC-blocked. Advanced **053+** deferred.
+See Trusted V1 delivery plan. Specs 018–052 READY_BASE closed; Spec 012 deferred as optional MESC integration. Advanced **053+** deferred.
 
 ## Historical scoped queue (closures preserved)
 
@@ -27,7 +27,7 @@ See Trusted V1 delivery plan. Specs 018–052 READY_BASE closed; Spec 012 MESC-b
 | 009 | Mobile iOS + Android | `CLOSED_CANONICAL` | READY_BASE: doctor/mobile axes, keystore sync forbid, FFI stubs; no apps. |
 | 010 | Documents + OCR + Voice | `CLOSED_CANONICAL` | MIME quarantine + OCR/ASR stubs merged; real engines deferred. |
 | 011 | Evidence / Retrieval / Medical Intelligence | `CLOSED_CANONICAL` | Lexical retrieval to evidence-only EvaluationRecords; relevance is not authority. |
-| 012 | MESC Artifact Integration | `BLOCKED_BY_RELEASED_MESC_ARTIFACT` | Fail-closed admit + doctor axis shipped; Spec **036** verifier READY_BASE; ARTIFACT_IMPORT still blocked (empty MESC release assets). |
+| 012 | MESC Artifact Integration (optional) | `DEFERRED_BY_CANONICAL_DESIGN` | Fail-closed admit + doctor optional-integration axis shipped; Spec **036** verifier READY_BASE; ARTIFACT_IMPORT lane gated on a real upstream release; MESC absence never blocks core, completion, or release. |
 | 013 | FHIR / SMART / Network Broker | `CLOSED_CANONICAL` | Fail-closed broker + stub SMART/FHIR adapters merged; continue Spec 014 when workflow evidence ready. |
 | 014 | Controlled Actions / NPHIES | `CLOSED_CANONICAL` | READY_BASE: outbox + payload-bound intents; NPHIES remains external gate. |
 | 015 | HF + Online Pack Ecosystem | `CLOSED_CANONICAL` | READY_BASE deny path via Network Broker; HF online remains external gate. |
@@ -51,7 +51,7 @@ See Trusted V1 delivery plan. Specs 018–052 READY_BASE closed; Spec 012 MESC-b
 | 033 | Windows AppContainer FS (Q09 residual) | `CLOSED_CANONICAL` | READY_BASE: AppContainer child FS deny (windows_appcontainer_fs_measured); network/LPAC scaffold; platform_qualified=false; WORKER_OS_SANDBOX gate OPEN. |
 | 034 | Durable Outbox Restart (Q12 residual) | `CLOSED_CANONICAL` | READY_BASE: SyntheticVault outbox reload + UNKNOWN reconcile; `outbox_restart_qualified`; NPHIES gated. |
 | 035 | EncryptedVault Authority Sync (Q02/Q03 residual) | `CLOSED_CANONICAL` | READY_BASE: EncryptedVault persists/reloads authority graph; `encrypted_authority_sync_qualified`; PRIVATE_DATA_READY=false. |
-| 036 | MESC Synthetic Verifier (012 residual) | `CLOSED_CANONICAL` | READY_BASE: synthetic manifest verifier + fixtures; `verifier_ready_base=true`; Spec 012 / MESC_RELEASED_ARTIFACT still NOT_AVAILABLE. |
+| 036 | MESC Synthetic Verifier (012 residual) | `CLOSED_CANONICAL` | READY_BASE: synthetic manifest verifier + fixtures; `verifier_ready_base=true`; MESC artifact NOT_AVAILABLE with no core/completion/release impact (Spec 012 optional). |
 | 037 | Release Prep + Transport Fail Fixtures | `CLOSED_CANONICAL` | READY_BASE: REQUIRED_CHECKS packet + checksum verify + license counsel packet + broker transport fail fixtures; RELEASE_READY=false. |
 | 038 | Windows AppContainer Network (Q09 residual) | `CLOSED_CANONICAL` | READY_BASE: AppContainer TCP deny (`windows_appcontainer_network_measured`); LPAC scaffold; platform_qualified=false. |
 | 039 | Release Honesty Packets | `CLOSED_CANONICAL` | READY_BASE: START_HERE/SPECKIT sync + PHI readiness checklist + signing/provenance prep + unsigned release-manifest scaffold. |
@@ -76,5 +76,5 @@ For the first `READY` unit: create/complete its Spec Kit package, analyze it, im
 
 Do not stop merely because a PR merged, one milestone passed, or an external optional gate exists.
 
-**Next eligible (honest):** Spec **053** candidates after fresh executability audit (e.g. Q09 seccomp composition, native SBOM honesty, fixture a11y deepen, perf non-attainment dossier). Spec 012 MESC-blocked. Remaining Trusted V1 gaps are largely external/gated: budget attainment on qualified multi-OS hardware, real installers/signing, App Sandbox signed enforcement, branch protection *enablement*, SPDX, WCAG/final-v0, MESC assets. Deferred advanced product **053+**. Do **not** claim `RELEASE_READY`, `PRIVATE_DATA_READY`, or `MULTI_CLIENT_RELEASE_READY`.
+**Next eligible (honest):** Spec **053** candidates after fresh executability audit (e.g. Q09 seccomp composition, native SBOM honesty, fixture a11y deepen, perf non-attainment dossier). Spec 012 deferred as optional MESC integration. Remaining Trusted V1 gaps are largely external/gated: budget attainment on qualified multi-OS hardware, real installers/signing, App Sandbox signed enforcement, branch protection *enablement*, SPDX, WCAG/final-v0, optional MESC assets. Deferred advanced product **053+**. Do **not** claim `RELEASE_READY`, `PRIVATE_DATA_READY`, or `MULTI_CLIENT_RELEASE_READY`.
 

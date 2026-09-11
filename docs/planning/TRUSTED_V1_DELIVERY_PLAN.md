@@ -28,7 +28,7 @@ All implementation risks require regression evidence before adoption.
 | Q10 evidence | WEAK beyond three-note fixture | Source-versioned local corpus, lexical+filters, freshness/retraction/conflict | P1 / evidence must be inspectable | usable evidence / separate relevance / avoids false authority | 5–8 | Q02/Q06; corpus rights | misleading ranking | spec/synthetic corpus now; 011 |
 | Q11 documents | PARTIAL: OCR/ASR stubs | Bounded quarantine, optional Magika comparison, one qualified parser/OCR | P2 / after trusted record | source intake / isolated transforms / hostile input containment | 8–15 | Q09; licensed engines/fixtures | parser complexity | research now; engines gated; 010 |
 | Q12 broker/actions | PARTIAL: fixture transport, in-memory outbox | Durable approvals/reconciliation and transport qualification before live adapter | P2 / no V1 online dependency | reliable actions / bounded egress / no duplicate effects | 10–20 | Q02/Q04; partner/auth/standards gates | external side effects | fixture design now; live NO; 013/014 |
-| Q13 MESC | EXTERNALLY_BLOCKED | Complete artifact verifier contract without upstream coupling | P2 / preserve independence | optional model / artifact boundary / supply chain | 3–5 after assets | MESC release/rights + Q09 | stale or untrusted artifact | contract now; admit NO; 012 |
+| Q13 MESC | OPTIONAL_DEFERRED | Complete artifact verifier contract without upstream coupling; MESC never a core/completion/release gate | P2 / preserve independence | optional model / artifact boundary / supply chain | 3–5 after assets | MESC release/rights + Q09 | stale or untrusted artifact | contract now; admit NO; 012 |
 | Q14 mobile | DEFERRED_CORRECTLY: no apps | Validate companion/capture need; one platform proof before app | P3 / desktop value first | access/capture / shared semantics / device privacy | 15–30 per first platform | Q07; device/FFI/key/store/signing gates | second product surface | research only; 009 follow-on |
 | Q15 scope | OVERDESIGN risk | Keep plugins, GraphRAG, replicas, imaging and CUDA outside V1 | P3 / avoid maintenance drag | focused UX / smallest design / smaller attack surface | 1 review | evidence to reopen | opportunity delay | YES deferral; 016+ |
 
@@ -62,7 +62,7 @@ accessibility and recovery acceptance start at each boundary, not in a final har
 |---|---|
 | CAN_RUN_NOW | planning corrections, bounded follow-on specification, synthetic review fixtures |
 | PARALLELIZABLE | read-only source research, UX task design, support/coverage inventory |
-| BLOCKED_BY_MESC | actual Spec 012 artifact admission only |
+| OPTIONAL_MESC_LANE | Spec 012 artifact admission only; never core, completion, or release blocking |
 | BLOCKED_BY_EXTERNAL_STANDARD | selected partner profiles/terminology not qualified; no invented NPHIES mapping |
 | BLOCKED_BY_PLATFORM | OS key custody, cross-process ownership, sandbox, mobile/installer qualification |
 | BLOCKED_BY_UI | final visual release only; backend and fixture integration can proceed |

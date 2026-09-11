@@ -3,6 +3,11 @@
 //! ARTIFACT_FIRST only. Never Python import / shared DB / shared keys.
 //! Spec 036 ships a synthetic-manifest verifier READY_BASE; product admit remains
 //! fail-closed on `MESC_RELEASED_ARTIFACT` until a real upstream release qualifies.
+//!
+//! Canonical decoupling: MESC is an OPTIONAL external integration. It is not a
+//! MedScale completion gate, release gate, or runtime requirement. Spec 012 is
+//! DEFERRED_BY_CANONICAL_DESIGN; absence of a MESC artifact must not block the
+//! trusted core, the offline workflow, or release qualification.
 
 use serde::{Deserialize, Serialize};
 
@@ -20,10 +25,42 @@ pub struct MescArtifactDoctorStatus {
     pub shared_db_or_keys: bool,
     pub disposition: String,
     pub gate: String,
+    /// MESC integration is optional: false means its absence never blocks
+    /// MedScale core operation, project completion, or release readiness.
+    #[serde(default)]
+    pub required: bool,
+    /// Optional-integration status: NOT_CONFIGURED | NOT_AVAILABLE | AVAILABLE.
+    #[serde(default = "default_mesc_integration_status")]
+    pub integration_status: String,
+}
+
+/// Default optional-integration status when no MESC artifact is configured.
+fn default_mesc_integration_status() -> String {
+    "NOT_CONFIGURED".to_owned()
 }
 
 impl MescArtifactDoctorStatus {
-    /// Gate-open defaults: verifier READY_BASE may be present; nothing admitted.
+    /// Canonical doctor default: no MESC artifact configured; core unaffected.
+    /// Fail-closed admit is preserved: user-attempted admission still requires
+    /// the upstream artifact gate to clear.
+    #[must_use]
+    pub fn not_configured() -> Self {
+        Self {
+            present: true,
+            artifact_admitted: false,
+            verifier_ready_base: true,
+            python_runtime_imported: false,
+            shared_db_or_keys: false,
+            disposition: "OPTIONAL_INTEGRATION_NOT_CONFIGURED".to_owned(),
+            gate: "OPTIONAL_MESC_ARTIFACT".to_owned(),
+            required: false,
+            integration_status: "NOT_CONFIGURED".to_owned(),
+        }
+    }
+
+    /// Admit-path view while the upstream artifact is unavailable: verifier
+    /// READY_BASE may be present; nothing admitted. The gate blocks only the
+    /// optional ARTIFACT_IMPORT lane, never core completion or release.
     #[must_use]
     pub fn gate_blocked() -> Self {
         Self {
@@ -34,6 +71,8 @@ impl MescArtifactDoctorStatus {
             shared_db_or_keys: false,
             disposition: "ARTIFACT_IMPORT".to_owned(),
             gate: "MESC_RELEASED_ARTIFACT".to_owned(),
+            required: false,
+            integration_status: "NOT_AVAILABLE".to_owned(),
         }
     }
 
@@ -44,7 +83,14 @@ impl MescArtifactDoctorStatus {
             && self.verifier_ready_base
             && !self.python_runtime_imported
             && !self.shared_db_or_keys
-            && self.gate == "MESC_RELEASED_ARTIFACT"
+            && !self.required
+            && (self.gate == "MESC_RELEASED_ARTIFACT" || self.gate == "OPTIONAL_MESC_ARTIFACT")
+    }
+
+    /// Release-qualification predicate: MESC absence must never fail release.
+    #[must_use]
+    pub fn blocks_release(&self) -> bool {
+        self.required && self.integration_status != "AVAILABLE"
     }
 }
 
