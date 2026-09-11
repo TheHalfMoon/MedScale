@@ -1,4 +1,4 @@
-﻿//! Linux seccomp-bpf composition for Spec 053.
+//! Linux seccomp-bpf composition for Spec 053.
 //!
 //! Workspace `unsafe_code` is `deny`; this module allows confined libc FFI only.
 //! Seccomp filters are irreversible per thread, so measurement ALWAYS runs in a
@@ -91,7 +91,13 @@ fn build_filter(allowed: &[libc::c_long]) -> Vec<libc::sock_filter> {
     ];
     for (n, nr) in allowed.iter().enumerate() {
         let i = (3 + n) as u8;
-        prog.push(jump(*nr as u32, allow_idx - i - 1, 0));
+        // Last check must fall through to KILL, not ALLOW, on mismatch.
+        let jf = if n + 1 == allowed.len() {
+            kill_idx - i - 1
+        } else {
+            0
+        };
+        prog.push(jump(*nr as u32, allow_idx - i - 1, jf));
     }
     prog.push(stmt(BPF_RET_K, SECCOMP_RET_ALLOW));
     prog.push(stmt(BPF_RET_K, SECCOMP_RET_KILL_PROCESS));
@@ -206,6 +212,55 @@ pub fn measure_seccomp_composition(probe_exe: &Path) -> Result<(), OsSandboxAppl
     {
         let _ = probe_exe;
         Err(OsSandboxApplyError::NotReadyOnThisHost)
+    }
+}
+
+#[cfg(all(
+    target_os = "linux",
+    any(target_arch = "x86_64", target_arch = "aarch64")
+))]
+#[cfg(test)]
+mod filter_tests {
+    use super::build_filter;
+
+    const BPF_JMP_JEQ_K: u16 = 0x15;
+    const BPF_RET_K: u16 = 0x06;
+    const SECCOMP_RET_ALLOW: u32 = 0x7fff_0000;
+    const SECCOMP_RET_KILL_PROCESS: u32 = 0x8000_0000;
+
+    fn target(prog: &[libc::sock_filter], i: usize, jump_taken: bool) -> usize {
+        let ins = &prog[i];
+        assert_eq!(ins.code, BPF_JMP_JEQ_K, "ins {i} must be JEQ_K");
+        let off = if jump_taken { ins.jt } else { ins.jf } as usize;
+        i + 1 + off
+    }
+
+    #[test]
+    fn every_path_ends_in_explicit_allow_or_kill() {
+        let prog = build_filter(&[0, 1, 2, 3, 4]);
+        let n = prog.len();
+        // Tail must be exactly [RET ALLOW, RET KILL].
+        assert_eq!(
+            (prog[n - 2].code, prog[n - 2].k),
+            (BPF_RET_K, SECCOMP_RET_ALLOW)
+        );
+        assert_eq!(
+            (prog[n - 1].code, prog[n - 1].k),
+            (BPF_RET_K, SECCOMP_RET_KILL_PROCESS)
+        );
+        // Arch check: match falls through, mismatch hits KILL.
+        assert_eq!(target(&prog, 1, true), 2);
+        assert_eq!(target(&prog, 1, false), n - 1);
+        // Syscall checks: match hits ALLOW; chain or KILL on mismatch.
+        for i in 3..n - 2 {
+            assert_eq!(target(&prog, i, true), n - 2, "ins {i} match must allow");
+            let miss = target(&prog, i, false);
+            if i + 1 == n - 2 {
+                assert_eq!(miss, n - 1, "last mismatch must kill");
+            } else {
+                assert_eq!(miss, i + 1, "ins {i} mismatch must chain");
+            }
+        }
     }
 }
 
