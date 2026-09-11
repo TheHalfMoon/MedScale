@@ -360,7 +360,7 @@ fn run() -> Result<()> {
                     report.workflow.disclosure_append_supported
                 );
                 println!(
-                    "release_qualification: prep_ready_base={} release_ready={} locked={} macos_ci={} macos_qualified={} branch_protection={} perf_harness={} sbom_scaffold={} sbom_lock_bound={} dry_run_verifier={} migration_recovery={} pkg_upgrade_scaffold={} host_perf_path={} required_checks_synced={} notice_inventory={} rights_license_decision={} missing={}",
+                    "release_qualification: prep_ready_base={} release_ready={} locked={} macos_ci={} macos_qualified={} branch_protection={} perf_harness={} sbom_scaffold={} sbom_lock_bound={} release_sbom_qualified={} dry_run_verifier={} migration_recovery={} pkg_upgrade_scaffold={} host_perf_path={} required_checks_synced={} notice_inventory={} rights_license_decision={} missing={}",
                     report.release_qualification.prep_ready_base,
                     report.release_qualification.release_ready,
                     report.release_qualification.locked_builds,
@@ -370,6 +370,7 @@ fn run() -> Result<()> {
                     report.release_qualification.perf_harness_present,
                     report.release_qualification.sbom_scaffold_present,
                     report.release_qualification.sbom_lock_bound,
+                    report.release_qualification.release_sbom_qualified,
                     report
                         .release_qualification
                         .release_dry_run_verifier_present,
@@ -760,6 +761,7 @@ mod tests {
             "perf_harness_present",
             "sbom_scaffold_present",
             "sbom_lock_bound",
+            "release_sbom_qualified",
             "release_dry_run_verifier_present",
             "migration_recovery_ready_base",
             "package_upgrade_rollback_scaffold_present",

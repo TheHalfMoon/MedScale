@@ -22,7 +22,7 @@ fn release_dry_run_verifier_doctor_honest() {
     assert!(rq.is_honest_prep());
     assert!(
         rq.missing_evidence_classes
-            .contains(&"release_sbom_native_model_assets".to_owned())
+            .contains(&"release_sbom_signing_provenance".to_owned())
     );
     assert!(
         rq.missing_evidence_classes
