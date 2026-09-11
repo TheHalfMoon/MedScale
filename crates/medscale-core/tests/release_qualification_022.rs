@@ -25,6 +25,7 @@ fn release_qualification_axis_is_honest_prep_not_release_ready() {
     assert!(rq.release_dry_run_verifier_present);
     assert!(rq.migration_recovery_ready_base);
     assert!(rq.package_upgrade_rollback_scaffold_present);
+    assert!(rq.host_perf_measurement_path_present);
     assert!(rq.notice_inventory_present);
     assert!(!rq.rights_license_decision);
     assert!(

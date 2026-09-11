@@ -47,6 +47,8 @@ pub struct ReleaseQualificationDoctorStatus {
     pub migration_recovery_ready_base: bool,
     /// Spec 049: package upgrade/rollback dry-run scaffold present (no real installers).
     pub package_upgrade_rollback_scaffold_present: bool,
+    /// Spec 050: host-bound perf measurement operator path present (budgets not claimed).
+    pub host_perf_measurement_path_present: bool,
     /// Spec 032: NOTICE/third-party inventory artifact present (not a license decision).
     pub notice_inventory_present: bool,
     /// Spec 032: public SPDX for MedScale crates — always false until EXTERNAL_GATES.
@@ -77,6 +79,7 @@ impl ReleaseQualificationDoctorStatus {
             release_dry_run_verifier_present: true,
             migration_recovery_ready_base: true,
             package_upgrade_rollback_scaffold_present: true,
+            host_perf_measurement_path_present: true,
             notice_inventory_present: true,
             rights_license_decision: false,
             missing_evidence_classes: vec![
@@ -110,6 +113,7 @@ impl ReleaseQualificationDoctorStatus {
             && self.release_dry_run_verifier_present
             && self.migration_recovery_ready_base
             && self.package_upgrade_rollback_scaffold_present
+            && self.host_perf_measurement_path_present
             && self.notice_inventory_present
             && !self.rights_license_decision
             && self
@@ -127,6 +131,9 @@ impl ReleaseQualificationDoctorStatus {
             && self
                 .missing_evidence_classes
                 .contains(&"release_package_upgrade_rollback_proof".to_owned())
+            && self
+                .missing_evidence_classes
+                .contains(&"perf_budgets_attained_on_qualified_hardware".to_owned())
             && !self
                 .missing_evidence_classes
                 .contains(&"release_bar_migration_recovery_proof".to_owned())
@@ -724,6 +731,7 @@ mod release_qualification_tests {
         assert!(s.release_dry_run_verifier_present);
         assert!(s.migration_recovery_ready_base);
         assert!(s.package_upgrade_rollback_scaffold_present);
+        assert!(s.host_perf_measurement_path_present);
         assert!(s.notice_inventory_present);
         assert!(!s.rights_license_decision);
         assert!(
