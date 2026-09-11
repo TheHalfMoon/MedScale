@@ -24,9 +24,13 @@ pub const SECCOMP_FILTER_ACTIVE_MARKER: &str = "MEDSCALE_SECCOMP_FILTER_ACTIVE";
 /// SIGSYS signal number on Linux.
 pub const SIGSYS: i32 = 31;
 
+/// Stable UAPI values from linux/audit.h (not exposed by the pinned libc).
+#[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+const AUDIT_ARCH_X86_64_UAPI: u32 = 0xC000_003E;
+
 #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
 fn audit_arch() -> u32 {
-    libc::AUDIT_ARCH_X86_64
+    AUDIT_ARCH_X86_64_UAPI
 }
 
 #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
@@ -40,9 +44,13 @@ fn allowed_syscalls() -> [libc::c_long; 5] {
     ]
 }
 
+/// Stable UAPI values from linux/audit.h (not exposed by the pinned libc).
+#[cfg(all(target_os = "linux", target_arch = "aarch64"))]
+const AUDIT_ARCH_AARCH64_UAPI: u32 = 0xC000_00B7;
+
 #[cfg(all(target_os = "linux", target_arch = "aarch64"))]
 fn audit_arch() -> u32 {
-    libc::AUDIT_ARCH_AARCH64
+    AUDIT_ARCH_AARCH64_UAPI
 }
 
 #[cfg(all(target_os = "linux", target_arch = "aarch64"))]
@@ -215,6 +223,21 @@ pub fn measure_seccomp_composition(probe_exe: &Path) -> Result<(), OsSandboxAppl
     }
 }
 
+/// Resolve the probe helper next to the current executable.
+pub fn resolve_seccomp_probe_exe() -> Result<std::path::PathBuf, OsSandboxApplyError> {
+    let cur = std::env::current_exe().map_err(|e| {
+        OsSandboxApplyError::ApplyFailed(format!("current_exe for seccomp probe: {e}"))
+    })?;
+    let dir = cur.parent().ok_or_else(|| {
+        OsSandboxApplyError::ApplyFailed("seccomp probe has no parent dir".to_owned())
+    })?;
+    #[cfg(windows)]
+    let name = "medscale-os-sandbox-probe.exe";
+    #[cfg(not(windows))]
+    let name = "medscale-os-sandbox-probe";
+    Ok(dir.join(name))
+}
+
 #[cfg(all(
     target_os = "linux",
     any(target_arch = "x86_64", target_arch = "aarch64")
@@ -262,19 +285,4 @@ mod filter_tests {
             }
         }
     }
-}
-
-/// Resolve the probe helper next to the current executable.
-pub fn resolve_seccomp_probe_exe() -> Result<std::path::PathBuf, OsSandboxApplyError> {
-    let cur = std::env::current_exe().map_err(|e| {
-        OsSandboxApplyError::ApplyFailed(format!("current_exe for seccomp probe: {e}"))
-    })?;
-    let dir = cur.parent().ok_or_else(|| {
-        OsSandboxApplyError::ApplyFailed("seccomp probe has no parent dir".to_owned())
-    })?;
-    #[cfg(windows)]
-    let name = "medscale-os-sandbox-probe.exe";
-    #[cfg(not(windows))]
-    let name = "medscale-os-sandbox-probe";
-    Ok(dir.join(name))
 }

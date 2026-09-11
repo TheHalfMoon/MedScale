@@ -1,7 +1,7 @@
 //! Spec 053 - Linux seccomp-bpf strict allowlist composition honesty.
 
 use medscale_contracts::os_sandbox::{
-    OsSandboxCompositionInventory, OsSandboxDoctorStatus, OsSandboxPlan, try_apply_os_sandbox,
+    OsSandboxCompositionInventory, OsSandboxDoctorStatus, OsSandboxPlan,
 };
 
 #[test]
@@ -34,7 +34,7 @@ fn doctor_seccomp_axis_honest() {
 #[cfg(not(target_os = "linux"))]
 #[test]
 fn seccomp_not_ready_on_non_linux() {
-    use medscale_contracts::os_sandbox::OsSandboxApplyError;
+    use medscale_contracts::os_sandbox::{OsSandboxApplyError, try_apply_os_sandbox};
 
     let plan = OsSandboxPlan::linux_seccomp_composition_ready_base();
     assert_eq!(
