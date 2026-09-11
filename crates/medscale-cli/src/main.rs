@@ -378,9 +378,7 @@ fn run() -> Result<()> {
                     report
                         .release_qualification
                         .host_perf_measurement_path_present,
-                    report
-                        .release_qualification
-                        .required_checks_packet_synced,
+                    report.release_qualification.required_checks_packet_synced,
                     report.release_qualification.notice_inventory_present,
                     report.release_qualification.rights_license_decision,
                     report.release_qualification.missing_evidence_classes.len()
