@@ -7,6 +7,8 @@
 //! report ReadyBaseMeasured only — not PlatformQualified. Signed App Sandbox **enforcement**
 //! remains external after Spec 041. Seccomp composition remains open after Spec 052.
 
+#[cfg(target_os = "linux")]
+mod linux_rlimit;
 mod macos_app_sandbox;
 #[cfg(target_os = "macos")]
 mod macos_seatbelt;
@@ -726,68 +728,16 @@ fn apply_landlock_composition_linux(plan: &OsSandboxPlan) -> Result<(), OsSandbo
     Ok(())
 }
 
-#[cfg(target_os = "linux")]
-fn apply_rlimit_nofile_linux() -> Result<(), OsSandboxApplyError> {
-    unsafe {
-        let mut cur = libc::rlimit {
-            rlim_cur: 0,
-            rlim_max: 0,
-        };
-        if libc::getrlimit(libc::RLIMIT_NOFILE, &mut cur) != 0 {
-            return Err(OsSandboxApplyError::ApplyFailed(
-                "getrlimit(RLIMIT_NOFILE) failed".to_owned(),
-            ));
-        }
-        // Already tightly constrained — Landlock axes still applied above.
-        if cur.rlim_cur <= 8 {
-            return Ok(());
-        }
-        let target = if cur.rlim_cur > 64 {
-            64
-        } else {
-            (cur.rlim_cur / 2).max(8)
-        };
-        let next = libc::rlimit {
-            rlim_cur: target,
-            rlim_max: target.min(cur.rlim_max),
-        };
-        if libc::setrlimit(libc::RLIMIT_NOFILE, &next) != 0 {
-            return Err(OsSandboxApplyError::ApplyFailed(
-                "setrlimit(RLIMIT_NOFILE) failed".to_owned(),
-            ));
-        }
-        let mut after = libc::rlimit {
-            rlim_cur: 0,
-            rlim_max: 0,
-        };
-        if libc::getrlimit(libc::RLIMIT_NOFILE, &mut after) != 0 {
-            return Err(OsSandboxApplyError::ApplyFailed(
-                "getrlimit after set failed".to_owned(),
-            ));
-        }
-        if after.rlim_cur >= cur.rlim_cur {
-            return Err(OsSandboxApplyError::ApplyFailed(
-                "RLIMIT_NOFILE was not lowered".to_owned(),
-            ));
-        }
-    }
-    Ok(())
-}
-
 /// Public helper for probe/tests: read current RLIMIT_NOFILE soft limit (Linux).
 #[cfg(target_os = "linux")]
 #[must_use]
 pub fn linux_rlimit_nofile_soft() -> Option<u64> {
-    unsafe {
-        let mut cur = libc::rlimit {
-            rlim_cur: 0,
-            rlim_max: 0,
-        };
-        if libc::getrlimit(libc::RLIMIT_NOFILE, &mut cur) != 0 {
-            return None;
-        }
-        Some(cur.rlim_cur)
-    }
+    linux_rlimit::soft_nofile()
+}
+
+#[cfg(target_os = "linux")]
+fn apply_rlimit_nofile_linux() -> Result<(), OsSandboxApplyError> {
+    linux_rlimit::apply_rlimit_nofile()
 }
 
 #[cfg(test)]
