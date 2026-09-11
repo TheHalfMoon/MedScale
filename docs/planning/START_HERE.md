@@ -86,7 +86,8 @@ Spec **050** is `CLOSED_CANONICAL` READY_BASE (host perf measurement path; `host
 Spec **051** is `CLOSED_CANONICAL` READY_BASE (REQUIRED_CHECKS live CI sync; `required_checks_packet_synced`; branch protection still `NOT_CONFIGURED_OWNER_SETTINGS`; see `SPEC_051_PROMOTION.md`).
 Spec **052** is `CLOSED_CANONICAL` READY_BASE (Linux Landlock FS+TCP+rlimit composition; `linux_landlock_composition_measured`; seccomp still open; `platform_qualified=false`; see `SPEC_052_PROMOTION.md`).
 Spec **053** is `CLOSED_CANONICAL` READY_BASE (Linux seccomp-bpf strict allowlist composition, child-measured SIGSYS deny; `linux_seccomp_composition_measured`; `platform_qualified=false`; see `SPEC_053_PROMOTION.md`).
-Spec 012 is deferred as optional MESC integration. Deferred advanced work is **054+**.
+Spec **054** is `CLOSED_CANONICAL` READY_BASE (deterministic CycloneDX 1.5 release SBOM + fail-closed verifier; `release_sbom_qualified`; `reproducible_build=unproven`; `RELEASE_READY` still FALSE; see `SPEC_054_PROMOTION.md`).
+Spec 012 is deferred as optional MESC integration. Deferred advanced work is **055+**.
 Do **not** claim `RELEASE_READY`, `PRIVATE_DATA_READY`, or `MULTI_CLIENT_RELEASE_READY`.
 Q03 residual page encryption landed in Spec 023; OS keyring READY_BASE in Spec 028; Spec 032/043 probes classify residuals but do not clear swap/snapshot (still block PRIVATE_DATA_READY).
 Foundation and prep closure is not product or privacy release readiness.
