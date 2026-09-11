@@ -4,4 +4,4 @@
 - [x] T002 Evidence note Spec 051
 - [x] T003 Doctor flag + CLI axis
 - [x] T004 Contract test
-- [ ] T005 Analyze / qualify / PR
+- [x] T005 Analyze / qualify / PR

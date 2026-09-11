@@ -80,7 +80,8 @@ Required lifecycle for each material executable spec:
 | 048 | `migration-recovery-release-bar` | Migration/recovery release-bar READY_BASE (Q05 residual) | 003/005/047 closed | CLOSED_CANONICAL READY_BASE; migration_recovery_ready_base; RELEASE_READY=false |
 | 049 | `package-upgrade-rollback` | Package upgrade/rollback dry-run scaffold (Q05 residual) | 047/048 closed | CLOSED_CANONICAL READY_BASE; package_upgrade_rollback_scaffold_present; RELEASE_READY=false |
 | 050 | `host-perf-measurement` | Host-bound perf measurement path (Q05 residual) | 042/045 closed | CLOSED_CANONICAL READY_BASE; host_perf_measurement_path_present; budgets not claimed |
-| 051+ | `research-site-imaging-genomics-advanced` | deferred site/research/collab/imaging/genomics/plugin/browser/watch/vision expansion | evidence-driven later gates | no Trusted V1 implementation commitment |
+| 051 | `required-checks-sync` | REQUIRED_CHECKS live CI sync (Q05 residual) | 037/042 closed | CLOSED_CANONICAL READY_BASE; required_checks_packet_synced; branch protection still NOT_CONFIGURED |
+| 052+ | `research-site-imaging-genomics-advanced` | deferred site/research/collab/imaging/genomics/plugin/browser/watch/vision expansion | evidence-driven later gates | no Trusted V1 implementation commitment |
 
 ## 3. Corrected critical path
 
@@ -123,9 +124,8 @@ ONLINE ECOSYSTEM
 030 Windows Job Object sandbox (Q09 residual) CLOSED_CANONICAL READY_BASE; windows_measured; AppContainer scaffold; platform_qualified=false; WORKER_OS_SANDBOX gate OPEN
 031 macOS Seatbelt sandbox (Q09 residual) CLOSED_CANONICAL READY_BASE; macos_measured; App Sandbox entitlements scaffold; platform_qualified=false; WORKER_OS_SANDBOX gate OPEN
 032 privacy probes + NOTICE inventory + perf binding CLOSED_CANONICAL READY_BASE; probes_present; notice_inventory_present; rights_license_decision=false; budgets_claimed_met=false; PRIVATE_DATA_READY=false
-033–039 residual READY_BASE closed (AppContainer FS/network, outbox restart, EncryptedVault sync, MESC verifier, release-prep/honesty packets)
-040 Windows AppContainer LPAC (Q09 residual) READY — see SPEC_040_PROMOTION.md
-Next: Spec 040 implement; 012 MESC-blocked; swap/snapshot still block PRIVATE_DATA_READY; macOS App Sandbox entitlements + product PLATFORM_QUALIFIED + WCAG/final-v0 + SPDX/branch-protection/signing credentials open; 041+ deferred
+033–051 residual READY_BASE closed (AppContainer FS/network/LPAC, outbox restart, EncryptedVault sync, MESC verifier, release-prep/honesty, sandbox composition, lexical 10k, SBOM/dry-run/migration/upgrade/perf path, REQUIRED_CHECKS sync)
+Next eligible after fresh audit: Spec **052** Trusted V1 residuals (e.g. Linux Landlock composition deepen); Spec 012 MESC-blocked; swap/snapshot still block PRIVATE_DATA_READY; macOS App Sandbox signed enforcement + product PLATFORM_QUALIFIED + WCAG/final-v0 + SPDX/branch-protection enablement/signing credentials open; advanced **052+** deferred
 ```
 
 ## 4. Core process topology — decided for downstream specs
