@@ -5,4 +5,4 @@
 - [x] T003 Probe Linux composition measure
 - [x] T004 Doctor/inventory/CLI
 - [x] T005 Evidence + tests
-- [ ] T006 Analyze / PR / qualify
+- [x] T006 Analyze / PR / qualify
