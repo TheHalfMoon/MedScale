@@ -1,14 +1,16 @@
-//! OS worker sandbox (Specs 008 / 026 / 030 / 031 / 033 / 038 / 040 / 041 / 044 / 052).
+//! OS worker sandbox (Specs 008 / 026 / 030 / 031 / 033 / 038 / 040 / 041 / 044 / 052 / 053).
 //!
 //! EXTERNAL_GATES: `WORKER_OS_SANDBOX_PLATFORM_QUALIFIED` remains OPEN until multi-OS
 //! measured PLATFORM_QUALIFIED evidence exists (stronger composition than per-OS READY_BASE).
 //! Linux Landlock (+ Spec 052 FS/TCP/rlimit composition), Windows Job Object + AppContainer
 //! FS/network/LPAC, macOS Seatbelt, and macOS App Sandbox entitlements (artifact/probe) may
 //! report ReadyBaseMeasured only — not PlatformQualified. Signed App Sandbox **enforcement**
-//! remains external after Spec 041. Seccomp composition remains open after Spec 052.
+//! remains external after Spec 041. Seccomp composition ReadyBaseMeasured in Spec 053.
 
 #[cfg(target_os = "linux")]
 mod linux_rlimit;
+#[cfg(target_os = "linux")]
+mod linux_seccomp;
 mod macos_app_sandbox;
 #[cfg(target_os = "macos")]
 mod macos_seatbelt;
@@ -24,6 +26,12 @@ pub use windows_appcontainer::{
     appcontainer_fs_child_exit_code, appcontainer_lpac_child_exit_code,
     appcontainer_net_child_exit_code, measure_appcontainer_fs_deny, measure_appcontainer_lpac_deny,
     measure_appcontainer_net_deny, resolve_appcontainer_child_exe,
+};
+
+#[cfg(target_os = "linux")]
+pub use linux_seccomp::{
+    SECCOMP_CHILD_ARG, SECCOMP_PARENT_ARG, measure_seccomp_composition, resolve_seccomp_probe_exe,
+    seccomp_child_exit_code,
 };
 
 pub use macos_app_sandbox::{
@@ -55,6 +63,8 @@ pub enum OsSandboxTarget {
     LinuxLandlock,
     /// Spec 052: Landlock FS allowlist + TCP network deny + RLIMIT_NOFILE composition.
     LinuxLandlockComposition,
+    /// Spec 053: seccomp-bpf strict allowlist composition (child-measured SIGSYS deny).
+    LinuxSeccompComposition,
     WindowsAppContainerJobObject,
     /// Spec 033: per-user AppContainer profile + measured host-file deny for child process.
     WindowsAppContainerFs,
@@ -126,6 +136,32 @@ impl OsSandboxPlan {
                 "EXTERNAL_GATES WORKER_OS_SANDBOX_PLATFORM_QUALIFIED remains OPEN".to_owned(),
             ],
             allow_paths,
+        }
+    }
+
+    /// Spec 053 Linux READY_BASE: seccomp-bpf strict allowlist composition measured.
+    #[must_use]
+    pub fn linux_seccomp_composition_ready_base() -> Self {
+        Self {
+            target: OsSandboxTarget::LinuxSeccompComposition,
+            qualification: OsSandboxQualification::ReadyBaseMeasured,
+            mechanisms: vec![
+                "seccomp_bpf_strict_allowlist".to_owned(),
+                "sigsys_deny_child_measured".to_owned(),
+                "no_new_privs".to_owned(),
+            ],
+            evidence_path:
+                "evidence/053-linux-seccomp-composition/LINUX_SECCOMP_COMPOSITION_MEASURED.md"
+                    .to_owned(),
+            limitations: vec![
+                "ReadyBaseMeasured Linux seccomp composition only — not multi-OS PLATFORM_QUALIFIED"
+                    .to_owned(),
+                "x86_64 + aarch64 filter tables only; other arches NotReadyOnThisHost".to_owned(),
+                "Parent process is not seccomp-confined; worker spawn confinement is later work"
+                    .to_owned(),
+                "EXTERNAL_GATES WORKER_OS_SANDBOX_PLATFORM_QUALIFIED remains OPEN".to_owned(),
+            ],
+            allow_paths: vec![],
         }
     }
 
@@ -369,6 +405,8 @@ pub struct OsSandboxDoctorStatus {
     pub linux_measured: bool,
     /// Spec 052: Linux Landlock FS + TCP deny + RLIMIT_NOFILE composition measured.
     pub linux_landlock_composition_measured: bool,
+    /// Spec 053: Linux seccomp-bpf strict allowlist composition measured.
+    pub linux_seccomp_composition_measured: bool,
     /// Spec 030: Windows Job Object ReadyBaseMeasured evidence exists in-tree.
     pub windows_measured: bool,
     /// Spec 033: Windows AppContainer FS ReadyBaseMeasured evidence exists in-tree.
@@ -399,6 +437,7 @@ impl OsSandboxDoctorStatus {
             ready_base: true,
             linux_measured: true,
             linux_landlock_composition_measured: true,
+            linux_seccomp_composition_measured: true,
             windows_measured: true,
             windows_appcontainer_fs_measured: true,
             windows_appcontainer_network_measured: true,
@@ -419,6 +458,7 @@ impl OsSandboxDoctorStatus {
             && self.ready_base
             && self.linux_measured
             && self.linux_landlock_composition_measured
+            && self.linux_seccomp_composition_measured
             && self.windows_measured
             && self.windows_appcontainer_fs_measured
             && self.windows_appcontainer_network_measured
@@ -458,6 +498,7 @@ impl OsSandboxCompositionInventory {
             axes_ready_base_measured: vec![
                 "linux_landlock".to_owned(),
                 "linux_landlock_composition".to_owned(),
+                "linux_seccomp_composition".to_owned(),
                 "windows_job_object".to_owned(),
                 "windows_appcontainer_fs".to_owned(),
                 "windows_appcontainer_network".to_owned(),
@@ -494,6 +535,7 @@ pub enum OsSandboxApplyError {
 /// - `ReadyBaseMeasured` + WindowsAppContainerFs on Windows: AppContainer child FS deny measure.
 /// - `ReadyBaseMeasured` + WindowsAppContainerNetwork on Windows: AppContainer child network deny.
 /// - `ReadyBaseMeasured` + WindowsAppContainerLpac on Windows: LPAC identity/FS/network deny.
+/// - `ReadyBaseMeasured` + LinuxSeccompComposition on Linux: seccomp child SIGSYS measure.
 /// - `ReadyBaseMeasured` + MacosSeatbeltSandbox on macOS: Seatbelt network-deny.
 /// - `PlatformQualified`: still refused while EXTERNAL_GATES remains OPEN.
 /// - Composition / App Sandbox scaffolds: NotPlatformQualified.
@@ -510,6 +552,7 @@ pub fn try_apply_os_sandbox(plan: &OsSandboxPlan) -> Result<(), OsSandboxApplyEr
     match plan.target {
         OsSandboxTarget::LinuxLandlock => apply_linux_ready_base(plan),
         OsSandboxTarget::LinuxLandlockComposition => apply_linux_composition_ready_base(plan),
+        OsSandboxTarget::LinuxSeccompComposition => apply_linux_seccomp_ready_base(plan),
         OsSandboxTarget::WindowsAppContainerJobObject => apply_windows_job_ready_base(plan),
         OsSandboxTarget::WindowsAppContainerFs => apply_windows_appcontainer_fs_ready_base(plan),
         OsSandboxTarget::WindowsAppContainerNetwork => {
@@ -555,6 +598,21 @@ fn apply_linux_composition_ready_base(plan: &OsSandboxPlan) -> Result<(), OsSand
     #[cfg(not(target_os = "linux"))]
     {
         let _ = plan;
+        Err(OsSandboxApplyError::NotReadyOnThisHost)
+    }
+}
+
+fn apply_linux_seccomp_ready_base(_plan: &OsSandboxPlan) -> Result<(), OsSandboxApplyError> {
+    #[cfg(target_os = "linux")]
+    {
+        match resolve_seccomp_probe_exe() {
+            Ok(exe) => measure_seccomp_composition(&exe),
+            Err(e) => Err(e),
+        }
+    }
+
+    #[cfg(not(target_os = "linux"))]
+    {
         Err(OsSandboxApplyError::NotReadyOnThisHost)
     }
 }
@@ -880,6 +938,7 @@ mod tests {
         assert!(d.windows_appcontainer_lpac_measured);
         assert!(d.linux_measured);
         assert!(d.linux_landlock_composition_measured);
+        assert!(d.linux_seccomp_composition_measured);
         assert!(d.macos_measured);
         assert!(d.macos_app_sandbox_entitlements_measured);
         assert!(!d.macos_app_sandbox_enforcement_measured);
@@ -889,10 +948,14 @@ mod tests {
         assert!(!d.release_ready);
         let inv = OsSandboxCompositionInventory::trusted_v1_ready_base();
         assert!(inv.is_honest());
-        assert_eq!(inv.axes_ready_base_measured.len(), 8);
+        assert_eq!(inv.axes_ready_base_measured.len(), 9);
         assert!(
             inv.axes_ready_base_measured
                 .contains(&"linux_landlock_composition".to_owned())
+        );
+        assert!(
+            inv.axes_ready_base_measured
+                .contains(&"linux_seccomp_composition".to_owned())
         );
     }
 }

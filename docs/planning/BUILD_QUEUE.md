@@ -5,11 +5,11 @@
 **Rule:** update this file whenever a unit enters or leaves a canonical state.
 
 **Autonomous stop status (historical V2 scoped closure):** superseded for Trusted V1 follow-on work.
-**Live follow-on status (2026-09-11):** Specs **016**–**052** `CLOSED_CANONICAL` READY_BASE. Spec **052** Linux Landlock FS+TCP+rlimit composition closed — see `SPEC_052_PROMOTION.md`. Spec **012** DEFERRED_BY_CANONICAL_DESIGN (optional MESC integration). Honesty: `PRIVATE_DATA_READY=false`; `RELEASE_READY=false`; `budgets_claimed_met=false`; sandbox `platform_qualified=false`. Deferred advanced **053+**.
+**Live follow-on status (2026-09-11):** Specs **016**–**053** `CLOSED_CANONICAL` READY_BASE. Spec **053** Linux seccomp-bpf composition closed — see `SPEC_053_PROMOTION.md`. Spec **012** DEFERRED_BY_CANONICAL_DESIGN (optional MESC integration). Honesty: `PRIVATE_DATA_READY=false`; `RELEASE_READY=false`; `budgets_claimed_met=false`; sandbox `platform_qualified=false`. Deferred advanced **054+**.
 
 ## 2026-09-11 planning refinement
 
-See Trusted V1 delivery plan. Specs 018–052 READY_BASE closed; Spec 012 deferred as optional MESC integration. Advanced **053+** deferred.
+See Trusted V1 delivery plan. Specs 018–053 READY_BASE closed; Spec 012 deferred as optional MESC integration. Advanced **053+** deferred.
 
 ## Historical scoped queue (closures preserved)
 
@@ -68,7 +68,8 @@ See Trusted V1 delivery plan. Specs 018–052 READY_BASE closed; Spec 012 deferr
 | 050 | Host Perf Measurement Path (Q05 residual) | `CLOSED_CANONICAL` | READY_BASE: operator host-bound perf path + binding sidecar; host_perf_measurement_path_present; budgets not claimed. See `SPEC_050_PROMOTION.md`. |
 | 051 | REQUIRED_CHECKS Live CI Sync (Q05 residual) | `CLOSED_CANONICAL` | READY_BASE: owner packet lists six live CI jobs incl. perf delivery-plan scale; required_checks_packet_synced; branch protection still NOT_CONFIGURED. See `SPEC_051_PROMOTION.md`. |
 | 052 | Linux Landlock Composition (Q09 residual) | `CLOSED_CANONICAL` | READY_BASE: Landlock FS allowlist + TCP deny + RLIMIT_NOFILE composition measured (`linux_landlock_composition_measured`); seccomp still open; platform_qualified=false; sandbox gate OPEN. See `SPEC_052_PROMOTION.md`. |
-| 053+ | Advanced deferred work | `DEFERRED_BY_CANONICAL_DESIGN` | Plugins/GraphRAG/replicas/imaging/CUDA/etc. |
+| 053 | Linux Seccomp Composition (Q09 residual) | `CLOSED_CANONICAL` | READY_BASE: seccomp-bpf strict allowlist + child SIGSYS deny measured (`linux_seccomp_composition_measured`); x86_64/aarch64 tables; platform_qualified=false; sandbox gate OPEN. See `SPEC_053_PROMOTION.md`. |
+| 054+ | Advanced deferred work | `DEFERRED_BY_CANONICAL_DESIGN` | Plugins/GraphRAG/replicas/imaging/CUDA/etc. |
 
 ## Automatic progression
 
@@ -76,5 +77,5 @@ For the first `READY` unit: create/complete its Spec Kit package, analyze it, im
 
 Do not stop merely because a PR merged, one milestone passed, or an external optional gate exists.
 
-**Next eligible (honest):** Spec **053** candidates after fresh executability audit (e.g. Q09 seccomp composition, native SBOM honesty, fixture a11y deepen, perf non-attainment dossier). Spec 012 deferred as optional MESC integration. Remaining Trusted V1 gaps are largely external/gated: budget attainment on qualified multi-OS hardware, real installers/signing, App Sandbox signed enforcement, branch protection *enablement*, SPDX, WCAG/final-v0, optional MESC assets. Deferred advanced product **053+**. Do **not** claim `RELEASE_READY`, `PRIVATE_DATA_READY`, or `MULTI_CLIENT_RELEASE_READY`.
+**Next eligible (honest):** Spec **054** candidates after fresh executability audit (e.g. native SBOM honesty, fixture a11y deepen, perf non-attainment dossier). Spec 012 deferred as optional MESC integration. Remaining Trusted V1 gaps are largely external/gated: budget attainment on qualified multi-OS hardware, real installers/signing, App Sandbox signed enforcement, branch protection *enablement*, SPDX, WCAG/final-v0, optional MESC assets. Deferred advanced product **053+**. Do **not** claim `RELEASE_READY`, `PRIVATE_DATA_READY`, or `MULTI_CLIENT_RELEASE_READY`.
 

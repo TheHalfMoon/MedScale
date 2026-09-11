@@ -6,6 +6,10 @@
 //! - 2: apply succeeded but ambient capability was still allowed (FAIL)
 //! - 3: not applicable on this host OS
 //!
+//! Linux seccomp modes (Spec 053):
+//! - `seccomp-child`: child entry: install filter, prove write, attempt socket (dies SIGSYS)
+//! - `seccomp-composition`: parent measure via child SIGSYS death
+//!
 //! Windows AppContainer modes:
 //! - `appcontainer-fs-child <marker>`: child entry inside AppContainer (FS)
 //! - `appcontainer-fs`: parent measure FS deny
@@ -149,7 +153,8 @@ fn main() {
     #[cfg(target_os = "linux")]
     {
         use medscale_contracts::os_sandbox::{
-            OsSandboxPlan, linux_rlimit_nofile_soft, try_apply_os_sandbox,
+            OsSandboxPlan, SECCOMP_CHILD_ARG, SECCOMP_PARENT_ARG, linux_rlimit_nofile_soft,
+            measure_seccomp_composition, seccomp_child_exit_code, try_apply_os_sandbox,
         };
         use std::fs;
         use std::io::ErrorKind;
@@ -160,8 +165,26 @@ fn main() {
             .get(1)
             .map(String::as_str)
             .unwrap_or("landlock-composition");
+        if mode == SECCOMP_CHILD_ARG {
+            std::process::exit(seccomp_child_exit_code());
+        }
+        if mode == SECCOMP_PARENT_ARG {
+            let child = std::env::current_exe().unwrap_or_default();
+            match measure_seccomp_composition(&child) {
+                Ok(()) => {
+                    eprintln!("OK: seccomp-bpf allowlist composition measured (SIGSYS deny)");
+                    std::process::exit(0);
+                }
+                Err(e) => {
+                    eprintln!("apply/measure failed: {e:?}");
+                    std::process::exit(1);
+                }
+            }
+        }
         if mode != "landlock-composition" {
-            eprintln!("usage: medscale-os-sandbox-probe landlock-composition");
+            eprintln!(
+                "usage: medscale-os-sandbox-probe landlock-composition | {SECCOMP_PARENT_ARG}"
+            );
             std::process::exit(1);
         }
 
