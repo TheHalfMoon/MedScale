@@ -195,14 +195,11 @@ fn main() {
 
         let deny_path =
             std::env::temp_dir().join(format!("medscale-ll-comp-deny-{}", std::process::id()));
-        match fs::write(&deny_path, b"x") {
-            Ok(()) => {
-                let _ = fs::remove_file(&deny_path);
-                eprintln!("FAIL: outside-allowlist write succeeded");
-                let _ = fs::remove_dir_all(&base);
-                std::process::exit(2);
-            }
-            Err(_) => {}
+        if fs::write(&deny_path, b"x").is_ok() {
+            let _ = fs::remove_file(&deny_path);
+            eprintln!("FAIL: outside-allowlist write succeeded");
+            let _ = fs::remove_dir_all(&base);
+            std::process::exit(2);
         }
 
         let addr: SocketAddr = "127.0.0.1:9".parse().expect("static loopback discard port");
