@@ -5,11 +5,11 @@
 **Rule:** update this file whenever a unit enters or leaves a canonical state.
 
 **Autonomous stop status (historical V2 scoped closure):** superseded for Trusted V1 follow-on work.
-**Live follow-on status (2026-09-11):** Specs **016**–**049** `CLOSED_CANONICAL` READY_BASE. Spec **050** (host perf measurement path) promoted — see `SPEC_050_PROMOTION.md`. Spec **012** MESC-blocked. Honesty: `PRIVATE_DATA_READY=false`; `RELEASE_READY=false`; `budgets_claimed_met=false`; sandbox `platform_qualified=false`. Deferred advanced **051+**.
+**Live follow-on status (2026-09-11):** Specs **016**–**050** `CLOSED_CANONICAL` READY_BASE. Spec **050** host perf measurement path closed — see `SPEC_050_PROMOTION.md`. Spec **012** MESC-blocked. Honesty: `PRIVATE_DATA_READY=false`; `RELEASE_READY=false`; `budgets_claimed_met=false`; sandbox `platform_qualified=false`. Deferred advanced **051+**.
 
 ## 2026-09-11 planning refinement
 
-See Trusted V1 delivery plan. Specs 018–049 READY_BASE closed; Spec 050 READY (Q05 residual). Spec 012 MESC-blocked. Advanced **051+** deferred.
+See Trusted V1 delivery plan. Specs 018–050 READY_BASE closed; Spec 012 MESC-blocked. Advanced **051+** deferred.
 
 ## Historical scoped queue (closures preserved)
 
@@ -65,7 +65,7 @@ See Trusted V1 delivery plan. Specs 018–049 READY_BASE closed; Spec 050 READY 
 | 047 | Release Dry-Run + Verifier (Q05 residual) | `CLOSED_CANONICAL` | READY_BASE: dry-run binds source/tree/lock + build env + native-deps honesty; cross-verifier present; RELEASE_READY=false. See `SPEC_047_PROMOTION.md`. |
 | 048 | Migration/Recovery Release-Bar (Q05 residual) | `CLOSED_CANONICAL` | READY_BASE: interrupt fail-closed + backup/restore recovery + encrypted backup closure; migration_recovery_ready_base; RELEASE_READY=false. See `SPEC_048_PROMOTION.md`. |
 | 049 | Package Upgrade/Rollback Scaffold (Q05 residual) | `CLOSED_CANONICAL` | READY_BASE: unsigned dry-run upgrade/rollback scaffold; package_upgrade_rollback_scaffold_present; real installer proof still missing. See `SPEC_049_PROMOTION.md`. |
-| 050 | Host Perf Measurement Path (Q05 residual) | `READY` | Operator host-bound perf path + binding sidecar; host_perf_measurement_path_present; budgets not claimed. See `SPEC_050_PROMOTION.md`. |
+| 050 | Host Perf Measurement Path (Q05 residual) | `CLOSED_CANONICAL` | READY_BASE: operator host-bound perf path + binding sidecar; host_perf_measurement_path_present; budgets not claimed. See `SPEC_050_PROMOTION.md`. |
 | 051+ | Advanced deferred work | `DEFERRED_BY_CANONICAL_DESIGN` | Plugins/GraphRAG/replicas/imaging/CUDA/etc. |
 
 ## Automatic progression
@@ -74,5 +74,5 @@ For the first `READY` unit: create/complete its Spec Kit package, analyze it, im
 
 Do not stop merely because a PR merged, one milestone passed, or an external optional gate exists.
 
-**Next eligible (honest):** Spec **050** host perf measurement path (`READY`). Spec 012 MESC-blocked. After 050: budget attainment on qualified hardware matrix, real installers, signed App Sandbox enforcement, branch protection, SPDX, signing credentials, WCAG/final-v0, MESC assets remain largely external. Deferred advanced **051+**. Do **not** claim `RELEASE_READY`, `PRIVATE_DATA_READY`, or `MULTI_CLIENT_RELEASE_READY`.
+**Next eligible (honest):** Spec **051** candidates after fresh executability audit. Spec 012 MESC-blocked. Remaining Trusted V1 gaps are largely external/gated: budget attainment on qualified multi-OS hardware, real installers/signing, App Sandbox signed enforcement, branch protection, SPDX, WCAG/final-v0, MESC assets. Deferred advanced product **051+**. Do **not** claim `RELEASE_READY`, `PRIVATE_DATA_READY`, or `MULTI_CLIENT_RELEASE_READY`.
 
