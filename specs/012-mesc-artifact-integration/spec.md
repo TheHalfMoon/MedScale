@@ -1,7 +1,7 @@
 # Feature Specification: MESC Artifact Integration
 
 **Branch**: `spec/012-mesc-deny-path-gate-refresh`  
-**Status**: `BLOCKED_BY_RELEASED_MESC_ARTIFACT` for admit/closeout; fail-closed contracts QUALIFIED  
+**Status**: `DEFERRED_BY_CANONICAL_DESIGN` (optional external integration); fail-closed contracts QUALIFIED; admit lane stays gated on a real upstream release  
 **Input**: Admit immutable MESC artifacts via Pack with exact hashes/rights/SBOM/evaluation. Never copy MESC Python/runtime. Never mutate TheHalfMoon/MESC.
 
 ## User Stories

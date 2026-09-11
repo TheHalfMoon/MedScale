@@ -20,7 +20,7 @@ A spec becomes `CLOSED_CANONICAL` only after:
 
 The current V2 product program is complete when Specs 000–015 are each `CLOSED_CANONICAL` or explicitly `DEFERRED_BY_CANONICAL_DESIGN`, all release-qualified claims are evidence-backed, and any remaining blockers are only external gates recorded in `EXTERNAL_GATES.md`.
 
-If code is complete but final UI/app-store/partner/legal/real-PHI gates remain, report `IMPLEMENTATION_COMPLETE_PENDING_EXTERNAL_GATES` rather than pretending those gates passed. Spec 016+ is not required for V2 completion unless later promoted by canonical evidence.
+If code is complete but final UI/app-store/partner/legal/real-PHI gates remain, report `IMPLEMENTATION_COMPLETE_PENDING_EXTERNAL_GATES` rather than pretending those gates passed. Spec 012 optional MESC integration may remain unavailable without preventing MedScale standalone completion. Spec 016+ is not required for V2 completion unless later promoted by canonical evidence.
 
 ## Whole-product qualification refinement (2026-09-09)
 

@@ -157,7 +157,7 @@ pub fn build_doctor_report_full(
         mobile: MobileDoctorStatus::ready_base(),
         controlled_actions: ControlledActionsDoctorStatus::ready_base(),
         online_packs: OnlinePacksDoctorStatus::ready_base(),
-        mesc_artifact: MescArtifactDoctorStatus::gate_blocked(),
+        mesc_artifact: MescArtifactDoctorStatus::not_configured(),
         vault_privacy: VaultPrivacyDoctorStatus::spec_043_honest(Spec043VaultPrivacyInput {
             os_keyring_available: key_posture.os_keyring_available,
             os_keyring_used: key_posture.os_keyring_used,
@@ -196,7 +196,7 @@ pub fn build_doctor_report_full(
             "Mobile READY_BASE: no apps shipped; Keychain sync forbidden".to_owned(),
             "Controlled actions READY_BASE: outbox + UNKNOWN reconcile; NPHIES gated".to_owned(),
             "Online packs READY_BASE: acquire denied; HF not a runtime dependency".to_owned(),
-            "MESC ARTIFACT_IMPORT blocked: MESC_RELEASED_ARTIFACT not available".to_owned(),
+            "MESC optional integration not configured; trusted core unaffected (admit stays fail-closed)".to_owned(),
             residual_note,
             "Host authority READY_BASE: localhost OS IPC + strict sessions; MULTI_CLIENT_RELEASE_READY=false".to_owned(),
             "Record semantics READY_BASE: precision-aware time, append-only amendments; RELEASE_READY=false".to_owned(),

@@ -1,6 +1,6 @@
 # MESC artifact acceptance contract
 
-Status: Spec **012** remains `BLOCKED_BY_RELEASED_MESC_ARTIFACT`. Spec **036** delivers MedScale
+Status: Spec **012** is `DEFERRED_BY_CANONICAL_DESIGN` (optional external integration). Product admit stays fail-closed while no qualifying upstream release exists. Spec **036** delivers MedScale
 synthetic verifier **READY_BASE**. MESC is an independent upstream. MedScale does not edit its
 repository, import training code, share authority, or treat a tag as a distributable model.
 Observed historically: v0.1.0 release has no assets; a v0.2.0 tag does not satisfy the
@@ -45,5 +45,5 @@ evidence. Engineering preparation for verify is READY_BASE; artifact admission i
 External residual after Spec 036:
 
 ```text
-BLOCKED_BY_UPSTREAM_MESC_RELEASE_ASSETS
+OPTIONAL_LANE_UNAVAILABLE_UPSTREAM_MESC_RELEASE_ASSETS (historical label: BLOCKED_BY_UPSTREAM_MESC_RELEASE_ASSETS; MedScale core/completion/release impact: none)
 ```

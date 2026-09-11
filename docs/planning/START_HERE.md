@@ -12,7 +12,7 @@ REAL_PHI = NOT_AUTHORIZED
 MESC_MUTATION = NOT_AUTHORIZED
 ```
 
-The earlier planning-only gate has been superseded by `IMPLEMENTATION_AUTHORITY.md`. Cursor must follow live BUILD_QUEUE.md; Specs 001�011 and 013�015 are CLOSED_CANONICAL; Spec 012 remains MESC-artifact gated. It must not ask the founder for ordinary engineering decisions already governed by the plan.
+The earlier planning-only gate has been superseded by `IMPLEMENTATION_AUTHORITY.md`. Cursor must follow live BUILD_QUEUE.md; Specs 001�011 and 013�015 are CLOSED_CANONICAL; Spec 012 is DEFERRED_BY_CANONICAL_DESIGN (optional MESC integration; never a completion or release gate). It must not ask the founder for ordinary engineering decisions already governed by the plan.
 
 ## 2. Mandatory read order
 
@@ -47,7 +47,7 @@ Then dependency-controlled tracks:
 005 + 006 -> 009 Mobile base; AI features also require 008
 008 -> 010 Documents/OCR/Voice
 004 + 008 -> 011 Evidence/Retrieval/Medical Intelligence
-008 + released MESC artifact -> 012 MESC Artifact Integration
+008 -> 012 MESC Artifact Integration (optional lane; artifact admit additionally requires a released MESC artifact)
 005 + 006 -> 013 FHIR/SMART/Network Broker -> 014 Controlled Actions/NPHIES
 008 + 013 (+ mobile pack constraints) -> 015 Online Pack/HF Ecosystem
 016+ remains deferred until canonically promoted
@@ -71,7 +71,7 @@ Spec **032** is `CLOSED_CANONICAL` READY_BASE (Q03 privacy probes + Q05 NOTICE i
 Spec **033** is `CLOSED_CANONICAL` READY_BASE (Q09 Windows AppContainer FS measured; `windows_appcontainer_fs_measured=true`; `platform_qualified=false`).
 Spec **034** is `CLOSED_CANONICAL` READY_BASE (Q12 durable outbox restart; `outbox_restart_qualified=true`; NPHIES still gated).
 Spec **035** is `CLOSED_CANONICAL` READY_BASE (EncryptedVault authority sync; `encrypted_authority_sync_qualified=true`; `PRIVATE_DATA_READY` still FALSE).
-Spec **036** is `CLOSED_CANONICAL` READY_BASE (MESC synthetic verifier; `verifier_ready_base=true`; Spec 012 / `MESC_RELEASED_ARTIFACT` still NOT_AVAILABLE).
+Spec **036** is `CLOSED_CANONICAL` READY_BASE (MESC synthetic verifier; `verifier_ready_base=true`; MESC artifact NOT_AVAILABLE with no core/completion/release impact; Spec 012 optional).
 Spec **037** is `CLOSED_CANONICAL` READY_BASE (required-checks packet + checksum verify + license counsel packet + broker transport-fail fixtures; `RELEASE_READY` still FALSE).
 Spec **038** is `CLOSED_CANONICAL` READY_BASE (Q09 AppContainer network measured; `windows_appcontainer_network_measured=true`; LPAC scaffold; sandbox gate still OPEN).
 Spec **039** is `CLOSED_CANONICAL` READY_BASE (entry-doc honesty + PHI readiness checklist + signing/provenance prep packets; no RELEASE_READY claim).
@@ -85,7 +85,7 @@ Spec **049** is `CLOSED_CANONICAL` READY_BASE (package upgrade/rollback dry-run 
 Spec **050** is `CLOSED_CANONICAL` READY_BASE (host perf measurement path; `host_perf_measurement_path_present`; budgets still not claimed; see `SPEC_050_PROMOTION.md`).
 Spec **051** is `CLOSED_CANONICAL` READY_BASE (REQUIRED_CHECKS live CI sync; `required_checks_packet_synced`; branch protection still `NOT_CONFIGURED_OWNER_SETTINGS`; see `SPEC_051_PROMOTION.md`).
 Spec **052** is `CLOSED_CANONICAL` READY_BASE (Linux Landlock FS+TCP+rlimit composition; `linux_landlock_composition_measured`; seccomp still open; `platform_qualified=false`; see `SPEC_052_PROMOTION.md`).
-Spec 012 remains MESC-blocked. Deferred advanced work is **053+**.
+Spec 012 is deferred as optional MESC integration. Deferred advanced work is **053+**.
 Do **not** claim `RELEASE_READY`, `PRIVATE_DATA_READY`, or `MULTI_CLIENT_RELEASE_READY`.
 Q03 residual page encryption landed in Spec 023; OS keyring READY_BASE in Spec 028; Spec 032/043 probes classify residuals but do not clear swap/snapshot (still block PRIVATE_DATA_READY).
 Foundation and prep closure is not product or privacy release readiness.

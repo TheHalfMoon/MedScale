@@ -41,7 +41,7 @@ Required lifecycle for each material executable spec:
 | 009 | `mobile-ios-android` | native mobile surfaces over shared Rust semantics | 005 + 006 + mobile FFI qualification; AI pack features additionally require 008 | native Keychain/Keystore; no silent key sync; 16KB Android compatibility; Files/SAF sideload; pack chunk/arch requirements fed back to 008/015; privacy/platform tests |
 | 010 | `documents-ocr-voice` | hostile documents, OCR, ASR/diarization, source spans | 005 + 008 | P1 worker isolation, MIME/quarantine, document breadth parity, Arabic/code-switch benchmarks, critical-number source alignment |
 | 011 | `evidence-retrieval-medical-intelligence` | structured/lexical/semantic retrieval, terminology grounding, evidence sets, conflict/freshness, research privacy controls | 004 + 008 | RELEVANCE != AUTHORITY; terminology/SDC parity where scoped; reproducible retrieval/evidence benchmark |
-| 012 | `mesc-artifact-integration` | admit immutable MESC artifacts; exceptional service only if justified | 008 + explicit MESC artifact release | exact hashes/rights/SBOM/evaluation; no direct Python import/shared DB/key; service path remains separately sandbox-qualified |
+| 012 | `mesc-artifact-integration` | admit immutable MESC artifacts; exceptional service only if justified | 008; artifact lane additionally requires explicit MESC release (optional; Spec 012 DEFERRED_BY_CANONICAL_DESIGN) | exact hashes/rights/SBOM/evaluation; no direct Python import/shared DB/key; service path remains separately sandbox-qualified |
 | 013 | `fhir-smart-network-broker` | partner FHIR/SMART adapters and sole controlled online egress abstraction | 005 + 006 | Network Broker receipts/allowlist/capability rules; bypass tests; FHIR profile/integrity/conformance evidence; no uncontrolled provider client |
 | 014 | `controlled-actions-nphies` | durable action intent/outbox/reconciliation; NPHIES only if product evidence selects it | 013 + workflow evidence | PENDING/SENT/CONFIRMED/FAILED/UNKNOWN; no blind retry; approval binds exact payload; terminology/profile gates for selected NPHIES workflows |
 | 015 | `hf-online-pack-ecosystem` | online pack acquisition/publishing and Hugging Face distribution | 008 + 013 + mobile-format constraints from 009 planning | online path only through Network Broker; TUF/offline root + optional Sigstore attestation; chunked/per-arch/resumable packs; HF never runtime requirement |
@@ -65,7 +65,7 @@ Required lifecycle for each material executable spec:
 | 033 | `windows-appcontainer-fs` | Windows AppContainer FS READY_BASE (Q09 residual) | 030 closed | CLOSED_CANONICAL READY_BASE; windows_appcontainer_fs_measured; platform_qualified=false; sandbox gate OPEN |
 | 034 | `durable-outbox-restart` | Durable outbox restart fixtures (Q12 residual) | 014+016 closed | CLOSED_CANONICAL READY_BASE; outbox_restart_qualified; NPHIES gated |
 | 035 | `encrypted-vault-authority-sync` | EncryptedVault authority graph sync (Q02/Q03 residual) | 016+023 closed | CLOSED_CANONICAL READY_BASE; encrypted_authority_sync_qualified; PRIVATE_DATA_READY=false |
-| 036 | `mesc-synthetic-verifier` | MESC synthetic release-dir verifier (012 residual) | 012 gate-blocked | CLOSED_CANONICAL READY_BASE; verifier_ready_base; MESC_RELEASED_ARTIFACT still NOT_AVAILABLE |
+| 036 | `mesc-synthetic-verifier` | MESC synthetic release-dir verifier (012 residual) | 012 deferred-optional | Spec 012 DEFERRED_BY_CANONICAL_DESIGN; verifier_ready_base; MESC artifact NOT_AVAILABLE with no core/release impact |
 | 037 | `release-prep-transport-fail` | Required-checks + license counsel + checksum verify + transport-fail fixtures | 013/022/027/032 | CLOSED_CANONICAL READY_BASE; RELEASE_READY=false |
 | 038 | `windows-appcontainer-network` | Windows AppContainer network READY_BASE (Q09 residual) | 033 closed | CLOSED_CANONICAL READY_BASE; windows_appcontainer_network_measured; LPAC scaffold; platform_qualified=false |
 | 039 | `release-honesty-packets` | Entry-doc honesty + PHI readiness + signing/provenance prep packets | 022/037 | CLOSED_CANONICAL READY_BASE; no RELEASE_READY / PHI / signing credentials |
@@ -96,7 +96,7 @@ after 004: 007 OpenMed v2.2 parity corpus + Saudi/Arabic corpus design + termino
 CAPABILITY
 005 + 006 + qualified 007 -> 008
 008 -> 010 / 011
-008 + explicit MESC artifact release -> 012
+008 -> 012 (optional lane; artifact admit additionally requires explicit MESC release)
 
 MOBILE
 005 + 006 -> 009 base mobile surface
@@ -126,7 +126,7 @@ ONLINE ECOSYSTEM
 031 macOS Seatbelt sandbox (Q09 residual) CLOSED_CANONICAL READY_BASE; macos_measured; App Sandbox entitlements scaffold; platform_qualified=false; WORKER_OS_SANDBOX gate OPEN
 032 privacy probes + NOTICE inventory + perf binding CLOSED_CANONICAL READY_BASE; probes_present; notice_inventory_present; rights_license_decision=false; budgets_claimed_met=false; PRIVATE_DATA_READY=false
 033–052 residual READY_BASE closed (AppContainer FS/network/LPAC, outbox restart, EncryptedVault sync, MESC verifier, release-prep/honesty, sandbox composition, lexical 10k, SBOM/dry-run/migration/upgrade/perf path, REQUIRED_CHECKS sync, Linux Landlock composition)
-Next eligible after fresh audit: Spec **053** Trusted V1 residuals (e.g. seccomp composition, native SBOM honesty, fixture a11y deepen, perf non-attainment dossier); Spec 012 MESC-blocked; swap/snapshot still block PRIVATE_DATA_READY; macOS App Sandbox signed enforcement + product PLATFORM_QUALIFIED + WCAG/final-v0 + SPDX/branch-protection enablement/signing credentials open; advanced **053+** deferred
+Next eligible after fresh audit: Spec **053** Trusted V1 residuals (e.g. seccomp composition, native SBOM honesty, fixture a11y deepen, perf non-attainment dossier); Spec 012 deferred as optional integration; swap/snapshot still block PRIVATE_DATA_READY; macOS App Sandbox signed enforcement + product PLATFORM_QUALIFIED + WCAG/final-v0 + SPDX/branch-protection enablement/signing credentials open; advanced **053+** deferred
 ```
 
 ## 4. Core process topology — decided for downstream specs

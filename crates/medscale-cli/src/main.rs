@@ -299,11 +299,13 @@ fn run() -> Result<()> {
                     report.online_packs.broker_required
                 );
                 println!(
-                    "mesc_artifact: present={} admitted={} verifier_ready_base={} gate={}",
+                    "mesc_artifact: present={} admitted={} verifier_ready_base={} gate={} required={} integration_status={}",
                     report.mesc_artifact.present,
                     report.mesc_artifact.artifact_admitted,
                     report.mesc_artifact.verifier_ready_base,
-                    report.mesc_artifact.gate
+                    report.mesc_artifact.gate,
+                    report.mesc_artifact.required,
+                    report.mesc_artifact.integration_status
                 );
                 println!(
                     "vault_privacy: ready={} sealed_at_close={} open_work_risk={} page_encrypted={} sqlcipher={} wipe_on_close={} os_keyring_available={} os_keyring_used={} probes_present={} swap_snapshot_honesty={} encrypted_authority_sync_qualified={} residual_open={} pagefile={:?} swap={:?} snapshot={:?} core_dump={:?}",
@@ -818,6 +820,9 @@ mod tests {
         assert!(!report.online_packs.hf_runtime_required);
         assert!(!report.mesc_artifact.artifact_admitted);
         assert!(!report.mesc_artifact.python_runtime_imported);
+        assert!(!report.mesc_artifact.required);
+        assert!(!report.mesc_artifact.blocks_release());
+        assert!(report.mesc_artifact.is_honest_ready_base());
         assert!(!report.fhir_interchange.full_conformance_claimed);
         assert!(!report.fhir_interchange.validator_is_authority);
         assert!(!report.fhir_interchange.release_ready);
