@@ -9,6 +9,7 @@ pub mod doctor;
 pub mod effects;
 pub mod ipc;
 pub mod process;
+pub mod release_sbom;
 pub mod text;
 pub mod validate;
 pub mod workflow;

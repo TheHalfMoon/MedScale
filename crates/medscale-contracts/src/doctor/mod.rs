@@ -51,6 +51,9 @@ pub struct ReleaseQualificationDoctorStatus {
     pub host_perf_measurement_path_present: bool,
     /// Spec 051: REQUIRED_CHECKS owner packet synced to live CI job names.
     pub required_checks_packet_synced: bool,
+    /// Spec 054: deterministic CycloneDX release SBOM qualified (READY_BASE;
+    /// signing/provenance/installer decisions remain external).
+    pub release_sbom_qualified: bool,
     /// Spec 032: NOTICE/third-party inventory artifact present (not a license decision).
     pub notice_inventory_present: bool,
     /// Spec 032: public SPDX for MedScale crates — always false until EXTERNAL_GATES.
@@ -83,6 +86,7 @@ impl ReleaseQualificationDoctorStatus {
             package_upgrade_rollback_scaffold_present: true,
             host_perf_measurement_path_present: true,
             required_checks_packet_synced: true,
+            release_sbom_qualified: true,
             notice_inventory_present: true,
             rights_license_decision: false,
             missing_evidence_classes: vec![
@@ -90,7 +94,7 @@ impl ReleaseQualificationDoctorStatus {
                 "mobile_app_release_qualification".to_owned(),
                 "repo_branch_protection_required_checks".to_owned(),
                 "reproducible_release_package_contents".to_owned(),
-                "release_sbom_native_model_assets".to_owned(),
+                "release_sbom_signing_provenance".to_owned(),
                 "perf_budgets_attained_on_qualified_hardware".to_owned(),
                 "public_source_license_choice".to_owned(),
                 "checksums_provenance_signing_verification".to_owned(),
@@ -118,6 +122,7 @@ impl ReleaseQualificationDoctorStatus {
             && self.package_upgrade_rollback_scaffold_present
             && self.host_perf_measurement_path_present
             && self.required_checks_packet_synced
+            && self.release_sbom_qualified
             && self.notice_inventory_present
             && !self.rights_license_decision
             && self
@@ -128,7 +133,7 @@ impl ReleaseQualificationDoctorStatus {
                 .contains(&"public_source_license_choice".to_owned())
             && self
                 .missing_evidence_classes
-                .contains(&"release_sbom_native_model_assets".to_owned())
+                .contains(&"release_sbom_signing_provenance".to_owned())
             && self
                 .missing_evidence_classes
                 .contains(&"checksums_provenance_signing_verification".to_owned())
@@ -737,6 +742,7 @@ mod release_qualification_tests {
         assert!(s.package_upgrade_rollback_scaffold_present);
         assert!(s.host_perf_measurement_path_present);
         assert!(s.required_checks_packet_synced);
+        assert!(s.release_sbom_qualified);
         assert!(s.notice_inventory_present);
         assert!(!s.rights_license_decision);
         assert!(
@@ -753,7 +759,7 @@ mod release_qualification_tests {
         );
         assert!(
             s.missing_evidence_classes
-                .contains(&"release_sbom_native_model_assets".to_owned())
+                .contains(&"release_sbom_signing_provenance".to_owned())
         );
         assert!(
             s.missing_evidence_classes
