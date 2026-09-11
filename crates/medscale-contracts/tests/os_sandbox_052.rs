@@ -1,8 +1,7 @@
 //! Spec 052 — Linux Landlock FS + TCP + rlimit composition honesty.
 
 use medscale_contracts::os_sandbox::{
-    OsSandboxApplyError, OsSandboxCompositionInventory, OsSandboxDoctorStatus, OsSandboxPlan,
-    try_apply_os_sandbox,
+    OsSandboxCompositionInventory, OsSandboxDoctorStatus, OsSandboxPlan, try_apply_os_sandbox,
 };
 
 #[test]
@@ -30,6 +29,8 @@ fn doctor_linux_composition_axis_honest() {
 #[cfg(not(target_os = "linux"))]
 #[test]
 fn composition_not_ready_on_non_linux() {
+    use medscale_contracts::os_sandbox::OsSandboxApplyError;
+
     let plan =
         OsSandboxPlan::linux_landlock_composition_ready_base(vec!["C:\\Windows\\Temp".into()]);
     assert_eq!(
