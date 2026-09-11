@@ -11,6 +11,7 @@ fn doctor_os_sandbox_and_pack_signer_honest() {
     assert!(report.pack_signer.is_honest_ready_base());
     assert!(report.os_sandbox.is_honest_ready_base());
     assert!(report.os_sandbox.linux_measured);
+    assert!(report.os_sandbox.linux_landlock_composition_measured);
     assert!(report.os_sandbox.windows_measured);
     assert!(report.os_sandbox.windows_appcontainer_fs_measured);
     assert!(report.os_sandbox.windows_appcontainer_network_measured);

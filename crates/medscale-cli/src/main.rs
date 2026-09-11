@@ -412,9 +412,10 @@ fn run() -> Result<()> {
                     report.pack_signer.release_ready
                 );
                 println!(
-                    "os_sandbox: ready_base={} linux_measured={} windows_measured={} windows_appcontainer_fs_measured={} windows_appcontainer_network_measured={} windows_appcontainer_lpac_measured={} macos_measured={} macos_app_sandbox_entitlements_measured={} macos_app_sandbox_enforcement_measured={} composition_inventory={} platform_qualified={} release_ready={}",
+                    "os_sandbox: ready_base={} linux_measured={} linux_landlock_composition={} windows_measured={} windows_appcontainer_fs_measured={} windows_appcontainer_network_measured={} windows_appcontainer_lpac_measured={} macos_measured={} macos_app_sandbox_entitlements_measured={} macos_app_sandbox_enforcement_measured={} composition_inventory={} platform_qualified={} release_ready={}",
                     report.os_sandbox.ready_base,
                     report.os_sandbox.linux_measured,
+                    report.os_sandbox.linux_landlock_composition_measured,
                     report.os_sandbox.windows_measured,
                     report.os_sandbox.windows_appcontainer_fs_measured,
                     report.os_sandbox.windows_appcontainer_network_measured,
@@ -771,6 +772,7 @@ mod tests {
             "anti_rollback",
             "os_sandbox",
             "linux_measured",
+            "linux_landlock_composition_measured",
             "windows_measured",
             "windows_appcontainer_fs_measured",
             "windows_appcontainer_network_measured",

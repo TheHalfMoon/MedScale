@@ -146,7 +146,98 @@ fn main() {
         }
     }
 
-    #[cfg(not(any(windows, target_os = "macos")))]
+    #[cfg(target_os = "linux")]
+    {
+        use medscale_contracts::os_sandbox::{
+            OsSandboxPlan, linux_rlimit_nofile_soft, try_apply_os_sandbox,
+        };
+        use std::fs;
+        use std::io::ErrorKind;
+        use std::net::{SocketAddr, TcpStream};
+        use std::time::Duration;
+
+        let mode = args
+            .get(1)
+            .map(String::as_str)
+            .unwrap_or("landlock-composition");
+        if mode != "landlock-composition" {
+            eprintln!("usage: medscale-os-sandbox-probe landlock-composition");
+            std::process::exit(1);
+        }
+
+        let base = std::env::temp_dir().join(format!(
+            "medscale-ll-comp-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|d| d.as_nanos())
+                .unwrap_or(0)
+        ));
+        if let Err(e) = fs::create_dir_all(&base) {
+            eprintln!("temp dir failed: {e}");
+            std::process::exit(1);
+        }
+        let allow = base.to_string_lossy().into_owned();
+        let before = linux_rlimit_nofile_soft();
+        let plan = OsSandboxPlan::linux_landlock_composition_ready_base(vec![allow]);
+        if let Err(e) = try_apply_os_sandbox(&plan) {
+            eprintln!("apply failed: {e:?}");
+            let _ = fs::remove_dir_all(&base);
+            std::process::exit(1);
+        }
+
+        let ok_path = base.join("ok.txt");
+        if let Err(e) = fs::write(&ok_path, b"ok") {
+            eprintln!("FAIL: allowlist write denied ({e})");
+            let _ = fs::remove_dir_all(&base);
+            std::process::exit(2);
+        }
+
+        let deny_path =
+            std::env::temp_dir().join(format!("medscale-ll-comp-deny-{}", std::process::id()));
+        if fs::write(&deny_path, b"x").is_ok() {
+            let _ = fs::remove_file(&deny_path);
+            eprintln!("FAIL: outside-allowlist write succeeded");
+            let _ = fs::remove_dir_all(&base);
+            std::process::exit(2);
+        }
+
+        let addr: SocketAddr = "127.0.0.1:9".parse().expect("static loopback discard port");
+        match TcpStream::connect_timeout(&addr, Duration::from_millis(800)) {
+            Ok(_) => {
+                eprintln!("FAIL: TCP connect succeeded; Landlock net did not deny");
+                let _ = fs::remove_dir_all(&base);
+                std::process::exit(2);
+            }
+            Err(err) => {
+                let denied = err.kind() == ErrorKind::PermissionDenied
+                    || err.raw_os_error() == Some(1)
+                    || err.to_string().contains("Operation not permitted")
+                    || err.to_string().contains("Permission denied");
+                if !denied {
+                    eprintln!("FAIL: connect error was not a sandbox deny (got {err:?})");
+                    let _ = fs::remove_dir_all(&base);
+                    std::process::exit(2);
+                }
+            }
+        }
+
+        let after = linux_rlimit_nofile_soft();
+        match (before, after) {
+            (Some(b), Some(a)) if b > 8 && a >= b => {
+                eprintln!("FAIL: RLIMIT_NOFILE not lowered (before={b} after={a})");
+                let _ = fs::remove_dir_all(&base);
+                std::process::exit(2);
+            }
+            _ => {}
+        }
+
+        eprintln!("OK: Landlock FS+net+rlimit composition measured");
+        let _ = fs::remove_dir_all(&base);
+        std::process::exit(0);
+    }
+
+    #[cfg(not(any(windows, target_os = "macos", target_os = "linux")))]
     {
         let _ = args;
         eprintln!("medscale-os-sandbox-probe: not applicable on this host");

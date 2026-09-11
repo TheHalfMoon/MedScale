@@ -1,11 +1,14 @@
-//! OS worker sandbox (Specs 008 / 026 / 030 / 031 / 033 / 038 / 040 / 041).
+//! OS worker sandbox (Specs 008 / 026 / 030 / 031 / 033 / 038 / 040 / 041 / 044 / 052).
 //!
 //! EXTERNAL_GATES: `WORKER_OS_SANDBOX_PLATFORM_QUALIFIED` remains OPEN until multi-OS
 //! measured PLATFORM_QUALIFIED evidence exists (stronger composition than per-OS READY_BASE).
-//! Linux Landlock, Windows Job Object + AppContainer FS/network/LPAC, macOS Seatbelt, and
-//! macOS App Sandbox entitlements (artifact/probe) may report ReadyBaseMeasured only —
-//! not PlatformQualified. Signed App Sandbox **enforcement** remains external after Spec 041.
+//! Linux Landlock (+ Spec 052 FS/TCP/rlimit composition), Windows Job Object + AppContainer
+//! FS/network/LPAC, macOS Seatbelt, and macOS App Sandbox entitlements (artifact/probe) may
+//! report ReadyBaseMeasured only — not PlatformQualified. Signed App Sandbox **enforcement**
+//! remains external after Spec 041. Seccomp composition remains open after Spec 052.
 
+#[cfg(target_os = "linux")]
+mod linux_rlimit;
 mod macos_app_sandbox;
 #[cfg(target_os = "macos")]
 mod macos_seatbelt;
@@ -50,6 +53,8 @@ pub enum OsSandboxQualification {
 #[serde(rename_all = "snake_case")]
 pub enum OsSandboxTarget {
     LinuxLandlock,
+    /// Spec 052: Landlock FS allowlist + TCP network deny + RLIMIT_NOFILE composition.
+    LinuxLandlockComposition,
     WindowsAppContainerJobObject,
     /// Spec 033: per-user AppContainer profile + measured host-file deny for child process.
     WindowsAppContainerFs,
@@ -94,6 +99,31 @@ impl OsSandboxPlan {
                 "ReadyBaseMeasured on Linux only — not multi-OS PLATFORM_QUALIFIED".to_owned(),
                 "EXTERNAL_GATES WORKER_OS_SANDBOX_PLATFORM_QUALIFIED remains OPEN".to_owned(),
                 "No seccomp/network broker composition in Spec 026".to_owned(),
+            ],
+            allow_paths,
+        }
+    }
+
+    /// Spec 052 Linux READY_BASE: Landlock FS + TCP network deny + RLIMIT_NOFILE.
+    #[must_use]
+    pub fn linux_landlock_composition_ready_base(allow_paths: Vec<String>) -> Self {
+        Self {
+            target: OsSandboxTarget::LinuxLandlockComposition,
+            qualification: OsSandboxQualification::ReadyBaseMeasured,
+            mechanisms: vec![
+                "landlock_abi_fs_allowlist".to_owned(),
+                "landlock_tcp_network_deny".to_owned(),
+                "rlimit_nofile".to_owned(),
+            ],
+            evidence_path:
+                "evidence/052-linux-landlock-composition/LINUX_LANDLOCK_COMPOSITION_MEASURED.md"
+                    .to_owned(),
+            limitations: vec![
+                "ReadyBaseMeasured Linux composition only — not multi-OS PLATFORM_QUALIFIED"
+                    .to_owned(),
+                "Requires Landlock TCP (ABI V4+) on the host kernel".to_owned(),
+                "No seccomp-bpf composition in Spec 052".to_owned(),
+                "EXTERNAL_GATES WORKER_OS_SANDBOX_PLATFORM_QUALIFIED remains OPEN".to_owned(),
             ],
             allow_paths,
         }
@@ -301,6 +331,7 @@ impl OsSandboxPlan {
     pub fn all_plans() -> Vec<Self> {
         vec![
             Self::linux_landlock_ready_base(vec![]),
+            Self::linux_landlock_composition_ready_base(vec![]),
             Self::windows_job_object_ready_base(),
             Self::windows_appcontainer_fs_ready_base(),
             Self::windows_appcontainer_network_ready_base(),
@@ -336,6 +367,8 @@ pub struct OsSandboxDoctorStatus {
     pub present: bool,
     pub ready_base: bool,
     pub linux_measured: bool,
+    /// Spec 052: Linux Landlock FS + TCP deny + RLIMIT_NOFILE composition measured.
+    pub linux_landlock_composition_measured: bool,
     /// Spec 030: Windows Job Object ReadyBaseMeasured evidence exists in-tree.
     pub windows_measured: bool,
     /// Spec 033: Windows AppContainer FS ReadyBaseMeasured evidence exists in-tree.
@@ -365,6 +398,7 @@ impl OsSandboxDoctorStatus {
             present: true,
             ready_base: true,
             linux_measured: true,
+            linux_landlock_composition_measured: true,
             windows_measured: true,
             windows_appcontainer_fs_measured: true,
             windows_appcontainer_network_measured: true,
@@ -384,6 +418,7 @@ impl OsSandboxDoctorStatus {
         self.present
             && self.ready_base
             && self.linux_measured
+            && self.linux_landlock_composition_measured
             && self.windows_measured
             && self.windows_appcontainer_fs_measured
             && self.windows_appcontainer_network_measured
@@ -422,6 +457,7 @@ impl OsSandboxCompositionInventory {
         Self {
             axes_ready_base_measured: vec![
                 "linux_landlock".to_owned(),
+                "linux_landlock_composition".to_owned(),
                 "windows_job_object".to_owned(),
                 "windows_appcontainer_fs".to_owned(),
                 "windows_appcontainer_network".to_owned(),
@@ -473,6 +509,7 @@ pub fn try_apply_os_sandbox(plan: &OsSandboxPlan) -> Result<(), OsSandboxApplyEr
 
     match plan.target {
         OsSandboxTarget::LinuxLandlock => apply_linux_ready_base(plan),
+        OsSandboxTarget::LinuxLandlockComposition => apply_linux_composition_ready_base(plan),
         OsSandboxTarget::WindowsAppContainerJobObject => apply_windows_job_ready_base(plan),
         OsSandboxTarget::WindowsAppContainerFs => apply_windows_appcontainer_fs_ready_base(plan),
         OsSandboxTarget::WindowsAppContainerNetwork => {
@@ -496,6 +533,23 @@ fn apply_linux_ready_base(plan: &OsSandboxPlan) -> Result<(), OsSandboxApplyErro
     #[cfg(target_os = "linux")]
     {
         apply_landlock_linux(plan)
+    }
+
+    #[cfg(not(target_os = "linux"))]
+    {
+        let _ = plan;
+        Err(OsSandboxApplyError::NotReadyOnThisHost)
+    }
+}
+
+fn apply_linux_composition_ready_base(plan: &OsSandboxPlan) -> Result<(), OsSandboxApplyError> {
+    if plan.allow_paths.is_empty() {
+        return Err(OsSandboxApplyError::EmptyAllowlist);
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        apply_landlock_composition_linux(plan)
     }
 
     #[cfg(not(target_os = "linux"))]
@@ -618,6 +672,74 @@ fn apply_landlock_linux(plan: &OsSandboxPlan) -> Result<(), OsSandboxApplyError>
     }
 }
 
+/// Spec 052: Landlock FS allowlist + TCP net deny (no NetPort allows) + RLIMIT_NOFILE.
+#[cfg(target_os = "linux")]
+fn apply_landlock_composition_linux(plan: &OsSandboxPlan) -> Result<(), OsSandboxApplyError> {
+    use landlock::{
+        ABI, Access, AccessFs, AccessNet, Ruleset, RulesetAttr, RulesetCreatedAttr, RulesetStatus,
+        path_beneath_rules,
+    };
+
+    let paths: Vec<PathBuf> = plan.allow_paths.iter().map(PathBuf::from).collect();
+    for p in &paths {
+        if !p.is_absolute() {
+            return Err(OsSandboxApplyError::ApplyFailed(
+                "allow_paths must be absolute".to_owned(),
+            ));
+        }
+    }
+
+    // Prefer ABI V4 so AccessNet is available; fail closed if net rights cannot
+    // be handled (Spec 052 requires the network axis — no silent FS-only apply).
+    let abi = ABI::V4;
+    let access_fs = AccessFs::from_all(abi);
+    let access_net = AccessNet::BindTcp | AccessNet::ConnectTcp;
+
+    let status = Ruleset::default()
+        .handle_access(access_fs)
+        .map_err(|e| OsSandboxApplyError::ApplyFailed(e.to_string()))?
+        .handle_access(access_net)
+        .map_err(|e| {
+            OsSandboxApplyError::ApplyFailed(format!(
+                "landlock TCP network deny unavailable (need ABI V4+): {e}"
+            ))
+        })?
+        .create()
+        .map_err(|e| OsSandboxApplyError::ApplyFailed(e.to_string()))?
+        .add_rules(path_beneath_rules(
+            paths.iter().map(|p| p.as_path()),
+            access_fs,
+        ))
+        .map_err(|e| OsSandboxApplyError::ApplyFailed(e.to_string()))?
+        // No NetPort allow rules => TCP bind/connect denied when handled.
+        .restrict_self()
+        .map_err(|e| OsSandboxApplyError::ApplyFailed(e.to_string()))?;
+
+    match status.ruleset {
+        RulesetStatus::NotEnforced => {
+            return Err(OsSandboxApplyError::ApplyFailed(
+                "landlock composition not enforced (kernel/ABI)".to_owned(),
+            ));
+        }
+        RulesetStatus::PartiallyEnforced | RulesetStatus::FullyEnforced => {}
+    }
+
+    apply_rlimit_nofile_linux()?;
+    Ok(())
+}
+
+/// Public helper for probe/tests: read current RLIMIT_NOFILE soft limit (Linux).
+#[cfg(target_os = "linux")]
+#[must_use]
+pub fn linux_rlimit_nofile_soft() -> Option<u64> {
+    linux_rlimit::soft_nofile()
+}
+
+#[cfg(target_os = "linux")]
+fn apply_rlimit_nofile_linux() -> Result<(), OsSandboxApplyError> {
+    linux_rlimit::apply_rlimit_nofile()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -630,6 +752,14 @@ mod tests {
         assert!(!OsSandboxPlan::macos_seatbelt_scaffold().claims_ready_base_measured());
         assert!(!OsSandboxPlan::linux_landlock_ready_base(vec![]).claims_platform_qualified());
         assert!(OsSandboxPlan::linux_landlock_ready_base(vec![]).claims_ready_base_measured());
+        assert!(
+            !OsSandboxPlan::linux_landlock_composition_ready_base(vec![])
+                .claims_platform_qualified()
+        );
+        assert!(
+            OsSandboxPlan::linux_landlock_composition_ready_base(vec![])
+                .claims_ready_base_measured()
+        );
         assert!(OsSandboxPlan::windows_job_object_ready_base().claims_ready_base_measured());
         assert!(!OsSandboxPlan::windows_job_object_ready_base().claims_platform_qualified());
         assert!(OsSandboxPlan::windows_appcontainer_fs_ready_base().claims_ready_base_measured());
@@ -749,6 +879,7 @@ mod tests {
         assert!(d.windows_appcontainer_network_measured);
         assert!(d.windows_appcontainer_lpac_measured);
         assert!(d.linux_measured);
+        assert!(d.linux_landlock_composition_measured);
         assert!(d.macos_measured);
         assert!(d.macos_app_sandbox_entitlements_measured);
         assert!(!d.macos_app_sandbox_enforcement_measured);
@@ -758,6 +889,10 @@ mod tests {
         assert!(!d.release_ready);
         let inv = OsSandboxCompositionInventory::trusted_v1_ready_base();
         assert!(inv.is_honest());
-        assert_eq!(inv.axes_ready_base_measured.len(), 7);
+        assert_eq!(inv.axes_ready_base_measured.len(), 8);
+        assert!(
+            inv.axes_ready_base_measured
+                .contains(&"linux_landlock_composition".to_owned())
+        );
     }
 }
