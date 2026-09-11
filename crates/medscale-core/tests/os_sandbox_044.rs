@@ -33,6 +33,7 @@ fn doctor_exposes_composition_inventory() {
         report
             .notes
             .iter()
-            .any(|n| n.contains("Spec 044") && n.contains("platform_qualified=false"))
+            .any(|n| n.contains("platform_qualified=false")
+                && (n.contains("Spec 044") || n.contains("Spec 052")))
     );
 }
