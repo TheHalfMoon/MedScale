@@ -13,4 +13,4 @@ Local available gates on the candidate working tree:
 - `cargo test -p medscale-core --locked --test portable_release_package_058` — PASS (`2/2`).
 - `cargo test -p medscale-core --locked --test release_qualification_022` — PASS (`1/1`).
 
-GitHub exact-head qualification remains required before canonical closure. `RELEASE_READY=false`.
+GitHub PR exact-head run `34889698756` passed all six required checks on `8845b347ff225e598fedd7ca014928b16b0367a0`. Canonical merge and post-merge main verification remain required before terminal closure. `RELEASE_READY=false`.

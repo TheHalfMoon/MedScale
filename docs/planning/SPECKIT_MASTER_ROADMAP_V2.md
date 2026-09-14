@@ -88,7 +88,7 @@ Required lifecycle for each material executable spec:
 | 056 | `fixture-a11y-semantics` | fixture accessibility semantics deepening | 029 | CLOSED_CANONICAL; no WCAG/final-v0 claim |
 | 057 | `release-qualification-residual-integrity` | runtime perf coverage + immutable CI action pins | 055/056 | CLOSED_CANONICAL; budgets not claimed |
 | 058 | `portable-release-package` | deterministic unsigned package + real install/upgrade/rollback qualification | 057 | CLOSED_CANONICAL; three-OS package lifecycle qualified |
-| 059 | `final-release-closure-audit` | terminal repo-owned release audit + external-only residual mapping | 058 | IN_REVIEW; RELEASE_READY remains false |
+| 059 | `final-release-closure-audit` | terminal repo-owned release audit + external-only residual mapping | 058 | QUALIFIED_PENDING_MERGE; PR run 34889698756 six-check success; RELEASE_READY remains false |
 | 060+ | `research-site-imaging-genomics-advanced` | deferred site/research/collab/imaging/genomics/plugin/browser/watch/vision expansion | evidence-driven later gates | no Trusted V1 implementation commitment |
 
 ## 3. Corrected critical path
