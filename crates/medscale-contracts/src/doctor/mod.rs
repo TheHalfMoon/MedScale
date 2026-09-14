@@ -159,6 +159,9 @@ pub struct AccessibilityDoctorStatus {
     pub ready_base: bool,
     /// FixtureUiViewModel surfaces expose stable accessible labels.
     pub fixture_cli_labels_checked: bool,
+    /// Spec 056: fixture surfaces expose honest role/keyboard/announcement semantics.
+    #[serde(default)]
+    pub fixture_state_semantics_checked: bool,
     /// CLI help exposes named subcommands/flags for keyboard/operator navigation.
     pub cli_keyboard_path_documented: bool,
     /// Disclosure / doctor honesty fields remain explicit (synthetic_only, non-claims).
@@ -179,6 +182,7 @@ impl AccessibilityDoctorStatus {
             present: true,
             ready_base: true,
             fixture_cli_labels_checked: true,
+            fixture_state_semantics_checked: true,
             cli_keyboard_path_documented: true,
             disclosure_clarity_checked: true,
             wcag_conformance_claimed: false,
@@ -187,7 +191,7 @@ impl AccessibilityDoctorStatus {
             limitations: vec![
                 "No full WCAG 2.x audit or assistive-technology product qualification".to_owned(),
                 "No final v0 UI artifact; FINAL_V0_UI_ARTIFACT remains external".to_owned(),
-                "READY_BASE covers fixture/CLI label and disclosure honesty only".to_owned(),
+                "READY_BASE covers fixture/CLI label, keyboard/role/announcement semantics, and disclosure honesty only".to_owned(),
             ],
         }
     }
@@ -197,6 +201,7 @@ impl AccessibilityDoctorStatus {
         self.present
             && self.ready_base
             && self.fixture_cli_labels_checked
+            && self.fixture_state_semantics_checked
             && self.cli_keyboard_path_documented
             && self.disclosure_clarity_checked
             && !self.wcag_conformance_claimed

@@ -20,6 +20,109 @@ pub enum FixtureUiSurface {
     PrivacyProof,
 }
 
+/// Spec 056: shell-agnostic role for a fixture surface (data only, not a WCAG claim).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum FixtureUiRole {
+    Status,
+    Document,
+    Log,
+}
+
+/// Spec 056: lifecycle state a fixture surface can be announced in.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum FixtureViewState {
+    Ready,
+    Loading,
+    Empty,
+    Error,
+    Conflict,
+    Recovery,
+}
+
+impl FixtureViewState {
+    /// Every state in the lifecycle, in canonical order.
+    #[must_use]
+    pub fn all() -> &'static [Self] {
+        &[
+            Self::Ready,
+            Self::Loading,
+            Self::Empty,
+            Self::Error,
+            Self::Conflict,
+            Self::Recovery,
+        ]
+    }
+
+    /// Canonical operator announcement for a state (exact text is the contract).
+    #[must_use]
+    pub fn canonical_announcement(&self) -> &'static str {
+        match self {
+            Self::Ready => "Ready.",
+            Self::Loading => "Loading. Please wait.",
+            Self::Empty => "No data to show.",
+            Self::Error => "An error occurred. No action was taken.",
+            Self::Conflict => "Conflicting data needs review. No action was taken.",
+            Self::Recovery => "Recovered. Please verify before continuing.",
+        }
+    }
+}
+
+/// Spec 056: keyboard/role/announcement semantics for one fixture view model.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct FixtureA11ySemantics {
+    pub role: FixtureUiRole,
+    /// Zero-based keyboard focus order across fixture surfaces.
+    pub keyboard_focus_index: u32,
+    /// Human-readable keyboard path (e.g. "doctor, 1 of 4").
+    pub keyboard_path: String,
+    pub state: FixtureViewState,
+    /// Must equal `state.canonical_announcement()` when honest.
+    pub announcement: String,
+}
+
+impl FixtureA11ySemantics {
+    #[must_use]
+    pub fn for_surface(
+        role: FixtureUiRole,
+        keyboard_focus_index: u32,
+        keyboard_path: String,
+        state: FixtureViewState,
+    ) -> Self {
+        let announcement = state.canonical_announcement().to_owned();
+        Self {
+            role,
+            keyboard_focus_index,
+            keyboard_path,
+            state,
+            announcement,
+        }
+    }
+
+    /// Honest iff path is non-empty and the announcement is the canonical
+    /// text for the declared state.
+    #[must_use]
+    pub fn is_honest(&self) -> bool {
+        !self.keyboard_path.trim().is_empty()
+            && self.announcement == self.state.canonical_announcement()
+    }
+}
+
+impl Default for FixtureA11ySemantics {
+    /// Back-compat default for documents written before Spec 056; not honest.
+    fn default() -> Self {
+        Self {
+            role: FixtureUiRole::Status,
+            keyboard_focus_index: 0,
+            keyboard_path: String::new(),
+            state: FixtureViewState::Ready,
+            announcement: String::new(),
+        }
+    }
+}
+
 /// Shell-agnostic fixture adapter payload for one screen.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -30,6 +133,9 @@ pub struct FixtureUiViewModel {
     pub title: String,
     /// Operator / assistive-tech oriented label (fixture honesty; not a WCAG claim).
     pub accessible_label: String,
+    /// Spec 056 keyboard/role/announcement semantics (not a WCAG claim).
+    #[serde(default)]
+    pub semantics: FixtureA11ySemantics,
     pub body_json: serde_json::Value,
 }
 
@@ -48,6 +154,12 @@ impl FixtureUiViewModel {
             real_phi_authorized: report.real_phi_authorized,
             title: "doctor".to_owned(),
             accessible_label: "MedScale doctor status".to_owned(),
+            semantics: FixtureA11ySemantics::for_surface(
+                FixtureUiRole::Status,
+                0,
+                "doctor, 1 of 4".to_owned(),
+                FixtureViewState::Ready,
+            ),
             body_json: serde_json::to_value(report).unwrap_or(serde_json::Value::Null),
         }
     }
@@ -60,6 +172,12 @@ impl FixtureUiViewModel {
             real_phi_authorized: false,
             title: "timeline".to_owned(),
             accessible_label: "MedScale subject timeline".to_owned(),
+            semantics: FixtureA11ySemantics::for_surface(
+                FixtureUiRole::Document,
+                1,
+                "timeline, 2 of 4".to_owned(),
+                FixtureViewState::Ready,
+            ),
             body_json: serde_json::to_value(timeline).unwrap_or(serde_json::Value::Null),
         }
     }
@@ -72,6 +190,12 @@ impl FixtureUiViewModel {
             real_phi_authorized: false,
             title: "brief".to_owned(),
             accessible_label: "MedScale subject brief".to_owned(),
+            semantics: FixtureA11ySemantics::for_surface(
+                FixtureUiRole::Document,
+                2,
+                "brief, 3 of 4".to_owned(),
+                FixtureViewState::Ready,
+            ),
             body_json: serde_json::to_value(brief).unwrap_or(serde_json::Value::Null),
         }
     }
@@ -84,6 +208,12 @@ impl FixtureUiViewModel {
             real_phi_authorized: false,
             title: "coverage".to_owned(),
             accessible_label: "MedScale subject coverage".to_owned(),
+            semantics: FixtureA11ySemantics::for_surface(
+                FixtureUiRole::Document,
+                3,
+                "coverage, 4 of 4".to_owned(),
+                FixtureViewState::Ready,
+            ),
             body_json: serde_json::to_value(coverage).unwrap_or(serde_json::Value::Null),
         }
     }
@@ -99,6 +229,12 @@ impl FixtureUiViewModel {
     #[must_use]
     pub fn has_required_a11y_labels(&self) -> bool {
         !self.title.trim().is_empty() && !self.accessible_label.trim().is_empty()
+    }
+
+    /// Spec 056: labels plus honest keyboard/role/announcement semantics.
+    #[must_use]
+    pub fn has_required_a11y_semantics(&self) -> bool {
+        self.has_required_a11y_labels() && self.semantics.is_honest()
     }
 }
 
