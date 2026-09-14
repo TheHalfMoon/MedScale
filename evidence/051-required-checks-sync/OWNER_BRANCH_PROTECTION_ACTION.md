@@ -1,14 +1,14 @@
 # OWNER BRANCH PROTECTION — exact action packet (Spec 051)
 
 **Gate:** `REPO_BRANCH_PROTECTION_REQUIRED_CHECKS`  
-**Current state:** `NOT_CONFIGURED_OWNER_SETTINGS`  
-**Why external:** GitHub repository rulesets / branch protection are owner settings. Cursor must not change them via API.
+**Current state:** `CONFIGURED_RULESET_23259329`  
+**External authority note:** GitHub repository rulesets / branch protection are owner settings. Founder explicitly authorized completion of this action on 2026-09-14.
 
 ## What Cursor already completed
 
 - Live CI workflow with stable job names (including Spec 042 perf job)
 - Exact required-check inventory at `evidence/022-release-qualification-prep/REQUIRED_CHECKS.md` (Spec 051 synced)
-- Doctor honesty: `branch_protection_configured=false`, `required_checks_packet_synced=true`, `release_ready=false`
+- Doctor honesty after live qualification: `branch_protection_configured=true`, `required_checks_packet_synced=true`, `release_ready=false`
 
 ## Exact external action required
 

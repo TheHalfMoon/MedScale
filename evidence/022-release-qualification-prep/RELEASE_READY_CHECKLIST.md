@@ -7,10 +7,10 @@ Trusted V1 `RELEASE_READY` requires all of the following. Spec 022 records hones
 | Immutable source/tree + lock binding procedure | PARTIAL | Procedure documented; no RELEASE_READY binding published |
 | Toolchain + Cargo.lock identity | PARTIAL | Pin + lock committed; locked CI |
 | Qualified OS matrix | FALSE | Windows+Linux CI baseline; macOS unqualified; mobile scaffold |
-| Mandatory CI + required reviews on protected main | FALSE | Needs owner settings (`REPO_BRANCH_PROTECTION_REQUIRED_CHECKS`) |
+| Mandatory CI + required reviews on protected main | PARTIAL | Protected `main` + six mandatory checks + PR/conversation rules configured; approval count is currently 0, so no approving-review claim |
 | Reproducible package contents | FALSE | No release package pipeline |
 | SBOM incl. native/model assets | FALSE | deny.toml / supply-chain scaffold ≠ release SBOM |
-| Rights / license decision | FALSE | `PUBLIC_SOURCE_LICENSE_CHOICE` pending |
+| Rights / license decision | TRUE | Founder selected `Apache-2.0` on 2026-09-14; NOTICE required in package |
 | Checksums / provenance / signing verification | FALSE | Spec **039** `SIGNING_PROVENANCE_PREP.md` is prep only — no credentials |
 | Migration + recovery proof at release bar | PARTIAL | Spec **048** vault-level READY_BASE (`migration_recovery_ready_base`); package upgrade/rollback still missing |
 | Source-linked claims + limitations | PARTIAL | Evidence LIMITATIONS present; not a release dossier |
