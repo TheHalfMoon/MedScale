@@ -71,7 +71,7 @@ See Trusted V1 delivery plan. Specs 018–054 READY_BASE closed; Spec 012 deferr
 | 053 | Linux Seccomp Composition (Q09 residual) | `CLOSED_CANONICAL` | READY_BASE: seccomp-bpf strict allowlist + child SIGSYS deny measured (`linux_seccomp_composition_measured`); x86_64/aarch64 tables; platform_qualified=false; sandbox gate OPEN. See `SPEC_053_PROMOTION.md`. |
 | 054 | Native / Full Release SBOM Qualification (Q05 residual) | `CLOSED_CANONICAL` | READY_BASE: deterministic CycloneDX 1.5 + verifier (tamper/stale/missing fail closed); `release_sbom_qualified`; reproducible_build=unproven; RELEASE_READY=false. See `SPEC_054_PROMOTION.md`. |
 | 055 | Perf Attainment Dossier (Q05 residual) | `CLOSED_CANONICAL` | READY_BASE dossier: PERFORMANCE_NON_ATTAINMENT bound to source/tree/lock; budgets not claimed. See `SPEC_055_PROMOTION.md`. |
-| 056 | Fixture A11y Semantics (a11y residual) | `READY_IMPLEMENTATION` | READY_BASE deepening: role/keyboard/announcement semantics on every fixture view model; no WCAG claim. See `SPEC_056_PROMOTION.md`. |
+| 056 | Fixture A11y Semantics (a11y residual) | `CLOSED_CANONICAL` | READY_BASE deepening: role/keyboard/announcement semantics on every fixture view model; no WCAG claim. See `SPEC_056_PROMOTION.md`. |
 | 057+ | Advanced deferred work | `DEFERRED_BY_CANONICAL_DESIGN` | Plugins/GraphRAG/replicas/imaging/CUDA/etc. |
 
 ## Automatic progression
