@@ -1,13 +1,14 @@
 # MedScale Project Completion Status
 
 ```text
-STATUS = POST_MERGE_REGRESSION_FIX_IN_REVIEW
-MEDSCALE_IMPLEMENTATION_COMPLETE = FALSE
+STATUS = IMPLEMENTATION_COMPLETE_PENDING_EXTERNAL_GATES
+MEDSCALE_IMPLEMENTATION_COMPLETE = TRUE
 MEDSCALE_RELEASE_READY = FALSE
 PRIVATE_DATA_READY = FALSE
 MULTI_CLIENT_RELEASE_READY = FALSE
 REAL_PHI_AUTHORIZED = FALSE
 MESC_RELEASE_BLOCKING = FALSE
+KNOWN_REPOSITORY_OWNED_TRUSTED_V1_RESIDUALS = 0
 ```
 
-Spec 059 is the final promoted repository-owned closure audit. PR #100 merged, but post-merge main run `34892900032` exposed a Windows RSS parser defect in `runtime_perf_057`; terminal status is reopened until the corrective exact-head CI, merge, and post-merge main verification pass. Remaining release blockers must be external gates recorded in `EXTERNAL_GATES.md`.
+Spec 059 is `CLOSED_CANONICAL`. PR #100 merged the terminal audit; post-merge run `34892900032` then exposed a Windows RSS parser defect. PR #101 qualified the bounded fix on exact-head run `34894123749`, merged as `449e4ba00b21eeabb526b699e90d78954bcd01f8`, and post-merge main run `34895017496` passed all six required jobs. No repository-owned Trusted V1 implementation residual is currently known. Remaining release blockers are the explicit external gates recorded in `EXTERNAL_GATES.md`; `MEDSCALE_RELEASE_READY` remains false.

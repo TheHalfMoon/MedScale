@@ -1,4 +1,4 @@
-# RELEASE_READY checklist vs current state (synced through Spec 059 candidate)
+# RELEASE_READY checklist vs current state (synced through Spec 059 canonical closure)
 
 Trusted V1 `RELEASE_READY` requires all applicable release bars below. Spec 059 synchronizes current truth; **current product claim remains FALSE**.
 
@@ -16,8 +16,8 @@ Trusted V1 `RELEASE_READY` requires all applicable release bars below. Spec 059 
 | Qualified-hardware performance attainment | FALSE | Harness coverage exists; hosted CI is not qualified hardware; external gate `QUALIFIED_RELEASE_PERFORMANCE_HARDWARE` |
 | Final v0 UI / WCAG qualification | FALSE | Final v0 artifact not supplied; external gate `FINAL_V0_UI_ACCESSIBILITY_QUALIFICATION` |
 | Source-linked claims + limitations | TRUE | Release evidence/limitations are source/tree/lock bound and preserve non-claims |
-| No unresolved repository-owned material findings | IN_REVIEW | PR #100 merged, but post-merge main run `34892900032` exposed a Windows runtime-performance RSS parser defect; corrective exact-head + post-merge proof required |
+| No unresolved repository-owned material findings | TRUE | PR #101 exact-head run `34894123749` qualified the bounded Windows RSS parser fix; merge commit `449e4ba00b21eeabb526b699e90d78954bcd01f8` then passed post-merge main run `34895017496` with all six required jobs |
 
 **Verdict: `RELEASE_READY = FALSE`**
 
-Project implementation terminal status is not asserted until Spec 059 merge and post-merge verification; exact-head CI is proven on `8845b347ff225e598fedd7ca014928b16b0367a0`. Also preserved: `PRIVATE_DATA_READY = FALSE`, `MULTI_CLIENT_RELEASE_READY = FALSE`.
+Project implementation status is `IMPLEMENTATION_COMPLETE_PENDING_EXTERNAL_GATES`; this is not a `RELEASE_READY` claim. Also preserved: `PRIVATE_DATA_READY = FALSE`, `MULTI_CLIENT_RELEASE_READY = FALSE`.

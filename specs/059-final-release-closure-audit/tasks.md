@@ -7,4 +7,4 @@
 - [x] T5: Add material-findings clearance doctor axis and regression coverage without changing `RELEASE_READY=false`.
 - [x] T6: Add Spec 059 evidence and terminal-status candidate document.
 - [x] T7: Run local gates + first exact-head CI; record evidence.
-- [ ] T8: Commit canonical closure metadata, rerun exact-head required CI, merge without bypass, verify post-merge main, and declare terminal implementation status only if all pass.
+- [x] T8: Commit canonical closure metadata, rerun exact-head required CI, merge without bypass, verify post-merge main, and declare terminal implementation status only if all pass.

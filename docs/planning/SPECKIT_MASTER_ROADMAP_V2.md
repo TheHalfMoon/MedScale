@@ -88,7 +88,7 @@ Required lifecycle for each material executable spec:
 | 056 | `fixture-a11y-semantics` | fixture accessibility semantics deepening | 029 | CLOSED_CANONICAL; no WCAG/final-v0 claim |
 | 057 | `release-qualification-residual-integrity` | runtime perf coverage + immutable CI action pins | 055/056 | CLOSED_CANONICAL; budgets not claimed |
 | 058 | `portable-release-package` | deterministic unsigned package + real install/upgrade/rollback qualification | 057 | CLOSED_CANONICAL; three-OS package lifecycle qualified |
-| 059 | `final-release-closure-audit` | terminal repo-owned release audit + external-only residual mapping | 058 | POST_MERGE_REGRESSION_FIX_IN_REVIEW; PR run 34889698756 six-check success; RELEASE_READY remains false |
+| 059 | `final-release-closure-audit` | terminal repo-owned release audit + external-only residual mapping | 058 | CLOSED_CANONICAL; corrective PR #101 + post-merge run 34895017496 six-check success; RELEASE_READY remains false |
 | 060+ | `research-site-imaging-genomics-advanced` | deferred site/research/collab/imaging/genomics/plugin/browser/watch/vision expansion | evidence-driven later gates | no Trusted V1 implementation commitment |
 
 ## 3. Corrected critical path
@@ -133,7 +133,7 @@ ONLINE ECOSYSTEM
 031 macOS Seatbelt sandbox (Q09 residual) CLOSED_CANONICAL READY_BASE; macos_measured; App Sandbox entitlements scaffold; platform_qualified=false; WORKER_OS_SANDBOX gate OPEN
 032 privacy probes + NOTICE inventory + perf binding CLOSED_CANONICAL READY_BASE; license was undecided at closure and is now Apache-2.0; budgets_claimed_met=false; PRIVATE_DATA_READY=false
 033–053 residual READY_BASE closed (AppContainer FS/network/LPAC, outbox restart, EncryptedVault sync, MESC verifier, release-prep/honesty, sandbox composition, lexical 10k, SBOM/dry-run/migration/upgrade/perf path, REQUIRED_CHECKS sync, Linux Landlock composition, Linux seccomp composition)
-Current terminal frontier: Spec **059** final release-closure audit after Specs 054–058 closed. Spec 012 remains optional/deferred. Remaining release blockers after 059 must be external-only (qualified performance hardware, signing/provenance, macOS signed product/App Sandbox enforcement, final-v0/WCAG); advanced **060+** remains deferred
+Terminal Trusted V1 repository-owned implementation: Specs **054**–**059** are closed and no promoted repo-owned residual remains. Spec 012 remains optional/deferred. Remaining release blockers are external-only (qualified performance hardware, signing/provenance, macOS signed product/App Sandbox enforcement, final-v0/WCAG); advanced **060+** remains deferred
 ```
 
 ## 4. Core process topology — decided for downstream specs
