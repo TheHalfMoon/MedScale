@@ -23,7 +23,7 @@ fn doctor_semantics_flag_honest_without_wcag_claim() {
     assert!(a11y.is_honest_ready_base());
     assert!(a11y.fixture_state_semantics_checked);
     assert!(!a11y.wcag_conformance_claimed);
-    assert!(!a11y.final_v0_ui_present);
+    assert!(a11y.final_v0_ui_present); // Spec 060 native UI now exists; WCAG remains unclaimed.
     assert!(!a11y.release_ready);
     let status = AccessibilityDoctorStatus::ready_base();
     assert!(status.is_honest_ready_base());

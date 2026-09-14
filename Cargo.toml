@@ -59,6 +59,8 @@ medscale-core = { path = "crates/medscale-core", version = "0.1.0" }
 medscale-keys = { path = "crates/medscale-keys", version = "0.1.0" }
 medscale-network = { path = "crates/medscale-network", version = "0.1.0" }
 medscale-pack = { path = "crates/medscale-pack", version = "0.1.0" }
+slint = { version = "=1.13.1", default-features = false, features = ["std", "backend-winit", "renderer-femtovg", "accessibility", "compat-1-2"] }
+slint-build = "=1.13.1"
 
 [workspace.lints.rust]
 unsafe_code = "deny"

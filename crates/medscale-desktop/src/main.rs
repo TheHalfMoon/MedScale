@@ -1,4 +1,4 @@
-//! Thin Desktop scaffold — no WebView/Tauri (Spec 006).
+//! Native MedScale Desktop shell — Slint, no WebView/Tauri (Spec 060).
 
 use medscale_core::{CoreFacade, build_doctor_report, privacy_proof_artifact_present};
 use std::env;
@@ -7,6 +7,10 @@ use std::io::{self, Write};
 use std::process::ExitCode;
 use std::thread;
 use std::time::Duration;
+
+use slint::ComponentHandle;
+
+slint::include_modules!();
 
 const PERF_IDLE_MAX_MS: u64 = 10_000;
 
@@ -55,12 +59,44 @@ fn main() -> ExitCode {
         return ExitCode::SUCCESS;
     }
 
-    println!("{} desktop scaffold (non-WebView)", report.product_name);
-    println!("version: {}", report.version);
-    println!("shell: {}", report.desktop_shell);
-    println!("tauri_admitted: {}", report.tauri_admitted);
-    println!("note: final v0 UI deferred (FINAL_V0_UI_ARTIFACT); Tauri privacy deferred");
-    ExitCode::SUCCESS
+    let ui = match AppWindow::new() {
+        Ok(ui) => ui,
+        Err(err) => {
+            eprintln!("failed to initialize MedScale Desktop UI: {err}");
+            return ExitCode::from(1);
+        }
+    };
+    ui.set_product_version(report.version.into());
+
+    // Spec 060 keeps shell actions useful without bypassing Core authority.
+    // Consequential operations are routed to their owning review surfaces; no action is committed here.
+    let weak = ui.as_weak();
+    ui.on_ui_action(move |action| {
+        let Some(ui) = weak.upgrade() else {
+            return;
+        };
+        let action = action.as_str();
+        let route = if action == "care-plan" {
+            Some("Workflows")
+        } else if action == "summarize" || action == "import" || action.starts_with("search:") {
+            Some("Patients")
+        } else if action == "privacy-status" {
+            Some("Settings")
+        } else {
+            None
+        };
+        if let Some(route) = route {
+            ui.set_active_route(route.into());
+        }
+    });
+
+    match ui.run() {
+        Ok(()) => ExitCode::SUCCESS,
+        Err(err) => {
+            eprintln!("MedScale Desktop UI exited with an error: {err}");
+            ExitCode::from(1)
+        }
+    }
 }
 
 #[cfg(test)]

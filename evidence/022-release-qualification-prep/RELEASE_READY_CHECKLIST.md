@@ -14,7 +14,7 @@ Trusted V1 `RELEASE_READY` requires all applicable release bars below. Spec 059 
 | Checksums / provenance / signing verification | FALSE | Verification paths exist; production signing identity/provenance is `DESKTOP_RELEASE_SIGNING_PROVENANCE` external gate |
 | Migration + recovery proof at release bar | TRUE | Spec 048 vault migration/recovery proof + Spec 058 real package install/upgrade/rollback lifecycle |
 | Qualified-hardware performance attainment | FALSE | Harness coverage exists; hosted CI is not qualified hardware; external gate `QUALIFIED_RELEASE_PERFORMANCE_HARDWARE` |
-| Final v0 UI / WCAG qualification | FALSE | Final v0 artifact not supplied; external gate `FINAL_V0_UI_ACCESSIBILITY_QUALIFICATION` |
+| Final v0 UI / WCAG qualification | FALSE | Founder visual direction supplied 2026-09-15; native implementation begins in Spec 060, but final keyboard/screen-reader/contrast/WCAG qualification remains open under `FINAL_V0_UI_ACCESSIBILITY_QUALIFICATION` |
 | Source-linked claims + limitations | TRUE | Release evidence/limitations are source/tree/lock bound and preserve non-claims |
 | No unresolved repository-owned material findings | TRUE | PR #101 exact-head run `34894123749` qualified the bounded Windows RSS parser fix; merge commit `449e4ba00b21eeabb526b699e90d78954bcd01f8` then passed post-merge main run `34895017496` with all six required jobs |
 

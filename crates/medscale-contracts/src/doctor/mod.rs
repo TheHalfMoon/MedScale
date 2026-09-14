@@ -217,6 +217,29 @@ impl AccessibilityDoctorStatus {
         }
     }
 
+    /// Current native final-v0 implementation posture (Spec 060).
+    ///
+    /// Presence of the visual implementation is deliberately separate from
+    /// WCAG / assistive-technology qualification and release readiness.
+    #[must_use]
+    pub fn native_final_v0() -> Self {
+        Self {
+            present: true,
+            ready_base: true,
+            fixture_cli_labels_checked: true,
+            fixture_state_semantics_checked: true,
+            cli_keyboard_path_documented: true,
+            disclosure_clarity_checked: true,
+            wcag_conformance_claimed: false,
+            final_v0_ui_present: true,
+            release_ready: false,
+            limitations: vec![
+                "Native final-v0 implementation is present; WCAG 2.x and assistive-technology product qualification remain pending".to_owned(),
+                "Spec 060 establishes Slint accessibility semantics and keyboard paths but does not itself claim conformance".to_owned(),
+            ],
+        }
+    }
+
     #[must_use]
     pub fn is_honest_ready_base(&self) -> bool {
         self.present
@@ -226,7 +249,6 @@ impl AccessibilityDoctorStatus {
             && self.cli_keyboard_path_documented
             && self.disclosure_clarity_checked
             && !self.wcag_conformance_claimed
-            && !self.final_v0_ui_present
             && !self.release_ready
             && !self.limitations.is_empty()
     }

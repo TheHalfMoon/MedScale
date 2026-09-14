@@ -1,0 +1,117 @@
+//! Spec 060 native Desktop design-system and final-v0 honesty regression.
+
+use medscale_core::build_doctor_report;
+use std::path::PathBuf;
+
+fn repo_root() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .expect("crate parent")
+        .parent()
+        .expect("workspace root")
+        .to_path_buf()
+}
+
+#[test]
+fn native_desktop_shell_is_pinned_non_webview_and_branded() {
+    let root = repo_root();
+    let workspace = std::fs::read_to_string(root.join("Cargo.toml")).expect("workspace manifest");
+    let desktop = std::fs::read_to_string(root.join("crates/medscale-desktop/Cargo.toml"))
+        .expect("desktop manifest");
+    let app = std::fs::read_to_string(root.join("crates/medscale-desktop/ui/app.slint"))
+        .expect("desktop app UI");
+    let theme = std::fs::read_to_string(root.join("crates/medscale-desktop/ui/theme.slint"))
+        .expect("desktop theme");
+    let mark =
+        std::fs::read_to_string(root.join("crates/medscale-desktop/ui/assets/medscale-mark.svg"))
+            .expect("MedScale mark");
+    let components =
+        std::fs::read_to_string(root.join("crates/medscale-desktop/ui/components.slint"))
+            .expect("desktop components");
+
+    assert!(workspace.contains("slint = { version = \"=1.13.1\""));
+    assert!(workspace.contains("\"accessibility\""));
+    assert!(desktop.contains("slint = { workspace = true }"));
+    assert!(
+        !desktop
+            .lines()
+            .any(|line| line.trim_start().starts_with("tauri ="))
+    );
+    assert!(
+        !workspace
+            .lines()
+            .any(|line| line.trim_start().starts_with("tauri ="))
+    );
+
+    for required in [
+        "Home",
+        "Patients",
+        "Insights",
+        "Workflows",
+        "Messages",
+        "Tasks",
+        "Documents",
+        "Audit Trail",
+        "Exports",
+        "Settings",
+        "About",
+        "AboutSlint",
+        "Command palette",
+        "Synthetic demo",
+    ] {
+        assert!(
+            app.contains(required),
+            "missing Desktop shell label: {required}"
+        );
+    }
+    assert!(app.contains("accessible-label"));
+    assert!(app.contains("event.modifiers.control || event.modifiers.meta"));
+    assert!(components.contains("FocusScope"));
+    assert!(components.contains("accessible-action-default"));
+    assert!(components.contains("interaction.has-focus ? 2px"));
+    assert!(components.contains("event.text == \" \" || event.text == \"\\n\""));
+    assert!(theme.contains("#5B5CF6"));
+    assert!(theme.contains("#2F4F46"));
+    assert!(theme.contains("#FF785C"));
+    assert!(theme.contains("#D8B4FE"));
+    assert!(mark.contains("#5B5CF6"));
+    let deny = std::fs::read_to_string(root.join("deny.toml")).expect("deny config");
+    assert!(deny.contains("LicenseRef-Slint-Royalty-free-2.0"));
+    assert!(deny.contains("dwrote@0.11.5"));
+}
+
+#[test]
+fn doctor_reports_native_final_v0_without_inventing_wcag_or_release() {
+    let report = build_doctor_report(None, false, false);
+    assert_eq!(report.desktop_shell, "slint_native");
+    assert!(!report.tauri_admitted);
+    assert!(report.accessibility.final_v0_ui_present);
+    assert!(report.accessibility.is_honest_ready_base());
+    assert!(!report.accessibility.wcag_conformance_claimed);
+    assert!(!report.accessibility.release_ready);
+    assert!(!report.release_qualification.release_ready);
+    assert!(
+        report
+            .release_qualification
+            .missing_evidence_classes
+            .contains(&"wcag_final_v0_ui_accessibility_qualification".to_owned())
+    );
+}
+
+#[test]
+fn product_phase_keeps_mobile_after_desktop_cli_launch() {
+    let root = repo_root();
+    let product = std::fs::read_to_string(root.join("PRODUCT.md")).expect("product truth");
+    let design = std::fs::read_to_string(root.join("DESIGN.md")).expect("design truth");
+    let queue =
+        std::fs::read_to_string(root.join("docs/planning/BUILD_QUEUE.md")).expect("build queue");
+
+    assert!(product.contains("Desktop and CLI are the launch surfaces"));
+    assert!(product.contains("Mobile applications come only after Desktop + CLI launch"));
+    assert!(design.contains("shape`"));
+    assert!(design.contains("critique`"));
+    assert!(design.contains("audit`"));
+    assert!(design.contains("polish`"));
+    assert!(queue.contains("065 | CLI Product Experience + Capability Parity"));
+    assert!(queue.contains("Mobile remains deferred until Desktop+CLI launch"));
+}

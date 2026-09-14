@@ -1,0 +1,316 @@
+import { AboutSlint, LineEdit, ScrollView } from "std-widgets.slint";
+import { Theme } from "theme.slint";
+import { NavItem, QuickAction, ToolbarAction, MetricCard, StatusPill } from "components.slint";
+
+export component AppWindow inherits Window {
+    title: "MedScale";
+    width: 1440px;
+    height: 900px;
+    background: Theme.canvas;
+    default-font-size: 14px;
+
+    in-out property <string> active-route: "Home";
+    in-out property <bool> palette-open: false;
+    in property <string> product-version: "0.1.0";
+    callback ui-action(string);
+
+    forward-focus: global-keys;
+
+    global-keys := FocusScope {
+        key-pressed(event) => {
+            if ((event.modifiers.control || event.modifiers.meta) && (event.text == "k" || event.text == "K")) {
+                root.palette-open = !root.palette-open;
+                return accept;
+            }
+            if (event.text == Key.Escape) {
+                root.palette-open = false;
+                return accept;
+            }
+            return reject;
+        }
+
+        HorizontalLayout {
+            spacing: 0px;
+
+            sidebar := Rectangle {
+                width: 224px;
+                background: Theme.surface;
+                border-width: 0px;
+
+                VerticalLayout {
+                    padding-left: 16px;
+                    padding-right: 16px;
+                    padding-top: 18px;
+                    padding-bottom: 18px;
+                    spacing: 8px;
+
+                    HorizontalLayout {
+                        height: 56px;
+                        spacing: 10px;
+                        Image { source: @image-url("assets/medscale-mark.svg"); width: 44px; height: 44px; }
+                        VerticalLayout {
+                            alignment: center;
+                            spacing: 0px;
+                            Text { text: "MedScale"; color: Theme.ink; font-size: 19px; font-weight: 700; }
+                            Text { text: "Local health intelligence"; color: Theme.ink-quiet; font-size: 10px; }
+                        }
+                    }
+
+                    Rectangle { height: 8px; background: transparent; }
+
+                    NavItem { label: "Home"; glyph: "⌂"; selected: root.active-route == "Home"; activated => { root.active-route = "Home"; } }
+                    NavItem { label: "Patients"; glyph: "○"; selected: root.active-route == "Patients"; activated => { root.active-route = "Patients"; } }
+                    NavItem { label: "Insights"; glyph: "▥"; selected: root.active-route == "Insights"; activated => { root.active-route = "Insights"; } }
+                    NavItem { label: "Workflows"; glyph: "⌘"; selected: root.active-route == "Workflows"; activated => { root.active-route = "Workflows"; } }
+                    NavItem { label: "Messages"; glyph: "□"; selected: root.active-route == "Messages"; activated => { root.active-route = "Messages"; } }
+                    NavItem { label: "Tasks"; glyph: "✓"; selected: root.active-route == "Tasks"; activated => { root.active-route = "Tasks"; } }
+                    NavItem { label: "Documents"; glyph: "▤"; selected: root.active-route == "Documents"; activated => { root.active-route = "Documents"; } }
+                    NavItem { label: "Audit Trail"; glyph: "◇"; selected: root.active-route == "Audit Trail"; activated => { root.active-route = "Audit Trail"; } }
+                    NavItem { label: "Exports"; glyph: "⇩"; selected: root.active-route == "Exports"; activated => { root.active-route = "Exports"; } }
+
+                    Rectangle { vertical-stretch: 1; background: transparent; }
+
+                    Rectangle {
+                        height: 94px;
+                        border-radius: 14px;
+                        border-width: 1px;
+                        border-color: Theme.border;
+                        background: Theme.surface-raised;
+                        accessible-role: text;
+                        accessible-label: "Local-first status: synthetic demo, encrypted local architecture, network default deny";
+                        VerticalLayout {
+                            padding: 12px;
+                            spacing: 4px;
+                            Text { text: "●  Local-first"; color: Theme.pine; font-size: 12px; font-weight: 650; }
+                            Text { text: "Synthetic demo data"; color: Theme.ink-subtle; font-size: 10px; }
+                            Text { text: "Network: default deny"; color: Theme.ink-subtle; font-size: 10px; }
+                            Text { text: "v" + root.product-version; color: Theme.ink-quiet; font-size: 10px; }
+                        }
+                    }
+
+                    NavItem { label: "Settings"; glyph: "⚙"; selected: root.active-route == "Settings"; activated => { root.active-route = "Settings"; } }
+                    NavItem { label: "About"; glyph: "ⓘ"; selected: root.active-route == "About"; activated => { root.active-route = "About"; } }
+                }
+            }
+
+            VerticalLayout {
+                spacing: 0px;
+
+                topbar := Rectangle {
+                    height: 64px;
+                    background: Theme.surface;
+                    border-width: 0px;
+
+                    HorizontalLayout {
+                        padding-left: 24px;
+                        padding-right: 24px;
+                        padding-top: 10px;
+                        padding-bottom: 10px;
+                        spacing: 14px;
+
+                        LineEdit {
+                            horizontal-stretch: 1;
+                            placeholder-text: "Search patients, notes, commands, or ask MedScale…";
+                            accessible-label: "Global search";
+                            accepted(text) => { root.ui-action("search:" + text); }
+                        }
+
+                        ToolbarAction {
+                            label: "Ask MedScale";
+                            activated => { root.palette-open = true; }
+                        }
+
+                        Rectangle {
+                            width: 44px;
+                            border-radius: 22px;
+                            background: Theme.blurple-soft;
+                            Text { text: "JD"; color: Theme.blurple; font-size: 12px; font-weight: 700; horizontal-alignment: center; vertical-alignment: center; }
+                        }
+                    }
+                }
+
+                Rectangle { height: 1px; background: Theme.border; }
+
+                ScrollView {
+                    horizontal-stretch: 1;
+                    vertical-stretch: 1;
+
+                    VerticalLayout {
+                        padding: 24px;
+                        spacing: 18px;
+
+                        HorizontalLayout {
+                            height: 78px;
+                            spacing: 16px;
+                            VerticalLayout {
+                                spacing: 2px;
+                                Text { text: root.active-route == "Home" ? "Good morning, Dr. Doe" : root.active-route; color: Theme.ink; font-size: 28px; font-weight: 700; }
+                                Text { text: root.active-route == "Home" ? "A calm view of what needs attention today." : "This surface is scheduled in the next Desktop slice."; color: Theme.ink-subtle; font-size: 14px; }
+                            }
+                            Rectangle { horizontal-stretch: 1; background: transparent; }
+                            Rectangle {
+                                width: 258px;
+                                border-radius: 18px;
+                                background: Theme.blurple-soft;
+                                HorizontalLayout {
+                                    padding: 14px;
+                                    spacing: 10px;
+                                    Rectangle { width: 54px; border-radius: 18px; background: Theme.pine; }
+                                    Rectangle { width: 28px; border-radius: 14px; background: Theme.coral; }
+                                    Rectangle { width: 62px; border-radius: 18px; background: Theme.lavender; }
+                                    Text { text: "PEOPLE\nDATA\nPROGRESS"; color: Theme.ink-subtle; font-size: 8px; letter-spacing: 1px; vertical-alignment: center; }
+                                }
+                            }
+                        }
+
+                        if root.active-route == "About": Rectangle {
+                            height: 360px;
+                            border-radius: 16px;
+                            border-width: 1px;
+                            border-color: Theme.border;
+                            background: Theme.surface;
+                            accessible-role: groupbox;
+                            accessible-label: "About MedScale and Slint attribution";
+                            HorizontalLayout {
+                                padding: 24px;
+                                spacing: 28px;
+                                VerticalLayout {
+                                    width: 360px;
+                                    spacing: 8px;
+                                    Image { source: @image-url("assets/medscale-mark.svg"); width: 72px; height: 52px; }
+                                    Text { text: "MedScale"; color: Theme.ink; font-size: 26px; font-weight: 700; }
+                                    Text { text: "Local-first healthcare intelligence"; color: Theme.ink-subtle; font-size: 13px; }
+                                    Text { text: "Version " + root.product-version; color: Theme.ink-quiet; font-size: 11px; }
+                                    Text { text: "MedScale source is licensed under Apache-2.0. UI toolkit attribution is shown alongside."; color: Theme.ink-subtle; font-size: 11px; wrap: word-wrap; }
+                                }
+                                Rectangle { width: 1px; background: Theme.border; }
+                                AboutSlint { horizontal-stretch: 1; vertical-stretch: 1; }
+                            }
+                        }
+
+                        if root.active-route == "Home": VerticalLayout {
+                            spacing: 18px;
+
+                            VerticalLayout {
+                                spacing: 8px;
+                                Text { text: "Quick actions"; color: Theme.ink; font-size: 15px; font-weight: 650; }
+                                HorizontalLayout {
+                                    spacing: 12px;
+                                    QuickAction { title: "Generate care plan"; subtitle: "Review-first AI proposal"; glyph: "✦"; accent: Theme.blurple; activated => { root.ui-action("care-plan"); } }
+                                    QuickAction { title: "Summarize patient"; subtitle: "Evidence-linked brief"; glyph: "≡"; accent: Theme.pine; activated => { root.ui-action("summarize"); } }
+                                    QuickAction { title: "Import data"; subtitle: "FHIR / permitted files"; glyph: "⇧"; accent: Theme.coral; activated => { root.ui-action("import"); } }
+                                    QuickAction { title: "Open command palette"; subtitle: "Cmd/Ctrl + K"; glyph: "⌘"; accent: Theme.lavender; activated => { root.palette-open = true; } }
+                                }
+                            }
+
+                            VerticalLayout {
+                                spacing: 8px;
+                                HorizontalLayout {
+                                    Text { text: "Operational snapshot"; color: Theme.ink; font-size: 15px; font-weight: 650; }
+                                    Rectangle { horizontal-stretch: 1; background: transparent; }
+                                    Text { text: "Synthetic demo"; color: Theme.ink-quiet; font-size: 11px; vertical-alignment: center; }
+                                }
+                                HorizontalLayout {
+                                    spacing: 12px;
+                                    MetricCard { label: "Active patients"; value: "248"; delta: "↑ 12% demo trend"; glyph: "◎"; accent: Theme.blurple; }
+                                    MetricCard { label: "Notes created"; value: "36"; delta: "↑ 28% demo trend"; glyph: "▤"; accent: Theme.pine; }
+                                    MetricCard { label: "High risk"; value: "12"; delta: "↓ 8% demo trend"; glyph: "♥"; accent: Theme.coral; }
+                                    MetricCard { label: "Time saved"; value: "3.2h"; delta: "↑ 41% demo trend"; glyph: "◴"; accent: Theme.blurple; }
+                                }
+                            }
+
+                            HorizontalLayout {
+                                spacing: 16px;
+
+                                Rectangle {
+                                    horizontal-stretch: 3;
+                                    height: 310px;
+                                    border-radius: 16px;
+                                    border-width: 1px;
+                                    border-color: Theme.border;
+                                    background: Theme.surface;
+                                    VerticalLayout {
+                                        padding: 16px;
+                                        spacing: 10px;
+                                        HorizontalLayout {
+                                            Text { text: "Active patient queue"; color: Theme.ink; font-size: 15px; font-weight: 650; }
+                                            Rectangle { horizontal-stretch: 1; background: transparent; }
+                                            Text { text: "View all →"; color: Theme.blurple; font-size: 11px; }
+                                        }
+                                        Text { text: "Synthetic patients needing attention today"; color: Theme.ink-subtle; font-size: 11px; }
+                                        Rectangle { height: 1px; background: Theme.border; }
+
+                                        HorizontalLayout { height: 42px; spacing: 12px; Text { text: "Sarah Chen"; color: Theme.ink; font-size: 12px; font-weight: 650; vertical-alignment: center; } Text { text: "Type 2 Diabetes"; color: Theme.ink-subtle; font-size: 11px; vertical-alignment: center; } Rectangle { horizontal-stretch: 1; background: transparent; } StatusPill { label: "High risk"; accent: Theme.coral; } }
+                                        Rectangle { height: 1px; background: Theme.border; }
+                                        HorizontalLayout { height: 42px; spacing: 12px; Text { text: "Michael Torres"; color: Theme.ink; font-size: 12px; font-weight: 650; vertical-alignment: center; } Text { text: "Hypertension"; color: Theme.ink-subtle; font-size: 11px; vertical-alignment: center; } Rectangle { horizontal-stretch: 1; background: transparent; } StatusPill { label: "Follow up"; accent: Theme.amber; } }
+                                        Rectangle { height: 1px; background: Theme.border; }
+                                        HorizontalLayout { height: 42px; spacing: 12px; Text { text: "Emily Watson"; color: Theme.ink; font-size: 12px; font-weight: 650; vertical-alignment: center; } Text { text: "Asthma"; color: Theme.ink-subtle; font-size: 11px; vertical-alignment: center; } Rectangle { horizontal-stretch: 1; background: transparent; } StatusPill { label: "Results"; accent: Theme.blurple; } }
+                                        Rectangle { height: 1px; background: Theme.border; }
+                                        HorizontalLayout { height: 42px; spacing: 12px; Text { text: "James Miller"; color: Theme.ink; font-size: 12px; font-weight: 650; vertical-alignment: center; } Text { text: "CHF"; color: Theme.ink-subtle; font-size: 11px; vertical-alignment: center; } Rectangle { horizontal-stretch: 1; background: transparent; } StatusPill { label: "Overdue"; accent: Theme.danger; } }
+                                    }
+                                }
+
+                                Rectangle {
+                                    horizontal-stretch: 2;
+                                    height: 310px;
+                                    border-radius: 16px;
+                                    border-width: 1px;
+                                    border-color: Theme.border;
+                                    background: Theme.surface;
+                                    VerticalLayout {
+                                        padding: 16px;
+                                        spacing: 10px;
+                                        HorizontalLayout {
+                                            Text { text: "MedScale Assistant"; color: Theme.ink; font-size: 15px; font-weight: 650; }
+                                            Rectangle { horizontal-stretch: 1; background: transparent; }
+                                            StatusPill { label: "Local"; accent: Theme.pine; }
+                                        }
+                                        Rectangle {
+                                            height: 86px;
+                                            border-radius: 14px;
+                                            background: Theme.blurple-soft;
+                                            VerticalLayout {
+                                                padding: 14px;
+                                                spacing: 4px;
+                                                Text { text: "How can I help today?"; color: Theme.ink; font-size: 14px; font-weight: 650; }
+                                                Text { text: "Summarize, navigate, inspect evidence, or prepare a reviewable workflow."; color: Theme.ink-subtle; font-size: 11px; wrap: word-wrap; }
+                                            }
+                                        }
+                                        QuickAction { title: "Summarize current patient"; subtitle: "Source-aware brief"; glyph: "≡"; accent: Theme.blurple; activated => { root.ui-action("summarize"); } }
+                                        QuickAction { title: "Inspect privacy status"; subtitle: "Doctor + evidence posture"; glyph: "✓"; accent: Theme.pine; activated => { root.ui-action("privacy-status"); } }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if root.palette-open: Rectangle {
+        x: parent.width / 2 - 270px;
+        y: 104px;
+        width: 540px;
+        height: 338px;
+        border-radius: 18px;
+        border-width: 1px;
+        border-color: Theme.border;
+        background: Theme.surface;
+        accessible-role: groupbox;
+        accessible-label: "MedScale command palette";
+        drop-shadow-blur: 28px;
+        drop-shadow-color: #15182B22;
+        drop-shadow-offset-y: 10px;
+
+        VerticalLayout {
+            padding: 16px;
+            spacing: 8px;
+            Text { text: "Command palette"; color: Theme.ink; font-size: 16px; font-weight: 700; }
+            palette-search := LineEdit { placeholder-text: "Search commands…"; accessible-label: "Command palette search"; }
+            QuickAction { title: "Go to Patients"; subtitle: "Open patient workspace"; glyph: "○"; accent: Theme.blurple; activated => { root.active-route = "Patients"; root.palette-open = false; } }
+            QuickAction { title: "Open Insights"; subtitle: "Population intelligence"; glyph: "▥"; accent: Theme.pine; activated => { root.active-route = "Insights"; root.palette-open = false; } }
+            QuickAction { title: "Open Workflows"; subtitle: "Automation studio"; glyph: "⌘"; accent: Theme.coral; activated => { root.active-route = "Workflows"; root.palette-open = false; } }
+        }
+    }
+}
