@@ -20,8 +20,11 @@ fn package_upgrade_rollback_scaffold_doctor_honest() {
     assert!(rq.migration_recovery_ready_base);
     assert!(!rq.release_ready);
     assert!(rq.is_honest_prep());
+    // Spec 058 supersedes the scaffold-only residual with real portable-package lifecycle proof.
+    assert!(rq.portable_release_package_qualified);
+    assert!(rq.package_lifecycle_qualified);
     assert!(
-        rq.missing_evidence_classes
+        !rq.missing_evidence_classes
             .contains(&"release_package_upgrade_rollback_proof".to_owned())
     );
 }

@@ -5,11 +5,11 @@
 **Rule:** update this file whenever a unit enters or leaves a canonical state.
 
 **Autonomous stop status (historical V2 scoped closure):** superseded for Trusted V1 follow-on work.
-**Live follow-on status (2026-09-11):** Specs **016**–**054** `CLOSED_CANONICAL` READY_BASE. Spec **054** native/full release SBOM qualification closed; Specs **055** (perf non-attainment dossier) and **056** (fixture a11y semantics) closed (`SPEC_054/055/056_PROMOTION.md`). Spec **012** DEFERRED_BY_CANONICAL_DESIGN (optional MESC integration). Spec **057** is `CLOSED_CANONICAL` for bounded Q05 release-qualification residual integrity. Honesty: `PRIVATE_DATA_READY=false`; `RELEASE_READY=false`; `budgets_claimed_met=false`; sandbox `platform_qualified=false`. Deferred advanced **058+**.
+**Live follow-on status (2026-09-11):** Specs **016**–**054** `CLOSED_CANONICAL` READY_BASE. Spec **054** native/full release SBOM qualification closed; Specs **055** (perf non-attainment dossier) and **056** (fixture a11y semantics) closed (`SPEC_054/055/056_PROMOTION.md`). Spec **012** DEFERRED_BY_CANONICAL_DESIGN (optional MESC integration). Spec **057** is `CLOSED_CANONICAL`; Spec **058** is `IN_REVIEW` for portable release package qualification after a fresh Q05 executability audit. Honesty: `PRIVATE_DATA_READY=false`; `RELEASE_READY=false`; `budgets_claimed_met=false`; sandbox `platform_qualified=false`. Deferred advanced **059+**.
 
 ## 2026-09-11 planning refinement
 
-See Trusted V1 delivery plan. Specs 018–057 READY_BASE closed; Spec 012 deferred as optional MESC integration. Advanced **058+** deferred.
+See Trusted V1 delivery plan. Specs 018–057 READY_BASE closed; Spec 058 is `IN_REVIEW`; Spec 012 deferred as optional MESC integration. Advanced **059+** deferred.
 
 ## Historical scoped queue (closures preserved)
 
@@ -73,7 +73,8 @@ See Trusted V1 delivery plan. Specs 018–057 READY_BASE closed; Spec 012 deferr
 | 055 | Perf Attainment Dossier (Q05 residual) | `CLOSED_CANONICAL` | READY_BASE dossier: PERFORMANCE_NON_ATTAINMENT bound to source/tree/lock; budgets not claimed. See `SPEC_055_PROMOTION.md`. |
 | 056 | Fixture A11y Semantics (a11y residual) | `CLOSED_CANONICAL` | READY_BASE deepening: role/keyboard/announcement semantics on every fixture view model; no WCAG claim. See `SPEC_056_PROMOTION.md`. |
 | 057 | Release Qualification Residual Integrity (Q05 residual) | `CLOSED_CANONICAL` | Fresh audit: complete cold-launch/idle-memory coverage + immutable Action pin enforcement; budgets/RELEASE_READY remain false. See `SPEC_057_PROMOTION.md`. |
-| 058+ | Advanced deferred work | `DEFERRED_BY_CANONICAL_DESIGN` | Plugins/GraphRAG/replicas/imaging/CUDA/etc. |
+| 058 | Portable Release Package Qualification (Q05 residual) | `IN_REVIEW` | Fresh audit: deterministic unsigned portable package + real install/upgrade/rollback lifecycle proof; signing/native installers/RELEASE_READY remain open. See `SPEC_058_PROMOTION.md`. |
+| 059+ | Advanced deferred work | `DEFERRED_BY_CANONICAL_DESIGN` | Plugins/GraphRAG/replicas/imaging/CUDA/etc. |
 
 ## Automatic progression
 
@@ -81,5 +82,5 @@ For the first `READY` unit: create/complete its Spec Kit package, analyze it, im
 
 Do not stop merely because a PR merged, one milestone passed, or an external optional gate exists.
 
-**Next eligible (honest):** Spec **057** is `CLOSED_CANONICAL`. Do not promote 058+ without a fresh executability audit proving another repository-owned residual. Spec 012 remains optional/deferred. Remaining release gaps still include qualified-hardware performance attainment, real installers/signing, App Sandbox signed enforcement, and WCAG/final-v0. Public source license and protected-main gates are closed. Do **not** claim `RELEASE_READY`, `PRIVATE_DATA_READY`, or `MULTI_CLIENT_RELEASE_READY`.
+**Next eligible (honest):** Spec **058** is the only promoted unit and is `IN_REVIEW` after a fresh Q05 executability audit proved missing real portable package/lifecycle evidence. Do not promote 059+ until 058 converges and a new audit proves another repository-owned residual. Spec 012 remains optional/deferred. Remaining release gaps still include qualified-hardware performance attainment, signing/provenance, App Sandbox signed enforcement, unresolved-material-findings clearance, and WCAG/final-v0. Public source license and protected-main gates are closed. Do **not** claim `RELEASE_READY`, `PRIVATE_DATA_READY`, or `MULTI_CLIENT_RELEASE_READY`.
 

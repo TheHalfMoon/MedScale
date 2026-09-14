@@ -20,8 +20,9 @@ fn migration_recovery_doctor_honest() {
     assert!(rq.release_dry_run_verifier_present);
     assert!(!rq.release_ready);
     assert!(rq.is_honest_prep());
+    // Spec 058 later closes the package lifecycle residual; Spec 048 recovery remains qualified.
     assert!(
-        rq.missing_evidence_classes
+        !rq.missing_evidence_classes
             .contains(&"release_package_upgrade_rollback_proof".to_owned())
     );
     assert!(

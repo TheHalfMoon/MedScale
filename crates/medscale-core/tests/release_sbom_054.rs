@@ -69,7 +69,10 @@ fn fixture_expected() -> ExpectedBinding {
 #[test]
 fn generator_is_deterministic() {
     let input = fixture_input();
-    assert_eq!(generate_release_sbom(&input), generate_release_sbom(&input));
+    let first = generate_release_sbom(&input);
+    assert_eq!(first, generate_release_sbom(&input));
+    assert!(first.contains("\"medscale:public_project_license\""));
+    assert!(first.contains("\"Apache-2.0\""));
 }
 
 #[test]

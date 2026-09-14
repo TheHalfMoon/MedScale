@@ -46,8 +46,14 @@ pub struct ReleaseQualificationDoctorStatus {
     pub release_dry_run_verifier_present: bool,
     /// Spec 048: vault-level migration interrupt + backup/restore recovery READY_BASE.
     pub migration_recovery_ready_base: bool,
-    /// Spec 049: package upgrade/rollback dry-run scaffold present (no real installers).
+    /// Spec 049: package upgrade/rollback dry-run scaffold present.
     pub package_upgrade_rollback_scaffold_present: bool,
+    /// Spec 058: deterministic unsigned portable release package qualified across required CI OSes.
+    #[serde(default)]
+    pub portable_release_package_qualified: bool,
+    /// Spec 058: real package install/upgrade/rollback lifecycle proof completed.
+    #[serde(default)]
+    pub package_lifecycle_qualified: bool,
     /// Spec 050: host-bound perf measurement operator path present (budgets not claimed).
     pub host_perf_measurement_path_present: bool,
     /// Spec 057: cold-launch + idle-memory runtime measurement coverage path is wired across CI OSes.
@@ -88,6 +94,8 @@ impl ReleaseQualificationDoctorStatus {
             release_dry_run_verifier_present: true,
             migration_recovery_ready_base: true,
             package_upgrade_rollback_scaffold_present: true,
+            portable_release_package_qualified: true,
+            package_lifecycle_qualified: true,
             host_perf_measurement_path_present: true,
             runtime_perf_measurement_coverage_present: true,
             required_checks_packet_synced: true,
@@ -96,11 +104,9 @@ impl ReleaseQualificationDoctorStatus {
             rights_license_decision: true,
             missing_evidence_classes: vec![
                 "macos_platform_product_qualification".to_owned(),
-                "reproducible_release_package_contents".to_owned(),
                 "release_sbom_signing_provenance".to_owned(),
                 "perf_budgets_attained_on_qualified_hardware".to_owned(),
                 "checksums_provenance_signing_verification".to_owned(),
-                "release_package_upgrade_rollback_proof".to_owned(),
                 "unresolved_material_findings_clearance".to_owned(),
                 "wcag_final_v0_ui_accessibility_qualification".to_owned(),
             ],
@@ -122,6 +128,8 @@ impl ReleaseQualificationDoctorStatus {
             && self.release_dry_run_verifier_present
             && self.migration_recovery_ready_base
             && self.package_upgrade_rollback_scaffold_present
+            && self.portable_release_package_qualified
+            && self.package_lifecycle_qualified
             && self.host_perf_measurement_path_present
             && self.runtime_perf_measurement_coverage_present
             && self.required_checks_packet_synced
@@ -143,7 +151,10 @@ impl ReleaseQualificationDoctorStatus {
             && self
                 .missing_evidence_classes
                 .contains(&"checksums_provenance_signing_verification".to_owned())
-            && self
+            && !self
+                .missing_evidence_classes
+                .contains(&"reproducible_release_package_contents".to_owned())
+            && !self
                 .missing_evidence_classes
                 .contains(&"release_package_upgrade_rollback_proof".to_owned())
             && self
@@ -751,6 +762,8 @@ mod release_qualification_tests {
         assert!(s.release_dry_run_verifier_present);
         assert!(s.migration_recovery_ready_base);
         assert!(s.package_upgrade_rollback_scaffold_present);
+        assert!(s.portable_release_package_qualified);
+        assert!(s.package_lifecycle_qualified);
         assert!(s.host_perf_measurement_path_present);
         assert!(s.runtime_perf_measurement_coverage_present);
         assert!(s.required_checks_packet_synced);
@@ -782,8 +795,12 @@ mod release_qualification_tests {
                 .contains(&"checksums_provenance_signing_verification".to_owned())
         );
         assert!(
-            s.missing_evidence_classes
+            !s.missing_evidence_classes
                 .contains(&"release_package_upgrade_rollback_proof".to_owned())
+        );
+        assert!(
+            !s.missing_evidence_classes
+                .contains(&"reproducible_release_package_contents".to_owned())
         );
         assert!(
             !s.missing_evidence_classes

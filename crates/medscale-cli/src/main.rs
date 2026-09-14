@@ -360,7 +360,7 @@ fn run() -> Result<()> {
                     report.workflow.disclosure_append_supported
                 );
                 println!(
-                    "release_qualification: prep_ready_base={} release_ready={} locked={} macos_ci={} macos_qualified={} branch_protection={} perf_harness={} sbom_scaffold={} sbom_lock_bound={} release_sbom_qualified={} dry_run_verifier={} migration_recovery={} pkg_upgrade_scaffold={} host_perf_path={} required_checks_synced={} notice_inventory={} rights_license_decision={} missing={}",
+                    "release_qualification: prep_ready_base={} release_ready={} locked={} macos_ci={} macos_qualified={} branch_protection={} perf_harness={} sbom_scaffold={} sbom_lock_bound={} release_sbom_qualified={} dry_run_verifier={} migration_recovery={} pkg_upgrade_scaffold={} portable_package={} package_lifecycle={} host_perf_path={} required_checks_synced={} notice_inventory={} rights_license_decision={} missing={}",
                     report.release_qualification.prep_ready_base,
                     report.release_qualification.release_ready,
                     report.release_qualification.locked_builds,
@@ -378,6 +378,10 @@ fn run() -> Result<()> {
                     report
                         .release_qualification
                         .package_upgrade_rollback_scaffold_present,
+                    report
+                        .release_qualification
+                        .portable_release_package_qualified,
+                    report.release_qualification.package_lifecycle_qualified,
                     report
                         .release_qualification
                         .host_perf_measurement_path_present,
@@ -766,6 +770,8 @@ mod tests {
             "release_dry_run_verifier_present",
             "migration_recovery_ready_base",
             "package_upgrade_rollback_scaffold_present",
+            "portable_release_package_qualified",
+            "package_lifecycle_qualified",
             "host_perf_measurement_path_present",
             "required_checks_packet_synced",
             "accessibility",

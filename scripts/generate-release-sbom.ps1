@@ -1,8 +1,8 @@
 # Generate the deterministic Spec 054 CycloneDX release SBOM from live source
 # state (Spec 054). Binds source/tree/Cargo.lock SHAs + workspace + Rust +
 # native inventories + artifacts + Pack assets. This is READY_BASE evidence:
-# signing/provenance/installer qualification and the public license decision
-# remain external. Prefer re-running from repo root.
+# signing/provenance/installer qualification remain external. Apache-2.0 is the
+# founder-selected public source license. Prefer re-running from repo root.
 #
 # Usage:
 #   pwsh ./scripts/generate-release-sbom.ps1
@@ -17,13 +17,27 @@ $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path -Parent $PSScriptRoot
 Set-Location $repoRoot
 
+function Resolve-RepoPath([string]$Path) {
+    if ([IO.Path]::IsPathRooted($Path)) { return [IO.Path]::GetFullPath($Path) }
+    return [IO.Path]::GetFullPath((Join-Path $repoRoot $Path))
+}
+
 $sourceSha = (git -C $repoRoot rev-parse HEAD).Trim()
 $treeSha = (git -C $repoRoot rev-parse 'HEAD^{tree}').Trim()
 $lockHash = (Get-FileHash -Algorithm SHA256 -Path (Join-Path $repoRoot 'Cargo.lock')).Hash.ToLowerInvariant()
 $rustc = (rustc --version).Trim()
 $cargo = (cargo --version).Trim()
-$osVersion = (Get-CimInstance Win32_OperatingSystem -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Caption -ErrorAction SilentlyContinue)
-if (-not $osVersion) { $osVersion = [System.Environment]::OSVersion.VersionString }
+$buildOs = if ($IsWindows) { 'windows' } elseif ($IsMacOS) { 'macos' } elseif ($IsLinux) { 'linux' } else { 'unknown' }
+$osVersion = [System.Environment]::OSVersion.VersionString
+if ($IsWindows) {
+    try {
+        $caption = Get-CimInstance Win32_OperatingSystem -ErrorAction Stop | Select-Object -ExpandProperty Caption
+        if ($caption) { $osVersion = [string]$caption }
+    } catch { }
+}
+$hostLine = rustc -vV | Where-Object { $_ -match '^host:' } | Select-Object -First 1
+$targetTriple = ([string]$hostLine -replace '^host:\s*', '').Trim()
+if ([string]::IsNullOrWhiteSpace($targetTriple)) { throw 'rustc host target triple unavailable' }
 
 $metadata = (cargo metadata --format-version 1 --locked | Out-String) | ConvertFrom-Json
 $workspaceIds = @($metadata.workspace_members)
@@ -165,13 +179,13 @@ $bom = [ordered]@{
         properties = @(
             @{ name = 'medscale:sbom_kind'; value = 'release_qualified_cyclonedx15' }
             @{ name = 'medscale:sbom_document_format'; value = 'CycloneDX-1.5 (SBOM format; not the public project license)' }
-            @{ name = 'medscale:public_project_license'; value = 'UNDECIDED_EXTERNAL_LEGAL_DECISION' }
+            @{ name = 'medscale:public_project_license'; value = 'Apache-2.0' }
             @{ name = 'medscale:source_sha'; value = $sourceSha }
             @{ name = 'medscale:tree_sha'; value = $treeSha }
             @{ name = 'medscale:cargo_lock_sha256'; value = $lockHash }
-            @{ name = 'medscale:build_os'; value = 'windows' }
+            @{ name = 'medscale:build_os'; value = $buildOs }
             @{ name = 'medscale:build_os_version'; value = "$osVersion" }
-            @{ name = 'medscale:target_triple'; value = 'x86_64-pc-windows-msvc' }
+            @{ name = 'medscale:target_triple'; value = $targetTriple }
             @{ name = 'medscale:rustc'; value = $rustc }
             @{ name = 'medscale:cargo'; value = $cargo }
             @{ name = 'medscale:reproducible_build'; value = 'unproven' }
@@ -181,7 +195,7 @@ $bom = [ordered]@{
     components = $sorted
 }
 
-$outFull = Join-Path $repoRoot $OutPath
+$outFull = Resolve-RepoPath $OutPath
 $outDir = Split-Path -Parent $outFull
 if (-not (Test-Path $outDir)) { New-Item -ItemType Directory -Force -Path $outDir | Out-Null }
 ($bom | ConvertTo-Json -Depth 12) | Set-Content -Path $outFull -Encoding utf8
