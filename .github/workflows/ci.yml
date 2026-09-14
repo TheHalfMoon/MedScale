@@ -36,6 +36,12 @@ jobs:
       - name: Cache cargo
         uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
 
+      - name: Install Linux native Desktop build dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libfontconfig1-dev
+
       - name: Install Perl (Windows OpenSSL vendor build)
         if: runner.os == 'Windows'
         shell: pwsh

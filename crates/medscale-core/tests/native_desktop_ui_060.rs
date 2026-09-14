@@ -126,6 +126,7 @@ fn product_phase_keeps_mobile_after_desktop_cli_launch() {
     let design = std::fs::read_to_string(root.join("DESIGN.md")).expect("design truth");
     let queue =
         std::fs::read_to_string(root.join("docs/planning/BUILD_QUEUE.md")).expect("build queue");
+    let ci = std::fs::read_to_string(root.join(".github/workflows/ci.yml")).expect("CI workflow");
 
     assert!(product.contains("Desktop and CLI are the launch surfaces"));
     assert!(product.contains("Mobile applications come only after Desktop + CLI launch"));
@@ -135,4 +136,6 @@ fn product_phase_keeps_mobile_after_desktop_cli_launch() {
     assert!(design.contains("polish`"));
     assert!(queue.contains("065 | CLI Product Experience + Capability Parity"));
     assert!(queue.contains("Mobile remains deferred until Desktop+CLI launch"));
+    assert!(ci.contains("Install Linux native Desktop build dependencies"));
+    assert!(ci.contains("libfontconfig1-dev"));
 }

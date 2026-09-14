@@ -25,5 +25,8 @@ The Slint cross-platform/build graph requires narrowly scoped licenses that are 
 
 `deny.toml` permits these licenses only for the exact crates above. It does not globally allow BSL-1.0 or NCSA.
 
+## Linux build prerequisite
+Slint 1.16.1's native Linux font stack uses `fontconfig` through `yeslogic-fontconfig-sys`. The required CI matrix therefore installs `libfontconfig1-dev` on Ubuntu before Rust compilation. This is a build prerequisite for the native Desktop target, not a WebView/browser dependency.
+
 ## Update policy
 Stay pinned to 1.16.1 until a later dependency/release qualification unit admits another Slint line and proves its MSRV, licenses, advisories, accessibility path, and renderer behavior.

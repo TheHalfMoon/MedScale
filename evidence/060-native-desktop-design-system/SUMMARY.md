@@ -9,3 +9,5 @@ Founder-approved visual direction supplied on 2026-09-15 is normalized into `PRO
 Local full fmt/clippy/workspace tests and macOS native-window launch passed; see `LOCAL_QUALIFICATION.md`. Exact-head three-OS CI is still required before canonical closure.
 
 The first PR exact-head run exposed and rejected `RUSTSEC-2026-0253` in the Slint 1.13.1 femtovg path. The candidate was hardened to Slint 1.16.1 / MSRV 1.88, which removes the vulnerable `lru` package from the active all-features/all-target graph without disabling the GPU renderer or weakening `cargo-deny`.
+
+The second exact-head PR run confirmed `cargo-deny` success after the Slint 1.16.1 hardening, then exposed a Linux runner prerequisite: Ubuntu lacked `fontconfig.pc`. CI now installs the minimal `libfontconfig1-dev` native build dependency before the Rust matrix build.
