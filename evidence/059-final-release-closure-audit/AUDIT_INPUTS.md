@@ -11,3 +11,5 @@ Fresh audit observations before Spec 059 mutation:
 - Protected main ruleset: active `protect-main` id `23259329`, six required checks, no bypass actors.
 - Live stale assertions found: Spec 058 still IN_REVIEW in planning docs; release checklist still said no package pipeline/SBOM; signing packet still said SPDX pending; EXTERNAL_GATES footer still described historical unprotected main.
 - Doctor missing release classes: six, of which five are external and one is repository-owned `unresolved_material_findings_clearance`.
+
+First Spec 059 exact-head run `34888336406` on `a268abf7e3a23ac4ce09bd638d6b475469b3f312` passed all six required jobs. GitHub emitted Node.js 20 deprecation annotations for the pinned checkout/upload actions; the terminal audit classified this as a repository-owned CI maintenance finding and upgraded to immutable Node.js 24 action revisions before closure.

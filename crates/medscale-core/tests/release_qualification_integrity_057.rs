@@ -47,7 +47,8 @@ fn every_github_action_use_is_sha_pinned() {
         uses_count >= 8,
         "unexpectedly small action inventory: {uses_count}"
     );
-    assert!(workflow.contains("actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02"));
+    assert!(workflow.contains("actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f"));
+    assert!(workflow.contains("actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803"));
 }
 
 #[test]
