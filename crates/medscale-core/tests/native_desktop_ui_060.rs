@@ -79,10 +79,26 @@ fn native_desktop_shell_is_pinned_non_webview_and_branded() {
     assert!(mark.contains("#5B5CF6"));
     let deny = std::fs::read_to_string(root.join("deny.toml")).expect("deny config");
     assert!(deny.contains("LicenseRef-Slint-Royalty-free-2.0"));
+    assert!(deny.contains("clipboard-win@5.4.1"));
+    assert!(deny.contains("error-code@3.4.0"));
     assert!(deny.contains("libfuzzer-sys@0.4.13"));
+    assert!(!deny.contains("dwrote@0.11.5"));
     assert!(app.contains("AboutSlint"));
+
     let lock = std::fs::read_to_string(root.join("Cargo.lock")).expect("Cargo lock");
     assert!(!lock.contains("name = \"lru\"\nversion = \"0.16.4\""));
+    assert!(lock.contains("name = \"smol_str\""));
+    assert!(lock.contains("version = \"0.3.2\""));
+    assert!(lock.contains("name = \"typed-index-collections\""));
+    assert!(lock.contains("version = \"3.3.0\""));
+
+    let notice = std::fs::read_to_string(root.join("docs/legal/NOTICE_INVENTORY.md"))
+        .expect("NOTICE inventory");
+    assert!(notice.contains("| slint | 1.16.1 |"));
+    assert!(notice.contains("| femtovg | 0.23.2 |"));
+    assert!(notice.contains("| accesskit | 0.22.0 |"));
+    assert!(!notice.contains("| slint | 1.13.1 |"));
+    assert!(!notice.contains("| lru | 0.16.4 |"));
 }
 
 #[test]

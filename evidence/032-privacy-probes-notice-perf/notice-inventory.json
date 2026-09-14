@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "spec_id": "032-privacy-probes-notice-perf",
-  "generated_utc": "2026-09-14T22:47:01.547936Z",
-  "git_sha": "46b5ed52502c609875f88597818412d1289b25f3",
-  "git_tree": "6f0ecf94bb8c97fa02ee2370b4dae44d57e79d13",
+  "generated_utc": "2026-09-14T23:21:08.420193Z",
+  "git_sha": "1754a9d1c0e8f30db84812c082640008fb79cc44",
+  "git_tree": "2addde14b80df50a4eb44d0fa364bf082005e619",
   "rights_license_decision": true,
   "medscale_spdx_chosen": true,
   "medscale_spdx_identifier": "Apache-2.0",
@@ -21,7 +21,7 @@
     "CDLA-Permissive-2.0",
     "LicenseRef-Slint-Royalty-free-2.0"
   ],
-  "package_count": 699,
+  "package_count": 714,
   "packages": [
     {
       "name": "ab_glyph",
@@ -41,7 +41,7 @@
     },
     {
       "name": "accesskit",
-      "version": "0.20.0",
+      "version": "0.22.0",
       "license": "MIT OR Apache-2.0",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
       "workspace_crate": false,
@@ -49,7 +49,7 @@
     },
     {
       "name": "accesskit_atspi_common",
-      "version": "0.13.0",
+      "version": "0.15.0",
       "license": "MIT OR Apache-2.0",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
       "workspace_crate": false,
@@ -57,7 +57,7 @@
     },
     {
       "name": "accesskit_consumer",
-      "version": "0.29.0",
+      "version": "0.32.0",
       "license": "MIT OR Apache-2.0",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
       "workspace_crate": false,
@@ -65,7 +65,7 @@
     },
     {
       "name": "accesskit_macos",
-      "version": "0.21.0",
+      "version": "0.23.0",
       "license": "MIT OR Apache-2.0",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
       "workspace_crate": false,
@@ -73,7 +73,7 @@
     },
     {
       "name": "accesskit_unix",
-      "version": "0.16.0",
+      "version": "0.18.0",
       "license": "MIT OR Apache-2.0",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
       "workspace_crate": false,
@@ -81,7 +81,7 @@
     },
     {
       "name": "accesskit_windows",
-      "version": "0.28.0",
+      "version": "0.30.0",
       "license": "MIT OR Apache-2.0",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
       "workspace_crate": false,
@@ -89,7 +89,7 @@
     },
     {
       "name": "accesskit_winit",
-      "version": "0.28.0",
+      "version": "0.30.0",
       "license": "Apache-2.0",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
       "workspace_crate": false,
@@ -186,6 +186,14 @@
     {
       "name": "android_system_properties",
       "version": "0.1.6",
+      "license": "MIT OR Apache-2.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "workspace_crate": false,
+      "publish": null
+    },
+    {
+      "name": "annotate-snippets",
+      "version": "0.12.16",
       "license": "MIT OR Apache-2.0",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
       "workspace_crate": false,
@@ -385,7 +393,7 @@
     },
     {
       "name": "atspi",
-      "version": "0.25.0",
+      "version": "0.29.0",
       "license": "Apache-2.0 OR MIT",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
       "workspace_crate": false,
@@ -393,15 +401,7 @@
     },
     {
       "name": "atspi-common",
-      "version": "0.9.0",
-      "license": "Apache-2.0 OR MIT",
-      "source": "registry+https://github.com/rust-lang/crates.io-index",
-      "workspace_crate": false,
-      "publish": null
-    },
-    {
-      "name": "atspi-connection",
-      "version": "0.9.0",
+      "version": "0.13.0",
       "license": "Apache-2.0 OR MIT",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
       "workspace_crate": false,
@@ -409,7 +409,7 @@
     },
     {
       "name": "atspi-proxies",
-      "version": "0.9.0",
+      "version": "0.13.0",
       "license": "Apache-2.0 OR MIT",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
       "workspace_crate": false,
@@ -792,22 +792,6 @@
       "publish": null
     },
     {
-      "name": "codemap",
-      "version": "0.1.3",
-      "license": "MIT/Apache-2.0",
-      "source": "registry+https://github.com/rust-lang/crates.io-index",
-      "workspace_crate": false,
-      "publish": null
-    },
-    {
-      "name": "codemap-diagnostic",
-      "version": "0.1.2",
-      "license": "MIT/Apache-2.0",
-      "source": "registry+https://github.com/rust-lang/crates.io-index",
-      "workspace_crate": false,
-      "publish": null
-    },
-    {
       "name": "color_quant",
       "version": "1.1.0",
       "license": "MIT",
@@ -841,7 +825,7 @@
     },
     {
       "name": "const-field-offset",
-      "version": "0.1.5",
+      "version": "0.2.1",
       "license": "MIT OR Apache-2.0",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
       "workspace_crate": false,
@@ -849,7 +833,7 @@
     },
     {
       "name": "const-field-offset-macro",
-      "version": "0.1.5",
+      "version": "0.2.1",
       "license": "MIT OR Apache-2.0",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
       "workspace_crate": false,
@@ -857,7 +841,7 @@
     },
     {
       "name": "const-oid",
-      "version": "0.10.2",
+      "version": "0.9.6",
       "license": "Apache-2.0 OR MIT",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
       "workspace_crate": false,
@@ -865,7 +849,7 @@
     },
     {
       "name": "const-oid",
-      "version": "0.9.6",
+      "version": "0.10.2",
       "license": "Apache-2.0 OR MIT",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
       "workspace_crate": false,
@@ -905,7 +889,7 @@
     },
     {
       "name": "core-foundation",
-      "version": "0.10.1",
+      "version": "0.9.4",
       "license": "MIT OR Apache-2.0",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
       "workspace_crate": false,
@@ -913,7 +897,7 @@
     },
     {
       "name": "core-foundation",
-      "version": "0.9.4",
+      "version": "0.10.1",
       "license": "MIT OR Apache-2.0",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
       "workspace_crate": false,
@@ -936,32 +920,8 @@
       "publish": null
     },
     {
-      "name": "core-graphics",
-      "version": "0.24.0",
-      "license": "MIT OR Apache-2.0",
-      "source": "registry+https://github.com/rust-lang/crates.io-index",
-      "workspace_crate": false,
-      "publish": null
-    },
-    {
       "name": "core-graphics-types",
       "version": "0.1.3",
-      "license": "MIT OR Apache-2.0",
-      "source": "registry+https://github.com/rust-lang/crates.io-index",
-      "workspace_crate": false,
-      "publish": null
-    },
-    {
-      "name": "core-graphics-types",
-      "version": "0.2.0",
-      "license": "MIT OR Apache-2.0",
-      "source": "registry+https://github.com/rust-lang/crates.io-index",
-      "workspace_crate": false,
-      "publish": null
-    },
-    {
-      "name": "core-text",
-      "version": "21.0.0",
       "license": "MIT OR Apache-2.0",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
       "workspace_crate": false,
@@ -1280,14 +1240,6 @@
       "publish": null
     },
     {
-      "name": "dwrote",
-      "version": "0.11.5",
-      "license": "MPL-2.0",
-      "source": "registry+https://github.com/rust-lang/crates.io-index",
-      "workspace_crate": false,
-      "publish": null
-    },
-    {
       "name": "ed25519",
       "version": "2.2.3",
       "license": "Apache-2.0 OR MIT",
@@ -1449,7 +1401,7 @@
     },
     {
       "name": "femtovg",
-      "version": "0.17.0",
+      "version": "0.23.2",
       "license": "MIT OR Apache-2.0",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
       "workspace_crate": false,
@@ -1528,9 +1480,17 @@
       "publish": null
     },
     {
-      "name": "fontconfig-parser",
-      "version": "0.5.8",
-      "license": "MIT",
+      "name": "font-types",
+      "version": "0.11.3",
+      "license": "MIT OR Apache-2.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "workspace_crate": false,
+      "publish": null
+    },
+    {
+      "name": "font-types",
+      "version": "0.12.5",
+      "license": "MIT OR Apache-2.0",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
       "workspace_crate": false,
       "publish": null
@@ -1544,9 +1504,9 @@
       "publish": null
     },
     {
-      "name": "fontdue",
-      "version": "0.9.4",
-      "license": "MIT OR Apache-2.0 OR Zlib",
+      "name": "fontique",
+      "version": "0.8.0",
+      "license": "Apache-2.0 OR MIT",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
       "workspace_crate": false,
       "publish": null
@@ -1696,6 +1656,14 @@
       "publish": null
     },
     {
+      "name": "getopts",
+      "version": "0.2.24",
+      "license": "MIT OR Apache-2.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "workspace_crate": false,
+      "publish": null
+    },
+    {
       "name": "getrandom",
       "version": "0.2.17",
       "license": "MIT OR Apache-2.0",
@@ -1729,14 +1697,6 @@
     },
     {
       "name": "gif",
-      "version": "0.13.3",
-      "license": "MIT OR Apache-2.0",
-      "source": "registry+https://github.com/rust-lang/crates.io-index",
-      "workspace_crate": false,
-      "publish": null
-    },
-    {
-      "name": "gif",
       "version": "0.14.2",
       "license": "MIT OR Apache-2.0",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
@@ -1761,7 +1721,7 @@
     },
     {
       "name": "glow",
-      "version": "0.16.0",
+      "version": "0.17.0",
       "license": "MIT OR Apache-2.0 OR Zlib",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
       "workspace_crate": false,
@@ -1808,9 +1768,25 @@
       "publish": null
     },
     {
+      "name": "grid",
+      "version": "1.0.1",
+      "license": "MIT",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "workspace_crate": false,
+      "publish": null
+    },
+    {
       "name": "half",
       "version": "2.7.1",
       "license": "MIT OR Apache-2.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "workspace_crate": false,
+      "publish": null
+    },
+    {
+      "name": "harfrust",
+      "version": "0.5.2",
+      "license": "MIT",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
       "workspace_crate": false,
       "publish": null
@@ -1888,6 +1864,14 @@
       "publish": null
     },
     {
+      "name": "htmlparser",
+      "version": "0.2.1",
+      "license": "MIT OR Apache-2.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "workspace_crate": false,
+      "publish": null
+    },
+    {
       "name": "http",
       "version": "1.5.0",
       "license": "MIT OR Apache-2.0",
@@ -1913,7 +1897,7 @@
     },
     {
       "name": "i-slint-backend-linuxkms",
-      "version": "1.13.1",
+      "version": "1.16.1",
       "license": "GPL-3.0-only OR LicenseRef-Slint-Royalty-free-2.0 OR LicenseRef-Slint-Software-3.0",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
       "workspace_crate": false,
@@ -1921,7 +1905,7 @@
     },
     {
       "name": "i-slint-backend-selector",
-      "version": "1.13.1",
+      "version": "1.16.1",
       "license": "GPL-3.0-only OR LicenseRef-Slint-Royalty-free-2.0 OR LicenseRef-Slint-Software-3.0",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
       "workspace_crate": false,
@@ -1929,7 +1913,7 @@
     },
     {
       "name": "i-slint-backend-winit",
-      "version": "1.13.1",
+      "version": "1.16.1",
       "license": "GPL-3.0-only OR LicenseRef-Slint-Royalty-free-2.0 OR LicenseRef-Slint-Software-3.0",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
       "workspace_crate": false,
@@ -1937,7 +1921,7 @@
     },
     {
       "name": "i-slint-common",
-      "version": "1.13.1",
+      "version": "1.16.1",
       "license": "GPL-3.0-only OR LicenseRef-Slint-Royalty-free-2.0 OR LicenseRef-Slint-Software-3.0",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
       "workspace_crate": false,
@@ -1945,7 +1929,7 @@
     },
     {
       "name": "i-slint-compiler",
-      "version": "1.13.1",
+      "version": "1.16.1",
       "license": "GPL-3.0-only OR LicenseRef-Slint-Royalty-free-2.0 OR LicenseRef-Slint-Software-3.0",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
       "workspace_crate": false,
@@ -1953,7 +1937,7 @@
     },
     {
       "name": "i-slint-core",
-      "version": "1.13.1",
+      "version": "1.16.1",
       "license": "GPL-3.0-only OR LicenseRef-Slint-Royalty-free-2.0 OR LicenseRef-Slint-Software-3.0",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
       "workspace_crate": false,
@@ -1961,7 +1945,7 @@
     },
     {
       "name": "i-slint-core-macros",
-      "version": "1.13.1",
+      "version": "1.16.1",
       "license": "GPL-3.0-only OR LicenseRef-Slint-Royalty-free-2.0 OR LicenseRef-Slint-Software-3.0",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
       "workspace_crate": false,
@@ -1969,7 +1953,7 @@
     },
     {
       "name": "i-slint-renderer-femtovg",
-      "version": "1.13.1",
+      "version": "1.16.1",
       "license": "GPL-3.0-only OR LicenseRef-Slint-Royalty-free-2.0 OR LicenseRef-Slint-Software-3.0",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
       "workspace_crate": false,
@@ -1977,7 +1961,15 @@
     },
     {
       "name": "i-slint-renderer-skia",
-      "version": "1.13.1",
+      "version": "1.16.1",
+      "license": "GPL-3.0-only OR LicenseRef-Slint-Royalty-free-2.0 OR LicenseRef-Slint-Software-3.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "workspace_crate": false,
+      "publish": null
+    },
+    {
+      "name": "i-slint-renderer-software",
+      "version": "1.16.1",
       "license": "GPL-3.0-only OR LicenseRef-Slint-Royalty-free-2.0 OR LicenseRef-Slint-Software-3.0",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
       "workspace_crate": false,
@@ -2009,6 +2001,22 @@
     },
     {
       "name": "icu_locale_core",
+      "version": "2.3.0",
+      "license": "Unicode-3.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "workspace_crate": false,
+      "publish": null
+    },
+    {
+      "name": "icu_locale_fallback",
+      "version": "2.3.0",
+      "license": "Unicode-3.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "workspace_crate": false,
+      "publish": null
+    },
+    {
+      "name": "icu_locale_fallback_data",
       "version": "2.3.0",
       "license": "Unicode-3.0",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
@@ -2056,6 +2064,22 @@
       "publish": null
     },
     {
+      "name": "icu_segmenter",
+      "version": "2.3.0",
+      "license": "Unicode-3.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "workspace_crate": false,
+      "publish": null
+    },
+    {
+      "name": "icu_segmenter_data",
+      "version": "2.3.0",
+      "license": "Unicode-3.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "workspace_crate": false,
+      "publish": null
+    },
+    {
       "name": "idna",
       "version": "1.1.0",
       "license": "MIT OR Apache-2.0",
@@ -2089,7 +2113,7 @@
     },
     {
       "name": "imagesize",
-      "version": "0.13.0",
+      "version": "0.14.0",
       "license": "MIT",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
       "workspace_crate": false,
@@ -2281,7 +2305,7 @@
     },
     {
       "name": "kurbo",
-      "version": "0.11.3",
+      "version": "0.13.1",
       "license": "Apache-2.0 OR MIT",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
       "workspace_crate": false,
@@ -2368,9 +2392,9 @@
       "publish": null
     },
     {
-      "name": "linereader",
-      "version": "0.4.0",
-      "license": "MIT",
+      "name": "linebender_resource_handle",
+      "version": "0.1.1",
+      "license": "Apache-2.0 OR MIT",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
       "workspace_crate": false,
       "publish": null
@@ -2401,14 +2425,6 @@
     },
     {
       "name": "linux-raw-sys",
-      "version": "0.12.1",
-      "license": "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT",
-      "source": "registry+https://github.com/rust-lang/crates.io-index",
-      "workspace_crate": false,
-      "publish": null
-    },
-    {
-      "name": "linux-raw-sys",
       "version": "0.4.15",
       "license": "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
@@ -2418,6 +2434,14 @@
     {
       "name": "linux-raw-sys",
       "version": "0.9.4",
+      "license": "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "workspace_crate": false,
+      "publish": null
+    },
+    {
+      "name": "linux-raw-sys",
+      "version": "0.12.1",
       "license": "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
       "workspace_crate": false,
@@ -2450,14 +2474,6 @@
     {
       "name": "loop9",
       "version": "0.1.5",
-      "license": "MIT",
-      "source": "registry+https://github.com/rust-lang/crates.io-index",
-      "workspace_crate": false,
-      "publish": null
-    },
-    {
-      "name": "lru",
-      "version": "0.16.4",
       "license": "MIT",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
       "workspace_crate": false,
@@ -2633,8 +2649,16 @@
     },
     {
       "name": "muda",
-      "version": "0.17.2",
+      "version": "0.18.0",
       "license": "Apache-2.0 OR MIT",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "workspace_crate": false,
+      "publish": null
+    },
+    {
+      "name": "natord",
+      "version": "1.0.9",
+      "license": "MIT",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
       "workspace_crate": false,
       "publish": null
@@ -3008,6 +3032,14 @@
       "publish": null
     },
     {
+      "name": "objc2-ui-kit",
+      "version": "0.3.2",
+      "license": "Zlib OR Apache-2.0 OR MIT",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "workspace_crate": false,
+      "publish": null
+    },
+    {
       "name": "objc2-uniform-type-identifiers",
       "version": "0.2.2",
       "license": "MIT",
@@ -3090,6 +3122,30 @@
     {
       "name": "parking",
       "version": "2.2.1",
+      "license": "Apache-2.0 OR MIT",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "workspace_crate": false,
+      "publish": null
+    },
+    {
+      "name": "parlance",
+      "version": "0.1.0",
+      "license": "Apache-2.0 OR MIT",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "workspace_crate": false,
+      "publish": null
+    },
+    {
+      "name": "parley",
+      "version": "0.8.0",
+      "license": "Apache-2.0 OR MIT",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "workspace_crate": false,
+      "publish": null
+    },
+    {
+      "name": "parley_data",
+      "version": "0.8.0",
       "license": "Apache-2.0 OR MIT",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
       "workspace_crate": false,
@@ -3224,17 +3280,17 @@
       "publish": null
     },
     {
-      "name": "polib",
-      "version": "0.2.0",
-      "license": "MIT",
+      "name": "polling",
+      "version": "3.11.0",
+      "license": "Apache-2.0 OR MIT",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
       "workspace_crate": false,
       "publish": null
     },
     {
-      "name": "polling",
-      "version": "3.11.0",
-      "license": "Apache-2.0 OR MIT",
+      "name": "polycool",
+      "version": "0.4.0",
+      "license": "MIT OR Apache-2.0",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
       "workspace_crate": false,
       "publish": null
@@ -3315,6 +3371,22 @@
       "name": "profiling-procmacros",
       "version": "1.0.18",
       "license": "MIT OR Apache-2.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "workspace_crate": false,
+      "publish": null
+    },
+    {
+      "name": "pulldown-cmark",
+      "version": "0.13.4",
+      "license": "MIT",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "workspace_crate": false,
+      "publish": null
+    },
+    {
+      "name": "pulldown-cmark-escape",
+      "version": "0.11.0",
+      "license": "MIT",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
       "workspace_crate": false,
       "publish": null
@@ -3496,6 +3568,22 @@
       "publish": null
     },
     {
+      "name": "read-fonts",
+      "version": "0.37.0",
+      "license": "MIT OR Apache-2.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "workspace_crate": false,
+      "publish": null
+    },
+    {
+      "name": "read-fonts",
+      "version": "0.41.0",
+      "license": "MIT OR Apache-2.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "workspace_crate": false,
+      "publish": null
+    },
+    {
       "name": "reborrow",
       "version": "0.5.5",
       "license": "MIT",
@@ -3561,7 +3649,7 @@
     },
     {
       "name": "resvg",
-      "version": "0.45.1",
+      "version": "0.47.0",
       "license": "Apache-2.0 OR MIT",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
       "workspace_crate": false,
@@ -3593,8 +3681,16 @@
     },
     {
       "name": "roxmltree",
-      "version": "0.20.0",
+      "version": "0.21.1",
       "license": "MIT OR Apache-2.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "workspace_crate": false,
+      "publish": null
+    },
+    {
+      "name": "rspolib",
+      "version": "0.1.2",
+      "license": "MIT",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
       "workspace_crate": false,
       "publish": null
@@ -3801,7 +3897,7 @@
     },
     {
       "name": "serde_spanned",
-      "version": "0.6.9",
+      "version": "1.1.1",
       "license": "MIT OR Apache-2.0",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
       "workspace_crate": false,
@@ -3905,7 +4001,7 @@
     },
     {
       "name": "skia-bindings",
-      "version": "0.87.0",
+      "version": "0.90.0",
       "license": "MIT",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
       "workspace_crate": false,
@@ -3913,8 +4009,24 @@
     },
     {
       "name": "skia-safe",
-      "version": "0.87.0",
+      "version": "0.90.0",
       "license": "MIT",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "workspace_crate": false,
+      "publish": null
+    },
+    {
+      "name": "skrifa",
+      "version": "0.40.0",
+      "license": "MIT OR Apache-2.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "workspace_crate": false,
+      "publish": null
+    },
+    {
+      "name": "skrifa",
+      "version": "0.44.0",
+      "license": "MIT OR Apache-2.0",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
       "workspace_crate": false,
       "publish": null
@@ -3929,7 +4041,7 @@
     },
     {
       "name": "slint",
-      "version": "1.13.1",
+      "version": "1.16.1",
       "license": "GPL-3.0-only OR LicenseRef-Slint-Royalty-free-2.0 OR LicenseRef-Slint-Software-3.0",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
       "workspace_crate": false,
@@ -3937,7 +4049,7 @@
     },
     {
       "name": "slint-build",
-      "version": "1.13.1",
+      "version": "1.16.1",
       "license": "GPL-3.0-only OR LicenseRef-Slint-Royalty-free-2.0 OR LicenseRef-Slint-Software-3.0",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
       "workspace_crate": false,
@@ -3945,7 +4057,7 @@
     },
     {
       "name": "slint-macros",
-      "version": "1.13.1",
+      "version": "1.16.1",
       "license": "GPL-3.0-only OR LicenseRef-Slint-Royalty-free-2.0 OR LicenseRef-Slint-Software-3.0",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
       "workspace_crate": false,
@@ -4001,7 +4113,23 @@
     },
     {
       "name": "smol_str",
-      "version": "0.3.6",
+      "version": "0.3.2",
+      "license": "MIT OR Apache-2.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "workspace_crate": false,
+      "publish": null
+    },
+    {
+      "name": "snafu",
+      "version": "0.8.9",
+      "license": "MIT OR Apache-2.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "workspace_crate": false,
+      "publish": null
+    },
+    {
+      "name": "snafu-derive",
+      "version": "0.8.9",
       "license": "MIT OR Apache-2.0",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
       "workspace_crate": false,
@@ -4065,7 +4193,7 @@
     },
     {
       "name": "strum",
-      "version": "0.27.2",
+      "version": "0.28.0",
       "license": "MIT",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
       "workspace_crate": false,
@@ -4073,7 +4201,7 @@
     },
     {
       "name": "strum_macros",
-      "version": "0.27.2",
+      "version": "0.28.0",
       "license": "MIT",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
       "workspace_crate": false,
@@ -4089,7 +4217,15 @@
     },
     {
       "name": "svgtypes",
-      "version": "0.15.3",
+      "version": "0.16.1",
+      "license": "Apache-2.0 OR MIT",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "workspace_crate": false,
+      "publish": null
+    },
+    {
+      "name": "swash",
+      "version": "0.2.10",
       "license": "Apache-2.0 OR MIT",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
       "workspace_crate": false,
@@ -4128,6 +4264,14 @@
       "publish": null
     },
     {
+      "name": "taffy",
+      "version": "0.9.2",
+      "license": "MIT",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "workspace_crate": false,
+      "publish": null
+    },
+    {
       "name": "tar",
       "version": "0.4.46",
       "license": "MIT OR Apache-2.0",
@@ -4139,14 +4283,6 @@
       "name": "tempfile",
       "version": "3.27.0",
       "license": "MIT OR Apache-2.0",
-      "source": "registry+https://github.com/rust-lang/crates.io-index",
-      "workspace_crate": false,
-      "publish": null
-    },
-    {
-      "name": "termcolor",
-      "version": "1.4.1",
-      "license": "Unlicense OR MIT",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
       "workspace_crate": false,
       "publish": null
@@ -4232,8 +4368,24 @@
       "publish": null
     },
     {
+      "name": "tiny-skia",
+      "version": "0.12.0",
+      "license": "BSD-3-Clause",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "workspace_crate": false,
+      "publish": null
+    },
+    {
       "name": "tiny-skia-path",
       "version": "0.11.4",
+      "license": "BSD-3-Clause",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "workspace_crate": false,
+      "publish": null
+    },
+    {
+      "name": "tiny-skia-path",
+      "version": "0.12.0",
       "license": "BSD-3-Clause",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
       "workspace_crate": false,
@@ -4265,15 +4417,7 @@
     },
     {
       "name": "toml",
-      "version": "0.8.23",
-      "license": "MIT OR Apache-2.0",
-      "source": "registry+https://github.com/rust-lang/crates.io-index",
-      "workspace_crate": false,
-      "publish": null
-    },
-    {
-      "name": "toml_datetime",
-      "version": "0.6.11",
+      "version": "0.9.12+spec-1.1.0",
       "license": "MIT OR Apache-2.0",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
       "workspace_crate": false,
@@ -4297,22 +4441,6 @@
     },
     {
       "name": "toml_edit",
-      "version": "0.22.27",
-      "license": "MIT OR Apache-2.0",
-      "source": "registry+https://github.com/rust-lang/crates.io-index",
-      "workspace_crate": false,
-      "publish": null
-    },
-    {
-      "name": "toml_edit",
-      "version": "0.23.10+spec-1.0.0",
-      "license": "MIT OR Apache-2.0",
-      "source": "registry+https://github.com/rust-lang/crates.io-index",
-      "workspace_crate": false,
-      "publish": null
-    },
-    {
-      "name": "toml_edit",
       "version": "0.25.15+spec-1.1.0",
       "license": "MIT OR Apache-2.0",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
@@ -4322,14 +4450,6 @@
     {
       "name": "toml_parser",
       "version": "1.1.3+spec-1.1.0",
-      "license": "MIT OR Apache-2.0",
-      "source": "registry+https://github.com/rust-lang/crates.io-index",
-      "workspace_crate": false,
-      "publish": null
-    },
-    {
-      "name": "toml_write",
-      "version": "0.1.2",
       "license": "MIT OR Apache-2.0",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
       "workspace_crate": false,
@@ -4377,7 +4497,7 @@
     },
     {
       "name": "typed-index-collections",
-      "version": "3.5.0",
+      "version": "3.3.0",
       "license": "MIT OR Apache-2.0",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
       "workspace_crate": false,
@@ -4403,6 +4523,14 @@
       "name": "uds_windows",
       "version": "1.2.1",
       "license": "MIT",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "workspace_crate": false,
+      "publish": null
+    },
+    {
+      "name": "unicase",
+      "version": "2.9.0",
+      "license": "MIT OR Apache-2.0",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
       "workspace_crate": false,
       "publish": null
@@ -4480,6 +4608,14 @@
       "publish": null
     },
     {
+      "name": "unicode-width",
+      "version": "0.2.2",
+      "license": "MIT OR Apache-2.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "workspace_crate": false,
+      "publish": null
+    },
+    {
       "name": "unicode-xid",
       "version": "0.2.6",
       "license": "MIT OR Apache-2.0",
@@ -4537,7 +4673,7 @@
     },
     {
       "name": "usvg",
-      "version": "0.45.1",
+      "version": "0.47.0",
       "license": "Apache-2.0 OR MIT",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
       "workspace_crate": false,
@@ -4601,7 +4737,7 @@
     },
     {
       "name": "vtable",
-      "version": "0.3.0",
+      "version": "0.4.0",
       "license": "MIT OR Apache-2.0",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
       "workspace_crate": false,
@@ -4609,7 +4745,7 @@
     },
     {
       "name": "vtable-macro",
-      "version": "0.3.0",
+      "version": "0.4.0",
       "license": "MIT OR Apache-2.0",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
       "workspace_crate": false,
@@ -4784,6 +4920,14 @@
       "publish": null
     },
     {
+      "name": "webbrowser",
+      "version": "1.2.4",
+      "license": "MIT OR Apache-2.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "workspace_crate": false,
+      "publish": null
+    },
+    {
       "name": "webpki-roots",
       "version": "1.0.9",
       "license": "CDLA-Permissive-2.0",
@@ -4808,22 +4952,6 @@
       "publish": null
     },
     {
-      "name": "winapi",
-      "version": "0.3.9",
-      "license": "MIT/Apache-2.0",
-      "source": "registry+https://github.com/rust-lang/crates.io-index",
-      "workspace_crate": false,
-      "publish": null
-    },
-    {
-      "name": "winapi-i686-pc-windows-gnu",
-      "version": "0.4.0",
-      "license": "MIT/Apache-2.0",
-      "source": "registry+https://github.com/rust-lang/crates.io-index",
-      "workspace_crate": false,
-      "publish": null
-    },
-    {
       "name": "winapi-util",
       "version": "0.1.11",
       "license": "Unlicense OR MIT",
@@ -4832,16 +4960,8 @@
       "publish": null
     },
     {
-      "name": "winapi-x86_64-pc-windows-gnu",
-      "version": "0.4.0",
-      "license": "MIT/Apache-2.0",
-      "source": "registry+https://github.com/rust-lang/crates.io-index",
-      "workspace_crate": false,
-      "publish": null
-    },
-    {
       "name": "windows",
-      "version": "0.58.0",
+      "version": "0.61.3",
       "license": "MIT OR Apache-2.0",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
       "workspace_crate": false,
@@ -4849,7 +4969,7 @@
     },
     {
       "name": "windows",
-      "version": "0.61.3",
+      "version": "0.62.2",
       "license": "MIT OR Apache-2.0",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
       "workspace_crate": false,
@@ -4864,8 +4984,8 @@
       "publish": null
     },
     {
-      "name": "windows-core",
-      "version": "0.58.0",
+      "name": "windows-collections",
+      "version": "0.3.2",
       "license": "MIT OR Apache-2.0",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
       "workspace_crate": false,
@@ -4896,8 +5016,8 @@
       "publish": null
     },
     {
-      "name": "windows-implement",
-      "version": "0.58.0",
+      "name": "windows-future",
+      "version": "0.3.2",
       "license": "MIT OR Apache-2.0",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
       "workspace_crate": false,
@@ -4906,14 +5026,6 @@
     {
       "name": "windows-implement",
       "version": "0.60.2",
-      "license": "MIT OR Apache-2.0",
-      "source": "registry+https://github.com/rust-lang/crates.io-index",
-      "workspace_crate": false,
-      "publish": null
-    },
-    {
-      "name": "windows-interface",
-      "version": "0.58.0",
       "license": "MIT OR Apache-2.0",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
       "workspace_crate": false,
@@ -4952,8 +5064,8 @@
       "publish": null
     },
     {
-      "name": "windows-result",
-      "version": "0.2.0",
+      "name": "windows-numerics",
+      "version": "0.3.1",
       "license": "MIT OR Apache-2.0",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
       "workspace_crate": false,
@@ -4970,14 +5082,6 @@
     {
       "name": "windows-result",
       "version": "0.4.1",
-      "license": "MIT OR Apache-2.0",
-      "source": "registry+https://github.com/rust-lang/crates.io-index",
-      "workspace_crate": false,
-      "publish": null
-    },
-    {
-      "name": "windows-strings",
-      "version": "0.1.0",
       "license": "MIT OR Apache-2.0",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
       "workspace_crate": false,
@@ -5058,6 +5162,14 @@
     {
       "name": "windows-threading",
       "version": "0.1.0",
+      "license": "MIT OR Apache-2.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "workspace_crate": false,
+      "publish": null
+    },
+    {
+      "name": "windows-threading",
+      "version": "0.2.1",
       "license": "MIT OR Apache-2.0",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
       "workspace_crate": false,
@@ -5272,17 +5384,17 @@
       "publish": null
     },
     {
-      "name": "wio",
-      "version": "0.2.2",
-      "license": "MIT/Apache-2.0",
+      "name": "wit-bindgen",
+      "version": "0.57.1",
+      "license": "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
       "workspace_crate": false,
       "publish": null
     },
     {
-      "name": "wit-bindgen",
-      "version": "0.57.1",
-      "license": "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT",
+      "name": "write-fonts",
+      "version": "0.45.0",
+      "license": "MIT OR Apache-2.0",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
       "workspace_crate": false,
       "publish": null
@@ -5345,7 +5457,7 @@
     },
     {
       "name": "xkbcommon",
-      "version": "0.8.0",
+      "version": "0.9.0",
       "license": "MIT",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
       "workspace_crate": false,
@@ -5386,6 +5498,22 @@
     {
       "name": "y4m",
       "version": "0.8.0",
+      "license": "MIT",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "workspace_crate": false,
+      "publish": null
+    },
+    {
+      "name": "yazi",
+      "version": "0.2.1",
+      "license": "Apache-2.0 OR MIT",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "workspace_crate": false,
+      "publish": null
+    },
+    {
+      "name": "yeslogic-fontconfig-sys",
+      "version": "6.0.1",
       "license": "MIT",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
       "workspace_crate": false,
@@ -5459,6 +5587,14 @@
       "name": "zcheapstr",
       "version": "1.1.0",
       "license": "MIT",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "workspace_crate": false,
+      "publish": null
+    },
+    {
+      "name": "zeno",
+      "version": "0.3.3",
+      "license": "Apache-2.0 OR MIT",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
       "workspace_crate": false,
       "publish": null
@@ -5553,14 +5689,6 @@
     },
     {
       "name": "zune-core",
-      "version": "0.4.12",
-      "license": "MIT OR Apache-2.0 OR Zlib",
-      "source": "registry+https://github.com/rust-lang/crates.io-index",
-      "workspace_crate": false,
-      "publish": null
-    },
-    {
-      "name": "zune-core",
       "version": "0.5.3",
       "license": "MIT OR Apache-2.0 OR Zlib",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
@@ -5570,14 +5698,6 @@
     {
       "name": "zune-inflate",
       "version": "0.2.54",
-      "license": "MIT OR Apache-2.0 OR Zlib",
-      "source": "registry+https://github.com/rust-lang/crates.io-index",
-      "workspace_crate": false,
-      "publish": null
-    },
-    {
-      "name": "zune-jpeg",
-      "version": "0.4.21",
       "license": "MIT OR Apache-2.0 OR Zlib",
       "source": "registry+https://github.com/rust-lang/crates.io-index",
       "workspace_crate": false,
@@ -5621,6 +5741,6 @@
     "Founder selected Apache-2.0 for MedScale first-party source on 2026-09-14.",
     "PUBLIC_SOURCE_LICENSE_CHOICE EXTERNAL_GATES is DECIDED.",
     "Workspace crates remain publish=false; public source license metadata is Apache-2.0.",
-    "Spec 060 admits Slint 1.13.1 under its royalty-free Desktop/Mobile/Web application license path with required About attribution."
+    "Spec 060 admits Slint 1.16.1 under its royalty-free Desktop/Mobile/Web application license path with required About attribution."
   ]
 }
