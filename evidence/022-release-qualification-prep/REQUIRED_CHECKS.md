@@ -1,8 +1,8 @@
 # REQUIRED CHECKS — owner action packet (Spec 037; refreshed Spec 051)
 
 **Gate:** `REPO_BRANCH_PROTECTION_REQUIRED_CHECKS`  
-**State:** `NOT_CONFIGURED_OWNER_SETTINGS`  
-**Cursor must not** change repository settings via API.
+**State:** `CONFIGURED_RULESET_23259329`  
+**Live qualification:** founder-authorized ruleset configuration is now applied and evidenced below.
 
 ## Repository / branch
 
@@ -69,4 +69,4 @@ rust matrix tests and are **not** a separate required check name.
 
 Owner (or GitHub org admin) configures branch protection / repository ruleset for `main` with the required check names above. No SPDX, signing, or MESC action is implied by this packet.
 
-Updating this packet does **not** configure branch protection and does **not** claim `RELEASE_READY`.
+Live ruleset `protect-main` (`id=23259329`) now configures the six checks on `refs/heads/main`; this packet still does **not** claim `RELEASE_READY`.

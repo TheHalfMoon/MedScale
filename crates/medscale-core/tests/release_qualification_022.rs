@@ -16,7 +16,7 @@ fn release_qualification_axis_is_honest_prep_not_release_ready() {
     assert!(rq.macos_ci_present);
     assert!(!rq.macos_qualified);
     assert!(!rq.mobile_release_qualified);
-    assert!(!rq.branch_protection_configured);
+    assert!(rq.branch_protection_configured);
     assert!(!rq.missing_evidence_classes.is_empty());
     assert!(rq.is_honest_prep());
     assert!(rq.perf_harness_present);
@@ -27,7 +27,7 @@ fn release_qualification_axis_is_honest_prep_not_release_ready() {
     assert!(rq.package_upgrade_rollback_scaffold_present);
     assert!(rq.host_perf_measurement_path_present);
     assert!(rq.notice_inventory_present);
-    assert!(!rq.rights_license_decision);
+    assert!(rq.rights_license_decision);
     assert!(
         rq.missing_evidence_classes
             .contains(&"release_package_upgrade_rollback_proof".to_owned())
@@ -43,6 +43,14 @@ fn release_qualification_axis_is_honest_prep_not_release_ready() {
     assert!(
         rq.missing_evidence_classes
             .contains(&"perf_budgets_attained_on_qualified_hardware".to_owned())
+    );
+    assert!(
+        !rq.missing_evidence_classes
+            .contains(&"repo_branch_protection_required_checks".to_owned())
+    );
+    assert!(
+        !rq.missing_evidence_classes
+            .contains(&"public_source_license_choice".to_owned())
     );
     assert!(
         report

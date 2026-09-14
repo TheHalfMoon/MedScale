@@ -55,15 +55,15 @@ fn vault_privacy_probes_present_and_residuals_open() {
 }
 
 #[test]
-fn release_qualification_notice_inventory_without_license_decision() {
+fn release_qualification_notice_inventory_with_license_decision() {
     let report = build_doctor_report(None, false, false);
     let rq = &report.release_qualification;
     assert!(rq.notice_inventory_present);
-    assert!(!rq.rights_license_decision);
+    assert!(rq.rights_license_decision);
     assert!(rq.is_honest_prep());
     assert!(!rq.release_ready);
     assert!(
-        rq.missing_evidence_classes
+        !rq.missing_evidence_classes
             .contains(&"public_source_license_choice".to_owned())
     );
 }

@@ -83,12 +83,13 @@ Spec **047** is `CLOSED_CANONICAL` READY_BASE (release dry-run + cross-verifier;
 Spec **048** is `CLOSED_CANONICAL` READY_BASE (migration/recovery release-bar; `migration_recovery_ready_base`; RELEASE_READY still FALSE; see `SPEC_048_PROMOTION.md`).
 Spec **049** is `CLOSED_CANONICAL` READY_BASE (package upgrade/rollback dry-run scaffold; `package_upgrade_rollback_scaffold_present`; RELEASE_READY still FALSE; see `SPEC_049_PROMOTION.md`).
 Spec **050** is `CLOSED_CANONICAL` READY_BASE (host perf measurement path; `host_perf_measurement_path_present`; budgets still not claimed; see `SPEC_050_PROMOTION.md`).
-Spec **051** is `CLOSED_CANONICAL` READY_BASE (REQUIRED_CHECKS live CI sync; `required_checks_packet_synced`; branch protection still `NOT_CONFIGURED_OWNER_SETTINGS`; see `SPEC_051_PROMOTION.md`).
+Spec **051** is `CLOSED_CANONICAL` READY_BASE (REQUIRED_CHECKS live CI sync; `required_checks_packet_synced`; post-close external gate now `CONFIGURED` by active ruleset `23259329` targeting `main`; see `SPEC_051_PROMOTION.md` and ruleset qualification evidence).
 Spec **052** is `CLOSED_CANONICAL` READY_BASE (Linux Landlock FS+TCP+rlimit composition; `linux_landlock_composition_measured`; seccomp still open; `platform_qualified=false`; see `SPEC_052_PROMOTION.md`).
 Spec **053** is `CLOSED_CANONICAL` READY_BASE (Linux seccomp-bpf strict allowlist composition, child-measured SIGSYS deny; `linux_seccomp_composition_measured`; `platform_qualified=false`; see `SPEC_053_PROMOTION.md`).
 Spec **054** is `CLOSED_CANONICAL` READY_BASE (deterministic CycloneDX 1.5 release SBOM + fail-closed verifier; `release_sbom_qualified`; `reproducible_build=unproven`; `RELEASE_READY` still FALSE; see `SPEC_054_PROMOTION.md`).
 Spec **055** is `CLOSED_CANONICAL` READY_BASE (performance non-attainment dossier; `PERFORMANCE_NON_ATTAINMENT` bound to source/tree/lock; budgets not claimed; see `SPEC_055_PROMOTION.md`).
 Spec **056** is `CLOSED_CANONICAL` READY_BASE (fixture role/keyboard/announcement semantics deepening; no WCAG claim; see `SPEC_056_PROMOTION.md`).
+External gate update (2026-09-14): `PUBLIC_SOURCE_LICENSE_CHOICE=DECIDED`; founder selected `Apache-2.0` with package NOTICE aggregation required. Historical Spec 032 text records its closure-time state.
 Spec 012 is deferred as optional MESC integration. Deferred advanced work is **057+**.
 Do **not** claim `RELEASE_READY`, `PRIVATE_DATA_READY`, or `MULTI_CLIENT_RELEASE_READY`.
 Q03 residual page encryption landed in Spec 023; OS keyring READY_BASE in Spec 028; Spec 032/043 probes classify residuals but do not clear swap/snapshot (still block PRIVATE_DATA_READY).

@@ -1,7 +1,7 @@
 # Generate NOTICE / third-party attribution inventory (Spec 032).
 # Builds from cargo metadata + deny.toml license allowlist.
-# Does NOT choose a public SPDX license for MedScale crates
-# (rights_license_decision remains false / EXTERNAL_GATES PENDING).
+# Public SPDX decisions remain founder-owned. Apache-2.0 was selected on 2026-09-14;
+# this generator binds that decision into NOTICE inventory without claiming RELEASE_READY.
 #
 # Usage:
 #   pwsh ./scripts/generate-notice-inventory.ps1
@@ -78,17 +78,18 @@ $inventory = [ordered]@{
     generated_utc             = (Get-Date).ToUniversalTime().ToString('o')
     git_sha                   = "$gitSha"
     git_tree                  = "$gitTree"
-    rights_license_decision   = $false
-    medscale_spdx_chosen      = $false
+    rights_license_decision   = $true
+    medscale_spdx_chosen      = $true
+    medscale_spdx_identifier  = 'Apache-2.0'
     release_ready             = $false
     deny_allowlist_licenses   = @($allowlist)
     package_count             = $entries.Count
     packages                  = $entries
     honesty                   = @(
         'NOTICE inventory is attribution prep only.',
-        'Does not choose PUBLIC SPDX for MedScale crates.',
-        'PUBLIC_SOURCE_LICENSE_CHOICE EXTERNAL_GATES remains PENDING.',
-        'Workspace crates remain publish=false / privately UNLICENSED until counsel decision.'
+        'Founder selected Apache-2.0 for MedScale first-party source on 2026-09-14.',
+        'PUBLIC_SOURCE_LICENSE_CHOICE EXTERNAL_GATES is DECIDED.',
+        'Workspace crates remain publish=false; public source license metadata is Apache-2.0.'
     )
 }
 
@@ -109,15 +110,16 @@ if (-not (Test-Path $mdDir)) {
 $sb = New-Object System.Text.StringBuilder
 [void]$sb.AppendLine('# NOTICE / Third-Party Inventory (Spec 032)')
 [void]$sb.AppendLine('')
-[void]$sb.AppendLine('**Status:** attribution prep only — not a MedScale public SPDX license decision.')
+[void]$sb.AppendLine('**Status:** attribution inventory with founder-selected MedScale SPDX; not a RELEASE_READY claim.')
 [void]$sb.AppendLine('')
 [void]$sb.AppendLine("| Field | Value |")
 [void]$sb.AppendLine("|---|---|")
 [void]$sb.AppendLine("| Generated (UTC) | $($inventory.generated_utc) |")
 [void]$sb.AppendLine("| Git SHA | $gitSha |")
 [void]$sb.AppendLine("| Git tree | $gitTree |")
-[void]$sb.AppendLine("| ``rights_license_decision`` | **false** |")
-[void]$sb.AppendLine("| ``medscale_spdx_chosen`` | **false** |")
+[void]$sb.AppendLine("| ``rights_license_decision`` | **true** |")
+[void]$sb.AppendLine("| ``medscale_spdx_chosen`` | **true** |")
+[void]$sb.AppendLine("| ``medscale_spdx_identifier`` | **Apache-2.0** |")
 [void]$sb.AppendLine("| ``release_ready`` | **false** |")
 [void]$sb.AppendLine("| Package count | $($entries.Count) |")
 [void]$sb.AppendLine('')
@@ -149,4 +151,4 @@ foreach ($e in ($entries | Sort-Object name, version)) {
 
 Set-Content -Path $mdFull -Value $sb.ToString() -Encoding utf8
 Write-Host "Wrote $mdFull"
-Write-Host "LIMITATION: rights_license_decision=false; PUBLIC_SOURCE_LICENSE_CHOICE remains EXTERNAL_GATES PENDING."
+Write-Host "LICENSE DECISION: Apache-2.0; PUBLIC_SOURCE_LICENSE_CHOICE=DECIDED. RELEASE_READY remains false."

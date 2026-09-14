@@ -1,11 +1,23 @@
 # Public source license — counsel / founder decision packet (Spec 037)
 
-**Gate:** `PUBLIC_SOURCE_LICENSE_CHOICE` = `PENDING`  
-**Cursor must not** choose the final SPDX identifier.
+**Gate:** `PUBLIC_SOURCE_LICENSE_CHOICE` = `DECIDED`
+**Founder decision recorded:** Apache-2.0.
+
+## Founder decision
+
+```text
+SPDX_LICENSE_IDENTIFIER = Apache-2.0
+NOTICE_REQUIRED_IN_PACKAGE = true
+DUAL_LICENSE = false
+JURISDICTION_SPECIFIC_NOTICE = none specified by founder
+EFFECTIVE_DATE = 2026-09-14
+```
+
+This closes the first-party public source license choice only. It does not authorize real PHI, production credentials, signing identities, partner systems, or a release-readiness claim.
 
 ## What Cursor already completed
 
-- Workspace crates remain `publish = false` / privately `UNLICENSED` until a public choice exists
+- Workspace crates remained `publish = false` / privately `UNLICENSED` until the founder decision recorded above
 - `cargo-deny` license policy for dependencies
 - Spec 032 NOTICE inventory (`docs/legal/NOTICE_INVENTORY.md`, `evidence/032-privacy-probes-notice-perf/notice-inventory.json`)
 - Attribution / third-party inventory preparation (dependency licenses via deny + NOTICE scaffold)
@@ -34,9 +46,9 @@ Also confirm whether third-party NOTICE aggregation must ship in every binary pa
 ## Expected output
 
 ```text
-SPDX_LICENSE_IDENTIFIER = <chosen>
-NOTICE_REQUIRED_IN_PACKAGE = true|false
-EFFECTIVE_DATE = <ISO date>
+SPDX_LICENSE_IDENTIFIER = Apache-2.0
+NOTICE_REQUIRED_IN_PACKAGE = true
+EFFECTIVE_DATE = 2026-09-14
 ```
 
 ## How Cursor will verify

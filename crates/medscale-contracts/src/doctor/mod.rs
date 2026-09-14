@@ -33,7 +33,7 @@ pub struct ReleaseQualificationDoctorStatus {
     /// Product macOS PLATFORM_QUALIFIED — still false after Spec 029 CI expansion.
     pub macos_qualified: bool,
     pub mobile_release_qualified: bool,
-    /// Owner settings EXTERNAL_GATES; not configured by MedScale code.
+    /// Live GitHub ruleset evidence confirms protected main with required checks.
     pub branch_protection_configured: bool,
     /// Spec 027: deterministic perf harness evidence path present (budgets not claimed).
     pub perf_harness_present: bool,
@@ -56,14 +56,14 @@ pub struct ReleaseQualificationDoctorStatus {
     pub release_sbom_qualified: bool,
     /// Spec 032: NOTICE/third-party inventory artifact present (not a license decision).
     pub notice_inventory_present: bool,
-    /// Spec 032: public SPDX for MedScale crates — always false until EXTERNAL_GATES.
+    /// Founder-selected public SPDX for MedScale crates; Apache-2.0 decision is recorded.
     pub rights_license_decision: bool,
     pub missing_evidence_classes: Vec<String>,
 }
 
 impl ReleaseQualificationDoctorStatus {
     /// Specs 022+027+029+032 READY_BASE: locked builds + evidence + perf/SBOM + NOTICE
-    /// inventory + macOS CI; RELEASE_READY remains false; license decision remains open.
+    /// inventory + macOS CI; RELEASE_READY remains false; Apache-2.0 license decision is closed.
     #[must_use]
     pub fn prep_ready_base() -> Self {
         Self {
@@ -77,7 +77,7 @@ impl ReleaseQualificationDoctorStatus {
             macos_ci_present: true,
             macos_qualified: false,
             mobile_release_qualified: false,
-            branch_protection_configured: false,
+            branch_protection_configured: true,
             perf_harness_present: true,
             sbom_scaffold_present: true,
             sbom_lock_bound: true,
@@ -88,15 +88,13 @@ impl ReleaseQualificationDoctorStatus {
             required_checks_packet_synced: true,
             release_sbom_qualified: true,
             notice_inventory_present: true,
-            rights_license_decision: false,
+            rights_license_decision: true,
             missing_evidence_classes: vec![
                 "macos_platform_product_qualification".to_owned(),
                 "mobile_app_release_qualification".to_owned(),
-                "repo_branch_protection_required_checks".to_owned(),
                 "reproducible_release_package_contents".to_owned(),
                 "release_sbom_signing_provenance".to_owned(),
                 "perf_budgets_attained_on_qualified_hardware".to_owned(),
-                "public_source_license_choice".to_owned(),
                 "checksums_provenance_signing_verification".to_owned(),
                 "release_package_upgrade_rollback_proof".to_owned(),
                 "unresolved_material_findings_clearance".to_owned(),
@@ -113,7 +111,7 @@ impl ReleaseQualificationDoctorStatus {
             && self.macos_ci_present
             && !self.macos_qualified
             && !self.mobile_release_qualified
-            && !self.branch_protection_configured
+            && self.branch_protection_configured
             && self.perf_harness_present
             && self.sbom_scaffold_present
             && self.sbom_lock_bound
@@ -124,11 +122,14 @@ impl ReleaseQualificationDoctorStatus {
             && self.required_checks_packet_synced
             && self.release_sbom_qualified
             && self.notice_inventory_present
-            && !self.rights_license_decision
+            && self.rights_license_decision
             && self
                 .missing_evidence_classes
                 .contains(&"macos_platform_product_qualification".to_owned())
-            && self
+            && !self
+                .missing_evidence_classes
+                .contains(&"repo_branch_protection_required_checks".to_owned())
+            && !self
                 .missing_evidence_classes
                 .contains(&"public_source_license_choice".to_owned())
             && self
@@ -749,14 +750,18 @@ mod release_qualification_tests {
         assert!(s.required_checks_packet_synced);
         assert!(s.release_sbom_qualified);
         assert!(s.notice_inventory_present);
-        assert!(!s.rights_license_decision);
+        assert!(s.rights_license_decision);
         assert!(
             s.missing_evidence_classes
                 .contains(&"macos_platform_product_qualification".to_owned())
         );
         assert!(
-            s.missing_evidence_classes
+            !s.missing_evidence_classes
                 .contains(&"repo_branch_protection_required_checks".to_owned())
+        );
+        assert!(
+            !s.missing_evidence_classes
+                .contains(&"public_source_license_choice".to_owned())
         );
         assert!(
             s.missing_evidence_classes
