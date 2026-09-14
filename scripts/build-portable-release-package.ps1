@@ -14,6 +14,10 @@ Set-Location $repoRoot
 function Get-Sha256Hex([string]$Path) {
     return (Get-FileHash -Algorithm SHA256 -Path $Path).Hash.ToLowerInvariant()
 }
+function Resolve-RepoPath([string]$Path) {
+    if ([IO.Path]::IsPathRooted($Path)) { return [IO.Path]::GetFullPath($Path) }
+    return [IO.Path]::GetFullPath((Join-Path $repoRoot $Path))
+}
 function Write-Utf8Lf([string]$Path, [string]$Text) {
     $enc = [System.Text.UTF8Encoding]::new($false)
     [System.IO.File]::WriteAllText($Path, ($Text.TrimEnd() + "`n"), $enc)
@@ -38,23 +42,28 @@ $sourceSha = (git rev-parse HEAD).Trim()
 $treeSha = (git log -1 --format=%T).Trim()
 $lockSha = Get-Sha256Hex (Join-Path $repoRoot 'Cargo.lock')
 $exe = if ($IsWindows) { '.exe' } else { '' }
-$cli = Join-Path $repoRoot "$BinaryDir/medscale$exe"
-$desktop = Join-Path $repoRoot "$BinaryDir/medscale-desktop$exe"
-foreach ($required in @($cli,$desktop,'LICENSE','README.md','docs/legal/NOTICE_INVENTORY.md',$SbomPath)) {
+$binaryFull = Resolve-RepoPath $BinaryDir
+$sbomFull = Resolve-RepoPath $SbomPath
+$licenseFull = Resolve-RepoPath 'LICENSE'
+$readmeFull = Resolve-RepoPath 'README.md'
+$noticeFull = Resolve-RepoPath 'docs/legal/NOTICE_INVENTORY.md'
+$cli = Join-Path $binaryFull "medscale$exe"
+$desktop = Join-Path $binaryFull "medscale-desktop$exe"
+foreach ($required in @($cli,$desktop,$licenseFull,$readmeFull,$noticeFull,$sbomFull)) {
     if (-not (Test-Path $required)) { throw "required package input missing: $required" }
 }
 
-$outFull = Join-Path $repoRoot $OutputDir
+$outFull = Resolve-RepoPath $OutputDir
 New-Item -ItemType Directory -Force -Path $outFull | Out-Null
 $stage = Join-Path $outFull ("stage-" + [guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Force -Path (Join-Path $stage 'bin') | Out-Null
 try {
     Copy-Item $cli (Join-Path $stage "bin/medscale$exe")
     Copy-Item $desktop (Join-Path $stage "bin/medscale-desktop$exe")
-    Copy-Item 'LICENSE' (Join-Path $stage 'LICENSE')
-    Copy-Item 'README.md' (Join-Path $stage 'README.md')
-    Copy-Item 'docs/legal/NOTICE_INVENTORY.md' (Join-Path $stage 'NOTICE.md')
-    Copy-Item $SbomPath (Join-Path $stage 'SBOM.cdx.json')
+    Copy-Item $licenseFull (Join-Path $stage 'LICENSE')
+    Copy-Item $readmeFull (Join-Path $stage 'README.md')
+    Copy-Item $noticeFull (Join-Path $stage 'NOTICE.md')
+    Copy-Item $sbomFull (Join-Path $stage 'SBOM.cdx.json')
 
     $payloadPaths = @("bin/medscale$exe", "bin/medscale-desktop$exe", 'LICENSE', 'NOTICE.md', 'README.md', 'SBOM.cdx.json') | Sort-Object
     $payload = @()

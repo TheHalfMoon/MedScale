@@ -56,6 +56,8 @@ fn package_scripts_encode_fail_closed_honesty() {
         std::fs::read_to_string(root.join("scripts/qualify-portable-release-package.ps1"))
             .expect("read qualifier");
 
+    assert!(builder.contains("IsPathRooted"));
+    assert!(qualifier.contains("IsPathRooted"));
     assert!(builder.contains("CompressionLevel]::NoCompression"));
     assert!(builder.contains("1980-01-01T00:00:00Z"));
     assert!(builder.contains("reproducible_binary_build = $false"));

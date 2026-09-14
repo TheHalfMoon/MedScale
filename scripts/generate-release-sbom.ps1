@@ -17,6 +17,11 @@ $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path -Parent $PSScriptRoot
 Set-Location $repoRoot
 
+function Resolve-RepoPath([string]$Path) {
+    if ([IO.Path]::IsPathRooted($Path)) { return [IO.Path]::GetFullPath($Path) }
+    return [IO.Path]::GetFullPath((Join-Path $repoRoot $Path))
+}
+
 $sourceSha = (git -C $repoRoot rev-parse HEAD).Trim()
 $treeSha = (git -C $repoRoot rev-parse 'HEAD^{tree}').Trim()
 $lockHash = (Get-FileHash -Algorithm SHA256 -Path (Join-Path $repoRoot 'Cargo.lock')).Hash.ToLowerInvariant()
@@ -190,7 +195,7 @@ $bom = [ordered]@{
     components = $sorted
 }
 
-$outFull = Join-Path $repoRoot $OutPath
+$outFull = Resolve-RepoPath $OutPath
 $outDir = Split-Path -Parent $outFull
 if (-not (Test-Path $outDir)) { New-Item -ItemType Directory -Force -Path $outDir | Out-Null }
 ($bom | ConvertTo-Json -Depth 12) | Set-Content -Path $outFull -Encoding utf8

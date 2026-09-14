@@ -9,3 +9,9 @@ After Spec 057, the release doctor still listed `reproducible_release_package_co
 Spec 058 provides real unsigned portable package artifacts, deterministic package-assembly proof, fail-closed verification, and install/upgrade/rollback proof on all three CI operating systems.
 
 This does not close signing/provenance, qualified-hardware performance, macOS final-product, final-v0/WCAG, or material-findings gates.
+
+## Exact-head qualification note
+
+The first PR exact-head CI discovered `RUSTSEC-2026-0285` against transitive `rustls 0.23.43`. The branch updates the lockfile to `rustls 0.23.45`, the minimum fixed line identified by cargo-deny. No advisory ignore or policy weakening is used.
+
+The same first exact-head run exposed Unix path duplication when an absolute `OutputDir` was passed between qualification and builder scripts. Spec 058 now resolves absolute paths without re-prefixing the repository root and regression-checks that behavior.

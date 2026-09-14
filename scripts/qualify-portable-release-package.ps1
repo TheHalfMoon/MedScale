@@ -8,6 +8,10 @@ $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path -Parent $PSScriptRoot
 Set-Location $repoRoot
 function Get-Sha256Hex([string]$Path) { return (Get-FileHash -Algorithm SHA256 -Path $Path).Hash.ToLowerInvariant() }
+function Resolve-RepoPath([string]$Path) {
+    if ([IO.Path]::IsPathRooted($Path)) { return [IO.Path]::GetFullPath($Path) }
+    return [IO.Path]::GetFullPath((Join-Path $repoRoot $Path))
+}
 function Get-OnlyZip([string]$Dir) {
     $zips = @(Get-ChildItem -File -Path $Dir -Filter '*.zip')
     if ($zips.Count -ne 1) { throw "expected exactly one ZIP in $Dir; found $($zips.Count)" }
@@ -18,15 +22,15 @@ function Get-ActiveLabel([string]$InstallRoot) {
     $manifest = Get-Content -Raw (Join-Path $InstallRoot "slots/$($state.current_slot)/package-manifest.json") | ConvertFrom-Json
     return [string]$manifest.package_label
 }
-$outFull = Join-Path $repoRoot $OutputDir
-$evidenceFull = Join-Path $repoRoot $EvidenceDir
+$outFull = Resolve-RepoPath $OutputDir
+$evidenceFull = Resolve-RepoPath $EvidenceDir
 if (Test-Path $outFull) { Remove-Item -Recurse -Force $outFull }
 if (Test-Path $evidenceFull) { Remove-Item -Recurse -Force $evidenceFull }
 New-Item -ItemType Directory -Force -Path $outFull,$evidenceFull | Out-Null
 $baseA = Join-Path $outFull 'baseline-a'
 $baseB = Join-Path $outFull 'baseline-b'
 $candidate = Join-Path $outFull 'candidate'
-$generatedSbom = "$OutputDir/SBOM.cdx.json"
+$generatedSbom = Join-Path $outFull 'SBOM.cdx.json'
 & (Join-Path $PSScriptRoot 'generate-release-sbom.ps1') -OutPath $generatedSbom
 if ($LASTEXITCODE -ne 0) { throw 'fresh release SBOM generation failed' }
 & (Join-Path $PSScriptRoot 'build-portable-release-package.ps1') -OutputDir $baseA -PackageLabel 'baseline' -SbomPath $generatedSbom

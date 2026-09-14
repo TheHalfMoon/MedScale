@@ -27,10 +27,10 @@
 
 ## Honesty
 
-- NOTICE inventory is attribution prep only.
-- Does not choose PUBLIC SPDX for MedScale crates.
-- PUBLIC_SOURCE_LICENSE_CHOICE EXTERNAL_GATES remains PENDING.
-- Workspace crates remain publish=false / privately UNLICENSED until counsel decision.
+- NOTICE inventory is attribution and package NOTICE input; it does not by itself establish release readiness.
+- PUBLIC_SOURCE_LICENSE_CHOICE is DECIDED: MedScale uses Apache-2.0 effective 2026-09-14.
+- Workspace crates remain `publish=false`; their project license metadata is Apache-2.0.
+- Third-party license/notice obligations remain governed by the inventory below and release SBOM verification.
 
 ## Packages (cargo metadata)
 
