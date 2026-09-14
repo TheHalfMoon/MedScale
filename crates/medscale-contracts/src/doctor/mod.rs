@@ -68,12 +68,15 @@ pub struct ReleaseQualificationDoctorStatus {
     pub notice_inventory_present: bool,
     /// Founder-selected public SPDX for MedScale crates; Apache-2.0 decision is recorded.
     pub rights_license_decision: bool,
+    /// Spec 059: bounded final audit found no unresolved repository-owned material release finding.
+    #[serde(default)]
+    pub material_findings_clearance: bool,
     pub missing_evidence_classes: Vec<String>,
 }
 
 impl ReleaseQualificationDoctorStatus {
-    /// Specs 022+027+029+032 READY_BASE: locked builds + evidence + perf/SBOM + NOTICE
-    /// inventory + macOS CI; RELEASE_READY remains false; Apache-2.0 license decision is closed.
+    /// Specs 022+027+029+032+054+057+058+059 release qualification state:
+    /// repository-owned prep/material findings are closed; external release gates remain.
     #[must_use]
     pub fn prep_ready_base() -> Self {
         Self {
@@ -102,12 +105,12 @@ impl ReleaseQualificationDoctorStatus {
             release_sbom_qualified: true,
             notice_inventory_present: true,
             rights_license_decision: true,
+            material_findings_clearance: true,
             missing_evidence_classes: vec![
                 "macos_platform_product_qualification".to_owned(),
                 "release_sbom_signing_provenance".to_owned(),
                 "perf_budgets_attained_on_qualified_hardware".to_owned(),
                 "checksums_provenance_signing_verification".to_owned(),
-                "unresolved_material_findings_clearance".to_owned(),
                 "wcag_final_v0_ui_accessibility_qualification".to_owned(),
             ],
         }
@@ -136,6 +139,7 @@ impl ReleaseQualificationDoctorStatus {
             && self.release_sbom_qualified
             && self.notice_inventory_present
             && self.rights_license_decision
+            && self.material_findings_clearance
             && self
                 .missing_evidence_classes
                 .contains(&"macos_platform_product_qualification".to_owned())
@@ -770,6 +774,7 @@ mod release_qualification_tests {
         assert!(s.release_sbom_qualified);
         assert!(s.notice_inventory_present);
         assert!(s.rights_license_decision);
+        assert!(s.material_findings_clearance);
         assert!(
             s.missing_evidence_classes
                 .contains(&"macos_platform_product_qualification".to_owned())
@@ -805,6 +810,10 @@ mod release_qualification_tests {
         assert!(
             !s.missing_evidence_classes
                 .contains(&"release_bar_migration_recovery_proof".to_owned())
+        );
+        assert!(
+            !s.missing_evidence_classes
+                .contains(&"unresolved_material_findings_clearance".to_owned())
         );
         assert!(
             s.missing_evidence_classes

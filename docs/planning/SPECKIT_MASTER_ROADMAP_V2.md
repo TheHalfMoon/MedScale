@@ -61,7 +61,7 @@ Required lifecycle for each material executable spec:
 | 029 | `macos-ci-accessibility` | macOS CI matrix + CLI/fixture accessibility honesty | 022/027 + 006/021 | CLOSED_CANONICAL READY_BASE; macos_ci_present; macos_qualified=false; no WCAG; RELEASE_READY=false |
 | 030 | `windows-appcontainer-sandbox` | Windows Job Object READY_BASE (Q09 residual; AppContainer scaffold) | 026 closed | CLOSED_CANONICAL READY_BASE; windows_measured; platform_qualified=false; sandbox gate OPEN |
 | 031 | `macos-seatbelt-sandbox` | macOS Seatbelt READY_BASE (Q09 residual; App Sandbox entitlements scaffold) | 026/030 closed | CLOSED_CANONICAL READY_BASE; macos_measured; platform_qualified=false; sandbox gate OPEN |
-| 032 | `privacy-probes-notice-perf` | Q03 privacy probes + Q05 NOTICE inventory + perf binding | 017/023/027/028 closed | CLOSED_CANONICAL READY_BASE; probes_present; notice_inventory; budgets not claimed; PRIVATE_DATA_READY=false; rights_license_decision=false |
+| 032 | `privacy-probes-notice-perf` | Q03 privacy probes + Q05 NOTICE inventory + perf binding | 017/023/027/028 closed | CLOSED_CANONICAL READY_BASE; rights license was undecided at closure and is now Apache-2.0; PRIVATE_DATA_READY=false; budgets not claimed |
 | 033 | `windows-appcontainer-fs` | Windows AppContainer FS READY_BASE (Q09 residual) | 030 closed | CLOSED_CANONICAL READY_BASE; windows_appcontainer_fs_measured; platform_qualified=false; sandbox gate OPEN |
 | 034 | `durable-outbox-restart` | Durable outbox restart fixtures (Q12 residual) | 014+016 closed | CLOSED_CANONICAL READY_BASE; outbox_restart_qualified; NPHIES gated |
 | 035 | `encrypted-vault-authority-sync` | EncryptedVault authority graph sync (Q02/Q03 residual) | 016+023 closed | CLOSED_CANONICAL READY_BASE; encrypted_authority_sync_qualified; PRIVATE_DATA_READY=false |
@@ -80,10 +80,16 @@ Required lifecycle for each material executable spec:
 | 048 | `migration-recovery-release-bar` | Migration/recovery release-bar READY_BASE (Q05 residual) | 003/005/047 closed | CLOSED_CANONICAL READY_BASE; migration_recovery_ready_base; RELEASE_READY=false |
 | 049 | `package-upgrade-rollback` | Package upgrade/rollback dry-run scaffold (Q05 residual) | 047/048 closed | CLOSED_CANONICAL READY_BASE; package_upgrade_rollback_scaffold_present; RELEASE_READY=false |
 | 050 | `host-perf-measurement` | Host-bound perf measurement path (Q05 residual) | 042/045 closed | CLOSED_CANONICAL READY_BASE; host_perf_measurement_path_present; budgets not claimed |
-| 051 | `required-checks-sync` | REQUIRED_CHECKS live CI sync (Q05 residual) | 037/042 closed | CLOSED_CANONICAL READY_BASE; required_checks_packet_synced; branch protection still NOT_CONFIGURED |
+| 051 | `required-checks-sync` | REQUIRED_CHECKS live CI sync (Q05 residual) | 037/042 closed | CLOSED_CANONICAL READY_BASE; required_checks_packet_synced; post-close branch protection CONFIGURED by ruleset 23259329 |
 | 052 | `linux-landlock-composition` | Linux Landlock FS+TCP+rlimit composition (Q09 residual) | 026/044 closed | CLOSED_CANONICAL READY_BASE; linux_landlock_composition_measured; platform_qualified=false |
 | 053 | `linux-seccomp-composition` | Linux seccomp-bpf strict allowlist composition (Q09 residual) | 052 closed | CLOSED_CANONICAL READY_BASE; linux_seccomp_composition_measured; platform_qualified=false |
-| 054+ | `research-site-imaging-genomics-advanced` | deferred site/research/collab/imaging/genomics/plugin/browser/watch/vision expansion | evidence-driven later gates | no Trusted V1 implementation commitment |
+| 054 | `native-full-release-sbom` | deterministic full release SBOM qualification | 046/047 | CLOSED_CANONICAL READY_BASE; signing provenance external |
+| 055 | `perf-attainment-dossier` | honest performance non-attainment dossier | 050/054 | CLOSED_CANONICAL; qualified hardware still external |
+| 056 | `fixture-a11y-semantics` | fixture accessibility semantics deepening | 029 | CLOSED_CANONICAL; no WCAG/final-v0 claim |
+| 057 | `release-qualification-residual-integrity` | runtime perf coverage + immutable CI action pins | 055/056 | CLOSED_CANONICAL; budgets not claimed |
+| 058 | `portable-release-package` | deterministic unsigned package + real install/upgrade/rollback qualification | 057 | CLOSED_CANONICAL; three-OS package lifecycle qualified |
+| 059 | `final-release-closure-audit` | terminal repo-owned release audit + external-only residual mapping | 058 | QUALIFIED_PENDING_MERGE; PR run 34889698756 six-check success; RELEASE_READY remains false |
+| 060+ | `research-site-imaging-genomics-advanced` | deferred site/research/collab/imaging/genomics/plugin/browser/watch/vision expansion | evidence-driven later gates | no Trusted V1 implementation commitment |
 
 ## 3. Corrected critical path
 
@@ -125,9 +131,9 @@ ONLINE ECOSYSTEM
 029 macOS CI + accessibility honesty CLOSED_CANONICAL READY_BASE; macos_ci_present; macos_qualified=false; no WCAG; RELEASE_READY=false
 030 Windows Job Object sandbox (Q09 residual) CLOSED_CANONICAL READY_BASE; windows_measured; AppContainer scaffold; platform_qualified=false; WORKER_OS_SANDBOX gate OPEN
 031 macOS Seatbelt sandbox (Q09 residual) CLOSED_CANONICAL READY_BASE; macos_measured; App Sandbox entitlements scaffold; platform_qualified=false; WORKER_OS_SANDBOX gate OPEN
-032 privacy probes + NOTICE inventory + perf binding CLOSED_CANONICAL READY_BASE; probes_present; notice_inventory_present; rights_license_decision=false; budgets_claimed_met=false; PRIVATE_DATA_READY=false
+032 privacy probes + NOTICE inventory + perf binding CLOSED_CANONICAL READY_BASE; license was undecided at closure and is now Apache-2.0; budgets_claimed_met=false; PRIVATE_DATA_READY=false
 033–053 residual READY_BASE closed (AppContainer FS/network/LPAC, outbox restart, EncryptedVault sync, MESC verifier, release-prep/honesty, sandbox composition, lexical 10k, SBOM/dry-run/migration/upgrade/perf path, REQUIRED_CHECKS sync, Linux Landlock composition, Linux seccomp composition)
-Next eligible after fresh audit: Spec **054** Trusted V1 residuals (e.g. native SBOM honesty, fixture a11y deepen, perf non-attainment dossier); Spec 012 deferred as optional integration; swap/snapshot still block PRIVATE_DATA_READY; macOS App Sandbox signed enforcement + product PLATFORM_QUALIFIED + WCAG/final-v0 + SPDX/branch-protection enablement/signing credentials open; advanced **054+** deferred
+Current terminal frontier: Spec **059** final release-closure audit after Specs 054–058 closed. Spec 012 remains optional/deferred. Remaining release blockers after 059 must be external-only (qualified performance hardware, signing/provenance, macOS signed product/App Sandbox enforcement, final-v0/WCAG); advanced **060+** remains deferred
 ```
 
 ## 4. Core process topology — decided for downstream specs

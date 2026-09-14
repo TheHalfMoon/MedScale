@@ -9,7 +9,7 @@
 - SBOM scaffold (`scripts/generate-sbom-scaffold.ps1`) + Spec **046** Cargo.lock binding
 - Spec **047** release dry-run + cross-verifier (`scripts/release-dry-run.ps1`, `scripts/verify-release-manifest.ps1`)
 - Required-check inventory for CI (Spec 037)
-- License counsel packet (Spec 037) — SPDX still PENDING
+- Public project license is `Apache-2.0` (founder decision 2026-09-14); NOTICE is included in qualified portable packages
 
 ## Per-platform prep (no credentials)
 
@@ -17,8 +17,8 @@
 
 | Field | Value |
 |---|---|
-| ARTIFACT_TO_SIGN | Future MSI/MSIX/portable ZIP after package pipeline (dry-run binds source digests only; Spec 047) |
-| SIGNING_STAGE | After reproducible package build; before public distribution |
+| ARTIFACT_TO_SIGN | Spec 058 qualified unsigned portable ZIP; MSI/MSIX remain optional future native formats |
+| SIGNING_STAGE | After qualified portable package assembly; before public distribution |
 | EXPECTED_IDENTITY | Owner-chosen Authenticode certificate (TBD) |
 | VERIFICATION_COMMAND | `Get-AuthenticodeSignature <artifact>` → Status Valid |
 | NOTARIZATION_STAGE | N/A (Windows) |
@@ -41,7 +41,7 @@
 
 | Field | Value |
 |---|---|
-| ARTIFACT_TO_SIGN | Future .deb/.rpm/AppImage/tarball |
+| ARTIFACT_TO_SIGN | Spec 058 qualified portable ZIP/checksum set; .deb/.rpm/AppImage/tarball remain optional future native formats |
 | SIGNING_STAGE | Detached signature (sigstore/cosign or GPG) after package |
 | EXPECTED_IDENTITY | Owner-chosen signing key (TBD) |
 | VERIFICATION_COMMAND | `cosign verify-blob` / `gpg --verify` (chosen later) |
@@ -52,7 +52,7 @@
 ## Exact external action
 
 ```text
-GATE = APP_STORE_SIGNING_RELEASE / release signing identity
+GATE = DESKTOP_RELEASE_SIGNING_PROVENANCE / release signing identity
 EXACT_EXTERNAL_ACTION = Provision signing identities + notarization credentials; document Team ID / cert thumbprints in a private owner store (not this repo)
 REQUIRED_INPUTS = certs/keys; Apple notarization credentials if macOS public distro; store accounts if app stores
 EXPECTED_OUTPUT = documented identity fingerprints + successful dry-run sign on one artifact
@@ -65,4 +65,4 @@ WHAT_UNIT_UNBLOCKS = signed release candidate packaging — still not automatic 
 - No production keys in repository
 - No notarization performed
 - `RELEASE_READY` remains FALSE
-- Checksums/SBOM scaffolds remain unsigned
+- Qualified portable package checksums and release SBOM remain unsigned pending the external signing identity

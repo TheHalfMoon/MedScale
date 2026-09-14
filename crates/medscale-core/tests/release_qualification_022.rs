@@ -35,6 +35,7 @@ fn release_qualification_axis_is_honest_prep_not_release_ready() {
     assert!(rq.runtime_perf_measurement_coverage_present);
     assert!(rq.notice_inventory_present);
     assert!(rq.rights_license_decision);
+    assert!(rq.material_findings_clearance);
     assert!(
         !rq.missing_evidence_classes
             .contains(&"release_package_upgrade_rollback_proof".to_owned())
@@ -54,6 +55,10 @@ fn release_qualification_axis_is_honest_prep_not_release_ready() {
     assert!(
         rq.missing_evidence_classes
             .contains(&"perf_budgets_attained_on_qualified_hardware".to_owned())
+    );
+    assert!(
+        !rq.missing_evidence_classes
+            .contains(&"unresolved_material_findings_clearance".to_owned())
     );
     assert!(
         !rq.missing_evidence_classes
