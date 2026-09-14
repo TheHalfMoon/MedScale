@@ -64,6 +64,13 @@ jobs:
       - name: Test
         run: cargo test --workspace --locked
 
+      - name: Upload runtime performance coverage evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: runtime-perf-${{ matrix.os }}
+          path: target/medscale-evidence/057-release-qualification-residual-integrity/
+          if-no-files-found: error
+
   perf-delivery-plan-scale:
     name: perf delivery-plan scale (windows)
     runs-on: windows-latest
@@ -89,7 +96,7 @@ jobs:
         run: cargo test -p medscale-core --test perf_harness_027 --locked -- --nocapture
         timeout-minutes: 45
       - name: Upload delivery-plan scale evidence
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: perf-delivery-plan-scale
           path: |

@@ -85,6 +85,13 @@ if ($LASTEXITCODE -ne 0) {
     exit $LASTEXITCODE
 }
 
+Write-Host "Running Spec 057 desktop launch + idle RSS coverage harness..."
+cargo test -p medscale-desktop --test runtime_perf_057 --locked -- --nocapture
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "HOST RUNTIME PERF COVERAGE FAILED"
+    exit $LASTEXITCODE
+}
+
 Write-Host "HOST PERF MEASUREMENT PATH OK"
 Write-Host "LIMITATION: budgets_claimed_met remains false; RELEASE_READY remains false."
 exit 0
