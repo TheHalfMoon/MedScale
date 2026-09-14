@@ -14,3 +14,15 @@ Local available gates on the candidate working tree:
 - `cargo test -p medscale-core --locked --test release_qualification_022` — PASS (`1/1`).
 
 GitHub PR exact-head run `34889698756` passed all six required checks on `8845b347ff225e598fedd7ca014928b16b0367a0`. Canonical merge and post-merge main verification remain required before terminal closure. `RELEASE_READY=false`.
+
+Post-merge note: main run `34892900032` exposed a Windows-only `tasklist` RSS parser defect after PR #100 merge. Local corrective coverage adds parsing tests for empty/non-matching output; Windows CI remains authoritative for the fix.
+
+Corrective Windows RSS-parser local gates on `fix/windows-runtime-rss-parser`:
+
+- `cargo test -p medscale-desktop --locked --test runtime_perf_057 -- --nocapture` — PASS (`2/2`).
+- `cargo clippy --workspace --all-targets --locked -- -D warnings` — PASS (`RC=0`).
+- `cargo test --workspace --locked` — PASS (`RC=0`).
+- `cargo fmt --all -- --check` — PASS.
+- `git diff --check` — PASS.
+
+The fix retries transient/non-parseable `tasklist` samples with a strict bound and still fails closed if no valid PID-bound RSS sample can be obtained. Windows exact-head CI remains required.
