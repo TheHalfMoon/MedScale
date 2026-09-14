@@ -34,11 +34,16 @@ fn doctor_closes_only_proven_package_residuals() {
         "checksums_provenance_signing_verification",
         "perf_budgets_attained_on_qualified_hardware",
         "macos_platform_product_qualification",
-        "unresolved_material_findings_clearance",
         "wcag_final_v0_ui_accessibility_qualification",
     ] {
         assert!(rq.missing_evidence_classes.contains(&residual.to_owned()));
     }
+    // Spec 059 terminal audit closes this repository-owned residual after Spec 058.
+    assert!(rq.material_findings_clearance);
+    assert!(
+        !rq.missing_evidence_classes
+            .contains(&"unresolved_material_findings_clearance".to_owned())
+    );
 }
 
 #[test]

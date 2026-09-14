@@ -5,11 +5,11 @@
 **Rule:** update this file whenever a unit enters or leaves a canonical state.
 
 **Autonomous stop status (historical V2 scoped closure):** superseded for Trusted V1 follow-on work.
-**Live follow-on status (2026-09-11):** Specs **016**–**054** `CLOSED_CANONICAL` READY_BASE. Spec **054** native/full release SBOM qualification closed; Specs **055** (perf non-attainment dossier) and **056** (fixture a11y semantics) closed (`SPEC_054/055/056_PROMOTION.md`). Spec **012** DEFERRED_BY_CANONICAL_DESIGN (optional MESC integration). Spec **057** is `CLOSED_CANONICAL`; Spec **058** is `IN_REVIEW` for portable release package qualification after a fresh Q05 executability audit. Honesty: `PRIVATE_DATA_READY=false`; `RELEASE_READY=false`; `budgets_claimed_met=false`; sandbox `platform_qualified=false`. Deferred advanced **059+**.
+**Live follow-on status (2026-09-14):** Specs **016**–**058** are `CLOSED_CANONICAL`; Spec **012** is `DEFERRED_BY_CANONICAL_DESIGN` as optional MESC integration. Spec **059** is `IN_REVIEW` for the bounded terminal release-closure audit. Honesty: `PRIVATE_DATA_READY=false`; `RELEASE_READY=false`; `budgets_claimed_met=false`; sandbox `platform_qualified=false`. Advanced **060+** remains deferred.
 
 ## 2026-09-11 planning refinement
 
-See Trusted V1 delivery plan. Specs 018–057 READY_BASE closed; Spec 058 is `IN_REVIEW`; Spec 012 deferred as optional MESC integration. Advanced **059+** deferred.
+See Trusted V1 delivery plan. Specs 018–058 closed; Spec 059 is `IN_REVIEW`; Spec 012 remains optional/deferred. Advanced **060+** deferred.
 
 ## Historical scoped queue (closures preserved)
 
@@ -37,7 +37,7 @@ See Trusted V1 delivery plan. Specs 018–057 READY_BASE closed; Spec 058 is `IN
 | 019 | Record Semantics (Q06) | `CLOSED_CANONICAL` | READY_BASE: precision-aware MedicalTime, AmendAssertion, missingness, identity unresolved; RELEASE_READY=false. |
 | 020 | FHIR Interchange Qualification (Q08) | `CLOSED_CANONICAL` | READY_BASE: honest support matrix + loss-aware export; no full conformance; RELEASE_READY=false. |
 | 021 | Minimum Lovable Workflow (Q07) | `CLOSED_CANONICAL` | READY_BASE: synthetic restartable import-review-export-backup journey + disclosure; RELEASE_READY=false. |
-| 022 | Release Qualification Prep (Q05) | `CLOSED_CANONICAL` | READY_BASE prep: locked CI, evidence binding, doctor honesty; RELEASE_READY=false; branch protection EXTERNAL_GATES. |
+| 022 | Release Qualification Prep (Q05) | `CLOSED_CANONICAL` | READY_BASE prep: locked CI, evidence binding, doctor honesty; RELEASE_READY=false; branch protection was external at closure and is now CONFIGURED by ruleset 23259329. |
 | 023 | Vault Open-Metadata Privacy (Q03 residual) | `CLOSED_CANONICAL` | READY_BASE: SQLCipher page-encrypted EncryptedVault open work; PRIVATE_DATA_READY=false (OS key/swap/snapshot). |
 | 024 | Host OS IPC Authority (Q04 residual) | `CLOSED_CANONICAL` | READY_BASE: localhost OS IPC + strict sessions; os_ipc_qualified=true; MULTI_CLIENT_RELEASE_READY=false. |
 | 025 | Evidence Corpus Lifecycle (Q10) | `CLOSED_CANONICAL` | READY_BASE: versioned synthetic-lexical corpus + lexical filters; clinical quality / RELEASE_READY=false. |
@@ -47,7 +47,7 @@ See Trusted V1 delivery plan. Specs 018–057 READY_BASE closed; Spec 058 is `IN
 | 029 | macOS CI + Accessibility Honesty | `CLOSED_CANONICAL` | READY_BASE: macos_ci_present; accessibility fixture/CLI honesty; macos_qualified=false; RELEASE_READY=false; no WCAG claim. |
 | 030 | Windows Job Object Sandbox (Q09 residual) | `CLOSED_CANONICAL` | READY_BASE: Job Object ReadyBaseMeasured (`windows_measured`); AppContainer scaffold; platform_qualified=false; WORKER_OS_SANDBOX gate OPEN. |
 | 031 | macOS Seatbelt Sandbox (Q09 residual) | `CLOSED_CANONICAL` | READY_BASE: Seatbelt sandbox_init ReadyBaseMeasured (`macos_measured`); App Sandbox entitlements scaffold; platform_qualified=false; WORKER_OS_SANDBOX gate OPEN. |
-| 032 | Privacy Probes + NOTICE + Perf Binding | `CLOSED_CANONICAL` | READY_BASE: probes_present + NOTICE inventory + perf binding; PRIVATE_DATA_READY=false; rights_license_decision=false; budgets not claimed. |
+| 032 | Privacy Probes + NOTICE + Perf Binding | `CLOSED_CANONICAL` | READY_BASE: probes_present + NOTICE inventory + perf binding; PRIVATE_DATA_READY=false; rights license was undecided at closure and is now Apache-2.0; budgets not claimed. |
 | 033 | Windows AppContainer FS (Q09 residual) | `CLOSED_CANONICAL` | READY_BASE: AppContainer child FS deny (windows_appcontainer_fs_measured); network/LPAC scaffold; platform_qualified=false; WORKER_OS_SANDBOX gate OPEN. |
 | 034 | Durable Outbox Restart (Q12 residual) | `CLOSED_CANONICAL` | READY_BASE: SyntheticVault outbox reload + UNKNOWN reconcile; `outbox_restart_qualified`; NPHIES gated. |
 | 035 | EncryptedVault Authority Sync (Q02/Q03 residual) | `CLOSED_CANONICAL` | READY_BASE: EncryptedVault persists/reloads authority graph; `encrypted_authority_sync_qualified`; PRIVATE_DATA_READY=false. |
@@ -64,7 +64,7 @@ See Trusted V1 delivery plan. Specs 018–057 READY_BASE closed; Spec 058 is `IN
 | 046 | SBOM Lock Binding (Q05 residual) | `CLOSED_CANONICAL` | Cargo.lock digest in SBOM scaffold; sbom_lock_bound; not full release SBOM. See `SPEC_046_PROMOTION.md`. |
 | 047 | Release Dry-Run + Verifier (Q05 residual) | `CLOSED_CANONICAL` | READY_BASE: dry-run binds source/tree/lock + build env + native-deps honesty; cross-verifier present; RELEASE_READY=false. See `SPEC_047_PROMOTION.md`. |
 | 048 | Migration/Recovery Release-Bar (Q05 residual) | `CLOSED_CANONICAL` | READY_BASE: interrupt fail-closed + backup/restore recovery + encrypted backup closure; migration_recovery_ready_base; RELEASE_READY=false. See `SPEC_048_PROMOTION.md`. |
-| 049 | Package Upgrade/Rollback Scaffold (Q05 residual) | `CLOSED_CANONICAL` | READY_BASE: unsigned dry-run upgrade/rollback scaffold; package_upgrade_rollback_scaffold_present; real installer proof still missing. See `SPEC_049_PROMOTION.md`. |
+| 049 | Package Upgrade/Rollback Scaffold (Q05 residual) | `CLOSED_CANONICAL` | READY_BASE: unsigned dry-run upgrade/rollback scaffold; real portable package lifecycle proof later closed by Spec 058. See `SPEC_049_PROMOTION.md`. |
 | 050 | Host Perf Measurement Path (Q05 residual) | `CLOSED_CANONICAL` | READY_BASE: operator host-bound perf path + binding sidecar; host_perf_measurement_path_present; budgets not claimed. See `SPEC_050_PROMOTION.md`. |
 | 051 | REQUIRED_CHECKS Live CI Sync (Q05 residual) | `CLOSED_CANONICAL` | READY_BASE: owner packet lists six live CI jobs incl. perf delivery-plan scale; required_checks_packet_synced. Post-close gate now CONFIGURED by active ruleset 23259329 targeting main; PR #96 enforcement observed. See `SPEC_051_PROMOTION.md`. |
 | 052 | Linux Landlock Composition (Q09 residual) | `CLOSED_CANONICAL` | READY_BASE: Landlock FS allowlist + TCP deny + RLIMIT_NOFILE composition measured (`linux_landlock_composition_measured`); seccomp still open; platform_qualified=false; sandbox gate OPEN. See `SPEC_052_PROMOTION.md`. |
@@ -73,8 +73,9 @@ See Trusted V1 delivery plan. Specs 018–057 READY_BASE closed; Spec 058 is `IN
 | 055 | Perf Attainment Dossier (Q05 residual) | `CLOSED_CANONICAL` | READY_BASE dossier: PERFORMANCE_NON_ATTAINMENT bound to source/tree/lock; budgets not claimed. See `SPEC_055_PROMOTION.md`. |
 | 056 | Fixture A11y Semantics (a11y residual) | `CLOSED_CANONICAL` | READY_BASE deepening: role/keyboard/announcement semantics on every fixture view model; no WCAG claim. See `SPEC_056_PROMOTION.md`. |
 | 057 | Release Qualification Residual Integrity (Q05 residual) | `CLOSED_CANONICAL` | Fresh audit: complete cold-launch/idle-memory coverage + immutable Action pin enforcement; budgets/RELEASE_READY remain false. See `SPEC_057_PROMOTION.md`. |
-| 058 | Portable Release Package Qualification (Q05 residual) | `IN_REVIEW` | Fresh audit: deterministic unsigned portable package + real install/upgrade/rollback lifecycle proof; signing/native installers/RELEASE_READY remain open. See `SPEC_058_PROMOTION.md`. |
-| 059+ | Advanced deferred work | `DEFERRED_BY_CANONICAL_DESIGN` | Plugins/GraphRAG/replicas/imaging/CUDA/etc. |
+| 058 | Portable Release Package Qualification (Q05 residual) | `CLOSED_CANONICAL` | Deterministic unsigned portable package + real install/upgrade/rollback lifecycle proof qualified on Windows/Linux/macOS; signing/native installers/RELEASE_READY remain open. See `SPEC_058_PROMOTION.md`. |
+| 059 | Final Release Closure Audit (Q05 terminal residual) | `IN_REVIEW` | Synchronize living release truth, clear repository-owned material findings, and prove remaining release residuals are external-only. See `SPEC_059_PROMOTION.md`. |
+| 060+ | Advanced deferred work | `DEFERRED_BY_CANONICAL_DESIGN` | Plugins/GraphRAG/replicas/imaging/CUDA/etc.; no Trusted V1 completion requirement. |
 
 ## Automatic progression
 
@@ -82,5 +83,5 @@ For the first `READY` unit: create/complete its Spec Kit package, analyze it, im
 
 Do not stop merely because a PR merged, one milestone passed, or an external optional gate exists.
 
-**Next eligible (honest):** Spec **058** is the only promoted unit and is `IN_REVIEW` after a fresh Q05 executability audit proved missing real portable package/lifecycle evidence. Do not promote 059+ until 058 converges and a new audit proves another repository-owned residual. Spec 012 remains optional/deferred. Remaining release gaps still include qualified-hardware performance attainment, signing/provenance, App Sandbox signed enforcement, unresolved-material-findings clearance, and WCAG/final-v0. Public source license and protected-main gates are closed. Do **not** claim `RELEASE_READY`, `PRIVATE_DATA_READY`, or `MULTI_CLIENT_RELEASE_READY`.
+**Next eligible (honest):** Spec **059** is the only promoted unit and is `IN_REVIEW` after the post-Spec-058 terminal audit found stale living release metadata plus the repository-owned `unresolved_material_findings_clearance` residual. Do not promote 060+ absent new evidence. After 059, remaining release gaps must be external-only: qualified-hardware performance, desktop signing/provenance, macOS signed product qualification, and final-v0/WCAG. Spec 012 remains optional/deferred. Do **not** claim `RELEASE_READY`, `PRIVATE_DATA_READY`, or `MULTI_CLIENT_RELEASE_READY`.
 

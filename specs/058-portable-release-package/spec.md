@@ -1,7 +1,7 @@
 # Feature Specification: Portable Release Package Qualification (Q05)
 
 **Branch**: `spec/058-portable-release-package`
-**Status**: IN_REVIEW
+**Status**: CLOSED_CANONICAL
 **Promotion**: FRESH_EXECUTABILITY_AUDIT_2026-09-14
 **Does not**: claim reproducible binary builds, signing/notarization, native installer formats, final-v0 qualification, or `RELEASE_READY`.
 

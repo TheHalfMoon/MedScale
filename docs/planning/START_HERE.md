@@ -67,7 +67,7 @@ Spec **028** is `CLOSED_CANONICAL` READY_BASE (Q03 OS keyring custody; `os_keyri
 Spec **029** is `CLOSED_CANONICAL` READY_BASE (macOS CI matrix + CLI/fixture accessibility honesty; `macos_ci_present=true`; `macos_qualified=false`; no WCAG / `RELEASE_READY` claim).
 Spec **030** is `CLOSED_CANONICAL` READY_BASE (Q09 Windows Job Object measured; `windows_measured=true`; AppContainer scaffold; `platform_qualified=false`; sandbox gate still OPEN).
 Spec **031** is `CLOSED_CANONICAL` READY_BASE (Q09 macOS Seatbelt measured; `macos_measured=true`; App Sandbox entitlements scaffold; `platform_qualified=false`; sandbox gate still OPEN).
-Spec **032** is `CLOSED_CANONICAL` READY_BASE (Q03 privacy probes + Q05 NOTICE inventory + perf binding; `probes_present=true`; residual classes open; `notice_inventory_present=true`; `rights_license_decision=false`; `budgets_claimed_met=false`; `PRIVATE_DATA_READY` / `RELEASE_READY` still FALSE).
+Spec **032** is `CLOSED_CANONICAL` READY_BASE (Q03 privacy probes + Q05 NOTICE inventory + perf binding; `rights_license_decision=false` was its closure-time state; current project license is Apache-2.0 per the 2026-09-14 external-gate update below; `PRIVATE_DATA_READY` / `RELEASE_READY` remain FALSE).
 Spec **033** is `CLOSED_CANONICAL` READY_BASE (Q09 Windows AppContainer FS measured; `windows_appcontainer_fs_measured=true`; `platform_qualified=false`).
 Spec **034** is `CLOSED_CANONICAL` READY_BASE (Q12 durable outbox restart; `outbox_restart_qualified=true`; NPHIES still gated).
 Spec **035** is `CLOSED_CANONICAL` READY_BASE (EncryptedVault authority sync; `encrypted_authority_sync_qualified=true`; `PRIVATE_DATA_READY` still FALSE).
@@ -90,7 +90,7 @@ Spec **054** is `CLOSED_CANONICAL` READY_BASE (deterministic CycloneDX 1.5 relea
 Spec **055** is `CLOSED_CANONICAL` READY_BASE (performance non-attainment dossier; `PERFORMANCE_NON_ATTAINMENT` bound to source/tree/lock; budgets not claimed; see `SPEC_055_PROMOTION.md`).
 Spec **056** is `CLOSED_CANONICAL` READY_BASE (fixture role/keyboard/announcement semantics deepening; no WCAG claim; see `SPEC_056_PROMOTION.md`).
 External gate update (2026-09-14): `PUBLIC_SOURCE_LICENSE_CHOICE=DECIDED`; founder selected `Apache-2.0` with package NOTICE aggregation required. Historical Spec 032 text records its closure-time state.
-Spec **057** is `CLOSED_CANONICAL`. Spec **058** is `IN_REVIEW` for deterministic unsigned portable package + install/upgrade/rollback qualification; it does not claim signing, native installer formats, compiler reproducibility, or release readiness. Spec 012 is deferred as optional MESC integration. Deferred advanced work is **059+**.
+Spec **057** and Spec **058** are `CLOSED_CANONICAL`; Spec 058 qualified deterministic unsigned portable package + install/upgrade/rollback on Windows/Linux/macOS. Spec **059** is `IN_REVIEW` for final repository-owned release closure/material-findings audit. Spec 012 remains optional/deferred. Advanced work is **060+** and not a Trusted V1 completion requirement.
 Do **not** claim `RELEASE_READY`, `PRIVATE_DATA_READY`, or `MULTI_CLIENT_RELEASE_READY`.
 Q03 residual page encryption landed in Spec 023; OS keyring READY_BASE in Spec 028; Spec 032/043 probes classify residuals but do not clear swap/snapshot (still block PRIVATE_DATA_READY).
 Foundation and prep closure is not product or privacy release readiness.
