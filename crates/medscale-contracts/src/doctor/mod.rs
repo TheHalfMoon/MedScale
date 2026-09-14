@@ -32,6 +32,7 @@ pub struct ReleaseQualificationDoctorStatus {
     pub macos_ci_present: bool,
     /// Product macOS PLATFORM_QUALIFIED — still false after Spec 029 CI expansion.
     pub macos_qualified: bool,
+    /// Deferred mobile readiness axis; false is honest and does not block Trusted V1 Desktop/CLI.
     pub mobile_release_qualified: bool,
     /// Live GitHub ruleset evidence confirms protected main with required checks.
     pub branch_protection_configured: bool,
@@ -91,7 +92,6 @@ impl ReleaseQualificationDoctorStatus {
             rights_license_decision: true,
             missing_evidence_classes: vec![
                 "macos_platform_product_qualification".to_owned(),
-                "mobile_app_release_qualification".to_owned(),
                 "reproducible_release_package_contents".to_owned(),
                 "release_sbom_signing_provenance".to_owned(),
                 "perf_budgets_attained_on_qualified_hardware".to_owned(),

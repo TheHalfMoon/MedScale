@@ -16,6 +16,10 @@ fn release_qualification_axis_is_honest_prep_not_release_ready() {
     assert!(rq.macos_ci_present);
     assert!(!rq.macos_qualified);
     assert!(!rq.mobile_release_qualified);
+    assert!(
+        !rq.missing_evidence_classes
+            .contains(&"mobile_app_release_qualification".to_owned())
+    );
     assert!(rq.branch_protection_configured);
     assert!(!rq.missing_evidence_classes.is_empty());
     assert!(rq.is_honest_prep());

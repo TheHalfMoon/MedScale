@@ -6,7 +6,7 @@ Trusted V1 `RELEASE_READY` requires all of the following. Spec 022 records hones
 |---|---|---|
 | Immutable source/tree + lock binding procedure | PARTIAL | Procedure documented; no RELEASE_READY binding published |
 | Toolchain + Cargo.lock identity | PARTIAL | Pin + lock committed; locked CI |
-| Qualified OS matrix | FALSE | Windows+Linux CI baseline; macOS unqualified; mobile scaffold |
+| Qualified OS matrix | FALSE | Windows+Linux CI baseline; macOS unqualified. Mobile is deferred and outside Trusted V1 Desktop/CLI release scope. |
 | Mandatory CI + required reviews on protected main | PARTIAL | Protected `main` + six mandatory checks + PR/conversation rules configured; approval count is currently 0, so no approving-review claim |
 | Reproducible package contents | FALSE | No release package pipeline |
 | SBOM incl. native/model assets | FALSE | deny.toml / supply-chain scaffold ≠ release SBOM |
