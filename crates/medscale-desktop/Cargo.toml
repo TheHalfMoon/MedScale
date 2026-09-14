@@ -1,6 +1,6 @@
 [package]
 name = "medscale-desktop"
-description = "Thin non-WebView Desktop scaffold (Spec 006); Tauri not admitted"
+description = "Native non-WebView MedScale Desktop application (Slint; Spec 060+)"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -14,6 +14,10 @@ path = "src/main.rs"
 [dependencies]
 medscale-core = { workspace = true }
 serde_json = { workspace = true }
+slint = { workspace = true }
+
+[build-dependencies]
+slint-build = { workspace = true }
 
 [dev-dependencies]
 sha2 = { workspace = true }

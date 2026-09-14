@@ -46,10 +46,10 @@ fn select_corpus<'a>(
     if matches_request(scale, request_corpus_id) {
         return Ok(scale);
     }
-    if let Some(alt) = alternate {
-        if matches_request(alt, request_corpus_id) {
-            return Ok(alt);
-        }
+    if let Some(alt) = alternate
+        && matches_request(alt, request_corpus_id)
+    {
+        return Ok(alt);
     }
     Err(AuthorityError::InvalidArgument {
         message: format!("unknown corpus_id {request_corpus_id}"),

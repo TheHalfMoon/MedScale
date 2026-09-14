@@ -81,10 +81,10 @@ impl SealedBlobStore {
             return true;
         };
         for entry in entries.flatten() {
-            if let Ok(bytes) = fs::read(entry.path()) {
-                if bytes.windows(marker.len()).any(|w| w == marker) {
-                    return false;
-                }
+            if let Ok(bytes) = fs::read(entry.path())
+                && bytes.windows(marker.len()).any(|w| w == marker)
+            {
+                return false;
             }
         }
         true

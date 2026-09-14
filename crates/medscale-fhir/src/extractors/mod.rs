@@ -61,18 +61,17 @@ fn citation(ctx: &ExtractContext, path_note: &str) -> Vec<SpanCitation> {
                     structural_path_note: Some(path_note.to_owned()),
                 },
             }];
-            if let Some(bytes) = &ctx.source_bytes {
-                if let Some(span) =
+            if let Some(bytes) = &ctx.source_bytes
+                && let Some(span) =
                     find_raw_byte_span(bytes, path_note, resource_key_hint(path_note))
-                {
-                    cites.insert(
-                        0,
-                        SpanCitation::TextSpan {
-                            source_id: sid.clone(),
-                            span,
-                        },
-                    );
-                }
+            {
+                cites.insert(
+                    0,
+                    SpanCitation::TextSpan {
+                        source_id: sid.clone(),
+                        span,
+                    },
+                );
             }
             cites
         }

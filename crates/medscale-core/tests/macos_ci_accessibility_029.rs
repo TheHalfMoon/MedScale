@@ -37,7 +37,7 @@ fn accessibility_axis_is_honest_ready_base_not_wcag() {
     assert!(a11y.cli_keyboard_path_documented);
     assert!(a11y.disclosure_clarity_checked);
     assert!(!a11y.wcag_conformance_claimed);
-    assert!(!a11y.final_v0_ui_present);
+    assert!(a11y.final_v0_ui_present); // Spec 060 supersedes the historical no-final-v0 state.
     assert!(!a11y.release_ready);
     assert!(
         a11y.limitations

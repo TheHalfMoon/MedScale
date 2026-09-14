@@ -79,10 +79,10 @@ impl MedicalTime {
         timezone_offset_minutes: Option<i16>,
     ) -> Result<Self, MedicalTimeError> {
         let value = value.into();
-        if let Some(offset) = timezone_offset_minutes {
-            if !(-14 * 60..=14 * 60).contains(&offset) {
-                return Err(MedicalTimeError::InvalidTimezoneOffset { offset });
-            }
+        if let Some(offset) = timezone_offset_minutes
+            && !(-14 * 60..=14 * 60).contains(&offset)
+        {
+            return Err(MedicalTimeError::InvalidTimezoneOffset { offset });
         }
         validate_value_matches_precision(&value, precision)?;
         Ok(Self {

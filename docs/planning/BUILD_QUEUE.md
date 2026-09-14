@@ -75,7 +75,15 @@ See Trusted V1 delivery plan. Specs 018–059 are closed; Spec 012 remains optio
 | 057 | Release Qualification Residual Integrity (Q05 residual) | `CLOSED_CANONICAL` | Fresh audit: complete cold-launch/idle-memory coverage + immutable Action pin enforcement; budgets/RELEASE_READY remain false. See `SPEC_057_PROMOTION.md`. |
 | 058 | Portable Release Package Qualification (Q05 residual) | `CLOSED_CANONICAL` | Deterministic unsigned portable package + real install/upgrade/rollback lifecycle proof qualified on Windows/Linux/macOS; signing/native installers/RELEASE_READY remain open. See `SPEC_058_PROMOTION.md`. |
 | 059 | Final Release Closure Audit (Q05 terminal residual) | `CLOSED_CANONICAL` | Repository-owned material findings cleared; remaining release residuals are mapped external-only. See `SPEC_059_PROMOTION.md`. |
-| 060+ | Advanced deferred work | `DEFERRED_BY_CANONICAL_DESIGN` | Plugins/GraphRAG/replicas/imaging/CUDA/etc.; no Trusted V1 completion requirement. |
+| 060 | Native Desktop Design System + Command Center | `IN_REVIEW` | Founder-approved final visual direction supplied; native Slint shell, design system, command palette, Home/Command Center, accessibility semantics. No WCAG/release claim. |
+| 061 | Patient Workspace + Longitudinal UX | `BLOCKED_BY_060` | Overview, timeline, labs, medications, documents, care plan, source drill-down over existing trusted contracts. |
+| 062 | Population Insights + Assistant UX | `BLOCKED_BY_061` | Population/cohort insight surfaces and contextual assistant over trusted evidence; no invented clinical authority. |
+| 063 | Workflow Studio + Tasks/Messages | `BLOCKED_BY_062` | Native workflow composition, review-first actions, tasks/messages using existing authority/action semantics. |
+| 064 | Audit + Exports + Settings + Integrations | `BLOCKED_BY_063` | Complete Desktop utility surfaces, provenance/privacy/status, exports, operator configuration. |
+| 065 | CLI Product Experience + Capability Parity | `BLOCKED_BY_064` | Make CLI a launch-quality first-class surface with discoverable commands, structured output, docs, and Desktop capability parity where semantically applicable. |
+| 066 | Desktop + CLI Hardening | `BLOCKED_BY_065` | Impeccable-informed audit/polish/harden/optimize pass: keyboard, a11y semantics, errors/empty/loading/conflict, min-size, performance, copy. |
+| 067 | Final UI Product Qualification | `BLOCKED_BY_066` | Final UI latency/accessibility evidence and launch qualification; external signing/qualified-hardware/macOS credentials remain separately gated. |
+| 068+ | Advanced deferred work | `DEFERRED_BY_CANONICAL_DESIGN` | Plugins/GraphRAG/replicas/imaging/CUDA/mobile-after-launch/etc.; no Desktop+CLI launch requirement unless freshly promoted. |
 
 ## Automatic progression
 
@@ -83,5 +91,5 @@ For the first `READY` unit: create/complete its Spec Kit package, analyze it, im
 
 Do not stop merely because a PR merged, one milestone passed, or an external optional gate exists.
 
-**Next eligible (honest):** none for Trusted V1 repository-owned implementation. Spec **059** is `CLOSED_CANONICAL`; PR #101 exact-head run `34894123749` and post-merge main run `34895017496` both passed all six required jobs. Do not promote 060+ absent fresh evidence and canonical promotion. Remaining release gaps are external-only: qualified-hardware performance, desktop signing/provenance, macOS signed product qualification, and final-v0/WCAG. Spec 012 remains optional/deferred. Do **not** claim `RELEASE_READY`, `PRIVATE_DATA_READY`, or `MULTI_CLIENT_RELEASE_READY`.
+**Next eligible (honest):** Spec **060** is `IN_REVIEW` after founder-supplied final visual direction on 2026-09-15. Trusted V1 repository-owned implementation remains complete through Spec 059; Specs 060-067 are a newly promoted Desktop+CLI product-launch phase and must not retroactively weaken that closure. Mobile remains deferred until Desktop+CLI launch. Remaining release gaps stay evidence-gated: qualified-hardware performance, desktop signing/provenance, macOS signed product qualification, and final UI/WCAG qualification. Spec 012 remains optional/deferred. Do **not** claim `RELEASE_READY`, `PRIVATE_DATA_READY`, or `MULTI_CLIENT_RELEASE_READY`.
 

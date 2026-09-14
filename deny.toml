@@ -24,8 +24,15 @@ allow = [
     "Unicode-3.0",
     "Zlib",
     "CDLA-Permissive-2.0",
+    "LicenseRef-Slint-Royalty-free-2.0",
 ]
 unused-allowed-license = "allow"
+
+exceptions = [
+    { crate = "clipboard-win@5.4.1", allow = ["BSL-1.0"] },
+    { crate = "error-code@3.4.0", allow = ["BSL-1.0"] },
+    { crate = "libfuzzer-sys@0.4.13", allow = ["NCSA"] },
+]
 
 [licenses.private]
 ignore = true

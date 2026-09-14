@@ -40,16 +40,16 @@ pub fn backup_vault(vault: &SyntheticVault, dest: &Path) -> Result<BackupManifes
         .list_authority_objects()
         .map_err(|e| e.to_string())?
     {
-        if let Some(hex_d) = obj.content_digest_hex.as_ref() {
-            if seen.insert(hex_d.clone()) {
-                let digest = parse_hex(hex_d);
-                let bytes = vault.blobs.get_blob(&digest).map_err(|e| e.to_string())?;
-                fs::write(dest.join("blobs").join(hex_d), &bytes).map_err(|e| e.to_string())?;
-                blob_entries.push(BlobRef {
-                    digest,
-                    byte_length: bytes.len() as u64,
-                });
-            }
+        if let Some(hex_d) = obj.content_digest_hex.as_ref()
+            && seen.insert(hex_d.clone())
+        {
+            let digest = parse_hex(hex_d);
+            let bytes = vault.blobs.get_blob(&digest).map_err(|e| e.to_string())?;
+            fs::write(dest.join("blobs").join(hex_d), &bytes).map_err(|e| e.to_string())?;
+            blob_entries.push(BlobRef {
+                digest,
+                byte_length: bytes.len() as u64,
+            });
         }
     }
 

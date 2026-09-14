@@ -137,7 +137,7 @@ pub fn build_doctor_report_full(
         } else {
             PrivacyFreshness::Missing
         },
-        desktop_shell: "thin_scaffold_non_webview".to_owned(),
+        desktop_shell: "slint_native".to_owned(),
         tauri_admitted: false,
         network_broker: NetworkBrokerDoctorStatus {
             present: true,
@@ -181,7 +181,7 @@ pub fn build_doctor_report_full(
         fhir_support_matrix: FhirSupportMatrix::trusted_v1_ready_base(),
         workflow: WorkflowDoctorStatus::ready_base(),
         release_qualification: ReleaseQualificationDoctorStatus::prep_ready_base(),
-        accessibility: AccessibilityDoctorStatus::ready_base(),
+        accessibility: AccessibilityDoctorStatus::native_final_v0(),
         evidence_corpus: EvidenceCorpusDoctorStatus::ready_base(
             DEFAULT_CORPUS_ID,
             DEFAULT_CORPUS_VERSION,
@@ -190,7 +190,7 @@ pub fn build_doctor_report_full(
         os_sandbox: OsSandboxDoctorStatus::ready_base(),
         notes: vec![
             "CLI and Desktop call Core Host authority facade only".to_owned(),
-            "Tauri/WebView not admitted in Spec 006".to_owned(),
+            "Native Slint Desktop shell active; Tauri/WebView remains absent".to_owned(),
             "Product egress DEFAULT_DENY except Network Broker allowlist".to_owned(),
             "Packs offline-only; signer+anti-rollback READY_BASE; no ONNX/llama admitted".to_owned(),
             "Mobile READY_BASE: no apps shipped; Keychain sync forbidden".to_owned(),
@@ -203,7 +203,7 @@ pub fn build_doctor_report_full(
             "FHIR interchange READY_BASE: honest support matrix; no full conformance; validator evidence != authority".to_owned(),
             "Workflow READY_BASE: synthetic import-review-export-backup journey; WORKFLOW_READY_BASE=true; RELEASE_READY=false".to_owned(),
             "Release qualification READY_BASE (022+027+029+032+054+057+058+059): locked CI + macOS CI + perf/SBOM + NOTICE + deterministic unsigned portable package lifecycle; material_findings_clearance=true; five release residual classes remain external; release_sbom_qualified=true; portable_release_package_qualified=true; package_lifecycle_qualified=true; reproducible_binary_build=unproven; macos_qualified=false; rights_license_decision=true (Apache-2.0); RELEASE_READY=false; budgets not claimed; branch protection configured (ruleset 23259329; main protected=true)".to_owned(),
-            "Accessibility READY_BASE: fixture/CLI labels + disclosure clarity checked; WCAG not claimed; final v0 UI absent".to_owned(),
+            "Accessibility: native final-v0 UI present with labels/keyboard semantics; WCAG and assistive-technology product qualification not yet claimed".to_owned(),
             "Evidence corpus READY_BASE: versioned synthetic-lexical@1.0.0; relevance != authority; clinical quality not claimed".to_owned(),
             "OS sandbox READY_BASE (Spec 052 Linux Landlock composition + Spec 053 seccomp + Spec 044 inventory): Linux Landlock FS + Landlock TCP/rlimit composition + seccomp-bpf strict allowlist (child SIGSYS deny) + Windows Job Object + AppContainer FS/network/LPAC + macOS Seatbelt + App Sandbox entitlements probe measured; signed App Sandbox enforcement external; composition_inventory_present=true; platform_qualified=false; WORKER_OS_SANDBOX_PLATFORM_QUALIFIED OPEN".to_owned(),
         ],

@@ -86,10 +86,11 @@ fn landlock_composition_measures_fs_net_rlimit() {
                 }
             }
             let after = medscale_contracts::os_sandbox::linux_rlimit_nofile_soft();
-            if let (Some(b), Some(a)) = (before, after) {
-                if b > 8 && a >= b {
-                    return Err(format!("rlimit not lowered {b}->{a}"));
-                }
+            if let (Some(b), Some(a)) = (before, after)
+                && b > 8
+                && a >= b
+            {
+                return Err(format!("rlimit not lowered {b}->{a}"));
             }
             let _ = fs::remove_dir_all(&base);
             Ok(())

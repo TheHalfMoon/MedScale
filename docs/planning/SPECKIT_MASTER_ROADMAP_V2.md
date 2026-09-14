@@ -136,6 +136,23 @@ ONLINE ECOSYSTEM
 Terminal Trusted V1 repository-owned implementation: Specs **054**–**059** are closed and no promoted repo-owned residual remains. Spec 012 remains optional/deferred. Remaining release blockers are external-only (qualified performance hardware, signing/provenance, macOS signed product/App Sandbox enforcement, final-v0/WCAG); advanced **060+** remains deferred
 ```
 
+## 2026-09-15 Desktop + CLI product-launch phase
+
+Founder-approved final visual direction is now supplied. Trusted V1 remains canonically complete through Spec 059; this is a new product-surface phase, not a reopening of foundation closure.
+
+```text
+060 native Desktop design system + Home/Command Center
+  -> 061 patient workspace + longitudinal UX
+  -> 062 population insights + contextual assistant
+  -> 063 workflow studio + tasks/messages
+  -> 064 audit/exports/settings/integrations
+  -> 065 CLI launch-quality UX + capability parity
+  -> 066 Desktop+CLI hardening (shape/critique/audit/polish/harden/optimize)
+  -> 067 final UI performance/accessibility product qualification
+```
+
+Mobile applications remain deferred until Desktop + CLI launch. No 060-067 unit authorizes real PHI, production credentials, signing/notarization, or a WCAG/release claim without evidence.
+
 ## 4. Core process topology — decided for downstream specs
 
 Desktop/headless uses one Rust **MedScale Core Host** per open vault. It alone owns the writable canonical metadata connection and active vault key material. Desktop UI, CLI and SDK are local IPC clients. When no host exists, a CLI command may spawn/own a transient host under the same authorization path. A per-vault single-writer lease prevents two independent owners. Direct UI/CLI multi-process database opening is forbidden.
