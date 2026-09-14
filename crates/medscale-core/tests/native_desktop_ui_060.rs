@@ -78,6 +78,10 @@ fn native_desktop_shell_is_pinned_non_webview_and_branded() {
     let deny = std::fs::read_to_string(root.join("deny.toml")).expect("deny config");
     assert!(deny.contains("LicenseRef-Slint-Royalty-free-2.0"));
     assert!(deny.contains("dwrote@0.11.5"));
+    let notice = std::fs::read_to_string(root.join("docs/legal/NOTICE_INVENTORY.md"))
+        .expect("NOTICE inventory");
+    assert!(notice.contains("| slint | 1.13.1 |"));
+    assert!(app.contains("AboutSlint"));
 }
 
 #[test]
