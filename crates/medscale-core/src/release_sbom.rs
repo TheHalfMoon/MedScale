@@ -233,7 +233,7 @@ pub fn generate_release_sbom(input: &ReleaseSbomInput) -> String {
             "properties": [
                 { "name": "medscale:sbom_kind", "value": SBOM_KIND },
                 { "name": "medscale:sbom_document_format", "value": "CycloneDX-1.5 (SBOM format; not the public project license)" },
-                { "name": "medscale:public_project_license", "value": "UNDECIDED_EXTERNAL_LEGAL_DECISION" },
+                { "name": "medscale:public_project_license", "value": "Apache-2.0" },
                 { "name": "medscale:source_sha", "value": input.source_sha },
                 { "name": "medscale:tree_sha", "value": input.tree_sha },
                 { "name": "medscale:cargo_lock_sha256", "value": input.cargo_lock_sha256 },
