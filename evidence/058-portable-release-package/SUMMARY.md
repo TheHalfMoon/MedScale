@@ -15,3 +15,5 @@ This does not close signing/provenance, qualified-hardware performance, macOS fi
 The first PR exact-head CI discovered `RUSTSEC-2026-0285` against transitive `rustls 0.23.43`. The branch updates the lockfile to `rustls 0.23.45`, the minimum fixed line identified by cargo-deny. No advisory ignore or policy weakening is used.
 
 The same first exact-head run exposed Unix path duplication when an absolute `OutputDir` was passed between qualification and builder scripts. Spec 058 now resolves absolute paths without re-prefixing the repository root and regression-checks that behavior.
+
+The second exact-head CI proved deterministic ZIP assembly on Linux and macOS, then exposed a PowerShell harness bug: the verifier used the automatic `$Args` variable name for smoke-test arguments, so `--help` was not forwarded. The verifier now uses `CommandArgs`; regression coverage prevents reintroduction.

@@ -64,6 +64,9 @@ fn package_scripts_encode_fail_closed_honesty() {
     assert!(verifier.contains("package file inventory mismatch"));
     assert!(verifier.contains("payload hash mismatch"));
     assert!(verifier.contains("SBOM source SHA mismatch"));
+    assert!(verifier.contains("[string[]]$CommandArgs"));
+    assert!(verifier.contains("& $path @CommandArgs | Out-Null"));
+    assert!(!verifier.contains("[string[]]$Args"));
     assert!(installer.contains("ValidateSet('install','upgrade','rollback')"));
     assert!(installer.contains("rollback unavailable: previous_slot absent"));
     assert!(qualifier.contains("deterministic package assembly failed"));

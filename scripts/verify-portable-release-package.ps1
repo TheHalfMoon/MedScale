@@ -8,10 +8,10 @@ $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path -Parent $PSScriptRoot
 Set-Location $repoRoot
 function Get-Sha256Hex([string]$Path) { return (Get-FileHash -Algorithm SHA256 -Path $Path).Hash.ToLowerInvariant() }
-function Invoke-Smoke([string]$Root, [string]$Rel, [string[]]$Args) {
+function Invoke-Smoke([string]$Root, [string]$Rel, [string[]]$CommandArgs) {
     $path = Join-Path $Root $Rel
     if (-not $IsWindows) { & chmod +x $path; if ($LASTEXITCODE -ne 0) { throw "chmod failed: $Rel" } }
-    & $path @Args | Out-Null
+    & $path @CommandArgs | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "packaged binary smoke failed: $Rel" }
 }
 $packageFull = if ([IO.Path]::IsPathRooted($PackagePath)) { $PackagePath } else { Join-Path $repoRoot $PackagePath }
