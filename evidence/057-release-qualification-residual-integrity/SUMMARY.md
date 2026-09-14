@@ -17,3 +17,11 @@ Spec 057 closes two repository-owned qualification defects discovered by the fre
 - doctor `runtime_perf_measurement_coverage_present=true`.
 
 No release-performance attainment is claimed.
+## Qualification
+
+- Local: fmt PASS; clippy workspace/all-targets PASS; workspace tests PASS.
+- Exact implementation head: `e1be7d126560453ef8e1c28954aa07b0dbc5d729`.
+- GitHub Actions run `34822371220`: six required jobs SUCCESS.
+- Windows/Linux/macOS runtime performance coverage artifacts uploaded successfully.
+- `cargo-deny`: SUCCESS in exact-head CI.
+- Release/performance attainment remains false.

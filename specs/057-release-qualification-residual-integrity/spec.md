@@ -1,7 +1,7 @@
 # Feature Specification: Release Qualification Residual Integrity (Q05)
 
 **Branch**: `spec/057-trusted-v1-perf-coverage`
-**Status**: IN_REVIEW
+**Status**: CLOSED_CANONICAL
 **Promotion**: FRESH_EXECUTABILITY_AUDIT_2026-09-14
 **Does not**: claim performance-budget attainment, final-v0 UI qualification, signing, installer qualification, or `RELEASE_READY`.
 
