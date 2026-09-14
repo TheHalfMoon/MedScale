@@ -5,11 +5,11 @@
 **Rule:** update this file whenever a unit enters or leaves a canonical state.
 
 **Autonomous stop status (historical V2 scoped closure):** superseded for Trusted V1 follow-on work.
-**Live follow-on status (2026-09-14):** Specs **016**–**058** are `CLOSED_CANONICAL`; Spec **012** is `DEFERRED_BY_CANONICAL_DESIGN` as optional MESC integration. Spec **059** is `QUALIFIED_PENDING_MERGE` for the bounded terminal release-closure audit. Honesty: `PRIVATE_DATA_READY=false`; `RELEASE_READY=false`; `budgets_claimed_met=false`; sandbox `platform_qualified=false`. Advanced **060+** remains deferred.
+**Live follow-on status (2026-09-14):** Specs **016**–**058** are `CLOSED_CANONICAL`; Spec **012** is `DEFERRED_BY_CANONICAL_DESIGN` as optional MESC integration. Spec **059** is `POST_MERGE_REGRESSION_FIX_IN_REVIEW` for the bounded terminal release-closure audit. Honesty: `PRIVATE_DATA_READY=false`; `RELEASE_READY=false`; `budgets_claimed_met=false`; sandbox `platform_qualified=false`. Advanced **060+** remains deferred.
 
 ## 2026-09-11 planning refinement
 
-See Trusted V1 delivery plan. Specs 018–058 closed; Spec 059 is `QUALIFIED_PENDING_MERGE`; Spec 012 remains optional/deferred. Advanced **060+** deferred.
+See Trusted V1 delivery plan. Specs 018–058 closed; Spec 059 is `POST_MERGE_REGRESSION_FIX_IN_REVIEW`; Spec 012 remains optional/deferred. Advanced **060+** deferred.
 
 ## Historical scoped queue (closures preserved)
 
@@ -74,7 +74,7 @@ See Trusted V1 delivery plan. Specs 018–058 closed; Spec 059 is `QUALIFIED_PEN
 | 056 | Fixture A11y Semantics (a11y residual) | `CLOSED_CANONICAL` | READY_BASE deepening: role/keyboard/announcement semantics on every fixture view model; no WCAG claim. See `SPEC_056_PROMOTION.md`. |
 | 057 | Release Qualification Residual Integrity (Q05 residual) | `CLOSED_CANONICAL` | Fresh audit: complete cold-launch/idle-memory coverage + immutable Action pin enforcement; budgets/RELEASE_READY remain false. See `SPEC_057_PROMOTION.md`. |
 | 058 | Portable Release Package Qualification (Q05 residual) | `CLOSED_CANONICAL` | Deterministic unsigned portable package + real install/upgrade/rollback lifecycle proof qualified on Windows/Linux/macOS; signing/native installers/RELEASE_READY remain open. See `SPEC_058_PROMOTION.md`. |
-| 059 | Final Release Closure Audit (Q05 terminal residual) | `QUALIFIED_PENDING_MERGE` | Synchronize living release truth, clear repository-owned material findings, and prove remaining release residuals are external-only. See `SPEC_059_PROMOTION.md`. |
+| 059 | Final Release Closure Audit (Q05 terminal residual) | `POST_MERGE_REGRESSION_FIX_IN_REVIEW` | Synchronize living release truth, clear repository-owned material findings, and prove remaining release residuals are external-only. See `SPEC_059_PROMOTION.md`. |
 | 060+ | Advanced deferred work | `DEFERRED_BY_CANONICAL_DESIGN` | Plugins/GraphRAG/replicas/imaging/CUDA/etc.; no Trusted V1 completion requirement. |
 
 ## Automatic progression
@@ -83,5 +83,5 @@ For the first `READY` unit: create/complete its Spec Kit package, analyze it, im
 
 Do not stop merely because a PR merged, one milestone passed, or an external optional gate exists.
 
-**Next eligible (honest):** Spec **059** is the only promoted unit and is `QUALIFIED_PENDING_MERGE`; exact-head PR run `34889698756` passed all six required checks on `8845b347ff225e598fedd7ca014928b16b0367a0`. Do not promote 060+ absent new evidence. After 059, remaining release gaps must be external-only: qualified-hardware performance, desktop signing/provenance, macOS signed product qualification, and final-v0/WCAG. Spec 012 remains optional/deferred. Do **not** claim `RELEASE_READY`, `PRIVATE_DATA_READY`, or `MULTI_CLIENT_RELEASE_READY`.
+**Next eligible (honest):** Spec **059** is the only promoted unit and is `POST_MERGE_REGRESSION_FIX_IN_REVIEW`; PR #100 exact-head qualification passed, but post-merge main run `34892900032` exposed a Windows RSS parser defect; a bounded corrective PR is required before terminal closure. Do not promote 060+ absent new evidence. After 059, remaining release gaps must be external-only: qualified-hardware performance, desktop signing/provenance, macOS signed product qualification, and final-v0/WCAG. Spec 012 remains optional/deferred. Do **not** claim `RELEASE_READY`, `PRIVATE_DATA_READY`, or `MULTI_CLIENT_RELEASE_READY`.
 

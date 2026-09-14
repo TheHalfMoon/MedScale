@@ -16,7 +16,7 @@ Trusted V1 `RELEASE_READY` requires all applicable release bars below. Spec 059 
 | Qualified-hardware performance attainment | FALSE | Harness coverage exists; hosted CI is not qualified hardware; external gate `QUALIFIED_RELEASE_PERFORMANCE_HARDWARE` |
 | Final v0 UI / WCAG qualification | FALSE | Final v0 artifact not supplied; external gate `FINAL_V0_UI_ACCESSIBILITY_QUALIFICATION` |
 | Source-linked claims + limitations | TRUE | Release evidence/limitations are source/tree/lock bound and preserve non-claims |
-| No unresolved repository-owned material findings | QUALIFIED_PENDING_MERGE | Spec 059 bounded audit clears repository-owned findings; exact-head PR run `34889698756` passed all six required checks; merge + post-merge main verification still required |
+| No unresolved repository-owned material findings | IN_REVIEW | PR #100 merged, but post-merge main run `34892900032` exposed a Windows runtime-performance RSS parser defect; corrective exact-head + post-merge proof required |
 
 **Verdict: `RELEASE_READY = FALSE`**
 

@@ -103,21 +103,45 @@ fn sample_rss_kib(pid: u32) -> u64 {
         .expect("parse ps RSS KiB")
 }
 
+fn parse_tasklist_rss_kib(text: &str, pid: u32) -> Option<u64> {
+    text.lines().find_map(|line| {
+        let line = line.trim();
+        if line.is_empty() || line.starts_with("INFO:") {
+            return None;
+        }
+        let columns = line.trim_matches('"').split("\",\"").collect::<Vec<_>>();
+        if columns.len() < 5 || columns.get(1)?.parse::<u32>().ok()? != pid {
+            return None;
+        }
+        let digits = columns
+            .last()?
+            .chars()
+            .filter(char::is_ascii_digit)
+            .collect::<String>();
+        if digits.is_empty() {
+            return None;
+        }
+        digits.parse::<u64>().ok()
+    })
+}
+
 #[cfg(windows)]
 fn sample_rss_kib(pid: u32) -> u64 {
-    let output = Command::new("tasklist")
-        .args(["/FI", &format!("PID eq {pid}"), "/FO", "CSV", "/NH"])
-        .output()
-        .expect("sample RSS with tasklist");
-    assert!(output.status.success(), "tasklist RSS sample failed");
-    let line = String::from_utf8_lossy(&output.stdout);
-    let field = line
-        .trim()
-        .rsplit(",\"")
-        .next()
-        .expect("tasklist memory field");
-    let digits: String = field.chars().filter(char::is_ascii_digit).collect();
-    digits.parse::<u64>().expect("parse tasklist RSS KiB")
+    for _ in 0..5 {
+        let filter = format!("PID eq {pid}");
+        let output = Command::new("tasklist")
+            .args(["/FI", filter.as_str(), "/FO", "CSV", "/NH"])
+            .output()
+            .expect("sample RSS with tasklist");
+        if output.status.success() {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            if let Some(rss_kib) = parse_tasklist_rss_kib(&stdout, pid) {
+                return rss_kib;
+            }
+        }
+        thread::sleep(Duration::from_millis(50));
+    }
+    panic!("tasklist did not yield a valid RSS sample for PID {pid}");
 }
 
 fn measure_idle_rss_kib() -> Vec<u64> {
@@ -146,6 +170,31 @@ fn measure_idle_rss_kib() -> Vec<u64> {
 
 fn evidence_dir() -> PathBuf {
     repo_root().join("target/medscale-evidence/057-release-qualification-residual-integrity")
+}
+
+#[test]
+fn tasklist_rss_parser_tolerates_transient_empty_output() {
+    assert_eq!(
+        parse_tasklist_rss_kib(
+            "INFO: No tasks are running which match the specified criteria.\r\n",
+            4242
+        ),
+        None
+    );
+    assert_eq!(
+        parse_tasklist_rss_kib(
+            "\"medscale-desktop.exe\",\"4242\",\"Console\",\"1\",\"10,240 K\"\r\n",
+            4242
+        ),
+        Some(10_240)
+    );
+    assert_eq!(
+        parse_tasklist_rss_kib(
+            "\"medscale-desktop.exe\",\"99\",\"Console\",\"1\",\"10,240 K\"\r\n",
+            4242
+        ),
+        None
+    );
 }
 
 #[test]

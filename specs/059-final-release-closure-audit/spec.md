@@ -1,7 +1,7 @@
 # Feature Specification: Final Release Closure Audit (Q05)
 
 **Branch**: `spec/059-final-release-closure-audit`
-**Status**: QUALIFIED_PENDING_MERGE
+**Status**: POST_MERGE_REGRESSION_FIX_IN_REVIEW
 **Promotion**: FRESH_TERMINAL_EXECUTABILITY_AUDIT_2026-09-14
 **Does not**: claim `RELEASE_READY`, `PRIVATE_DATA_READY`, WCAG conformance, signed/notarized distribution, qualified-hardware performance, or macOS product qualification.
 
