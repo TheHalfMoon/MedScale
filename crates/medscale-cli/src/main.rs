@@ -387,9 +387,10 @@ fn run() -> Result<()> {
                     report.release_qualification.missing_evidence_classes.len()
                 );
                 println!(
-                    "accessibility: ready_base={} fixture_labels={} cli_keyboard={} disclosure={} wcag_claimed={} final_v0={} release_ready={}",
+                    "accessibility: ready_base={} fixture_labels={} fixture_semantics={} cli_keyboard={} disclosure={} wcag_claimed={} final_v0={} release_ready={}",
                     report.accessibility.ready_base,
                     report.accessibility.fixture_cli_labels_checked,
+                    report.accessibility.fixture_state_semantics_checked,
                     report.accessibility.cli_keyboard_path_documented,
                     report.accessibility.disclosure_clarity_checked,
                     report.accessibility.wcag_conformance_claimed,
@@ -850,6 +851,7 @@ mod tests {
         let report = build_doctor_report(None, false, false);
         let vm = FixtureUiViewModel::from_doctor(&report);
         assert!(vm.has_required_a11y_labels());
+        assert!(vm.has_required_a11y_semantics());
         assert!(FixtureUiViewModel::required_surface_labels().contains(&vm.title.as_str()));
         assert!(!report.accessibility.wcag_conformance_claimed);
         assert!(!report.accessibility.release_ready);
