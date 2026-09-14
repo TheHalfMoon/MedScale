@@ -5,11 +5,11 @@
 **Rule:** update this file whenever a unit enters or leaves a canonical state.
 
 **Autonomous stop status (historical V2 scoped closure):** superseded for Trusted V1 follow-on work.
-**Live follow-on status (2026-09-11):** Specs **016**–**054** `CLOSED_CANONICAL` READY_BASE. Spec **054** native/full release SBOM qualification closed — see `SPEC_054_PROMOTION.md`. Spec **012** DEFERRED_BY_CANONICAL_DESIGN (optional MESC integration). Honesty: `PRIVATE_DATA_READY=false`; `RELEASE_READY=false`; `budgets_claimed_met=false`; sandbox `platform_qualified=false`. Deferred advanced **055+**.
+**Live follow-on status (2026-09-11):** Specs **016**–**054** `CLOSED_CANONICAL` READY_BASE. Spec **054** native/full release SBOM qualification closed; Specs **055** (perf non-attainment dossier) and **056** (fixture a11y semantics) closed (`SPEC_054/055/056_PROMOTION.md`). Spec **012** DEFERRED_BY_CANONICAL_DESIGN (optional MESC integration). Honesty: `PRIVATE_DATA_READY=false`; `RELEASE_READY=false`; `budgets_claimed_met=false`; sandbox `platform_qualified=false`. Deferred advanced **057+**.
 
 ## 2026-09-11 planning refinement
 
-See Trusted V1 delivery plan. Specs 018–054 READY_BASE closed; Spec 012 deferred as optional MESC integration. Advanced **055+** deferred.
+See Trusted V1 delivery plan. Specs 018–056 READY_BASE closed; Spec 012 deferred as optional MESC integration. Advanced **057+** deferred.
 
 ## Historical scoped queue (closures preserved)
 
@@ -80,5 +80,5 @@ For the first `READY` unit: create/complete its Spec Kit package, analyze it, im
 
 Do not stop merely because a PR merged, one milestone passed, or an external optional gate exists.
 
-**Next eligible (honest):** Spec **055** candidates after fresh executability audit (e.g. perf non-attainment dossier, fixture a11y deepen, privacy probe deepening). Spec 012 deferred as optional MESC integration. Remaining Trusted V1 gaps are largely external/gated: budget attainment on qualified multi-OS hardware, real installers/signing, App Sandbox signed enforcement, branch protection *enablement*, SPDX, WCAG/final-v0, optional MESC assets. Deferred advanced product **055+**. Do **not** claim `RELEASE_READY`, `PRIVATE_DATA_READY`, or `MULTI_CLIENT_RELEASE_READY`.
+**Next eligible (honest):** Specs **055-056** are `CLOSED_CANONICAL`; no further numbered unit is promoted without a fresh executability audit proving a genuine bounded residual. Spec 012 deferred as optional MESC integration. Remaining Trusted V1 gaps are largely external/gated: budget attainment on qualified multi-OS hardware, real installers/signing, App Sandbox signed enforcement, branch protection *enablement*, SPDX, WCAG/final-v0, optional MESC assets. Deferred advanced product **057+**. Do **not** claim `RELEASE_READY`, `PRIVATE_DATA_READY`, or `MULTI_CLIENT_RELEASE_READY`.
 
