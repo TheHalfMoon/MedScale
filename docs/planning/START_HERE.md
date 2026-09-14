@@ -89,6 +89,7 @@ Spec **053** is `CLOSED_CANONICAL` READY_BASE (Linux seccomp-bpf strict allowlis
 Spec **054** is `CLOSED_CANONICAL` READY_BASE (deterministic CycloneDX 1.5 release SBOM + fail-closed verifier; `release_sbom_qualified`; `reproducible_build=unproven`; `RELEASE_READY` still FALSE; see `SPEC_054_PROMOTION.md`).
 Spec **055** is `CLOSED_CANONICAL` READY_BASE (performance non-attainment dossier; `PERFORMANCE_NON_ATTAINMENT` bound to source/tree/lock; budgets not claimed; see `SPEC_055_PROMOTION.md`).
 Spec **056** is `CLOSED_CANONICAL` READY_BASE (fixture role/keyboard/announcement semantics deepening; no WCAG claim; see `SPEC_056_PROMOTION.md`).
+External gate update (2026-09-14): `PUBLIC_SOURCE_LICENSE_CHOICE=DECIDED`; founder selected `Apache-2.0` with package NOTICE aggregation required. Historical Spec 032 text records its closure-time state.
 Spec 012 is deferred as optional MESC integration. Deferred advanced work is **057+**.
 Do **not** claim `RELEASE_READY`, `PRIVATE_DATA_READY`, or `MULTI_CLIENT_RELEASE_READY`.
 Q03 residual page encryption landed in Spec 023; OS keyring READY_BASE in Spec 028; Spec 032/043 probes classify residuals but do not clear swap/snapshot (still block PRIVATE_DATA_READY).

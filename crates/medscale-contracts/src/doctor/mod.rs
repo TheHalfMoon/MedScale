@@ -56,14 +56,14 @@ pub struct ReleaseQualificationDoctorStatus {
     pub release_sbom_qualified: bool,
     /// Spec 032: NOTICE/third-party inventory artifact present (not a license decision).
     pub notice_inventory_present: bool,
-    /// Spec 032: public SPDX for MedScale crates — always false until EXTERNAL_GATES.
+    /// Founder-selected public SPDX for MedScale crates; Apache-2.0 decision is recorded.
     pub rights_license_decision: bool,
     pub missing_evidence_classes: Vec<String>,
 }
 
 impl ReleaseQualificationDoctorStatus {
     /// Specs 022+027+029+032 READY_BASE: locked builds + evidence + perf/SBOM + NOTICE
-    /// inventory + macOS CI; RELEASE_READY remains false; license decision remains open.
+    /// inventory + macOS CI; RELEASE_READY remains false; Apache-2.0 license decision is closed.
     #[must_use]
     pub fn prep_ready_base() -> Self {
         Self {
@@ -88,7 +88,7 @@ impl ReleaseQualificationDoctorStatus {
             required_checks_packet_synced: true,
             release_sbom_qualified: true,
             notice_inventory_present: true,
-            rights_license_decision: false,
+            rights_license_decision: true,
             missing_evidence_classes: vec![
                 "macos_platform_product_qualification".to_owned(),
                 "mobile_app_release_qualification".to_owned(),
@@ -96,7 +96,6 @@ impl ReleaseQualificationDoctorStatus {
                 "reproducible_release_package_contents".to_owned(),
                 "release_sbom_signing_provenance".to_owned(),
                 "perf_budgets_attained_on_qualified_hardware".to_owned(),
-                "public_source_license_choice".to_owned(),
                 "checksums_provenance_signing_verification".to_owned(),
                 "release_package_upgrade_rollback_proof".to_owned(),
                 "unresolved_material_findings_clearance".to_owned(),
@@ -124,11 +123,11 @@ impl ReleaseQualificationDoctorStatus {
             && self.required_checks_packet_synced
             && self.release_sbom_qualified
             && self.notice_inventory_present
-            && !self.rights_license_decision
+            && self.rights_license_decision
             && self
                 .missing_evidence_classes
                 .contains(&"macos_platform_product_qualification".to_owned())
-            && self
+            && !self
                 .missing_evidence_classes
                 .contains(&"public_source_license_choice".to_owned())
             && self
@@ -749,7 +748,7 @@ mod release_qualification_tests {
         assert!(s.required_checks_packet_synced);
         assert!(s.release_sbom_qualified);
         assert!(s.notice_inventory_present);
-        assert!(!s.rights_license_decision);
+        assert!(s.rights_license_decision);
         assert!(
             s.missing_evidence_classes
                 .contains(&"macos_platform_product_qualification".to_owned())
@@ -757,6 +756,10 @@ mod release_qualification_tests {
         assert!(
             s.missing_evidence_classes
                 .contains(&"repo_branch_protection_required_checks".to_owned())
+        );
+        assert!(
+            !s.missing_evidence_classes
+                .contains(&"public_source_license_choice".to_owned())
         );
         assert!(
             s.missing_evidence_classes

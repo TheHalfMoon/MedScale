@@ -65,3 +65,7 @@ cargo run -p medscale-cli --locked -- doctor
 - [GLM 5.3 Reconciliation V2](docs/planning/GLM53_RECONCILIATION_V2.md)
 
 One platform, many surfaces: CLI, Desktop, iOS, Android and SDK bindings share the same Rust-owned source/provenance, identity, time, authority, privacy and Pack semantics. OpenMed is the capability floor/strategic donor. MESC is an independent scientific producer. Neither owns MedScale clinical truth.
+
+## License
+
+MedScale first-party source is licensed under the [Apache License 2.0](LICENSE). Crates remain `publish = false`; the source license decision does not imply release readiness or authorize restricted data, credentials, terminology, model assets, or partner integrations.

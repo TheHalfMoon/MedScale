@@ -127,7 +127,7 @@ $manifest = [ordered]@{
         windows_appcontainer_lpac_measured       = $true
     }
     rights = [ordered]@{
-        public_source_license_choice = 'PENDING'
+        public_source_license_choice = 'Apache-2.0'
     }
 }
 
