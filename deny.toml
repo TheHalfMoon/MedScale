@@ -31,7 +31,7 @@ unused-allowed-license = "allow"
 exceptions = [
     { crate = "clipboard-win@5.4.1", allow = ["BSL-1.0"] },
     { crate = "error-code@3.4.0", allow = ["BSL-1.0"] },
-    { crate = "dwrote@0.11.5", allow = ["MPL-2.0"] },
+    { crate = "libfuzzer-sys@0.4.13", allow = ["NCSA"] },
 ]
 
 [licenses.private]

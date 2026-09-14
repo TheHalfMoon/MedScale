@@ -90,7 +90,7 @@ $inventory = [ordered]@{
         'Founder selected Apache-2.0 for MedScale first-party source on 2026-09-14.',
         'PUBLIC_SOURCE_LICENSE_CHOICE EXTERNAL_GATES is DECIDED.',
         'Workspace crates remain publish=false; public source license metadata is Apache-2.0.',
-        'Spec 060 admits Slint 1.13.1 under its royalty-free Desktop/Mobile/Web application license path with required About attribution.'
+        'Spec 060 admits Slint 1.16.1 under its royalty-free Desktop/Mobile/Web application license path with required About attribution.'
     )
 }
 

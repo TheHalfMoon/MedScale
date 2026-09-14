@@ -3,7 +3,7 @@
 Date: 2026-09-15
 Platform: macOS development host (not qualified release hardware)
 
-## Gates
+## Gates before first PR head
 - `cargo fmt --all -- --check`: PASS.
 - `cargo clippy --workspace --all-targets --locked -- -D warnings`: PASS.
 - `cargo test --workspace --locked`: PASS.
@@ -13,14 +13,21 @@ Platform: macOS development host (not qualified release hardware)
 - `medscale-desktop --smoke`: PASS without opening UI.
 - `medscale-desktop --perf-idle-ms 50`: PASS without opening UI.
 
-## Development measurements
-Current Slint 1.13.1 + Winit + femtovg/OpenGL build:
-- release binary: 9,207,168 bytes (~8.78 MiB);
-- live RSS sample after window appeared: 130,112 KiB (~127 MiB).
+## Renderer qualification iteration
+The initial Slint 1.13.1 GPU candidate measured about 9.2 MB binary and ~127 MiB RSS locally, but PR #103 exact-head run `34905865201` correctly rejected it because femtovg 0.17 selected `lru 0.16.4` (`RUSTSEC-2026-0253`). No advisory ignore was added.
 
-Renderer comparison on the same host/surface:
-- software-renderer experiment: 8,871,520-byte binary, 143,792 KiB RSS;
-- femtovg was retained: ~3.8% larger binary in that experiment but lower sampled RSS and a GPU-backed path better aligned with polished desktop motion/rendering.
+A Slint 1.13.1 software-renderer experiment removed `lru` but sampled substantially higher RSS (~165 MiB). The final candidate therefore moves to Slint 1.16.1 / Rust MSRV 1.88 / femtovg 0.23.2. Its all-features/all-target dependency graph contains no `lru`; `libfuzzer-sys` remains only as an all-target build-tool metadata path and receives an exact-crate NCSA license exception.
+
+Final Slint 1.16.1 development sample:
+- release binary: 12,293,200 bytes (~11.72 MiB);
+- live RSS after window appearance: 97,648 KiB (~95.4 MiB);
+- native window: observed as `MedScale`;
+- headless smoke and bounded idle probes: PASS.
+
+MSRV qualification:
+- `cargo +1.88.0 check --workspace --all-targets --locked`: PASS.
+- `smol_str` is pinned at 0.3.2 and `typed-index-collections` at 3.3.0 because newer semver-compatible transitive releases require Rust 1.89/1.90 even though Slint 1.16.1 itself declares Rust 1.88.
+- the pins preserve the declared workspace MSRV instead of silently raising it.
 
 These are development-host observations only. They do not clear `QUALIFIED_RELEASE_PERFORMANCE_HARDWARE` and do not claim final UI latency or memory-budget attainment.
 

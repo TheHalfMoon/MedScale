@@ -96,7 +96,7 @@ fn hex_encode(bytes: &[u8]) -> String {
 
 fn hex_decode(hex: &str) -> Result<Vec<u8>, ()> {
     let hex = hex.trim();
-    if hex.len() % 2 != 0 {
+    if !hex.len().is_multiple_of(2) {
         return Err(());
     }
     let mut out = Vec::with_capacity(hex.len() / 2);

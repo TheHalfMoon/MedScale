@@ -19,10 +19,10 @@ impl PackStore {
 
     /// Insert or replace when anti-rollback allows.
     pub fn admit(&mut self, manifest: PackManifestV0) -> Result<(), AdmitError> {
-        if let Some(existing) = self.packs.iter().find(|p| p.pack_id == manifest.pack_id) {
-            if is_rollback(existing, &manifest) {
-                return Err(AdmitError::AntiRollback);
-            }
+        if let Some(existing) = self.packs.iter().find(|p| p.pack_id == manifest.pack_id)
+            && is_rollback(existing, &manifest)
+        {
+            return Err(AdmitError::AntiRollback);
         }
         self.insert_unchecked(manifest);
         Ok(())

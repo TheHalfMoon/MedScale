@@ -29,8 +29,10 @@ fn native_desktop_shell_is_pinned_non_webview_and_branded() {
         std::fs::read_to_string(root.join("crates/medscale-desktop/ui/components.slint"))
             .expect("desktop components");
 
-    assert!(workspace.contains("slint = { version = \"=1.13.1\""));
+    assert!(workspace.contains("slint = { version = \"=1.16.1\""));
     assert!(workspace.contains("\"accessibility\""));
+    assert!(workspace.contains("rust-version = \"1.88\""));
+    assert!(workspace.contains("\"renderer-femtovg\""));
     assert!(desktop.contains("slint = { workspace = true }"));
     assert!(
         !desktop
@@ -77,11 +79,10 @@ fn native_desktop_shell_is_pinned_non_webview_and_branded() {
     assert!(mark.contains("#5B5CF6"));
     let deny = std::fs::read_to_string(root.join("deny.toml")).expect("deny config");
     assert!(deny.contains("LicenseRef-Slint-Royalty-free-2.0"));
-    assert!(deny.contains("dwrote@0.11.5"));
-    let notice = std::fs::read_to_string(root.join("docs/legal/NOTICE_INVENTORY.md"))
-        .expect("NOTICE inventory");
-    assert!(notice.contains("| slint | 1.13.1 |"));
+    assert!(deny.contains("libfuzzer-sys@0.4.13"));
     assert!(app.contains("AboutSlint"));
+    let lock = std::fs::read_to_string(root.join("Cargo.lock")).expect("Cargo lock");
+    assert!(!lock.contains("name = \"lru\"\nversion = \"0.16.4\""));
 }
 
 #[test]

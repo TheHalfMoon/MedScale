@@ -27,7 +27,7 @@ Primary navigation, search, quick actions, and status surfaces expose accessible
 
 ## Requirements
 - **FR-001**: Desktop runtime MUST be native and non-WebView.
-- **FR-002**: Use Slint 1.13.1 because it matches workspace MSRV 1.85, supports Windows/macOS/Linux, and exposes OS accessibility integration.
+- **FR-002**: Use Slint 1.16.1 because it matches workspace MSRV 1.88, supports Windows/macOS/Linux, and exposes OS accessibility integration.
 - **FR-003**: UI code MUST NOT open canonical storage, keys, or network clients directly.
 - **FR-004**: Desktop visual tokens and interaction rules MUST be centralized and reusable.
 - **FR-005**: Normal launch opens the UI; `--smoke` and `--perf-idle-ms` MUST NOT require a display server/window.

@@ -299,14 +299,14 @@ pub fn build_brief(
             if let Some(f) = slot.values.first() {
                 vitals.push(f.clone());
             }
-        } else if slot.concept_key.starts_with("condition.") {
-            if let Some(f) = slot.values.first() {
-                let mut f = f.clone();
-                if slot.status == CoverageStatus::Conflict {
-                    f.status = CoverageStatus::Conflict;
-                }
-                conditions.push(f);
+        } else if slot.concept_key.starts_with("condition.")
+            && let Some(f) = slot.values.first()
+        {
+            let mut f = f.clone();
+            if slot.status == CoverageStatus::Conflict {
+                f.status = CoverageStatus::Conflict;
             }
+            conditions.push(f);
         }
     }
 

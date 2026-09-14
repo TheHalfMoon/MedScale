@@ -12,7 +12,7 @@
 - [x] Audit: primary custom controls expose keyboard focus, Enter/Space activation, labels/actions, and visible focus treatment; WCAG is not claimed.
 - [x] Polish: canonical tokens, 4px spacing system, radii, typography hierarchy, and sparse accent use are centralized.
 - [x] Harden: shell actions route safely to owning surfaces instead of mutating authority; unavailable feature surfaces state that they are scheduled rather than fabricating results.
-- [x] Optimize: non-WebView runtime retained; femtovg vs software renderer measured; headless release probes preserved.
+- [x] Optimize: non-WebView runtime retained; renderer alternatives measured; the final GPU path was security-hardened to Slint 1.16.1 after fail-closed advisory detection; headless release probes remain preserved.
 
 ## Scope honesty
 Spec 060 validates the shell/Command Center vertical slice. Patient, workflow, insight, document, audit, export, and settings state completeness belongs to Specs 061–064; CLI polish/parity belongs to 065; final accessibility/performance product qualification belongs to 067.

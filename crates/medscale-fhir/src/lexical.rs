@@ -87,12 +87,12 @@ pub fn extract_patient_identifiers(bytes: &[u8]) -> Vec<(String, String)> {
     };
     let mut out = Vec::new();
     collect_identifiers(&value, &mut out);
-    if value.get("resourceType").and_then(Value::as_str) == Some("Bundle") {
-        if let Some(entries) = value.get("entry").and_then(Value::as_array) {
-            for entry in entries {
-                if let Some(resource) = entry.get("resource") {
-                    collect_identifiers(resource, &mut out);
-                }
+    if value.get("resourceType").and_then(Value::as_str) == Some("Bundle")
+        && let Some(entries) = value.get("entry").and_then(Value::as_array)
+    {
+        for entry in entries {
+            if let Some(resource) = entry.get("resource") {
+                collect_identifiers(resource, &mut out);
             }
         }
     }
