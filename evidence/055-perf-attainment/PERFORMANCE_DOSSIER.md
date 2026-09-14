@@ -25,7 +25,7 @@
 4. Doctor `budgets_claimed_met` flipped only by that evidence.
 
 ## Honesty
-- This dossier never asserts budgets_claimed_met=true or RELEASE_READY=true.
+- This dossier asserts no budget attainment and no release readiness.
 - No trust/security/correctness trade was made for numbers.
 - MESC not involved.
 
