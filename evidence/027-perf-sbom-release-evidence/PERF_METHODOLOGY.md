@@ -4,11 +4,14 @@
 
 From `docs/planning/TRUSTED_V1_DELIVERY_PLAN.md`:
 
-| Path | Target |
-|---|---|
-| Timeline for 10,000 events | p95 ≤ 250 ms |
-| Lexical search over 10,000 local records | p95 ≤ 300 ms |
-| 1 MiB bounded FHIR ingest (excl. external validation) | p95 ≤ 500 ms |
+| Path | Target | Measurement coverage |
+|---|---|---|
+| Cold model-free desktop launch | p95 ≤ 2 s | Spec 057 process-launch harness; attainment not claimed |
+| Timeline for 10,000 events | p95 ≤ 250 ms | Specs 027/042/050 harness path |
+| Lexical search over 10,000 local records | p95 ≤ 300 ms | Specs 045/050 harness path |
+| 1 MiB bounded FHIR ingest (excl. external validation) | p95 ≤ 500 ms | Specs 027/042/050 harness path |
+| Final UI interaction response | ≤ 100 ms | `BLOCKED_BY_FINAL_V0_UI`; no result claimed |
+| Model-free desktop idle memory | ≤ 250 MiB | Spec 057 RSS harness; attainment not claimed |
 
 ## Harness procedure
 

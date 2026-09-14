@@ -50,6 +50,9 @@ pub struct ReleaseQualificationDoctorStatus {
     pub package_upgrade_rollback_scaffold_present: bool,
     /// Spec 050: host-bound perf measurement operator path present (budgets not claimed).
     pub host_perf_measurement_path_present: bool,
+    /// Spec 057: cold-launch + idle-memory runtime measurement coverage path is wired across CI OSes.
+    #[serde(default)]
+    pub runtime_perf_measurement_coverage_present: bool,
     /// Spec 051: REQUIRED_CHECKS owner packet synced to live CI job names.
     pub required_checks_packet_synced: bool,
     /// Spec 054: deterministic CycloneDX release SBOM qualified (READY_BASE;
@@ -86,6 +89,7 @@ impl ReleaseQualificationDoctorStatus {
             migration_recovery_ready_base: true,
             package_upgrade_rollback_scaffold_present: true,
             host_perf_measurement_path_present: true,
+            runtime_perf_measurement_coverage_present: true,
             required_checks_packet_synced: true,
             release_sbom_qualified: true,
             notice_inventory_present: true,
@@ -119,6 +123,7 @@ impl ReleaseQualificationDoctorStatus {
             && self.migration_recovery_ready_base
             && self.package_upgrade_rollback_scaffold_present
             && self.host_perf_measurement_path_present
+            && self.runtime_perf_measurement_coverage_present
             && self.required_checks_packet_synced
             && self.release_sbom_qualified
             && self.notice_inventory_present
@@ -747,6 +752,7 @@ mod release_qualification_tests {
         assert!(s.migration_recovery_ready_base);
         assert!(s.package_upgrade_rollback_scaffold_present);
         assert!(s.host_perf_measurement_path_present);
+        assert!(s.runtime_perf_measurement_coverage_present);
         assert!(s.required_checks_packet_synced);
         assert!(s.release_sbom_qualified);
         assert!(s.notice_inventory_present);
