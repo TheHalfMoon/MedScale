@@ -12,6 +12,7 @@ use slint::{ComponentHandle, ModelRc, VecModel};
 
 mod patient_workspace;
 mod population_insights;
+mod utility_surfaces;
 mod workflow_studio;
 
 slint::include_modules!();
@@ -70,7 +71,7 @@ fn main() -> ExitCode {
             return ExitCode::from(1);
         }
     };
-    ui.set_product_version(report.version.into());
+    ui.set_product_version(report.version.clone().into());
 
     let patient = patient_workspace::PatientWorkspaceVm::synthetic_demo();
     ui.set_patient_name(patient.display_name.into());
@@ -192,6 +193,49 @@ fn main() -> ExitCode {
             status: row.status.clone().into(),
             related_action_id: row.related_action_id.clone().into(),
         }),
+    )));
+
+    let utilities = utility_surfaces::UtilitySurfacesVm::synthetic_demo(&report);
+    ui.set_utility_audit_boundary(utilities.audit_boundary.clone().into());
+    ui.set_utility_export_boundary(utilities.export_boundary.clone().into());
+    ui.set_utility_settings_boundary(utilities.settings_boundary.clone().into());
+    ui.set_utility_integrations_boundary(utilities.integrations_boundary.clone().into());
+    ui.set_utility_missing_release_evidence(utilities.missing_release_evidence.clone().into());
+    ui.set_utility_audit_rows(ModelRc::new(VecModel::from_iter(
+        utilities.audit_rows.iter().map(|row| AuditTrailItem {
+            record_id: row.record_id.clone().into(),
+            action: row.action.clone().into(),
+            subject: row.subject.clone().into(),
+            detail: row.detail.clone().into(),
+            status: row.status.clone().into(),
+        }),
+    )));
+    ui.set_utility_export_rows(ModelRc::new(VecModel::from_iter(
+        utilities.export_rows.iter().map(|row| UtilityStatusItem {
+            label: row.label.clone().into(),
+            value: row.value.clone().into(),
+            detail: row.detail.clone().into(),
+            status: row.status.clone().into(),
+        }),
+    )));
+    ui.set_utility_settings_rows(ModelRc::new(VecModel::from_iter(
+        utilities.settings_rows.iter().map(|row| UtilityStatusItem {
+            label: row.label.clone().into(),
+            value: row.value.clone().into(),
+            detail: row.detail.clone().into(),
+            status: row.status.clone().into(),
+        }),
+    )));
+    ui.set_utility_integration_rows(ModelRc::new(VecModel::from_iter(
+        utilities
+            .integration_rows
+            .iter()
+            .map(|row| UtilityStatusItem {
+                label: row.label.clone().into(),
+                value: row.value.clone().into(),
+                detail: row.detail.clone().into(),
+                status: row.status.clone().into(),
+            }),
     )));
 
     // Spec 061 keeps patient presentation read-only and routes consequential work to review surfaces.

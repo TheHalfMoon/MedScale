@@ -8,5 +8,5 @@
 - [x] T6 Wire safe inspect/navigation interactions without commits.
 - [x] T7 Add regression tests and evidence.
 - [x] T8 Run local qualification and MSRV/diff/headless checks.
-- [ ] T9 Exact-head CI, merge, post-merge main verification, canonical close.
-- [ ] T10 Promote Spec 064.
+- [x] T9 Exact-head CI, merge, post-merge main verification, canonical close.
+- [x] T10 Promote Spec 064.

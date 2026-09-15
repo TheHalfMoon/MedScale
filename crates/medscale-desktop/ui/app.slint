@@ -68,6 +68,21 @@ export struct WorkflowMessageItem {
     related-action-id: string,
 }
 
+export struct UtilityStatusItem {
+    label: string,
+    value: string,
+    detail: string,
+    status: string,
+}
+
+export struct AuditTrailItem {
+    record-id: string,
+    action: string,
+    subject: string,
+    detail: string,
+    status: string,
+}
+
 export component AppWindow inherits Window {
     title: "MedScale";
     width: 1440px;
@@ -115,6 +130,15 @@ export component AppWindow inherits Window {
     in property <[WorkflowStepItem]> workflow-steps;
     in property <[WorkflowTaskItem]> workflow-tasks;
     in property <[WorkflowMessageItem]> workflow-messages;
+    in property <string> utility-audit-boundary;
+    in property <string> utility-export-boundary;
+    in property <string> utility-settings-boundary;
+    in property <string> utility-integrations-boundary;
+    in property <string> utility-missing-release-evidence;
+    in property <[AuditTrailItem]> utility-audit-rows;
+    in property <[UtilityStatusItem]> utility-export-rows;
+    in property <[UtilityStatusItem]> utility-settings-rows;
+    in property <[UtilityStatusItem]> utility-integration-rows;
     callback ui-action(string);
 
     forward-focus: global-keys;
@@ -170,6 +194,7 @@ export component AppWindow inherits Window {
                     NavItem { label: "Documents"; glyph: "▤"; selected: root.active-route == "Documents"; activated => { root.active-route = "Documents"; } }
                     NavItem { label: "Audit Trail"; glyph: "◇"; selected: root.active-route == "Audit Trail"; activated => { root.active-route = "Audit Trail"; } }
                     NavItem { label: "Exports"; glyph: "⇩"; selected: root.active-route == "Exports"; activated => { root.active-route = "Exports"; } }
+                    NavItem { label: "Integrations"; glyph: "↔"; selected: root.active-route == "Integrations"; activated => { root.active-route = "Integrations"; } }
 
                     Rectangle { vertical-stretch: 1; background: transparent; }
 
@@ -248,7 +273,7 @@ export component AppWindow inherits Window {
                             VerticalLayout {
                                 spacing: 2px;
                                 Text { text: root.active-route == "Home" ? "Good morning, Dr. Doe" : root.active-route == "Patients" ? root.patient-name : root.active-route; color: Theme.ink; font-size: 28px; font-weight: 700; }
-                                Text { text: root.active-route == "Home" ? "A calm view of what needs attention today." : root.active-route == "Patients" ? "Trusted longitudinal workspace · Synthetic demo" : root.active-route == "Insights" ? "Evidence-aware population view · Synthetic demo" : root.active-route == "Workflows" ? "Review-first controlled-action studio · Synthetic demo" : root.active-route == "Tasks" ? "Derived outbox review queue · No second task authority" : root.active-route == "Messages" ? "Local review previews · No external transport claim" : "This surface is scheduled in a later Desktop slice."; color: Theme.ink-subtle; font-size: 14px; }
+                                Text { text: root.active-route == "Home" ? "A calm view of what needs attention today." : root.active-route == "Patients" ? "Trusted longitudinal workspace · Synthetic demo" : root.active-route == "Insights" ? "Evidence-aware population view · Synthetic demo" : root.active-route == "Workflows" ? "Review-first controlled-action studio · Synthetic demo" : root.active-route == "Tasks" ? "Derived outbox review queue · No second task authority" : root.active-route == "Messages" ? "Local review previews · No external transport claim" : root.active-route == "Audit Trail" ? "Synthetic disclosure history · Core Host remains canonical" : root.active-route == "Exports" ? "Loss-aware FHIR support · No full conformance claim" : root.active-route == "Settings" ? "Doctor truth and evidence-gated readiness" : root.active-route == "Integrations" ? "Brokered integration posture · Default deny" : "This surface is scheduled in a later Desktop slice."; color: Theme.ink-subtle; font-size: 14px; }
                             }
                             Rectangle { horizontal-stretch: 1; background: transparent; }
                             Rectangle {
@@ -811,6 +836,154 @@ export component AppWindow inherits Window {
                                                 Text { text: "Related action: " + item.related-action-id; color: Theme.ink-quiet; font-size: 8px; }
                                             }
                                             StatusPill { label: item.status; accent: item.status == "Reconcile first" ? Theme.coral : item.status == "Review required" ? Theme.amber : Theme.pine; }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        if root.active-route == "Audit Trail": VerticalLayout {
+                            spacing: 16px;
+                            HonestyPanel { title: "Audit authority boundary"; body: root.utility-audit-boundary; accent: Theme.pine; }
+                            Rectangle {
+                                min-height: 420px;
+                                border-radius: 16px;
+                                border-width: 1px;
+                                border-color: Theme.border;
+                                background: Theme.surface;
+                                accessible-role: groupbox;
+                                accessible-label: "Synthetic disclosure audit history";
+                                VerticalLayout {
+                                    padding: 16px;
+                                    spacing: 0px;
+                                    HorizontalLayout { height: 38px; spacing: 12px;
+                                        Text { width: 185px; text: "DISCLOSURE"; color: Theme.ink-quiet; font-size: 9px; font-weight: 700; vertical-alignment: center; }
+                                        Text { width: 170px; text: "PURPOSE"; color: Theme.ink-quiet; font-size: 9px; font-weight: 700; vertical-alignment: center; }
+                                        Text { width: 210px; text: "SUBJECT"; color: Theme.ink-quiet; font-size: 9px; font-weight: 700; vertical-alignment: center; }
+                                        Text { horizontal-stretch: 1; text: "DETAIL"; color: Theme.ink-quiet; font-size: 9px; font-weight: 700; vertical-alignment: center; }
+                                        Text { width: 150px; text: "STATUS"; color: Theme.ink-quiet; font-size: 9px; font-weight: 700; vertical-alignment: center; horizontal-alignment: right; }
+                                    }
+                                    for item in root.utility-audit-rows: Rectangle {
+                                        min-height: 64px;
+                                        border-width: 1px;
+                                        border-color: Theme.border;
+                                        background: Theme.surface;
+                                        accessible-role: text;
+                                        accessible-label: item.action + ", " + item.subject + ", " + item.status + ". " + item.detail;
+                                        HorizontalLayout { padding-left: 10px; padding-right: 10px; spacing: 12px;
+                                            Text { width: 185px; text: item.record-id; color: Theme.blurple; font-size: 9px; vertical-alignment: center; }
+                                            Text { width: 170px; text: item.action; color: Theme.ink; font-size: 10px; font-weight: 650; wrap: word-wrap; vertical-alignment: center; }
+                                            Text { width: 210px; text: item.subject; color: Theme.ink-subtle; font-size: 9px; wrap: word-wrap; vertical-alignment: center; }
+                                            Text { horizontal-stretch: 1; text: item.detail; color: Theme.ink-subtle; font-size: 9px; wrap: word-wrap; vertical-alignment: center; }
+                                            Text { width: 150px; text: item.status; color: Theme.pine; font-size: 9px; wrap: word-wrap; vertical-alignment: center; horizontal-alignment: right; }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        if root.active-route == "Exports": VerticalLayout {
+                            spacing: 16px;
+                            HonestyPanel { title: "FHIR export boundary"; body: root.utility-export-boundary; accent: Theme.blurple; }
+                            Rectangle {
+                                min-height: 390px;
+                                border-radius: 16px;
+                                border-width: 1px;
+                                border-color: Theme.border;
+                                background: Theme.surface;
+                                accessible-role: groupbox;
+                                accessible-label: "FHIR R4 support matrix for loss-aware export";
+                                VerticalLayout {
+                                    padding: 16px;
+                                    spacing: 8px;
+                                    Text { text: "FHIR R4 support matrix"; color: Theme.ink; font-size: 15px; font-weight: 650; }
+                                    Text { text: "Support is axis-specific. Unsupported clinical interpretation is kept explicit."; color: Theme.ink-subtle; font-size: 10px; wrap: word-wrap; }
+                                    for item in root.utility-export-rows: Rectangle {
+                                        min-height: 76px;
+                                        border-radius: 12px;
+                                        border-width: 1px;
+                                        border-color: Theme.border;
+                                        background: Theme.surface-raised;
+                                        accessible-role: text;
+                                        accessible-label: item.label + ", " + item.value + ", " + item.status + ". " + item.detail;
+                                        HorizontalLayout { padding: 12px; spacing: 12px;
+                                            Text { width: 130px; text: item.label; color: Theme.ink; font-size: 12px; font-weight: 700; vertical-alignment: center; }
+                                            VerticalLayout { horizontal-stretch: 1; alignment: center; spacing: 3px;
+                                                Text { text: item.value; color: Theme.ink-subtle; font-size: 10px; wrap: word-wrap; }
+                                                Text { text: item.detail; color: Theme.ink-quiet; font-size: 9px; wrap: word-wrap; }
+                                            }
+                                            StatusPill { label: item.status; accent: Theme.amber; }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        if root.active-route == "Settings": VerticalLayout {
+                            spacing: 16px;
+                            HonestyPanel { title: "Settings are not evidence"; body: root.utility-settings-boundary; accent: Theme.pine; }
+                            Rectangle {
+                                min-height: 390px;
+                                border-radius: 16px;
+                                border-width: 1px;
+                                border-color: Theme.border;
+                                background: Theme.surface;
+                                accessible-role: groupbox;
+                                accessible-label: "Doctor-backed product settings and readiness status";
+                                VerticalLayout {
+                                    padding: 16px;
+                                    spacing: 8px;
+                                    for item in root.utility-settings-rows: Rectangle {
+                                        min-height: 72px;
+                                        border-radius: 12px;
+                                        border-width: 1px;
+                                        border-color: Theme.border;
+                                        background: Theme.surface-raised;
+                                        accessible-role: text;
+                                        accessible-label: item.label + ", " + item.value + ", " + item.status + ". " + item.detail;
+                                        HorizontalLayout { padding: 12px; spacing: 12px;
+                                            VerticalLayout { width: 210px; alignment: center; spacing: 2px;
+                                                Text { text: item.label; color: Theme.ink; font-size: 11px; font-weight: 650; }
+                                                Text { text: item.value; color: Theme.blurple; font-size: 10px; font-weight: 650; }
+                                            }
+                                            Text { horizontal-stretch: 1; text: item.detail; color: Theme.ink-subtle; font-size: 10px; wrap: word-wrap; vertical-alignment: center; }
+                                            StatusPill { label: item.status; accent: item.status == "Fail closed" ? Theme.coral : Theme.amber; }
+                                        }
+                                    }
+                                }
+                            }
+                            HonestyPanel { title: "Missing release evidence"; body: root.utility-missing-release-evidence; accent: Theme.coral; }
+                        }
+
+                        if root.active-route == "Integrations": VerticalLayout {
+                            spacing: 16px;
+                            HonestyPanel { title: "Integration boundary"; body: root.utility-integrations-boundary; accent: Theme.pine; }
+                            Rectangle {
+                                min-height: 420px;
+                                border-radius: 16px;
+                                border-width: 1px;
+                                border-color: Theme.border;
+                                background: Theme.surface;
+                                accessible-role: groupbox;
+                                accessible-label: "Integration readiness and default-deny status";
+                                VerticalLayout {
+                                    padding: 16px;
+                                    spacing: 10px;
+                                    for item in root.utility-integration-rows: Rectangle {
+                                        min-height: 76px;
+                                        border-radius: 12px;
+                                        border-width: 1px;
+                                        border-color: Theme.border;
+                                        background: Theme.surface-raised;
+                                        accessible-role: text;
+                                        accessible-label: item.label + ", " + item.value + ", " + item.status + ". " + item.detail;
+                                        HorizontalLayout { padding: 12px; spacing: 12px;
+                                            VerticalLayout { width: 170px; alignment: center; spacing: 2px;
+                                                Text { text: item.label; color: Theme.ink; font-size: 12px; font-weight: 650; }
+                                                Text { text: item.value; color: Theme.blurple; font-size: 10px; font-weight: 650; }
+                                            }
+                                            Text { horizontal-stretch: 1; text: item.detail; color: Theme.ink-subtle; font-size: 10px; wrap: word-wrap; vertical-alignment: center; }
+                                            StatusPill { label: item.status; accent: item.status == "Untouched" ? Theme.ink-quiet : item.status == "Not live" ? Theme.coral : Theme.pine; }
                                         }
                                     }
                                 }
