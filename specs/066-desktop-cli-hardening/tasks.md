@@ -8,5 +8,5 @@
 - [x] T6 Deduplicate spec-branch CI while retaining PR + main qualification.
 - [x] T7 Add hardening regressions and evidence.
 - [x] T8 Run local qualification and MSRV/headless/diff checks.
-- [ ] T9 Exact-head CI, merge, post-merge main verification, canonical close.
-- [ ] T10 Promote Spec 067.
+- [x] T9 Exact-head CI, merge, post-merge main verification, canonical close.
+- [x] T10 Promote Spec 067.

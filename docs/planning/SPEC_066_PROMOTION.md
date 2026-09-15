@@ -1,6 +1,6 @@
 # Spec 066 Promotion — Desktop + CLI Hardening
 
-**Current state:** `IN_REVIEW`
+**Current state:** `CLOSED_CANONICAL`
 **Promotion:** `POST_SPEC_065_CANONICAL_SEQUENCE`
 
 Spec 065 is `CLOSED_CANONICAL`: final exact head `06be6d0981af11316ddaab28de3f78c70c252be3` passed all six required jobs in run `34933002914`, PR #109 merged normally as `11a9652c6f92eb7e7ade4a5aef18ad9742b8a294`, and post-merge main run `34933737357` passed all six required jobs.

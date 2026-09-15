@@ -10,7 +10,7 @@ From `docs/planning/TRUSTED_V1_DELIVERY_PLAN.md`:
 | Timeline for 10,000 events | p95 ≤ 250 ms | Specs 027/042/050 harness path |
 | Lexical search over 10,000 local records | p95 ≤ 300 ms | Specs 045/050 harness path |
 | 1 MiB bounded FHIR ingest (excl. external validation) | p95 ≤ 500 ms | Specs 027/042/050 harness path |
-| Final UI interaction response | ≤ 100 ms | `BLOCKED_BY_FINAL_V0_UI`; no result claimed |
+| Final UI interaction response | ≤ 100 ms | `FINAL_UI_PRESENT_EXTERNAL_INTERACTION_MEASUREMENT_REQUIRED`; no result claimed |
 | Model-free desktop idle memory | ≤ 250 MiB | Spec 057 RSS harness; attainment not claimed |
 
 ## Harness procedure
