@@ -1,6 +1,6 @@
 # Spec 063 Evidence Summary
 
-State: `IN_REVIEW` after canonical local qualification; exact-head CI, merge, post-merge verification, and canonical closure remain pending.
+State: `CLOSED_CANONICAL` after exact-head CI, normal merge, and successful post-merge main qualification.
 
 Spec 063 makes Workflows, Tasks, and Messages native product surfaces while preserving the existing action authority model. Workflow Studio visualizes evidence→review→payload identity→durable outbox→reconciliation. Tasks are derived review cues over `OutboxEntry`; Messages are local status/review previews only.
 

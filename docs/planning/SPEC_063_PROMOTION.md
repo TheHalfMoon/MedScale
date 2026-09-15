@@ -1,6 +1,6 @@
 # Spec 063 Promotion — Workflow Studio + Tasks/Messages
 
-**Current state:** `IN_REVIEW`
+**Current state:** `CLOSED_CANONICAL`
 **Promotion:** `POST_SPEC_062_CANONICAL_SEQUENCE`
 
 Spec 062 is `CLOSED_CANONICAL`: final exact head `4c113b0badc4d74bb8e20d4f3acc07a0b026df87` passed all six required jobs in run `34920024022`, PR #106 merged without bypass as `dd3f6bd1c35afa53ae9a3cf83aad0e3e769c76ce`, and post-merge main run `34920946581` passed all six required jobs.
