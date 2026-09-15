@@ -133,7 +133,7 @@ ONLINE ECOSYSTEM
 031 macOS Seatbelt sandbox (Q09 residual) CLOSED_CANONICAL READY_BASE; macos_measured; App Sandbox entitlements scaffold; platform_qualified=false; WORKER_OS_SANDBOX gate OPEN
 032 privacy probes + NOTICE inventory + perf binding CLOSED_CANONICAL READY_BASE; license was undecided at closure and is now Apache-2.0; budgets_claimed_met=false; PRIVATE_DATA_READY=false
 033–053 residual READY_BASE closed (AppContainer FS/network/LPAC, outbox restart, EncryptedVault sync, MESC verifier, release-prep/honesty, sandbox composition, lexical 10k, SBOM/dry-run/migration/upgrade/perf path, REQUIRED_CHECKS sync, Linux Landlock composition, Linux seccomp composition)
-Terminal Trusted V1 repository-owned implementation: Specs **054**–**059** are closed and no Trusted V1 repo-owned residual remains. Spec 012 remains optional/deferred. A separate founder-promoted Desktop+CLI product-launch phase now spans Specs 060–067; Specs 060–066 are closed and 067 is active. Remaining release blockers stay evidence-gated (qualified performance hardware, signing/provenance, macOS signed product/App Sandbox enforcement, final-v0/WCAG)
+Terminal repository-owned implementation: Trusted V1 Specs **054**–**059** and the separately promoted Desktop+CLI phase Specs **060**–**067** are closed; no promoted repository-owned implementation residual remains. Spec 012 remains optional/deferred. Remaining release blockers stay evidence-gated (qualified performance hardware, signing/provenance, macOS signed-product/App Sandbox enforcement, final assistive-technology/WCAG qualification).
 ```
 
 ## 2026-09-15 Desktop + CLI product-launch phase
@@ -151,7 +151,7 @@ Founder-approved final visual direction is now supplied. Trusted V1 remains cano
   -> 067 final UI performance/accessibility product qualification
 ```
 
-Mobile applications remain deferred until Desktop + CLI launch. No 060-067 unit authorizes real PHI, production credentials, signing/notarization, or a WCAG/release claim without evidence.
+Mobile applications and Specs 068+ remain deferred by canonical design and require fresh promotion. Closure of Specs 060–067 does not authorize real PHI, production credentials, signing/notarization, WCAG conformance, or a release claim without evidence.
 
 ## 4. Core process topology — decided for downstream specs
 

@@ -1,4 +1,4 @@
-# Spec 067 Candidate Limitations
+# Spec 067 Canonical Limitations
 
 - No live screen-reader/WCAG result is created by repository automation.
 - No qualified release hardware has been provisioned by this repository unit.
