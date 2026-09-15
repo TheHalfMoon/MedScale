@@ -2,7 +2,7 @@
 
 **Feature Branch**: `spec/065-cli-product-experience-capability-parity`
 **Created**: 2026-09-15
-**Status**: IN_REVIEW
+**Status**: CLOSED_CANONICAL
 **Promotion**: POST_SPEC_064_PRODUCT_SURFACE_SEQUENCE
 
 ## Goal

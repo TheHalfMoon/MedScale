@@ -1,6 +1,6 @@
 # Spec 065 Promotion — CLI Product Experience + Capability Parity
 
-**Current state:** `IN_REVIEW`
+**Current state:** `CLOSED_CANONICAL`
 **Promotion:** `POST_SPEC_064_CANONICAL_SEQUENCE`
 
 Spec 064 is `CLOSED_CANONICAL`: final exact head `086891bf3dd2cc997d40ed61a06ea6e0e90f08fb` passed all six required jobs in run `34924373669`, PR #108 merged normally as `eb8eec1e6643224430f60a607a519413dbcb8b57`, and post-merge main run `34925062638` passed all six required jobs.

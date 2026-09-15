@@ -8,5 +8,5 @@
 - [x] T6 Add CLI product guide and examples.
 - [x] T7 Add regression/discovery/authority tests.
 - [x] T8 Run local qualification and MSRV/diff checks.
-- [ ] T9 Exact-head CI, merge, post-merge main verification, canonical close.
-- [ ] T10 Promote Spec 066.
+- [x] T9 Exact-head CI, merge, post-merge main verification, canonical close.
+- [x] T10 Promote Spec 066.
