@@ -15,3 +15,6 @@ The complete Markdown diff was reviewed for canonical state, evidence binding, e
 - Spec 012/MESC remains optional/deferred and non-blocking.
 
 OpenCodeReview is supplemental review evidence only. Protected-branch exact-head CI, merge governance, post-merge main CI, and the repository's canonical evidence remain authoritative.
+
+## Exact-range binding
+OpenCodeReview exact-range preview from final implementation merge `92ff377379c857e31d6be9a58612ba08b5e52cfd` to closure commit `6fdc73ffbcf11348f5051689fa2d096907f8c3a3` reported 14 changed files, `reviewable_count=0`, and `excluded_count=14`; every closure file was Markdown and classified `unsupported_ext`. The result therefore confirms scope/filtering only and does not substitute for the manual semantic review above.
