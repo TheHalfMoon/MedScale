@@ -6,4 +6,4 @@ Spec 063 makes Workflows, Tasks, and Messages native product surfaces while pres
 
 `EffectState::Unknown` remains explicitly fail-closed and requires reconciliation before retry. Payload digests remain visible identity bindings. Desktop does not open storage/network clients and does not create or commit controlled actions from these surfaces.
 
-Canonical-branch local qualification passed formatting, workspace Clippy with `-D warnings`, full workspace tests, targeted Spec 063 regression, Rust 1.88 workspace/all-target checking, Desktop smoke/perf probes, and diff checking. See `LOCAL_QUALIFICATION.md`.
+Canonical-branch local qualification passed formatting, workspace Clippy with `-D warnings`, targeted Spec 063 regression, Desktop unit/runtime tests, Rust 1.88 workspace/all-target checking, Desktop smoke/perf probes, and diff checking. The local full-workspace test attempt was storage-limited during linking (`ENOSPC`), with no assertion failure; exact-head CI must prove the full workspace suite before merge. See `LOCAL_QUALIFICATION.md`.
