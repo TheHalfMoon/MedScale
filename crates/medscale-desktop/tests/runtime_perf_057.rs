@@ -282,7 +282,7 @@ fn runtime_perf_057_measures_without_claiming_attainment() {
         "honesty": {
             "cold_launch_scope": "desktop scaffold process + model-free doctor init",
             "idle_memory_scope": "desktop scaffold engineering idle probe",
-            "final_ui_response": "BLOCKED_BY_FINAL_V0_UI",
+            "final_ui_response": "FINAL_UI_PRESENT_EXTERNAL_INTERACTION_MEASUREMENT_REQUIRED",
             "final_shell_remeasurement_required": true,
             "qualified_hardware_required_for_attainment": true,
         },
@@ -292,7 +292,7 @@ fn runtime_perf_057_measures_without_claiming_attainment() {
     assert_eq!(report["release_ready"], false);
     assert_eq!(
         report["honesty"]["final_ui_response"],
-        "BLOCKED_BY_FINAL_V0_UI"
+        "FINAL_UI_PRESENT_EXTERNAL_INTERACTION_MEASUREMENT_REQUIRED"
     );
 
     let out_dir = evidence_dir();

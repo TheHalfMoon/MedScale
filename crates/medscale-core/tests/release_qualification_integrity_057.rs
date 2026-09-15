@@ -64,7 +64,7 @@ fn runtime_perf_coverage_is_present_without_attainment_claim() {
     );
 }
 #[test]
-fn final_ui_latency_remains_explicitly_unmeasured() {
+fn final_ui_latency_is_present_but_external_measurement_gated() {
     let runtime_test = std::fs::read_to_string(
         repo_root().join("crates/medscale-desktop/tests/runtime_perf_057.rs"),
     )
@@ -74,9 +74,9 @@ fn final_ui_latency_remains_explicitly_unmeasured() {
     )
     .expect("read perf methodology");
 
-    assert!(runtime_test.contains("BLOCKED_BY_FINAL_V0_UI"));
+    assert!(runtime_test.contains("FINAL_UI_PRESENT_EXTERNAL_INTERACTION_MEASUREMENT_REQUIRED"));
     assert!(runtime_test.contains("budgets_claimed_met\": false"));
     assert!(methodology.contains("Cold model-free desktop launch"));
     assert!(methodology.contains("Model-free desktop idle memory"));
-    assert!(methodology.contains("BLOCKED_BY_FINAL_V0_UI"));
+    assert!(methodology.contains("FINAL_UI_PRESENT_EXTERNAL_INTERACTION_MEASUREMENT_REQUIRED"));
 }

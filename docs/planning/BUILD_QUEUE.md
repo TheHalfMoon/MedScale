@@ -5,11 +5,11 @@
 **Rule:** update this file whenever a unit enters or leaves a canonical state.
 
 **Autonomous stop status (historical V2 scoped closure):** superseded for Trusted V1 follow-on work.
-**Live follow-on status (2026-09-15):** Specs **016**–**065** are `CLOSED_CANONICAL`; Spec **012** is `DEFERRED_BY_CANONICAL_DESIGN` as optional MESC integration. Trusted V1 remains complete through Spec 059; the separately promoted Desktop+CLI product-launch phase is active and Spec **066** is `IN_REVIEW`. Honesty: `PRIVATE_DATA_READY=false`; `RELEASE_READY=false`; `budgets_claimed_met=false`; sandbox `platform_qualified=false`.
+**Live follow-on status (2026-09-15):** Specs **016**–**066** are `CLOSED_CANONICAL`; Spec **012** is `DEFERRED_BY_CANONICAL_DESIGN` as optional MESC integration. Trusted V1 remains complete through Spec 059; the separately promoted Desktop+CLI product-launch phase is active and Spec **067** is `IN_REVIEW`. Honesty: `PRIVATE_DATA_READY=false`; `RELEASE_READY=false`; `budgets_claimed_met=false`; sandbox `platform_qualified=false`.
 
 ## 2026-09-11 planning refinement
 
-See Trusted V1 delivery plan. Specs 018–065 are closed; Spec 012 remains optional/deferred. Specs 060–067 are the promoted Desktop+CLI product-launch phase; 066 is active.
+See Trusted V1 delivery plan. Specs 018–066 are closed; Spec 012 remains optional/deferred. Specs 060–067 are the promoted Desktop+CLI product-launch phase; 067 is active.
 
 ## Historical scoped queue (closures preserved)
 
@@ -81,8 +81,8 @@ See Trusted V1 delivery plan. Specs 018–065 are closed; Spec 012 remains optio
 | 063 | Workflow Studio + Tasks/Messages | `CLOSED_CANONICAL` | Exact-head `375de163…` passed run `34922310943`, PR #107 merged as `26bc3cfe…`, and post-merge main run `34922935845` passed all six required jobs. |
 | 064 | Audit + Exports + Settings + Integrations | `CLOSED_CANONICAL` | Exact-head `086891bf…` passed run `34924373669`, PR #108 merged as `eb8eec1e…`, and post-merge main run `34925062638` passed all six required jobs. |
 | 065 | CLI Product Experience + Capability Parity | `CLOSED_CANONICAL` | Exact-head `06be6d09…` passed run `34933002914`, PR #109 merged as `11a9652c…`, and post-merge main run `34933737357` passed all six required jobs. |
-| 066 | Desktop + CLI Hardening | `IN_REVIEW` | Native hardening is implemented and locally qualified; OpenCodeReview delegation is used for supported diff review, with Slint/docs reviewed manually. Exact-head CI/merge/post-merge closure remains pending. |
-| 067 | Final UI Product Qualification | `BLOCKED_BY_066` | Final UI latency/accessibility evidence and launch qualification; external signing/qualified-hardware/macOS credentials remain separately gated. |
+| 066 | Desktop + CLI Hardening | `CLOSED_CANONICAL` | Exact-head `ed5cbbb…` passed run `34934782208`, PR #110 merged as `31e7c6c8…`, and post-merge main run `34935549696` passed all six required jobs. OpenCodeReview delegation supplemented manual Slint/docs review. |
+| 067 | Final UI Product Qualification | `IN_REVIEW` | Final surface/honesty qualification and exact external accessibility/performance packets are implemented on a blob-equivalent locally qualified delta; OpenCodeReview delegation supplements manual docs review. Exact-head CI/merge/post-merge closure remains pending. |
 | 068+ | Advanced deferred work | `DEFERRED_BY_CANONICAL_DESIGN` | Plugins/GraphRAG/replicas/imaging/CUDA/mobile-after-launch/etc.; no Desktop+CLI launch requirement unless freshly promoted. |
 
 ## Automatic progression
@@ -91,5 +91,5 @@ For the first `READY` unit: create/complete its Spec Kit package, analyze it, im
 
 Do not stop merely because a PR merged, one milestone passed, or an external optional gate exists.
 
-**Next eligible (honest):** Spec **066** is `IN_REVIEW` after Spec 065 canonical closure and successful canonical-branch qualification; exact-head CI, merge, post-merge verification, and canonical closure are required before Spec 067 promotion. Trusted V1 repository-owned implementation remains complete through Spec 059; Specs 060-067 are the separately promoted Desktop+CLI product-launch phase. Mobile remains deferred until Desktop+CLI launch. Remaining release gaps stay evidence-gated: qualified-hardware performance, desktop signing/provenance, macOS signed product qualification, and final UI/WCAG qualification. Spec 012 remains optional/deferred. Do **not** claim `RELEASE_READY`, `PRIVATE_DATA_READY`, or `MULTI_CLIENT_RELEASE_READY`.
+**Next eligible (honest):** Spec **067** is `IN_REVIEW` after Spec 066 canonical closure and tree-equivalent local qualification; exact-head CI, merge, post-merge verification, and canonical closure are required before repository-owned Desktop+CLI implementation can be marked complete pending external gates. Trusted V1 repository-owned implementation remains complete through Spec 059; Specs 060-067 are the separately promoted Desktop+CLI product-launch phase. Mobile remains deferred until Desktop+CLI launch. Remaining release gaps stay evidence-gated: qualified-hardware performance, desktop signing/provenance, macOS signed product qualification, and final UI/WCAG qualification. Spec 012 remains optional/deferred. Do **not** claim `RELEASE_READY`, `PRIVATE_DATA_READY`, or `MULTI_CLIENT_RELEASE_READY`.
 

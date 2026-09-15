@@ -2,7 +2,7 @@
 
 **Feature Branch**: `spec/066-desktop-cli-hardening`
 **Created**: 2026-09-15
-**Status**: IN_REVIEW
+**Status**: CLOSED_CANONICAL
 **Promotion**: POST_SPEC_065_PRODUCT_HARDENING_SEQUENCE
 
 ## Goal
