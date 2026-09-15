@@ -1,6 +1,27 @@
 import { AboutSlint, LineEdit, ScrollView } from "std-widgets.slint";
 import { Theme } from "theme.slint";
-import { NavItem, QuickAction, ToolbarAction, MetricCard, StatusPill } from "components.slint";
+import { HonestyPanel, NavItem, QuickAction, SegmentTab, ToolbarAction, MetricCard, StatusPill } from "components.slint";
+
+export struct PatientTimelineItem {
+    date: string,
+    title: string,
+    detail: string,
+    source: string,
+    status: string,
+}
+
+export struct PatientLabItem {
+    label: string,
+    value: string,
+    unit: string,
+    status: string,
+    source: string,
+}
+
+export struct PatientSourceItem {
+    source-id: string,
+    note: string,
+}
 
 export component AppWindow inherits Window {
     title: "MedScale";
@@ -11,7 +32,20 @@ export component AppWindow inherits Window {
 
     in-out property <string> active-route: "Home";
     in-out property <bool> palette-open: false;
+    in-out property <string> patient-tab: "Overview";
     in property <string> product-version: "0.1.0";
+    in property <string> patient-name: "Synthetic subject";
+    in property <string> patient-subject-ref: "synthetic-subject";
+    in property <string> patient-birth-date: "Unknown — not inferred";
+    in property <string> patient-condition-summary: "No supported condition facts in this projection";
+    in property <string> patient-coverage-summary: "No coverage summary";
+    in property <string> patient-coverage-state: "Unknown";
+    in property <[PatientTimelineItem]> patient-timeline;
+    in property <[PatientLabItem]> patient-labs;
+    in property <[PatientSourceItem]> patient-sources;
+    in property <string> patient-medications-state;
+    in property <string> patient-documents-state;
+    in property <string> patient-care-plan-state;
     callback ui-action(string);
 
     forward-focus: global-keys;
@@ -144,8 +178,8 @@ export component AppWindow inherits Window {
                             spacing: 16px;
                             VerticalLayout {
                                 spacing: 2px;
-                                Text { text: root.active-route == "Home" ? "Good morning, Dr. Doe" : root.active-route; color: Theme.ink; font-size: 28px; font-weight: 700; }
-                                Text { text: root.active-route == "Home" ? "A calm view of what needs attention today." : "This surface is scheduled in the next Desktop slice."; color: Theme.ink-subtle; font-size: 14px; }
+                                Text { text: root.active-route == "Home" ? "Good morning, Dr. Doe" : root.active-route == "Patients" ? root.patient-name : root.active-route; color: Theme.ink; font-size: 28px; font-weight: 700; }
+                                Text { text: root.active-route == "Home" ? "A calm view of what needs attention today." : root.active-route == "Patients" ? "Trusted longitudinal workspace · Synthetic demo" : "This surface is scheduled in a later Desktop slice."; color: Theme.ink-subtle; font-size: 14px; }
                             }
                             Rectangle { horizontal-stretch: 1; background: transparent; }
                             Rectangle {
@@ -185,6 +219,169 @@ export component AppWindow inherits Window {
                                 }
                                 Rectangle { width: 1px; background: Theme.border; }
                                 AboutSlint { horizontal-stretch: 1; vertical-stretch: 1; }
+                            }
+                        }
+
+                        if root.active-route == "Patients": VerticalLayout {
+                            spacing: 16px;
+
+                            Rectangle {
+                                height: 132px;
+                                border-radius: 16px;
+                                border-width: 1px;
+                                border-color: Theme.border;
+                                background: Theme.surface;
+                                accessible-role: groupbox;
+                                accessible-label: "Synthetic patient workspace for " + root.patient-name + ". " + root.patient-coverage-state;
+                                HorizontalLayout {
+                                    padding: 18px;
+                                    spacing: 18px;
+                                    Rectangle {
+                                        width: 72px;
+                                        border-radius: 22px;
+                                        background: Theme.blurple-soft;
+                                        Text { text: "SC"; color: Theme.blurple; font-size: 20px; font-weight: 700; horizontal-alignment: center; vertical-alignment: center; }
+                                    }
+                                    VerticalLayout {
+                                        spacing: 5px;
+                                        Text { text: root.patient-name; color: Theme.ink; font-size: 20px; font-weight: 700; }
+                                        Text { text: "Subject: " + root.patient-subject-ref; color: Theme.ink-subtle; font-size: 11px; }
+                                        Text { text: "Birth date: " + root.patient-birth-date; color: Theme.ink-subtle; font-size: 11px; }
+                                        Text { text: root.patient-condition-summary; color: Theme.ink; font-size: 12px; wrap: word-wrap; }
+                                    }
+                                    Rectangle { horizontal-stretch: 1; background: transparent; }
+                                    VerticalLayout {
+                                        width: 300px;
+                                        alignment: center;
+                                        spacing: 8px;
+                                        StatusPill { label: "Synthetic demo"; accent: Theme.blurple; }
+                                        StatusPill { label: root.patient-coverage-state; accent: root.patient-coverage-state == "Supported evidence" ? Theme.pine : Theme.amber; }
+                                        Text { text: root.patient-coverage-summary; color: Theme.ink-subtle; font-size: 10px; wrap: word-wrap; horizontal-alignment: right; }
+                                    }
+                                }
+                            }
+
+                            HorizontalLayout {
+                                spacing: 8px;
+                                SegmentTab { label: "Overview"; selected: root.patient-tab == "Overview"; activated => { root.patient-tab = "Overview"; } }
+                                SegmentTab { label: "Timeline"; selected: root.patient-tab == "Timeline"; activated => { root.patient-tab = "Timeline"; } }
+                                SegmentTab { label: "Labs"; selected: root.patient-tab == "Labs"; activated => { root.patient-tab = "Labs"; } }
+                                SegmentTab { label: "Medications"; selected: root.patient-tab == "Medications"; activated => { root.patient-tab = "Medications"; } }
+                                SegmentTab { label: "Documents"; selected: root.patient-tab == "Documents"; activated => { root.patient-tab = "Documents"; } }
+                                SegmentTab { label: "Care Plan"; selected: root.patient-tab == "Care Plan"; activated => { root.patient-tab = "Care Plan"; } }
+                                SegmentTab { label: "Sources"; selected: root.patient-tab == "Sources"; activated => { root.patient-tab = "Sources"; } }
+                            }
+
+                            if root.patient-tab == "Overview": HorizontalLayout {
+                                spacing: 16px;
+                                Rectangle {
+                                    horizontal-stretch: 3;
+                                    min-height: 250px;
+                                    border-radius: 16px;
+                                    border-width: 1px;
+                                    border-color: Theme.border;
+                                    background: Theme.surface;
+                                    VerticalLayout {
+                                        padding: 18px;
+                                        spacing: 12px;
+                                        Text { text: "Trusted overview"; color: Theme.ink; font-size: 15px; font-weight: 650; }
+                                        Text { text: "Identity and conditions are mapped from SubjectBriefV1. Missing or conflicting evidence is never promoted into an affirmative fact."; color: Theme.ink-subtle; font-size: 11px; wrap: word-wrap; }
+                                        Rectangle { height: 1px; background: Theme.border; }
+                                        Text { text: "Conditions"; color: Theme.ink-quiet; font-size: 10px; font-weight: 650; }
+                                        Text { text: root.patient-condition-summary; color: Theme.ink; font-size: 13px; wrap: word-wrap; }
+                                        Text { text: "Coverage"; color: Theme.ink-quiet; font-size: 10px; font-weight: 650; }
+                                        Text { text: root.patient-coverage-summary; color: Theme.ink; font-size: 12px; wrap: word-wrap; }
+                                    }
+                                }
+                                HonestyPanel {
+                                    horizontal-stretch: 2;
+                                    title: "Authority boundary";
+                                    body: "This workspace is read-only presentation. Evidence and provenance remain visible; relevance does not become clinical authority and no action is silently committed.";
+                                    accent: Theme.pine;
+                                }
+                            }
+
+                            if root.patient-tab == "Timeline": VerticalLayout {
+                                spacing: 8px;
+                                HorizontalLayout {
+                                    height: 44px;
+                                    Text { text: "Longitudinal timeline"; color: Theme.ink; font-size: 15px; font-weight: 650; vertical-alignment: center; }
+                                    Rectangle { horizontal-stretch: 1; background: transparent; }
+                                    ToolbarAction { label: "Inspect sources"; glyph: "◇"; activated => { root.patient-tab = "Sources"; } }
+                                }
+                                Rectangle {
+                                    height: 42px;
+                                    background: Theme.surface-raised;
+                                    HorizontalLayout {
+                                        padding-left: 14px; padding-right: 14px; spacing: 12px;
+                                        Text { width: 120px; text: "DATE"; color: Theme.ink-quiet; font-size: 10px; font-weight: 650; vertical-alignment: center; }
+                                        Text { width: 150px; text: "TYPE"; color: Theme.ink-quiet; font-size: 10px; font-weight: 650; vertical-alignment: center; }
+                                        Text { horizontal-stretch: 1; text: "LONGITUDINAL EVENT"; color: Theme.ink-quiet; font-size: 10px; font-weight: 650; vertical-alignment: center; }
+                                        Text { width: 160px; text: "PROVENANCE"; color: Theme.ink-quiet; font-size: 10px; font-weight: 650; vertical-alignment: center; }
+                                    }
+                                }
+                                for item in root.patient-timeline: Rectangle {
+                                    height: 64px;
+                                    background: Theme.surface;
+                                    border-width: 1px;
+                                    border-color: Theme.border;
+                                    accessible-role: text;
+                                    accessible-label: item.date + ", " + item.title + ", " + item.detail + ", " + item.source;
+                                    HorizontalLayout {
+                                        padding-left: 14px; padding-right: 14px; spacing: 12px;
+                                        Text { width: 120px; text: item.date; color: Theme.ink-subtle; font-size: 11px; vertical-alignment: center; }
+                                        Text { width: 150px; text: item.title; color: Theme.ink; font-size: 11px; font-weight: 650; vertical-alignment: center; }
+                                        Text { horizontal-stretch: 1; text: item.detail; color: Theme.ink-subtle; font-size: 11px; wrap: word-wrap; vertical-alignment: center; }
+                                        VerticalLayout { width: 160px; alignment: center; spacing: 2px; Text { text: item.source; color: Theme.blurple; font-size: 10px; } Text { text: item.status; color: Theme.ink-quiet; font-size: 9px; } }
+                                    }
+                                }
+                            }
+
+                            if root.patient-tab == "Labs": VerticalLayout {
+                                spacing: 0px;
+                                Rectangle {
+                                    height: 42px; background: Theme.surface-raised;
+                                    HorizontalLayout { padding-left: 14px; padding-right: 14px; spacing: 12px;
+                                        Text { horizontal-stretch: 1; text: "OBSERVATION"; color: Theme.ink-quiet; font-size: 10px; font-weight: 650; vertical-alignment: center; }
+                                        Text { width: 110px; text: "VALUE"; color: Theme.ink-quiet; font-size: 10px; font-weight: 650; vertical-alignment: center; }
+                                        Text { width: 130px; text: "COVERAGE"; color: Theme.ink-quiet; font-size: 10px; font-weight: 650; vertical-alignment: center; }
+                                        Text { width: 160px; text: "SOURCE"; color: Theme.ink-quiet; font-size: 10px; font-weight: 650; vertical-alignment: center; }
+                                    }
+                                }
+                                for item in root.patient-labs: Rectangle {
+                                    height: 60px; background: Theme.surface; border-width: 1px; border-color: Theme.border;
+                                    accessible-role: text;
+                                    accessible-label: item.label + ", " + item.value + " " + item.unit + ", " + item.status + ", " + item.source;
+                                    HorizontalLayout { padding-left: 14px; padding-right: 14px; spacing: 12px;
+                                        Text { horizontal-stretch: 1; text: item.label; color: Theme.ink; font-size: 12px; font-weight: 650; vertical-alignment: center; }
+                                        Text { width: 110px; text: item.value + " " + item.unit; color: Theme.ink; font-size: 12px; vertical-alignment: center; }
+                                        Text { width: 130px; text: item.status; color: item.status == "Present" ? Theme.pine : Theme.amber; font-size: 10px; vertical-alignment: center; }
+                                        Text { width: 160px; text: item.source; color: Theme.blurple; font-size: 10px; vertical-alignment: center; }
+                                    }
+                                }
+                            }
+
+                            if root.patient-tab == "Medications": HonestyPanel { title: "Medications — honest unsupported state"; body: root.patient-medications-state; accent: Theme.amber; }
+                            if root.patient-tab == "Documents": HonestyPanel { title: "Documents — custody is not understanding"; body: root.patient-documents-state; accent: Theme.blurple; }
+                            if root.patient-tab == "Care Plan": VerticalLayout {
+                                spacing: 12px;
+                                HonestyPanel { title: "Care Plan — review first"; body: root.patient-care-plan-state; accent: Theme.pine; }
+                                QuickAction { title: "Prepare in Workflows"; subtitle: "Open review surface; do not commit here"; glyph: "⌘"; accent: Theme.blurple; activated => { root.ui-action("care-plan"); } }
+                            }
+
+                            if root.patient-tab == "Sources": VerticalLayout {
+                                spacing: 8px;
+                                Text { text: "Evidence sources"; color: Theme.ink; font-size: 15px; font-weight: 650; }
+                                Text { text: "Synthetic fixture provenance only. A source link supports inspection; it does not make a claim authoritative by itself."; color: Theme.ink-subtle; font-size: 11px; wrap: word-wrap; }
+                                for item in root.patient-sources: Rectangle {
+                                    min-height: 58px; border-radius: 12px; border-width: 1px; border-color: Theme.border; background: Theme.surface;
+                                    accessible-role: text;
+                                    accessible-label: "Source " + item.source-id + ". " + item.note;
+                                    HorizontalLayout { padding: 12px; spacing: 14px;
+                                        Text { width: 220px; text: item.source-id; color: Theme.blurple; font-size: 11px; font-weight: 650; vertical-alignment: center; }
+                                        Text { horizontal-stretch: 1; text: item.note; color: Theme.ink-subtle; font-size: 10px; wrap: word-wrap; vertical-alignment: center; }
+                                    }
+                                }
                             }
                         }
 

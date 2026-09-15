@@ -73,6 +73,63 @@ export component NavItem inherits Rectangle {
     }
 }
 
+export component SegmentTab inherits Rectangle {
+    in property <string> label;
+    in property <bool> selected: false;
+    callback activated();
+
+    forward-focus: interaction;
+    height: 36px;
+    min-width: 92px;
+    border-radius: 9px;
+    border-width: interaction.has-focus ? 2px : 1px;
+    border-color: interaction.has-focus ? Theme.blurple : selected ? Theme.blurple : Theme.border;
+    background: selected ? Theme.blurple-soft : interaction.has-hover ? Theme.surface-raised : Theme.surface;
+    accessible-role: button;
+    accessible-label: label + (selected ? ", selected" : "");
+    accessible-action-default => { root.activated(); }
+
+    Text {
+        text: label;
+        color: selected ? Theme.blurple : Theme.ink-subtle;
+        font-size: 11px;
+        font-weight: selected ? 650 : 500;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+
+    interaction := FocusableClickArea {
+        width: 100%;
+        height: 100%;
+        clicked => { root.activated(); }
+    }
+}
+
+export component HonestyPanel inherits Rectangle {
+    in property <string> title;
+    in property <string> body;
+    in property <color> accent: Theme.amber;
+
+    min-height: 116px;
+    border-radius: 14px;
+    border-width: 1px;
+    border-color: Theme.border;
+    background: Theme.surface;
+    accessible-role: groupbox;
+    accessible-label: title + ". " + body;
+
+    HorizontalLayout {
+        padding: 16px;
+        spacing: 12px;
+        Rectangle { width: 4px; border-radius: 2px; background: accent; }
+        VerticalLayout {
+            spacing: 6px;
+            Text { text: title; color: Theme.ink; font-size: 13px; font-weight: 650; }
+            Text { text: body; color: Theme.ink-subtle; font-size: 11px; wrap: word-wrap; }
+        }
+    }
+}
+
 export component QuickAction inherits Rectangle {
     in property <string> title;
     in property <string> subtitle;
