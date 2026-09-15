@@ -53,13 +53,13 @@ export component NavItem inherits Rectangle {
         alignment: start;
         Text {
             text: glyph;
-            color: selected ? Theme.blurple : Theme.ink-subtle;
+            color: selected ? Theme.blurple-ink : Theme.ink-subtle;
             font-size: 15px;
             vertical-alignment: center;
         }
         Text {
             text: label;
-            color: selected ? Theme.blurple : Theme.ink;
+            color: selected ? Theme.blurple-ink : Theme.ink;
             font-size: 14px;
             font-weight: selected ? 650 : 500;
             vertical-alignment: center;
@@ -91,7 +91,7 @@ export component SegmentTab inherits Rectangle {
 
     Text {
         text: label;
-        color: selected ? Theme.blurple : Theme.ink-subtle;
+        color: selected ? Theme.blurple-ink : Theme.ink-subtle;
         font-size: 11px;
         font-weight: selected ? 650 : 500;
         horizontal-alignment: center;
@@ -196,7 +196,7 @@ export component ToolbarAction inherits Rectangle {
         padding-left: 12px;
         padding-right: 12px;
         spacing: 8px;
-        Text { text: glyph; color: Theme.blurple; font-size: 15px; vertical-alignment: center; }
+        Text { text: glyph; color: Theme.blurple-ink; font-size: 15px; vertical-alignment: center; }
         Text { text: label; color: Theme.ink; font-size: 12px; font-weight: 650; vertical-alignment: center; }
     }
 
@@ -247,7 +247,7 @@ export component StatusPill inherits Rectangle {
     accessible-label: label;
     Text {
         text: label;
-        color: accent;
+        color: Theme.ink;
         font-size: 10px;
         font-weight: 650;
         horizontal-alignment: center;
