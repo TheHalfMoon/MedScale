@@ -8,7 +8,9 @@ use std::process::ExitCode;
 use std::thread;
 use std::time::Duration;
 
-use slint::ComponentHandle;
+use slint::{ComponentHandle, ModelRc, VecModel};
+
+mod patient_workspace;
 
 slint::include_modules!();
 
@@ -68,7 +70,42 @@ fn main() -> ExitCode {
     };
     ui.set_product_version(report.version.into());
 
-    // Spec 060 keeps shell actions useful without bypassing Core authority.
+    let patient = patient_workspace::PatientWorkspaceVm::synthetic_demo();
+    ui.set_patient_name(patient.display_name.into());
+    ui.set_patient_subject_ref(patient.subject_ref.into());
+    ui.set_patient_birth_date(patient.birth_date.into());
+    ui.set_patient_condition_summary(patient.condition_summary.into());
+    ui.set_patient_coverage_summary(patient.coverage_summary.into());
+    ui.set_patient_coverage_state(patient.coverage_state.into());
+    ui.set_patient_medications_state(patient.medications_state.into());
+    ui.set_patient_documents_state(patient.documents_state.into());
+    ui.set_patient_care_plan_state(patient.care_plan_state.into());
+    ui.set_patient_timeline(ModelRc::new(VecModel::from_iter(
+        patient.timeline.into_iter().map(|row| PatientTimelineItem {
+            date: row.date.into(),
+            title: row.title.into(),
+            detail: row.detail.into(),
+            source: row.source.into(),
+            status: row.status.into(),
+        }),
+    )));
+    ui.set_patient_labs(ModelRc::new(VecModel::from_iter(
+        patient.labs.into_iter().map(|row| PatientLabItem {
+            label: row.label.into(),
+            value: row.value.into(),
+            unit: row.unit.into(),
+            status: row.status.into(),
+            source: row.source.into(),
+        }),
+    )));
+    ui.set_patient_sources(ModelRc::new(VecModel::from_iter(
+        patient.sources.into_iter().map(|row| PatientSourceItem {
+            source_id: row.source_id.into(),
+            note: row.note.into(),
+        }),
+    )));
+
+    // Spec 061 keeps patient presentation read-only and routes consequential work to review surfaces.
     // Consequential operations are routed to their owning review surfaces; no action is committed here.
     let weak = ui.as_weak();
     ui.on_ui_action(move |action| {

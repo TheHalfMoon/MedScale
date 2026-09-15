@@ -12,6 +12,7 @@ name = "medscale-desktop"
 path = "src/main.rs"
 
 [dependencies]
+medscale-contracts = { workspace = true }
 medscale-core = { workspace = true }
 serde_json = { workspace = true }
 slint = { workspace = true }
