@@ -8,5 +8,5 @@
 - [x] T6 Implement Integrations default-deny/external-gate surface.
 - [x] T7 Add regression tests and evidence.
 - [x] T8 Run local qualification and MSRV/diff/headless checks.
-- [ ] T9 Exact-head CI, merge, post-merge main verification, canonical close.
-- [ ] T10 Promote Spec 065.
+- [x] T9 Exact-head CI, merge, post-merge main verification, canonical close.
+- [x] T10 Promote Spec 065.
