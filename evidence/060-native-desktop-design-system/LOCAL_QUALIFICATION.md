@@ -36,3 +36,13 @@ Slint accessibility is enabled and primary custom actions use `FocusScope`, keyb
 
 ## Visual review limitation
 The remote macOS process did not have Screen Recording permission, so `screencapture` could not produce a visual artifact. Native window existence and title were observed through WindowServer/System Events. Final visual/a11y qualification remains owned by later product slices and Spec 067.
+
+## Canonical CI qualification
+- Final PR #103 exact head: `52b5966fc5c4f26a90b437dff91a72a698dc7c40`.
+- Exact-head run `34909664814`: PASS, all six required jobs.
+- Portable release package qualification + evidence upload: PASS on Windows, macOS, and Linux.
+- Merge commit: `cb5dce0e9d6e4dcd261ef22c249b084aff275af5`.
+- Post-merge main run `34911182508`: PASS, all six required jobs.
+- Post-merge portable/runtime artifacts: present for Windows, macOS, and Linux.
+
+This evidence closes Spec 060. It does not claim production signing/notarization, qualified-hardware performance attainment, private-data readiness, or WCAG conformance.
