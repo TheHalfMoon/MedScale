@@ -21,3 +21,6 @@ No high-confidence defect requiring a code change was found in the two OCR-suppo
 OCR does not support the changed `.slint` or Markdown files in this preview. Those excluded files were reviewed manually for route completeness, authority/release non-claims, synthetic-data honesty, contrast/focus semantics, stale canonical state, and Spec 012/MESC isolation. No additional repository-owned defect was found.
 
 This review is additive evidence only. It does not replace Rust qualification, required GitHub checks, package artifacts, manual UI/accessibility qualification, or canonical governance.
+
+## Exact implementation binding
+The exact range `11a9652c6f92eb7e7ade4a5aef18ad9742b8a294..81bf5ba3637473080f02c28384672cf6f2002384` was re-previewed after the implementation commit. OCR reported 25 changed files, 2 reviewable files, and 23 extension-excluded files; the reviewable set remained exactly the workflow and Spec 066 Rust regression above. No supported-file finding required a follow-up implementation change.
