@@ -11,7 +11,7 @@ MULTI_CLIENT_RELEASE_READY = FALSE
 REAL_PHI_AUTHORIZED = FALSE
 MESC_RELEASE_BLOCKING = FALSE
 KNOWN_REPOSITORY_OWNED_TRUSTED_V1_RESIDUALS = 0
-NEXT_PROMOTED_SPEC = 061
+NEXT_PROMOTED_SPEC = 062
 ```
 
-Trusted V1 remains canonically complete through Spec 059. The founder subsequently promoted a separate Desktop+CLI product-launch phase, Specs 060–067, so whole-product implementation is no longer honestly terminal while that phase is active. Spec 060 is `CLOSED_CANONICAL`: PR #103 exact-head run `34909664814` passed all six required jobs on `52b5966fc5c4f26a90b437dff91a72a698dc7c40`, merged as `cb5dce0e9d6e4dcd261ef22c249b084aff275af5`, and post-merge main run `34911182508` passed all six required jobs. Spec 061 is the next promoted repository-owned unit. Release/private-data/signing/performance/WCAG claims remain evidence-gated and false where listed above. Spec 012/MESC remains optional and non-blocking.
+Trusted V1 remains canonically complete through Spec 059. The founder subsequently promoted a separate Desktop+CLI product-launch phase, Specs 060–067, so whole-product implementation is no longer honestly terminal while that phase is active. Specs 060–061 are `CLOSED_CANONICAL`. Spec 061 final exact head `ee9e076fd39d4832c2037b077af18979e428b420` passed all six required jobs in run `34916956439`, PR #105 merged as `1438460e1b965518a9cd09d4289e842c016d83df`, and post-merge main run `34917999834` passed all six required jobs. Spec 062 is the active promoted repository-owned unit. Release/private-data/signing/performance/WCAG claims remain evidence-gated and false where listed above. Spec 012/MESC remains optional and non-blocking.

@@ -2,7 +2,7 @@
 
 **Feature Branch**: `spec/061-patient-workspace-longitudinal-ux`
 **Created**: 2026-09-15
-**Status**: IN_REVIEW
+**Status**: CLOSED_CANONICAL
 **Promotion**: POST_SPEC_060_PRODUCT_SURFACE_SEQUENCE
 
 ## Goal

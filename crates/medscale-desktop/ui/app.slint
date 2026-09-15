@@ -23,6 +23,28 @@ export struct PatientSourceItem {
     note: string,
 }
 
+export struct PopulationDistributionItem {
+    label: string,
+    value: string,
+    detail: string,
+    status: string,
+}
+
+export struct PopulationCohortItem {
+    name: string,
+    subject-ref: string,
+    condition: string,
+    evidence-state: string,
+    review-attention: string,
+}
+
+export struct AssistantEvidenceItem {
+    source: string,
+    title: string,
+    snippet: string,
+    metadata: string,
+}
+
 export component AppWindow inherits Window {
     title: "MedScale";
     width: 1440px;
@@ -46,6 +68,20 @@ export component AppWindow inherits Window {
     in property <string> patient-medications-state;
     in property <string> patient-documents-state;
     in property <string> patient-care-plan-state;
+    in-out property <string> insights-tab: "Overview";
+    in property <string> insights-cohort-size: "0";
+    in property <string> insights-review-attention: "0";
+    in property <string> insights-evidence-gaps: "0";
+    in property <string> insights-present-count: "0";
+    in property <[PopulationDistributionItem]> insights-conditions;
+    in property <[PopulationDistributionItem]> insights-coverage;
+    in property <[PopulationCohortItem]> insights-cohorts;
+    in property <[AssistantEvidenceItem]> insights-evidence;
+    in property <string> insights-risk-state;
+    in property <string> insights-trend-state;
+    in property <string> insights-gap-state;
+    in property <string> insights-recommendation-state;
+    in-out property <string> insights-assistant-answer;
     callback ui-action(string);
 
     forward-focus: global-keys;
@@ -179,7 +215,7 @@ export component AppWindow inherits Window {
                             VerticalLayout {
                                 spacing: 2px;
                                 Text { text: root.active-route == "Home" ? "Good morning, Dr. Doe" : root.active-route == "Patients" ? root.patient-name : root.active-route; color: Theme.ink; font-size: 28px; font-weight: 700; }
-                                Text { text: root.active-route == "Home" ? "A calm view of what needs attention today." : root.active-route == "Patients" ? "Trusted longitudinal workspace · Synthetic demo" : "This surface is scheduled in a later Desktop slice."; color: Theme.ink-subtle; font-size: 14px; }
+                                Text { text: root.active-route == "Home" ? "A calm view of what needs attention today." : root.active-route == "Patients" ? "Trusted longitudinal workspace · Synthetic demo" : root.active-route == "Insights" ? "Evidence-aware population view · Synthetic demo" : "This surface is scheduled in a later Desktop slice."; color: Theme.ink-subtle; font-size: 14px; }
                             }
                             Rectangle { horizontal-stretch: 1; background: transparent; }
                             Rectangle {
@@ -380,6 +416,216 @@ export component AppWindow inherits Window {
                                     HorizontalLayout { padding: 12px; spacing: 14px;
                                         Text { width: 220px; text: item.source-id; color: Theme.blurple; font-size: 11px; font-weight: 650; vertical-alignment: center; }
                                         Text { horizontal-stretch: 1; text: item.note; color: Theme.ink-subtle; font-size: 10px; wrap: word-wrap; vertical-alignment: center; }
+                                    }
+                                }
+                            }
+                        }
+
+                        if root.active-route == "Insights": VerticalLayout {
+                            spacing: 18px;
+
+                            HorizontalLayout {
+                                spacing: 12px;
+                                MetricCard { label: "Synthetic cohort"; value: root.insights-cohort-size; delta: "Trusted projection subjects"; glyph: "◎"; accent: Theme.blurple; }
+                                MetricCard { label: "Evidence review"; value: root.insights-review-attention; delta: "Unresolved evidence state"; glyph: "◇"; accent: Theme.amber; }
+                                MetricCard { label: "Evidence gaps"; value: root.insights-evidence-gaps; delta: "Not clinical care gaps"; glyph: "○"; accent: Theme.coral; }
+                                MetricCard { label: "Present slots"; value: root.insights-present-count; delta: "Trusted presentation only"; glyph: "✓"; accent: Theme.pine; }
+                            }
+
+                            HorizontalLayout {
+                                spacing: 8px;
+                                SegmentTab { label: "Overview"; selected: root.insights-tab == "Overview"; activated => { root.insights-tab = "Overview"; } }
+                                SegmentTab { label: "Cohorts"; selected: root.insights-tab == "Cohorts"; activated => { root.insights-tab = "Cohorts"; } }
+                                SegmentTab { label: "Evidence"; selected: root.insights-tab == "Evidence"; activated => { root.insights-tab = "Evidence"; } }
+                            }
+
+                            if root.insights-tab == "Overview": VerticalLayout {
+                                spacing: 16px;
+                                HorizontalLayout {
+                                    spacing: 16px;
+                                    Rectangle {
+                                        horizontal-stretch: 3;
+                                        min-height: 310px;
+                                        border-radius: 16px;
+                                        border-width: 1px;
+                                        border-color: Theme.border;
+                                        background: Theme.surface;
+                                        accessible-role: groupbox;
+                                        accessible-label: "Coverage state distribution from trusted synthetic projections";
+                                        VerticalLayout {
+                                            padding: 16px;
+                                            spacing: 8px;
+                                            Text { text: "Coverage state distribution"; color: Theme.ink; font-size: 15px; font-weight: 650; }
+                                            Text { text: "Statuses remain distinct; unresolved evidence is never flattened into present."; color: Theme.ink-subtle; font-size: 11px; wrap: word-wrap; }
+                                            Rectangle { height: 1px; background: Theme.border; }
+                                            for item in root.insights-coverage: HorizontalLayout {
+                                                height: 34px;
+                                                spacing: 12px;
+                                                accessible-role: text;
+                                                accessible-label: item.label + ": " + item.value + ". " + item.detail;
+                                                Text { width: 150px; text: item.label; color: Theme.ink; font-size: 11px; font-weight: 650; vertical-alignment: center; }
+                                                Text { width: 46px; text: item.value; color: Theme.blurple; font-size: 13px; font-weight: 700; vertical-alignment: center; }
+                                                Text { horizontal-stretch: 1; text: item.detail; color: Theme.ink-subtle; font-size: 10px; vertical-alignment: center; }
+                                                Text { width: 118px; text: item.status; color: item.status == "Stable state" ? Theme.pine : Theme.amber; font-size: 9px; vertical-alignment: center; horizontal-alignment: right; }
+                                            }
+                                        }
+                                    }
+
+                                    Rectangle {
+                                        horizontal-stretch: 2;
+                                        min-height: 310px;
+                                        border-radius: 20px;
+                                        border-width: 1px;
+                                        border-color: Theme.border;
+                                        background: Theme.surface;
+                                        accessible-role: groupbox;
+                                        accessible-label: "Contextual evidence assistant. Suggestions only; relevance is not clinical authority.";
+                                        VerticalLayout {
+                                            padding: 16px;
+                                            spacing: 10px;
+                                            HorizontalLayout {
+                                                Text { text: "MedScale Assistant"; color: Theme.ink; font-size: 15px; font-weight: 650; }
+                                                Rectangle { horizontal-stretch: 1; background: transparent; }
+                                                StatusPill { label: "Evidence context"; accent: Theme.pine; }
+                                            }
+                                            Text { text: "Deterministic local UX — no provider/model authority in this slice."; color: Theme.ink-subtle; font-size: 10px; wrap: word-wrap; }
+                                            assistant-query := LineEdit {
+                                                placeholder-text: "Ask about coverage, cohorts, evidence, or risk limits…";
+                                                accessible-label: "Population evidence assistant query";
+                                                accepted(text) => { root.ui-action("insights-assistant:" + text); }
+                                            }
+                                            Rectangle {
+                                                min-height: 106px;
+                                                border-radius: 14px;
+                                                background: Theme.blurple-soft;
+                                                accessible-role: text;
+                                                accessible-label: "Assistant response: " + root.insights-assistant-answer;
+                                                VerticalLayout {
+                                                    padding: 14px;
+                                                    spacing: 6px;
+                                                    Text { text: "Suggestion"; color: Theme.blurple; font-size: 10px; font-weight: 700; }
+                                                    Text { text: root.insights-assistant-answer; color: Theme.ink; font-size: 11px; wrap: word-wrap; }
+                                                }
+                                            }
+                                            HorizontalLayout {
+                                                spacing: 8px;
+                                                QuickAction { title: "Explain gaps"; subtitle: "Evidence state only"; glyph: "?"; accent: Theme.amber; activated => { root.ui-action("insights-assistant:Explain coverage gaps"); } }
+                                                QuickAction { title: "Risk limits"; subtitle: "No clinical ranking"; glyph: "!"; accent: Theme.coral; activated => { root.ui-action("insights-assistant:Who is highest risk?"); } }
+                                            }
+                                        }
+                                    }
+                                }
+
+                                HorizontalLayout {
+                                    spacing: 16px;
+                                    HonestyPanel { horizontal-stretch: 1; title: "Risk distribution boundary"; body: root.insights-risk-state; accent: Theme.coral; }
+                                    HonestyPanel { horizontal-stretch: 1; title: "Trend boundary"; body: root.insights-trend-state; accent: Theme.blurple; }
+                                }
+                                HorizontalLayout {
+                                    spacing: 16px;
+                                    HonestyPanel { horizontal-stretch: 1; title: "Evidence gaps"; body: root.insights-gap-state; accent: Theme.amber; }
+                                    HonestyPanel { horizontal-stretch: 1; title: "Review recommendation"; body: root.insights-recommendation-state; accent: Theme.pine; }
+                                }
+                            }
+
+                            if root.insights-tab == "Cohorts": Rectangle {
+                                min-height: 390px;
+                                border-radius: 16px;
+                                border-width: 1px;
+                                border-color: Theme.border;
+                                background: Theme.surface;
+                                accessible-role: groupbox;
+                                accessible-label: "Synthetic cohort explorer with evidence review state";
+                                VerticalLayout {
+                                    padding: 16px;
+                                    spacing: 0px;
+                                    Text { text: "Cohort explorer"; color: Theme.ink; font-size: 15px; font-weight: 650; }
+                                    Text { text: "Synthetic subjects only. Condition text is shown only when present in trusted presentation; unresolved status remains explicit."; color: Theme.ink-subtle; font-size: 11px; wrap: word-wrap; }
+                                    Rectangle { height: 12px; background: transparent; }
+                                    HorizontalLayout { height: 38px; spacing: 12px;
+                                        Text { width: 160px; text: "SUBJECT"; color: Theme.ink-quiet; font-size: 9px; font-weight: 700; vertical-alignment: center; }
+                                        Text { width: 210px; text: "CONDITION"; color: Theme.ink-quiet; font-size: 9px; font-weight: 700; vertical-alignment: center; }
+                                        Text { horizontal-stretch: 1; text: "EVIDENCE STATE"; color: Theme.ink-quiet; font-size: 9px; font-weight: 700; vertical-alignment: center; }
+                                        Text { width: 150px; text: "REVIEW"; color: Theme.ink-quiet; font-size: 9px; font-weight: 700; vertical-alignment: center; horizontal-alignment: right; }
+                                    }
+                                    for item in root.insights-cohorts: Rectangle {
+                                        height: 58px;
+                                        background: Theme.surface;
+                                        border-width: 1px;
+                                        border-color: Theme.border;
+                                        accessible-role: text;
+                                        accessible-label: item.name + ", " + item.condition + ", " + item.evidence-state + ", " + item.review-attention;
+                                        HorizontalLayout { padding-left: 10px; padding-right: 10px; spacing: 12px;
+                                            VerticalLayout { width: 160px; alignment: center; spacing: 1px;
+                                                Text { text: item.name; color: Theme.ink; font-size: 11px; font-weight: 650; }
+                                                Text { text: item.subject-ref; color: Theme.ink-quiet; font-size: 8px; }
+                                            }
+                                            Text { width: 210px; text: item.condition; color: Theme.ink-subtle; font-size: 10px; wrap: word-wrap; vertical-alignment: center; }
+                                            Text { horizontal-stretch: 1; text: item.evidence-state; color: Theme.ink-subtle; font-size: 10px; wrap: word-wrap; vertical-alignment: center; }
+                                            Text { width: 150px; text: item.review-attention; color: item.review-attention == "No unresolved evidence" ? Theme.pine : Theme.amber; font-size: 9px; vertical-alignment: center; horizontal-alignment: right; }
+                                        }
+                                    }
+                                }
+                            }
+
+                            if root.insights-tab == "Evidence": HorizontalLayout {
+                                spacing: 16px;
+                                Rectangle {
+                                    horizontal-stretch: 2;
+                                    min-height: 390px;
+                                    border-radius: 16px;
+                                    border-width: 1px;
+                                    border-color: Theme.border;
+                                    background: Theme.surface;
+                                    VerticalLayout {
+                                        padding: 16px;
+                                        spacing: 8px;
+                                        Text { text: "Present condition distribution"; color: Theme.ink; font-size: 15px; font-weight: 650; }
+                                        Text { text: "Only Present condition facts are counted. Conflict/unknown values are not promoted into the distribution."; color: Theme.ink-subtle; font-size: 10px; wrap: word-wrap; }
+                                        Rectangle { height: 1px; background: Theme.border; }
+                                        for item in root.insights-conditions: HorizontalLayout {
+                                            height: 44px;
+                                            accessible-role: text;
+                                            accessible-label: item.label + ": " + item.value + ". " + item.detail;
+                                            Text { horizontal-stretch: 1; text: item.label; color: Theme.ink; font-size: 11px; font-weight: 650; vertical-alignment: center; }
+                                            Text { width: 46px; text: item.value; color: Theme.blurple; font-size: 15px; font-weight: 700; vertical-alignment: center; horizontal-alignment: right; }
+                                        }
+                                    }
+                                }
+                                Rectangle {
+                                    horizontal-stretch: 3;
+                                    min-height: 390px;
+                                    border-radius: 16px;
+                                    border-width: 1px;
+                                    border-color: Theme.border;
+                                    background: Theme.surface;
+                                    accessible-role: groupbox;
+                                    accessible-label: "Evidence retrieval cards; relevance is not authority";
+                                    VerticalLayout {
+                                        padding: 16px;
+                                        spacing: 8px;
+                                        Text { text: "Assistant evidence context"; color: Theme.ink; font-size: 15px; font-weight: 650; }
+                                        Text { text: "Retracted, freshness, conflict, corpus identity, and relevance-only metadata remain visible."; color: Theme.ink-subtle; font-size: 10px; wrap: word-wrap; }
+                                        for item in root.insights-evidence: Rectangle {
+                                            min-height: 104px;
+                                            border-radius: 12px;
+                                            border-width: 1px;
+                                            border-color: Theme.border;
+                                            background: Theme.surface-raised;
+                                            accessible-role: text;
+                                            accessible-label: item.title + ". " + item.metadata + ". " + item.snippet;
+                                            VerticalLayout {
+                                                padding: 12px;
+                                                spacing: 4px;
+                                                HorizontalLayout {
+                                                    Text { text: item.title; color: Theme.ink; font-size: 11px; font-weight: 650; }
+                                                    Rectangle { horizontal-stretch: 1; background: transparent; }
+                                                    Text { text: item.source; color: Theme.blurple; font-size: 9px; }
+                                                }
+                                                Text { text: item.snippet; color: Theme.ink-subtle; font-size: 10px; wrap: word-wrap; }
+                                                Text { text: item.metadata; color: Theme.ink-quiet; font-size: 9px; wrap: word-wrap; }
+                                            }
+                                        }
                                     }
                                 }
                             }

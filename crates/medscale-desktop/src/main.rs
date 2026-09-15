@@ -11,6 +11,7 @@ use std::time::Duration;
 use slint::{ComponentHandle, ModelRc, VecModel};
 
 mod patient_workspace;
+mod population_insights;
 
 slint::include_modules!();
 
@@ -105,14 +106,70 @@ fn main() -> ExitCode {
         }),
     )));
 
+    let insights = population_insights::PopulationInsightsVm::synthetic_demo();
+    ui.set_insights_cohort_size(insights.cohort_size.to_string().into());
+    ui.set_insights_review_attention(insights.review_attention_count.to_string().into());
+    ui.set_insights_evidence_gaps(insights.evidence_gap_count.to_string().into());
+    ui.set_insights_present_count(insights.present_count.to_string().into());
+    ui.set_insights_risk_state(insights.risk_state.clone().into());
+    ui.set_insights_trend_state(insights.trend_state.clone().into());
+    ui.set_insights_gap_state(insights.gap_state.clone().into());
+    ui.set_insights_recommendation_state(insights.recommendation_state.clone().into());
+    ui.set_insights_assistant_answer(insights.assistant_default.clone().into());
+    ui.set_insights_conditions(ModelRc::new(VecModel::from_iter(
+        insights
+            .condition_distribution
+            .iter()
+            .map(|row| PopulationDistributionItem {
+                label: row.label.clone().into(),
+                value: row.value.clone().into(),
+                detail: row.detail.clone().into(),
+                status: row.status.clone().into(),
+            }),
+    )));
+    ui.set_insights_coverage(ModelRc::new(VecModel::from_iter(
+        insights
+            .coverage_distribution
+            .iter()
+            .map(|row| PopulationDistributionItem {
+                label: row.label.clone().into(),
+                value: row.value.clone().into(),
+                detail: row.detail.clone().into(),
+                status: row.status.clone().into(),
+            }),
+    )));
+    ui.set_insights_cohorts(ModelRc::new(VecModel::from_iter(
+        insights.cohorts.iter().map(|row| PopulationCohortItem {
+            name: row.display_name.clone().into(),
+            subject_ref: row.subject_ref.clone().into(),
+            condition: row.condition.clone().into(),
+            evidence_state: row.evidence_state.clone().into(),
+            review_attention: row.review_attention.clone().into(),
+        }),
+    )));
+    ui.set_insights_evidence(ModelRc::new(VecModel::from_iter(
+        insights.evidence.iter().map(|row| AssistantEvidenceItem {
+            source: row.source.clone().into(),
+            title: row.title.clone().into(),
+            snippet: row.snippet.clone().into(),
+            metadata: row.metadata.clone().into(),
+        }),
+    )));
+
     // Spec 061 keeps patient presentation read-only and routes consequential work to review surfaces.
     // Consequential operations are routed to their owning review surfaces; no action is committed here.
     let weak = ui.as_weak();
+    let insights_for_actions = insights.clone();
     ui.on_ui_action(move |action| {
         let Some(ui) = weak.upgrade() else {
             return;
         };
         let action = action.as_str();
+        if let Some(query) = action.strip_prefix("insights-assistant:") {
+            ui.set_insights_assistant_answer(insights_for_actions.answer_query(query).into());
+            ui.set_active_route("Insights".into());
+            return;
+        }
         let route = if action == "care-plan" {
             Some("Workflows")
         } else if action == "summarize" || action == "import" || action.starts_with("search:") {
