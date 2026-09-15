@@ -15,6 +15,7 @@
 
 - `cargo test -p medscale-core --test native_desktop_ui_060`: 3/3 PASS.
 - `cargo test -p medscale-core --test desktop_cli_hardening_066`: 5/5 PASS.
+- `cargo test -p medscale-core --test native_population_insights_062`: 4/4 PASS after restoring the canonical visible MedScale Assistant label.
 - `cargo test -p medscale-core --test product_differentiation_068`: 5/5 PASS.
 - `cargo test -p medscale-desktop`: 15/15 unit PASS plus 3/3 runtime-perf regression PASS.
 - `cargo clippy --workspace --all-targets -- -D warnings`: PASS.
