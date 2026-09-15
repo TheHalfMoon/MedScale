@@ -6,5 +6,5 @@
 - [x] T4 Add final accessibility external action packet.
 - [x] T5 Add qualified-hardware performance action packet.
 - [x] T6 Run local qualification, MSRV, headless, and diff checks.
-- [ ] T7 Exact-head CI, merge, and post-merge main verification.
-- [ ] T8 Close 067 canonically and mark repository-owned Desktop+CLI implementation complete pending external gates.
+- [x] T7 Exact-head CI, merge, and post-merge main verification.
+- [x] T8 Close 067 canonically and mark repository-owned Desktop+CLI implementation complete pending external gates.
