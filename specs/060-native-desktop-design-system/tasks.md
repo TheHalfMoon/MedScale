@@ -9,4 +9,4 @@
 - [x] T7 Update doctor/final-v0 honesty and external-gate text.
 - [x] T8 Add regression tests + visual acceptance evidence.
 - [x] T9 Local fmt/clippy/workspace/macOS launch qualification.
-- [ ] T10 Exact-head CI, merge, post-merge main verification, canonical close.
+- [x] T10 Exact-head CI, merge, post-merge main verification, canonical close.

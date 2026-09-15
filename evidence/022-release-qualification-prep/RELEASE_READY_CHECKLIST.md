@@ -1,6 +1,6 @@
-# RELEASE_READY checklist vs current state (synced through Spec 059 canonical closure)
+# RELEASE_READY checklist vs current state (synced through Spec 060 canonical closure)
 
-Trusted V1 `RELEASE_READY` requires all applicable release bars below. Spec 059 synchronizes current truth; **current product claim remains FALSE**.
+Trusted V1 `RELEASE_READY` requires all applicable release bars below. Spec 060 begins the separately promoted Desktop+CLI product phase without weakening any release bar; **current product claim remains FALSE**.
 
 | Requirement | Current | Notes |
 |---|---|---|
@@ -14,10 +14,10 @@ Trusted V1 `RELEASE_READY` requires all applicable release bars below. Spec 059 
 | Checksums / provenance / signing verification | FALSE | Verification paths exist; production signing identity/provenance is `DESKTOP_RELEASE_SIGNING_PROVENANCE` external gate |
 | Migration + recovery proof at release bar | TRUE | Spec 048 vault migration/recovery proof + Spec 058 real package install/upgrade/rollback lifecycle |
 | Qualified-hardware performance attainment | FALSE | Harness coverage exists; hosted CI is not qualified hardware; external gate `QUALIFIED_RELEASE_PERFORMANCE_HARDWARE` |
-| Final v0 UI / WCAG qualification | FALSE | Founder visual direction supplied 2026-09-15; native implementation begins in Spec 060, but final keyboard/screen-reader/contrast/WCAG qualification remains open under `FINAL_V0_UI_ACCESSIBILITY_QUALIFICATION` |
+| Final v0 UI / WCAG qualification | FALSE | Spec 060 native shell/design system is canonically closed; patient/workflow/utility/CLI/hardening/final qualification remain in Specs 061–067, and final keyboard/screen-reader/contrast/WCAG evidence remains open under `FINAL_V0_UI_ACCESSIBILITY_QUALIFICATION` |
 | Source-linked claims + limitations | TRUE | Release evidence/limitations are source/tree/lock bound and preserve non-claims |
 | No unresolved repository-owned material findings | TRUE | PR #101 exact-head run `34894123749` qualified the bounded Windows RSS parser fix; merge commit `449e4ba00b21eeabb526b699e90d78954bcd01f8` then passed post-merge main run `34895017496` with all six required jobs |
 
 **Verdict: `RELEASE_READY = FALSE`**
 
-Project implementation status is `IMPLEMENTATION_COMPLETE_PENDING_EXTERNAL_GATES`; this is not a `RELEASE_READY` claim. Also preserved: `PRIVATE_DATA_READY = FALSE`, `MULTI_CLIENT_RELEASE_READY = FALSE`.
+Trusted V1 implementation remains complete, but whole-project status is `PRODUCT_LAUNCH_IMPLEMENTATION_IN_PROGRESS` while Specs 061–067 remain. This is not a `RELEASE_READY` claim. Also preserved: `PRIVATE_DATA_READY = FALSE`, `MULTI_CLIENT_RELEASE_READY = FALSE`.
