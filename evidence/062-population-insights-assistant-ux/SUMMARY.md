@@ -1,6 +1,6 @@
 # Spec 062 Evidence Summary
 
-State: `IN_REVIEW` after canonical local qualification; exact-head CI, merge, post-merge verification, and canonical closure remain pending.
+State: `CLOSED_CANONICAL`. Exact-head required CI, normal merge, and post-merge main verification are proven in `CANONICAL_QUALIFICATION.md`.
 
 Spec 062 turns Insights from a placeholder into a native Slint Population Insights workspace over existing trusted `SubjectBriefV1` and `SubjectCoverageV1` semantics. It keeps all coverage states distinct, counts only Present condition facts, and treats review attention/evidence gaps as evidence-state signals rather than clinical risk or care-gap authority.
 

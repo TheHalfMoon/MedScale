@@ -12,6 +12,7 @@ use slint::{ComponentHandle, ModelRc, VecModel};
 
 mod patient_workspace;
 mod population_insights;
+mod workflow_studio;
 
 slint::include_modules!();
 
@@ -156,10 +157,48 @@ fn main() -> ExitCode {
         }),
     )));
 
+    let workflow = workflow_studio::WorkflowStudioVm::synthetic_demo();
+    ui.set_workflow_name(workflow.workflow_name.clone().into());
+    ui.set_workflow_state(workflow.workflow_state.clone().into());
+    ui.set_workflow_outbox_summary(workflow.outbox_summary.clone().into());
+    ui.set_workflow_action_boundary(workflow.action_boundary.clone().into());
+    ui.set_workflow_task_boundary(workflow.task_boundary.clone().into());
+    ui.set_workflow_message_boundary(workflow.message_boundary.clone().into());
+    ui.set_workflow_review_detail(
+        "Select a derived review task. No action is committed from this surface.".into(),
+    );
+    ui.set_workflow_steps(ModelRc::new(VecModel::from_iter(
+        workflow.steps.iter().map(|row| WorkflowStepItem {
+            order: row.order.clone().into(),
+            title: row.title.clone().into(),
+            detail: row.detail.clone().into(),
+            state: row.state.clone().into(),
+        }),
+    )));
+    ui.set_workflow_tasks(ModelRc::new(VecModel::from_iter(
+        workflow.tasks.iter().map(|row| WorkflowTaskItem {
+            action_id: row.action_id.clone().into(),
+            title: row.title.clone().into(),
+            state: row.state.clone().into(),
+            payload_digest: row.payload_digest.clone().into(),
+            next_step: row.next_step.clone().into(),
+            reconcile_required: row.reconcile_required,
+        }),
+    )));
+    ui.set_workflow_messages(ModelRc::new(VecModel::from_iter(
+        workflow.messages.iter().map(|row| WorkflowMessageItem {
+            title: row.title.clone().into(),
+            body: row.body.clone().into(),
+            status: row.status.clone().into(),
+            related_action_id: row.related_action_id.clone().into(),
+        }),
+    )));
+
     // Spec 061 keeps patient presentation read-only and routes consequential work to review surfaces.
     // Consequential operations are routed to their owning review surfaces; no action is committed here.
     let weak = ui.as_weak();
     let insights_for_actions = insights.clone();
+    let workflow_for_actions = workflow.clone();
     ui.on_ui_action(move |action| {
         let Some(ui) = weak.upgrade() else {
             return;
@@ -168,6 +207,11 @@ fn main() -> ExitCode {
         if let Some(query) = action.strip_prefix("insights-assistant:") {
             ui.set_insights_assistant_answer(insights_for_actions.answer_query(query).into());
             ui.set_active_route("Insights".into());
+            return;
+        }
+        if let Some(action_id) = action.strip_prefix("workflow-review:") {
+            ui.set_workflow_review_detail(workflow_for_actions.review_detail(action_id).into());
+            ui.set_active_route("Tasks".into());
             return;
         }
         let route = if action == "care-plan" {

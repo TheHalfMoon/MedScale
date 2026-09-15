@@ -9,4 +9,4 @@
 - [x] T7 Complete keyboard/accessibility semantics and no-authority-change routing.
 - [x] T8 Add regression tests and evidence.
 - [x] T9 Run local qualification and MSRV/diff/headless checks.
-- [ ] T10 Exact-head CI, merge, post-merge main verification, canonical close, then promote 063.
+- [x] T10 Exact-head CI, merge, post-merge main verification, canonical close, then promote 063.
