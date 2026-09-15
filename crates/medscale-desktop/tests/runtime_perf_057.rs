@@ -14,6 +14,7 @@ const WARMUP: usize = 3;
 const RUNS_DEFAULT: usize = 30;
 const IDLE_MS_DEFAULT: u64 = 1_500;
 const RSS_SAMPLES: usize = 5;
+const WINDOWS_RSS_PROBE_MIN_IDLE_MS: u64 = 10_000;
 
 fn repo_root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -42,6 +43,14 @@ fn idle_ms() -> u64 {
         .and_then(|raw| raw.parse().ok())
         .unwrap_or(IDLE_MS_DEFAULT)
         .clamp(500, 10_000)
+}
+
+fn rss_probe_idle_ms(requested_ms: u64) -> u64 {
+    if cfg!(windows) {
+        requested_ms.max(WINDOWS_RSS_PROBE_MIN_IDLE_MS)
+    } else {
+        requested_ms
+    }
 }
 
 fn percentile_ms(sorted: &[Duration], pct: usize) -> f64 {
@@ -145,7 +154,7 @@ fn sample_rss_kib(pid: u32) -> u64 {
 }
 
 fn measure_idle_rss_kib() -> Vec<u64> {
-    let idle_ms = idle_ms();
+    let idle_ms = rss_probe_idle_ms(idle_ms());
     let mut child = Command::new(binary())
         .args(["--perf-idle-ms", &idle_ms.to_string()])
         .stdout(Stdio::piped())
@@ -170,6 +179,17 @@ fn measure_idle_rss_kib() -> Vec<u64> {
 
 fn evidence_dir() -> PathBuf {
     repo_root().join("target/medscale-evidence/057-release-qualification-residual-integrity")
+}
+
+#[test]
+fn rss_probe_window_covers_windows_process_enumeration_latency() {
+    let requested = 1_500;
+    let effective = rss_probe_idle_ms(requested);
+    if cfg!(windows) {
+        assert_eq!(effective, WINDOWS_RSS_PROBE_MIN_IDLE_MS);
+    } else {
+        assert_eq!(effective, requested);
+    }
 }
 
 #[test]
@@ -236,7 +256,8 @@ fn runtime_perf_057_measures_without_claiming_attainment() {
         "methodology": {
             "warmup_runs": WARMUP,
             "timed_runs": runs,
-            "idle_probe_ms": idle_ms(),
+            "idle_probe_ms_requested": idle_ms(),
+            "idle_probe_ms_effective": rss_probe_idle_ms(idle_ms()),
             "idle_rss_samples": RSS_SAMPLES,
             "synthetic_only": true,
             "real_phi": false,
