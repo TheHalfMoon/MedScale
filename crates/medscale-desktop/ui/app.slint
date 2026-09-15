@@ -83,6 +83,25 @@ export struct AuditTrailItem {
     status: string,
 }
 
+export struct ModelStatusItem {
+    task: string,
+    model: string,
+    source: string,
+    runtime: string,
+    device: string,
+    trust: string,
+    benchmark: string,
+    state: string,
+}
+
+export struct CompetitiveEvidenceItem {
+    capability: string,
+    medscale: string,
+    openmed: string,
+    verdict: string,
+    evidence: string,
+}
+
 export component AppWindow inherits Window {
     title: "MedScale";
     preferred-width: 1440px;
@@ -90,6 +109,7 @@ export component AppWindow inherits Window {
     min-width: 1100px;
     min-height: 720px;
     background: Theme.canvas;
+    default-font-family: "Geist";
     default-font-size: 14px;
 
     in-out property <string> active-route: "Home";
@@ -141,6 +161,13 @@ export component AppWindow inherits Window {
     in property <[UtilityStatusItem]> utility-export-rows;
     in property <[UtilityStatusItem]> utility-settings-rows;
     in property <[UtilityStatusItem]> utility-integration-rows;
+    in property <string> model-runtime-summary;
+    in property <string> model-runtime-boundary;
+    in property <string> model-source-summary;
+    in property <string> openmed-baseline;
+    in property <string> competitive-summary;
+    in property <[ModelStatusItem]> model-rows;
+    in property <[CompetitiveEvidenceItem]> competitive-evidence-rows;
     callback ui-action(string);
 
     forward-focus: global-keys;
@@ -162,8 +189,8 @@ export component AppWindow inherits Window {
             spacing: 0px;
 
             sidebar := Rectangle {
-                width: 224px;
-                background: Theme.surface;
+                width: 232px;
+                background: Theme.obsidian;
                 border-width: 0px;
 
                 VerticalLayout {
@@ -174,47 +201,58 @@ export component AppWindow inherits Window {
                     spacing: 8px;
 
                     HorizontalLayout {
-                        height: 56px;
-                        spacing: 10px;
-                        Image { source: @image-url("assets/medscale-mark.svg"); width: 44px; height: 44px; }
+                        height: 54px;
+                        spacing: 11px;
+                        Image { source: @image-url("assets/medscale-mark.svg"); width: 36px; height: 36px; }
                         VerticalLayout {
                             alignment: center;
-                            spacing: 0px;
-                            Text { text: "MedScale"; color: Theme.ink; font-size: 19px; font-weight: 700; }
-                            Text { text: "Local health intelligence"; color: Theme.ink-quiet; font-size: 10px; }
+                            spacing: 1px;
+                            Text { text: "MedScale"; color: Theme.nav-text; font-size: 17px; font-weight: 700; letter-spacing: -0.2px; }
+                            Text { text: "CLINICAL INTELLIGENCE OS"; color: Theme.nav-subtle; font-size: 8px; letter-spacing: 1.1px; }
                         }
                     }
 
                     Rectangle { height: 8px; background: transparent; }
 
-                    NavItem { label: "Home"; glyph: "⌂"; selected: root.active-route == "Home"; activated => { root.active-route = "Home"; } }
-                    NavItem { label: "Patients"; glyph: "○"; selected: root.active-route == "Patients"; activated => { root.active-route = "Patients"; } }
-                    NavItem { label: "Insights"; glyph: "▥"; selected: root.active-route == "Insights"; activated => { root.active-route = "Insights"; } }
-                    NavItem { label: "Workflows"; glyph: "⌘"; selected: root.active-route == "Workflows"; activated => { root.active-route = "Workflows"; } }
-                    NavItem { label: "Messages"; glyph: "□"; selected: root.active-route == "Messages"; activated => { root.active-route = "Messages"; } }
-                    NavItem { label: "Tasks"; glyph: "✓"; selected: root.active-route == "Tasks"; activated => { root.active-route = "Tasks"; } }
-                    NavItem { label: "Documents"; glyph: "▤"; selected: root.active-route == "Documents"; activated => { root.active-route = "Documents"; } }
-                    NavItem { label: "Audit Trail"; glyph: "◇"; selected: root.active-route == "Audit Trail"; activated => { root.active-route = "Audit Trail"; } }
-                    NavItem { label: "Exports"; glyph: "⇩"; selected: root.active-route == "Exports"; activated => { root.active-route = "Exports"; } }
-                    NavItem { label: "Integrations"; glyph: "↔"; selected: root.active-route == "Integrations"; activated => { root.active-route = "Integrations"; } }
+                    Text { text: "WORKSPACE"; color: Theme.nav-subtle; font-size: 8px; letter-spacing: 1.15px; }
+                    NavItem { label: "Home"; glyph: ""; selected: root.active-route == "Home"; activated => { root.active-route = "Home"; } }
+                    NavItem { label: "Patients"; glyph: ""; selected: root.active-route == "Patients"; activated => { root.active-route = "Patients"; } }
+                    NavItem { label: "Documents"; glyph: ""; selected: root.active-route == "Documents"; activated => { root.active-route = "Documents"; } }
+
+                    Text { text: "INTELLIGENCE"; color: Theme.nav-subtle; font-size: 8px; letter-spacing: 1.15px; }
+                    NavItem { label: "Insights"; glyph: ""; selected: root.active-route == "Insights"; activated => { root.active-route = "Insights"; } }
+                    NavItem { label: "Models"; glyph: ""; selected: root.active-route == "Models"; activated => { root.active-route = "Models"; } }
+                    NavItem { label: "Evidence"; glyph: ""; selected: root.active-route == "Evidence"; activated => { root.active-route = "Evidence"; } }
+
+                    Text { text: "OPERATIONS"; color: Theme.nav-subtle; font-size: 8px; letter-spacing: 1.15px; }
+                    NavItem { label: "Workflows"; glyph: ""; selected: root.active-route == "Workflows"; activated => { root.active-route = "Workflows"; } }
+                    NavItem { label: "Tasks"; glyph: ""; selected: root.active-route == "Tasks"; activated => { root.active-route = "Tasks"; } }
+                    NavItem { label: "Messages"; glyph: ""; selected: root.active-route == "Messages"; activated => { root.active-route = "Messages"; } }
+
+                    Text { text: "GOVERNANCE"; color: Theme.nav-subtle; font-size: 8px; letter-spacing: 1.15px; }
+                    NavItem { label: "Audit Trail"; glyph: ""; selected: root.active-route == "Audit Trail"; activated => { root.active-route = "Audit Trail"; } }
+                    NavItem { label: "Exports"; glyph: ""; selected: root.active-route == "Exports"; activated => { root.active-route = "Exports"; } }
+                    NavItem { label: "Integrations"; glyph: ""; selected: root.active-route == "Integrations"; activated => { root.active-route = "Integrations"; } }
 
                     Rectangle { vertical-stretch: 1; background: transparent; }
 
                     Rectangle {
-                        height: 94px;
-                        border-radius: 14px;
+                        height: 76px;
+                        border-radius: 12px;
                         border-width: 1px;
-                        border-color: Theme.border;
-                        background: Theme.surface-raised;
+                        border-color: Theme.graphite-raised;
+                        background: Theme.graphite;
                         accessible-role: text;
-                        accessible-label: "Local-first status: synthetic demo, encrypted local architecture, network default deny";
+                        accessible-label: "Runtime status: local-first, network default deny, model runtime state visible in Model Center";
                         VerticalLayout {
-                            padding: 12px;
-                            spacing: 4px;
-                            Text { text: "●  Local-first"; color: Theme.pine; font-size: 12px; font-weight: 650; }
-                            Text { text: "Synthetic demo data"; color: Theme.ink-subtle; font-size: 10px; }
-                            Text { text: "Network: default deny"; color: Theme.ink-subtle; font-size: 10px; }
-                            Text { text: "v" + root.product-version; color: Theme.ink-quiet; font-size: 10px; }
+                            padding-left: 12px;
+                            padding-right: 12px;
+                            padding-top: 8px;
+                            padding-bottom: 8px;
+                            spacing: 3px;
+                            Text { text: "RUNTIME"; color: Theme.nav-subtle; font-size: 8px; letter-spacing: 1.2px; }
+                            Text { text: "LOCAL · NO EGRESS"; color: Theme.nav-text; font-size: 11px; font-weight: 650; }
+                            Text { text: "v" + root.product-version; color: Theme.signal-glow; font-size: 9px; }
                         }
                     }
 
@@ -238,23 +276,52 @@ export component AppWindow inherits Window {
                         padding-bottom: 10px;
                         spacing: 14px;
 
-                        LineEdit {
+                        Rectangle {
                             horizontal-stretch: 1;
-                            placeholder-text: "Navigate patients or enter a local search cue…";
-                            accessible-label: "Global search";
-                            accepted(text) => { root.ui-action("search:" + text); }
-                        }
-
-                        ToolbarAction {
-                            label: "Commands";
-                            activated => { root.palette-open = true; }
+                            height: 40px;
+                            border-radius: 10px;
+                            border-width: 1px;
+                            border-color: Theme.border;
+                            background: Theme.surface-raised;
+                            HorizontalLayout {
+                                padding-left: 12px;
+                                padding-right: 8px;
+                                spacing: 10px;
+                                Text { text: "SEARCH"; color: Theme.ink-quiet; font-size: 8px; font-weight: 650; letter-spacing: 0.9px; }
+                                LineEdit {
+                                    horizontal-stretch: 1;
+                                    height: 32px;
+                                    placeholder-text: "Patients · sources · evidence · commands";
+                                    accessible-label: "Global search";
+                                    accepted(text) => { root.ui-action("search:" + text); }
+                                }
+                            }
                         }
 
                         Rectangle {
-                            width: 44px;
-                            border-radius: 22px;
-                            background: Theme.blurple-soft;
-                            Text { text: "JD"; color: Theme.blurple-ink; font-size: 12px; font-weight: 700; horizontal-alignment: center; vertical-alignment: center; }
+                            width: 156px;
+                            height: 40px;
+                            border-radius: 10px;
+                            background: Theme.graphite;
+                            accessible-role: text;
+                            accessible-label: "Model Fabric status. " + root.model-runtime-summary;
+                            Text {
+                                text: "●  Model Fabric · FIXTURE";
+                                color: Theme.nav-text;
+                                font-size: 9px;
+                                font-weight: 650;
+                                horizontal-alignment: center;
+                                vertical-alignment: center;
+                            }
+                        }
+
+                        ToolbarAction { label: "Commands"; activated => { root.palette-open = true; } }
+
+                        Rectangle {
+                            width: 40px;
+                            border-radius: 20px;
+                            background: Theme.signal-soft;
+                            Text { text: "JD"; color: Theme.signal-strong; font-size: 11px; font-weight: 700; horizontal-alignment: center; }
                         }
                     }
                 }
@@ -274,21 +341,161 @@ export component AppWindow inherits Window {
                             spacing: 16px;
                             VerticalLayout {
                                 spacing: 2px;
-                                Text { text: root.active-route == "Home" ? "Good morning, Dr. Doe" : root.active-route == "Patients" ? root.patient-name : root.active-route; color: Theme.ink; font-size: 28px; font-weight: 700; }
-                                Text { text: root.active-route == "Home" ? "A calm view of what needs attention today." : root.active-route == "Patients" ? "Trusted longitudinal workspace · Synthetic demo" : root.active-route == "Insights" ? "Evidence-aware population view · Synthetic demo" : root.active-route == "Workflows" ? "Review-first controlled-action studio · Synthetic demo" : root.active-route == "Tasks" ? "Derived outbox review queue · No second task authority" : root.active-route == "Messages" ? "Local review previews · No external transport claim" : root.active-route == "Documents" ? "Bounded document intake posture · Custody is not understanding" : root.active-route == "Audit Trail" ? "Synthetic disclosure history · Core Host remains canonical" : root.active-route == "Exports" ? "Loss-aware FHIR support · No full conformance claim" : root.active-route == "Settings" ? "Doctor truth and evidence-gated readiness" : root.active-route == "Integrations" ? "Brokered integration posture · Default deny" : root.active-route == "About" ? "Native product and attribution details" : "Unrecognized route"; color: Theme.ink-subtle; font-size: 14px; }
+                                Text { text: root.active-route == "Home" ? "Clinical Workspace" : root.active-route == "Patients" ? root.patient-name : root.active-route; color: Theme.ink; font-size: 28px; font-weight: 720; letter-spacing: -0.4px; }
+                                Text { text: root.active-route == "Home" ? "Trusted local clinical intelligence · evidence before authority" : root.active-route == "Patients" ? "Trusted longitudinal workspace · Synthetic demo" : root.active-route == "Insights" ? "Evidence-aware population view · Synthetic demo" : root.active-route == "Models" ? "Local model fabric · provenance, runtime and benchmark state" : root.active-route == "Evidence" ? "What MedScale proves · what OpenMed still does better · no marketing fiction" : root.active-route == "Workflows" ? "Review-first controlled-action studio · Synthetic demo" : root.active-route == "Tasks" ? "Derived outbox review queue · No second task authority" : root.active-route == "Messages" ? "Local review previews · No external transport claim" : root.active-route == "Documents" ? "Bounded document intake posture · Custody is not understanding" : root.active-route == "Audit Trail" ? "Synthetic disclosure history · Core Host remains canonical" : root.active-route == "Exports" ? "Loss-aware FHIR support · No full conformance claim" : root.active-route == "Settings" ? "Doctor truth and evidence-gated readiness" : root.active-route == "Integrations" ? "Brokered integration posture · Default deny" : root.active-route == "About" ? "Native product and attribution details" : "Unrecognized route"; color: Theme.ink-subtle; font-size: 13px; }
                             }
                             Rectangle { horizontal-stretch: 1; background: transparent; }
+                            if root.active-route == "Home": Text {
+                                text: "Evidence first · action second";
+                                color: Theme.signal-strong;
+                                font-size: 10px;
+                                font-weight: 650;
+                            }
+                        }
+
+                        if root.active-route == "Models": VerticalLayout {
+                            spacing: 14px;
+
                             Rectangle {
-                                width: 258px;
-                                border-radius: 18px;
-                                background: Theme.blurple-soft;
+                                min-height: 132px;
+                                border-radius: 14px;
+                                background: Theme.obsidian;
+                                accessible-role: groupbox;
+                                accessible-label: "MedScale model fabric. " + root.model-runtime-boundary;
                                 HorizontalLayout {
-                                    padding: 14px;
-                                    spacing: 10px;
-                                    Rectangle { width: 54px; border-radius: 18px; background: Theme.pine; }
-                                    Rectangle { width: 28px; border-radius: 14px; background: Theme.coral; }
-                                    Rectangle { width: 62px; border-radius: 18px; background: Theme.lavender; }
-                                    Text { text: "PEOPLE\nDATA\nPROGRESS"; color: Theme.ink-subtle; font-size: 8px; letter-spacing: 1px; vertical-alignment: center; }
+                                    padding: 18px;
+                                    spacing: 18px;
+                                    VerticalLayout {
+                                        spacing: 6px;
+                                        Text { text: "MODEL FABRIC"; color: Theme.signal-glow; font-size: 9px; letter-spacing: 1.2px; }
+                                        Text { text: root.model-runtime-summary; color: Theme.nav-text; font-size: 18px; font-weight: 700; wrap: word-wrap; }
+                                        Text { text: root.model-runtime-boundary; color: Theme.nav-subtle; font-size: 11px; wrap: word-wrap; }
+                                    }
+                                    Rectangle { width: 1px; background: Theme.graphite-raised; }
+                                    VerticalLayout {
+                                        width: 310px;
+                                        spacing: 6px;
+                                        Text { text: "HUGGING FACE"; color: Theme.signal-glow; font-size: 9px; letter-spacing: 1.2px; }
+                                        Text { text: "Model source, not authority"; color: Theme.nav-text; font-size: 13px; font-weight: 650; }
+                                        Text { text: root.model-source-summary; color: Theme.nav-subtle; font-size: 10px; wrap: word-wrap; }
+                                    }
+                                }
+                            }
+
+                            HorizontalLayout {
+                                spacing: 8px;
+                                Text { text: "Runtime inventory"; color: Theme.ink; font-size: 14px; font-weight: 680; }
+                                Rectangle { horizontal-stretch: 1; background: transparent; }
+                                Text { text: "Spec 069 will admit real inference"; color: Theme.ink-quiet; font-size: 10px; }
+                            }
+
+                            for item in root.model-rows: Rectangle {
+                                min-height: 108px;
+                                border-radius: 12px;
+                                border-width: 1px;
+                                border-color: Theme.border;
+                                background: Theme.surface;
+                                accessible-role: groupbox;
+                                accessible-label: item.task + ". " + item.model + ". " + item.state;
+                                HorizontalLayout {
+                                    padding: 15px;
+                                    spacing: 16px;
+                                    VerticalLayout {
+                                        width: 230px;
+                                        spacing: 4px;
+                                        Text { text: item.task; color: Theme.ink; font-size: 13px; font-weight: 680; }
+                                        Text { text: item.model; color: Theme.ink-subtle; font-size: 10px; wrap: word-wrap; }
+                                        Text { text: item.source; color: Theme.signal-strong; font-size: 9px; font-weight: 600; }
+                                    }
+                                    Rectangle { width: 1px; background: Theme.border; }
+                                    VerticalLayout {
+                                        horizontal-stretch: 1;
+                                        spacing: 4px;
+                                        Text { text: "Runtime  ·  " + item.runtime; color: Theme.ink-subtle; font-size: 10px; }
+                                        Text { text: "Device   ·  " + item.device; color: Theme.ink-subtle; font-size: 10px; }
+                                        Text { text: "Trust      ·  " + item.trust; color: Theme.ink-subtle; font-size: 10px; }
+                                        Text { text: "Evidence ·  " + item.benchmark; color: Theme.ink-quiet; font-size: 10px; wrap: word-wrap; }
+                                    }
+                                    StatusPill {
+                                        label: item.state;
+                                        accent: item.state == "ACTIVE" ? Theme.success : item.state == "EXTERNAL GATE" ? Theme.warning : Theme.danger;
+                                                                }
+                                }
+                            }
+                        }
+
+                        if root.active-route == "Evidence": VerticalLayout {
+                            spacing: 14px;
+
+                            Rectangle {
+                                min-height: 148px;
+                                border-radius: 14px;
+                                border-width: 1px;
+                                border-color: Theme.border;
+                                background: Theme.surface;
+                                accessible-role: groupbox;
+                                accessible-label: "OpenMed evidence comparison. " + root.competitive-summary;
+                                HorizontalLayout {
+                                    padding: 18px;
+                                    spacing: 18px;
+                                    VerticalLayout {
+                                        horizontal-stretch: 1;
+                                        spacing: 6px;
+                                        Text { text: "EVIDENCE, NOT MARKETING"; color: Theme.signal-strong; font-size: 9px; letter-spacing: 1.2px; font-weight: 650; }
+                                        Text { text: "MedScale × OpenMed"; color: Theme.ink; font-size: 22px; font-weight: 720; }
+                                        Text { text: root.competitive-summary; color: Theme.ink-subtle; font-size: 11px; wrap: word-wrap; }
+                                    }
+                                    Rectangle {
+                                        width: 300px;
+                                        border-radius: 11px;
+                                        background: Theme.canvas;
+                                        VerticalLayout {
+                                            padding: 13px;
+                                            spacing: 5px;
+                                            Text { text: "PINNED BASELINE"; color: Theme.ink-quiet; font-size: 8px; letter-spacing: 1px; }
+                                            Text { text: root.openmed-baseline; color: Theme.ink; font-size: 11px; font-weight: 650; wrap: word-wrap; }
+                                            Text { text: "Every superiority claim requires exact comparative evidence."; color: Theme.ink-subtle; font-size: 9px; wrap: word-wrap; }
+                                        }
+                                    }
+                                }
+                            }
+
+                            for item in root.competitive-evidence-rows: Rectangle {
+                                min-height: 132px;
+                                border-radius: 12px;
+                                border-width: 1px;
+                                border-color: Theme.border;
+                                background: Theme.surface;
+                                accessible-role: groupbox;
+                                accessible-label: item.capability + ". Verdict " + item.verdict;
+                                VerticalLayout {
+                                    padding: 15px;
+                                    spacing: 9px;
+                                    HorizontalLayout {
+                                        Text { text: item.capability; color: Theme.ink; font-size: 13px; font-weight: 680; }
+                                        Rectangle { horizontal-stretch: 1; background: transparent; }
+                                        StatusPill {
+                                            label: item.verdict;
+                                            accent: item.verdict == "PROVEN ADVANTAGE" ? Theme.success : item.verdict == "OPENMED AHEAD" ? Theme.danger : Theme.warning;
+                                        }
+                                    }
+                                    HorizontalLayout {
+                                        spacing: 16px;
+                                        VerticalLayout {
+                                            horizontal-stretch: 1;
+                                            spacing: 3px;
+                                            Text { text: "MEDSCALE"; color: Theme.signal-strong; font-size: 8px; letter-spacing: 1px; font-weight: 650; }
+                                            Text { text: item.medscale; color: Theme.ink-subtle; font-size: 10px; wrap: word-wrap; }
+                                        }
+                                        Rectangle { width: 1px; background: Theme.border; }
+                                        VerticalLayout {
+                                            horizontal-stretch: 1;
+                                            spacing: 3px;
+                                            Text { text: "OPENMED"; color: Theme.ink-quiet; font-size: 8px; letter-spacing: 1px; font-weight: 650; }
+                                            Text { text: item.openmed; color: Theme.ink-subtle; font-size: 10px; wrap: word-wrap; }
+                                        }
+                                    }
+                                    Text { text: "Evidence · " + item.evidence; color: Theme.ink-quiet; font-size: 9px; wrap: word-wrap; }
                                 }
                             }
                         }
@@ -335,8 +542,8 @@ export component AppWindow inherits Window {
                                     Rectangle {
                                         width: 72px;
                                         border-radius: 22px;
-                                        background: Theme.blurple-soft;
-                                        Text { text: "SC"; color: Theme.blurple-ink; font-size: 20px; font-weight: 700; horizontal-alignment: center; vertical-alignment: center; }
+                                        background: Theme.signal-soft;
+                                        Text { text: "SC"; color: Theme.signal-strong; font-size: 20px; font-weight: 700; horizontal-alignment: center; }
                                     }
                                     VerticalLayout {
                                         spacing: 5px;
@@ -350,8 +557,8 @@ export component AppWindow inherits Window {
                                         width: 300px;
                                         alignment: center;
                                         spacing: 8px;
-                                        StatusPill { label: "Synthetic demo"; accent: Theme.blurple; }
-                                        StatusPill { label: root.patient-coverage-state; accent: root.patient-coverage-state == "Supported evidence" ? Theme.pine : Theme.amber; }
+                                        StatusPill { label: "Synthetic demo"; accent: Theme.signal; }
+                                        StatusPill { label: root.patient-coverage-state; accent: root.patient-coverage-state == "Supported evidence" ? Theme.success : Theme.warning; }
                                         Text { text: root.patient-coverage-summary; color: Theme.ink-subtle; font-size: 10px; wrap: word-wrap; horizontal-alignment: right; }
                                     }
                                 }
@@ -393,7 +600,7 @@ export component AppWindow inherits Window {
                                     horizontal-stretch: 2;
                                     title: "Authority boundary";
                                     body: "This workspace is read-only presentation. Evidence and provenance remain visible; relevance does not become clinical authority and no action is silently committed.";
-                                    accent: Theme.pine;
+                                    accent: Theme.success;
                                 }
                             }
 
@@ -401,7 +608,7 @@ export component AppWindow inherits Window {
                                 spacing: 8px;
                                 HorizontalLayout {
                                     height: 44px;
-                                    Text { text: "Longitudinal timeline"; color: Theme.ink; font-size: 15px; font-weight: 650; vertical-alignment: center; }
+                                    Text { text: "Longitudinal timeline"; color: Theme.ink; font-size: 15px; font-weight: 650; }
                                     Rectangle { horizontal-stretch: 1; background: transparent; }
                                     ToolbarAction { label: "Inspect sources"; glyph: "◇"; activated => { root.patient-tab = "Sources"; } }
                                 }
@@ -410,10 +617,10 @@ export component AppWindow inherits Window {
                                     background: Theme.surface-raised;
                                     HorizontalLayout {
                                         padding-left: 14px; padding-right: 14px; spacing: 12px;
-                                        Text { width: 120px; text: "DATE"; color: Theme.ink-quiet; font-size: 10px; font-weight: 650; vertical-alignment: center; }
-                                        Text { width: 150px; text: "TYPE"; color: Theme.ink-quiet; font-size: 10px; font-weight: 650; vertical-alignment: center; }
-                                        Text { horizontal-stretch: 1; text: "LONGITUDINAL EVENT"; color: Theme.ink-quiet; font-size: 10px; font-weight: 650; vertical-alignment: center; }
-                                        Text { width: 160px; text: "PROVENANCE"; color: Theme.ink-quiet; font-size: 10px; font-weight: 650; vertical-alignment: center; }
+                                        Text { width: 120px; text: "DATE"; color: Theme.ink-quiet; font-size: 10px; font-weight: 650; }
+                                        Text { width: 150px; text: "TYPE"; color: Theme.ink-quiet; font-size: 10px; font-weight: 650; }
+                                        Text { horizontal-stretch: 1; text: "LONGITUDINAL EVENT"; color: Theme.ink-quiet; font-size: 10px; font-weight: 650; }
+                                        Text { width: 160px; text: "PROVENANCE"; color: Theme.ink-quiet; font-size: 10px; font-weight: 650; }
                                     }
                                 }
                                 for item in root.patient-timeline: Rectangle {
@@ -425,10 +632,10 @@ export component AppWindow inherits Window {
                                     accessible-label: item.date + ", " + item.title + ", " + item.detail + ", " + item.source;
                                     HorizontalLayout {
                                         padding-left: 14px; padding-right: 14px; spacing: 12px;
-                                        Text { width: 120px; text: item.date; color: Theme.ink-subtle; font-size: 11px; vertical-alignment: center; }
-                                        Text { width: 150px; text: item.title; color: Theme.ink; font-size: 11px; font-weight: 650; vertical-alignment: center; }
-                                        Text { horizontal-stretch: 1; text: item.detail; color: Theme.ink-subtle; font-size: 11px; wrap: word-wrap; vertical-alignment: center; }
-                                        VerticalLayout { width: 160px; alignment: center; spacing: 2px; Text { text: item.source; color: Theme.blurple-ink; font-size: 10px; } Text { text: item.status; color: Theme.ink-quiet; font-size: 9px; } }
+                                        Text { width: 120px; text: item.date; color: Theme.ink-subtle; font-size: 11px; }
+                                        Text { width: 150px; text: item.title; color: Theme.ink; font-size: 11px; font-weight: 650; }
+                                        Text { horizontal-stretch: 1; text: item.detail; color: Theme.ink-subtle; font-size: 11px; wrap: word-wrap; }
+                                        VerticalLayout { width: 160px; alignment: center; spacing: 2px; Text { text: item.source; color: Theme.signal-strong; font-size: 10px; } Text { text: item.status; color: Theme.ink-quiet; font-size: 9px; } }
                                     }
                                 }
                             }
@@ -438,10 +645,10 @@ export component AppWindow inherits Window {
                                 Rectangle {
                                     height: 42px; background: Theme.surface-raised;
                                     HorizontalLayout { padding-left: 14px; padding-right: 14px; spacing: 12px;
-                                        Text { horizontal-stretch: 1; text: "OBSERVATION"; color: Theme.ink-quiet; font-size: 10px; font-weight: 650; vertical-alignment: center; }
-                                        Text { width: 110px; text: "VALUE"; color: Theme.ink-quiet; font-size: 10px; font-weight: 650; vertical-alignment: center; }
-                                        Text { width: 130px; text: "COVERAGE"; color: Theme.ink-quiet; font-size: 10px; font-weight: 650; vertical-alignment: center; }
-                                        Text { width: 160px; text: "SOURCE"; color: Theme.ink-quiet; font-size: 10px; font-weight: 650; vertical-alignment: center; }
+                                        Text { horizontal-stretch: 1; text: "OBSERVATION"; color: Theme.ink-quiet; font-size: 10px; font-weight: 650; }
+                                        Text { width: 110px; text: "VALUE"; color: Theme.ink-quiet; font-size: 10px; font-weight: 650; }
+                                        Text { width: 130px; text: "COVERAGE"; color: Theme.ink-quiet; font-size: 10px; font-weight: 650; }
+                                        Text { width: 160px; text: "SOURCE"; color: Theme.ink-quiet; font-size: 10px; font-weight: 650; }
                                     }
                                 }
                                 for item in root.patient-labs: Rectangle {
@@ -449,20 +656,20 @@ export component AppWindow inherits Window {
                                     accessible-role: text;
                                     accessible-label: item.label + ", " + item.value + " " + item.unit + ", " + item.status + ", " + item.source;
                                     HorizontalLayout { padding-left: 14px; padding-right: 14px; spacing: 12px;
-                                        Text { horizontal-stretch: 1; text: item.label; color: Theme.ink; font-size: 12px; font-weight: 650; vertical-alignment: center; }
-                                        Text { width: 110px; text: item.value + " " + item.unit; color: Theme.ink; font-size: 12px; vertical-alignment: center; }
-                                        Text { width: 130px; text: item.status; color: Theme.ink-subtle; font-size: 10px; vertical-alignment: center; }
-                                        Text { width: 160px; text: item.source; color: Theme.blurple-ink; font-size: 10px; vertical-alignment: center; }
+                                        Text { horizontal-stretch: 1; text: item.label; color: Theme.ink; font-size: 12px; font-weight: 650; }
+                                        Text { width: 110px; text: item.value + " " + item.unit; color: Theme.ink; font-size: 12px; }
+                                        Text { width: 130px; text: item.status; color: Theme.ink-subtle; font-size: 10px; }
+                                        Text { width: 160px; text: item.source; color: Theme.signal-strong; font-size: 10px; }
                                     }
                                 }
                             }
 
-                            if root.patient-tab == "Medications": HonestyPanel { title: "Medications — honest unsupported state"; body: root.patient-medications-state; accent: Theme.amber; }
-                            if root.patient-tab == "Documents": HonestyPanel { title: "Documents — custody is not understanding"; body: root.patient-documents-state; accent: Theme.blurple; }
+                            if root.patient-tab == "Medications": HonestyPanel { title: "Medications — honest unsupported state"; body: root.patient-medications-state; accent: Theme.warning; }
+                            if root.patient-tab == "Documents": HonestyPanel { title: "Documents — custody is not understanding"; body: root.patient-documents-state; accent: Theme.signal; }
                             if root.patient-tab == "Care Plan": VerticalLayout {
                                 spacing: 12px;
-                                HonestyPanel { title: "Care Plan — review first"; body: root.patient-care-plan-state; accent: Theme.pine; }
-                                QuickAction { title: "Prepare in Workflows"; subtitle: "Open review surface; do not commit here"; glyph: "⌘"; accent: Theme.blurple; activated => { root.ui-action("care-plan"); } }
+                                HonestyPanel { title: "Care Plan — review first"; body: root.patient-care-plan-state; accent: Theme.success; }
+                                QuickAction { title: "Prepare in Workflows"; subtitle: "Open review surface; do not commit here"; glyph: "⌘"; accent: Theme.signal; activated => { root.ui-action("care-plan"); } }
                             }
 
                             if root.patient-tab == "Sources": VerticalLayout {
@@ -474,8 +681,8 @@ export component AppWindow inherits Window {
                                     accessible-role: text;
                                     accessible-label: "Source " + item.source-id + ". " + item.note;
                                     HorizontalLayout { padding: 12px; spacing: 14px;
-                                        Text { width: 220px; text: item.source-id; color: Theme.blurple-ink; font-size: 11px; font-weight: 650; vertical-alignment: center; }
-                                        Text { horizontal-stretch: 1; text: item.note; color: Theme.ink-subtle; font-size: 10px; wrap: word-wrap; vertical-alignment: center; }
+                                        Text { width: 220px; text: item.source-id; color: Theme.signal-strong; font-size: 11px; font-weight: 650; }
+                                        Text { horizontal-stretch: 1; text: item.note; color: Theme.ink-subtle; font-size: 10px; wrap: word-wrap; }
                                     }
                                 }
                             }
@@ -486,10 +693,10 @@ export component AppWindow inherits Window {
 
                             HorizontalLayout {
                                 spacing: 12px;
-                                MetricCard { label: "Synthetic cohort"; value: root.insights-cohort-size; delta: "Trusted projection subjects"; glyph: "◎"; accent: Theme.blurple; }
-                                MetricCard { label: "Evidence review"; value: root.insights-review-attention; delta: "Unresolved evidence state"; glyph: "◇"; accent: Theme.amber; }
-                                MetricCard { label: "Evidence gaps"; value: root.insights-evidence-gaps; delta: "Not clinical care gaps"; glyph: "○"; accent: Theme.coral; }
-                                MetricCard { label: "Present slots"; value: root.insights-present-count; delta: "Trusted presentation only"; glyph: "✓"; accent: Theme.pine; }
+                                MetricCard { label: "Synthetic cohort"; value: root.insights-cohort-size; delta: "Trusted projection subjects"; glyph: "◎"; accent: Theme.signal; }
+                                MetricCard { label: "Evidence review"; value: root.insights-review-attention; delta: "Unresolved evidence state"; glyph: "◇"; accent: Theme.warning; }
+                                MetricCard { label: "Evidence gaps"; value: root.insights-evidence-gaps; delta: "Not clinical care gaps"; glyph: "○"; accent: Theme.warning; }
+                                MetricCard { label: "Present slots"; value: root.insights-present-count; delta: "Trusted presentation only"; glyph: "✓"; accent: Theme.success; }
                             }
 
                             HorizontalLayout {
@@ -523,10 +730,10 @@ export component AppWindow inherits Window {
                                                 spacing: 12px;
                                                 accessible-role: text;
                                                 accessible-label: item.label + ": " + item.value + ". " + item.detail;
-                                                Text { width: 150px; text: item.label; color: Theme.ink; font-size: 11px; font-weight: 650; vertical-alignment: center; }
-                                                Text { width: 46px; text: item.value; color: Theme.blurple-ink; font-size: 13px; font-weight: 700; vertical-alignment: center; }
-                                                Text { horizontal-stretch: 1; text: item.detail; color: Theme.ink-subtle; font-size: 10px; vertical-alignment: center; }
-                                                Text { width: 118px; text: item.status; color: Theme.ink-subtle; font-size: 9px; vertical-alignment: center; horizontal-alignment: right; }
+                                                Text { width: 150px; text: item.label; color: Theme.ink; font-size: 11px; font-weight: 650; }
+                                                Text { width: 46px; text: item.value; color: Theme.signal-strong; font-size: 13px; font-weight: 700; }
+                                                Text { horizontal-stretch: 1; text: item.detail; color: Theme.ink-subtle; font-size: 10px; }
+                                                Text { width: 118px; text: item.status; color: Theme.ink-subtle; font-size: 9px; horizontal-alignment: right; }
                                             }
                                         }
                                     }
@@ -544,9 +751,9 @@ export component AppWindow inherits Window {
                                             padding: 16px;
                                             spacing: 10px;
                                             HorizontalLayout {
-                                                Text { text: "MedScale Assistant"; color: Theme.ink; font-size: 15px; font-weight: 650; }
+                                                Text { text: "MedScale Assistant"; color: Theme.ink; font-size: 15px; font-weight: 680; }
                                                 Rectangle { horizontal-stretch: 1; background: transparent; }
-                                                StatusPill { label: "Evidence context"; accent: Theme.pine; }
+                                                StatusPill { label: "Evidence context"; accent: Theme.success; }
                                             }
                                             Text { text: "Deterministic local UX — no provider/model authority in this slice."; color: Theme.ink-subtle; font-size: 10px; wrap: word-wrap; }
                                             assistant-query := LineEdit {
@@ -557,20 +764,20 @@ export component AppWindow inherits Window {
                                             Rectangle {
                                                 min-height: 106px;
                                                 border-radius: 14px;
-                                                background: Theme.blurple-soft;
+                                                background: Theme.signal-soft;
                                                 accessible-role: text;
                                                 accessible-label: "Assistant response: " + root.insights-assistant-answer;
                                                 VerticalLayout {
                                                     padding: 14px;
                                                     spacing: 6px;
-                                                    Text { text: "Suggestion"; color: Theme.blurple-ink; font-size: 10px; font-weight: 700; }
+                                                    Text { text: "Suggestion"; color: Theme.signal-strong; font-size: 10px; font-weight: 700; }
                                                     Text { text: root.insights-assistant-answer; color: Theme.ink; font-size: 11px; wrap: word-wrap; }
                                                 }
                                             }
                                             HorizontalLayout {
                                                 spacing: 8px;
-                                                QuickAction { title: "Explain gaps"; subtitle: "Evidence state only"; glyph: "?"; accent: Theme.amber; activated => { root.ui-action("insights-assistant:Explain coverage gaps"); } }
-                                                QuickAction { title: "Risk limits"; subtitle: "No clinical ranking"; glyph: "!"; accent: Theme.coral; activated => { root.ui-action("insights-assistant:Who is highest risk?"); } }
+                                                QuickAction { title: "Explain gaps"; subtitle: "Evidence state only"; glyph: "?"; accent: Theme.warning; activated => { root.ui-action("insights-assistant:Explain coverage gaps"); } }
+                                                QuickAction { title: "Risk limits"; subtitle: "No clinical ranking"; glyph: "!"; accent: Theme.warning; activated => { root.ui-action("insights-assistant:Who is highest risk?"); } }
                                             }
                                         }
                                     }
@@ -578,13 +785,13 @@ export component AppWindow inherits Window {
 
                                 HorizontalLayout {
                                     spacing: 16px;
-                                    HonestyPanel { horizontal-stretch: 1; title: "Risk distribution boundary"; body: root.insights-risk-state; accent: Theme.coral; }
-                                    HonestyPanel { horizontal-stretch: 1; title: "Trend boundary"; body: root.insights-trend-state; accent: Theme.blurple; }
+                                    HonestyPanel { horizontal-stretch: 1; title: "Risk distribution boundary"; body: root.insights-risk-state; accent: Theme.warning; }
+                                    HonestyPanel { horizontal-stretch: 1; title: "Trend boundary"; body: root.insights-trend-state; accent: Theme.signal; }
                                 }
                                 HorizontalLayout {
                                     spacing: 16px;
-                                    HonestyPanel { horizontal-stretch: 1; title: "Evidence gaps"; body: root.insights-gap-state; accent: Theme.amber; }
-                                    HonestyPanel { horizontal-stretch: 1; title: "Review recommendation"; body: root.insights-recommendation-state; accent: Theme.pine; }
+                                    HonestyPanel { horizontal-stretch: 1; title: "Evidence gaps"; body: root.insights-gap-state; accent: Theme.warning; }
+                                    HonestyPanel { horizontal-stretch: 1; title: "Review recommendation"; body: root.insights-recommendation-state; accent: Theme.success; }
                                 }
                             }
 
@@ -603,10 +810,10 @@ export component AppWindow inherits Window {
                                     Text { text: "Synthetic subjects only. Condition text is shown only when present in trusted presentation; unresolved status remains explicit."; color: Theme.ink-subtle; font-size: 11px; wrap: word-wrap; }
                                     Rectangle { height: 12px; background: transparent; }
                                     HorizontalLayout { height: 38px; spacing: 12px;
-                                        Text { width: 160px; text: "SUBJECT"; color: Theme.ink-quiet; font-size: 9px; font-weight: 700; vertical-alignment: center; }
-                                        Text { width: 210px; text: "CONDITION"; color: Theme.ink-quiet; font-size: 9px; font-weight: 700; vertical-alignment: center; }
-                                        Text { horizontal-stretch: 1; text: "EVIDENCE STATE"; color: Theme.ink-quiet; font-size: 9px; font-weight: 700; vertical-alignment: center; }
-                                        Text { width: 150px; text: "REVIEW"; color: Theme.ink-quiet; font-size: 9px; font-weight: 700; vertical-alignment: center; horizontal-alignment: right; }
+                                        Text { width: 160px; text: "SUBJECT"; color: Theme.ink-quiet; font-size: 9px; font-weight: 700; }
+                                        Text { width: 210px; text: "CONDITION"; color: Theme.ink-quiet; font-size: 9px; font-weight: 700; }
+                                        Text { horizontal-stretch: 1; text: "EVIDENCE STATE"; color: Theme.ink-quiet; font-size: 9px; font-weight: 700; }
+                                        Text { width: 150px; text: "REVIEW"; color: Theme.ink-quiet; font-size: 9px; font-weight: 700; horizontal-alignment: right; }
                                     }
                                     for item in root.insights-cohorts: Rectangle {
                                         height: 58px;
@@ -620,9 +827,9 @@ export component AppWindow inherits Window {
                                                 Text { text: item.name; color: Theme.ink; font-size: 11px; font-weight: 650; }
                                                 Text { text: item.subject-ref; color: Theme.ink-quiet; font-size: 8px; }
                                             }
-                                            Text { width: 210px; text: item.condition; color: Theme.ink-subtle; font-size: 10px; wrap: word-wrap; vertical-alignment: center; }
-                                            Text { horizontal-stretch: 1; text: item.evidence-state; color: Theme.ink-subtle; font-size: 10px; wrap: word-wrap; vertical-alignment: center; }
-                                            Text { width: 150px; text: item.review-attention; color: Theme.ink-subtle; font-size: 9px; vertical-alignment: center; horizontal-alignment: right; }
+                                            Text { width: 210px; text: item.condition; color: Theme.ink-subtle; font-size: 10px; wrap: word-wrap; }
+                                            Text { horizontal-stretch: 1; text: item.evidence-state; color: Theme.ink-subtle; font-size: 10px; wrap: word-wrap; }
+                                            Text { width: 150px; text: item.review-attention; color: Theme.ink-subtle; font-size: 9px; horizontal-alignment: right; }
                                         }
                                     }
                                 }
@@ -647,8 +854,8 @@ export component AppWindow inherits Window {
                                             height: 44px;
                                             accessible-role: text;
                                             accessible-label: item.label + ": " + item.value + ". " + item.detail;
-                                            Text { horizontal-stretch: 1; text: item.label; color: Theme.ink; font-size: 11px; font-weight: 650; vertical-alignment: center; }
-                                            Text { width: 46px; text: item.value; color: Theme.blurple-ink; font-size: 15px; font-weight: 700; vertical-alignment: center; horizontal-alignment: right; }
+                                            Text { horizontal-stretch: 1; text: item.label; color: Theme.ink; font-size: 11px; font-weight: 650; }
+                                            Text { width: 46px; text: item.value; color: Theme.signal-strong; font-size: 15px; font-weight: 700; horizontal-alignment: right; }
                                         }
                                     }
                                 }
@@ -680,7 +887,7 @@ export component AppWindow inherits Window {
                                                 HorizontalLayout {
                                                     Text { text: item.title; color: Theme.ink; font-size: 11px; font-weight: 650; }
                                                     Rectangle { horizontal-stretch: 1; background: transparent; }
-                                                    Text { text: item.source; color: Theme.blurple-ink; font-size: 9px; }
+                                                    Text { text: item.source; color: Theme.signal-strong; font-size: 9px; }
                                                 }
                                                 Text { text: item.snippet; color: Theme.ink-subtle; font-size: 10px; wrap: word-wrap; }
                                                 Text { text: item.metadata; color: Theme.ink-quiet; font-size: 9px; wrap: word-wrap; }
@@ -695,10 +902,10 @@ export component AppWindow inherits Window {
                             spacing: 18px;
                             HorizontalLayout {
                                 spacing: 12px;
-                                MetricCard { label: "Studio posture"; value: "Review first"; delta: "No Desktop commit"; glyph: "⌘"; accent: Theme.blurple; }
-                                MetricCard { label: "Outbox state"; value: "5 demo"; delta: root.workflow-outbox-summary; glyph: "⇥"; accent: Theme.pine; }
-                                MetricCard { label: "UNKNOWN policy"; value: "Reconcile"; delta: "Blind retry forbidden"; glyph: "!"; accent: Theme.coral; }
-                                MetricCard { label: "Payload identity"; value: "SHA-256"; delta: "Bound before send"; glyph: "#"; accent: Theme.amber; }
+                                MetricCard { label: "Studio posture"; value: "Review first"; delta: "No Desktop commit"; glyph: "⌘"; accent: Theme.signal; }
+                                MetricCard { label: "Outbox state"; value: "5 demo"; delta: root.workflow-outbox-summary; glyph: "⇥"; accent: Theme.success; }
+                                MetricCard { label: "UNKNOWN policy"; value: "Reconcile"; delta: "Blind retry forbidden"; glyph: "!"; accent: Theme.warning; }
+                                MetricCard { label: "Payload identity"; value: "SHA-256"; delta: "Bound before send"; glyph: "#"; accent: Theme.warning; }
                             }
 
                             HorizontalLayout {
@@ -733,8 +940,8 @@ export component AppWindow inherits Window {
                                                     width: 38px;
                                                     height: 38px;
                                                     border-radius: 10px;
-                                                    background: Theme.blurple-soft;
-                                                    Text { text: item.order; color: Theme.blurple-ink; font-size: 11px; font-weight: 700; horizontal-alignment: center; vertical-alignment: center; }
+                                                    background: Theme.signal-soft;
+                                                    Text { text: item.order; color: Theme.signal-strong; font-size: 11px; font-weight: 700; horizontal-alignment: center; }
                                                 }
                                                 VerticalLayout {
                                                     horizontal-stretch: 1;
@@ -743,7 +950,7 @@ export component AppWindow inherits Window {
                                                     Text { text: item.title; color: Theme.ink; font-size: 12px; font-weight: 650; }
                                                     Text { text: item.detail; color: Theme.ink-subtle; font-size: 10px; wrap: word-wrap; }
                                                 }
-                                                StatusPill { label: item.state; accent: item.state == "Fail closed" ? Theme.coral : item.state == "Required" ? Theme.amber : Theme.pine; }
+                                                StatusPill { label: item.state; accent: item.state == "Fail closed" ? Theme.warning : item.state == "Required" ? Theme.warning : Theme.success; }
                                             }
                                         }
                                     }
@@ -751,17 +958,17 @@ export component AppWindow inherits Window {
                                 VerticalLayout {
                                     horizontal-stretch: 2;
                                     spacing: 12px;
-                                    HonestyPanel { title: "Authority boundary"; body: root.workflow-action-boundary; accent: Theme.pine; }
-                                    HonestyPanel { title: "Task semantics"; body: root.workflow-task-boundary; accent: Theme.blurple; }
-                                    QuickAction { title: "Open review tasks"; subtitle: "Derived from durable outbox state"; glyph: "✓"; accent: Theme.blurple; activated => { root.active-route = "Tasks"; } }
-                                    QuickAction { title: "Open message previews"; subtitle: "No external send from this UI"; glyph: "✉"; accent: Theme.pine; activated => { root.active-route = "Messages"; } }
+                                    HonestyPanel { title: "Authority boundary"; body: root.workflow-action-boundary; accent: Theme.success; }
+                                    HonestyPanel { title: "Task semantics"; body: root.workflow-task-boundary; accent: Theme.signal; }
+                                    QuickAction { title: "Open review tasks"; subtitle: "Derived from durable outbox state"; glyph: "✓"; accent: Theme.signal; activated => { root.active-route = "Tasks"; } }
+                                    QuickAction { title: "Open message previews"; subtitle: "No external send from this UI"; glyph: "✉"; accent: Theme.success; activated => { root.active-route = "Messages"; } }
                                 }
                             }
                         }
 
                         if root.active-route == "Tasks": VerticalLayout {
                             spacing: 16px;
-                            HonestyPanel { title: "Derived review queue"; body: root.workflow-task-boundary; accent: Theme.blurple; }
+                            HonestyPanel { title: "Derived review queue"; body: root.workflow-task-boundary; accent: Theme.signal; }
                             Rectangle {
                                 min-height: 390px;
                                 border-radius: 16px;
@@ -774,10 +981,10 @@ export component AppWindow inherits Window {
                                     padding: 16px;
                                     spacing: 0px;
                                     HorizontalLayout { height: 38px; spacing: 12px;
-                                        Text { width: 190px; text: "REVIEW ITEM"; color: Theme.ink-quiet; font-size: 9px; font-weight: 700; vertical-alignment: center; }
-                                        Text { width: 90px; text: "STATE"; color: Theme.ink-quiet; font-size: 9px; font-weight: 700; vertical-alignment: center; }
-                                        Text { horizontal-stretch: 1; text: "NEXT SAFE STEP"; color: Theme.ink-quiet; font-size: 9px; font-weight: 700; vertical-alignment: center; }
-                                        Text { width: 130px; text: "ACTION"; color: Theme.ink-quiet; font-size: 9px; font-weight: 700; vertical-alignment: center; horizontal-alignment: right; }
+                                        Text { width: 190px; text: "REVIEW ITEM"; color: Theme.ink-quiet; font-size: 9px; font-weight: 700; }
+                                        Text { width: 90px; text: "STATE"; color: Theme.ink-quiet; font-size: 9px; font-weight: 700; }
+                                        Text { horizontal-stretch: 1; text: "NEXT SAFE STEP"; color: Theme.ink-quiet; font-size: 9px; font-weight: 700; }
+                                        Text { width: 130px; text: "ACTION"; color: Theme.ink-quiet; font-size: 9px; font-weight: 700; horizontal-alignment: right; }
                                     }
                                     for item in root.workflow-tasks: Rectangle {
                                         min-height: 74px;
@@ -794,22 +1001,22 @@ export component AppWindow inherits Window {
                                                 Text { text: item.title; color: Theme.ink; font-size: 11px; font-weight: 650; wrap: word-wrap; }
                                                 Text { text: item.action-id; color: Theme.ink-quiet; font-size: 8px; }
                                             }
-                                            Text { width: 90px; text: item.state; color: Theme.ink-subtle; font-size: 10px; font-weight: 650; vertical-alignment: center; }
+                                            Text { width: 90px; text: item.state; color: Theme.ink-subtle; font-size: 10px; font-weight: 650; }
                                             VerticalLayout { horizontal-stretch: 1; alignment: center; spacing: 2px;
                                                 Text { text: item.next-step; color: Theme.ink-subtle; font-size: 10px; wrap: word-wrap; }
                                                 Text { text: "Payload digest: " + item.payload-digest; color: Theme.ink-quiet; font-size: 8px; }
                                             }
-                                            QuickAction { width: 130px; title: "Inspect"; subtitle: "No commit"; glyph: "→"; accent: item.reconcile-required ? Theme.coral : Theme.blurple; activated => { root.ui-action("workflow-review:" + item.action-id); } }
+                                            QuickAction { width: 130px; title: "Inspect"; subtitle: "No commit"; glyph: "→"; accent: item.reconcile-required ? Theme.warning : Theme.signal; activated => { root.ui-action("workflow-review:" + item.action-id); } }
                                         }
                                     }
                                 }
                             }
-                            HonestyPanel { title: "Selected review detail"; body: root.workflow-review-detail; accent: Theme.pine; }
+                            HonestyPanel { title: "Selected review detail"; body: root.workflow-review-detail; accent: Theme.success; }
                         }
 
                         if root.active-route == "Messages": VerticalLayout {
                             spacing: 16px;
-                            HonestyPanel { title: "Message boundary"; body: root.workflow-message-boundary; accent: Theme.pine; }
+                            HonestyPanel { title: "Message boundary"; body: root.workflow-message-boundary; accent: Theme.success; }
                             Rectangle {
                                 min-height: 420px;
                                 border-radius: 16px;
@@ -837,7 +1044,7 @@ export component AppWindow inherits Window {
                                                 Text { text: item.body; color: Theme.ink-subtle; font-size: 10px; wrap: word-wrap; }
                                                 Text { text: "Related action: " + item.related-action-id; color: Theme.ink-quiet; font-size: 8px; }
                                             }
-                                            StatusPill { label: item.status; accent: item.status == "Reconcile first" ? Theme.coral : item.status == "Review required" ? Theme.amber : Theme.pine; }
+                                            StatusPill { label: item.status; accent: item.status == "Reconcile first" ? Theme.warning : item.status == "Review required" ? Theme.warning : Theme.success; }
                                         }
                                     }
                                 }
@@ -846,7 +1053,7 @@ export component AppWindow inherits Window {
 
                         if root.active-route == "Audit Trail": VerticalLayout {
                             spacing: 16px;
-                            HonestyPanel { title: "Audit authority boundary"; body: root.utility-audit-boundary; accent: Theme.pine; }
+                            HonestyPanel { title: "Audit authority boundary"; body: root.utility-audit-boundary; accent: Theme.success; }
                             Rectangle {
                                 min-height: 420px;
                                 border-radius: 16px;
@@ -859,11 +1066,11 @@ export component AppWindow inherits Window {
                                     padding: 16px;
                                     spacing: 0px;
                                     HorizontalLayout { height: 38px; spacing: 12px;
-                                        Text { width: 185px; text: "DISCLOSURE"; color: Theme.ink-quiet; font-size: 9px; font-weight: 700; vertical-alignment: center; }
-                                        Text { width: 170px; text: "PURPOSE"; color: Theme.ink-quiet; font-size: 9px; font-weight: 700; vertical-alignment: center; }
-                                        Text { width: 210px; text: "SUBJECT"; color: Theme.ink-quiet; font-size: 9px; font-weight: 700; vertical-alignment: center; }
-                                        Text { horizontal-stretch: 1; text: "DETAIL"; color: Theme.ink-quiet; font-size: 9px; font-weight: 700; vertical-alignment: center; }
-                                        Text { width: 150px; text: "STATUS"; color: Theme.ink-quiet; font-size: 9px; font-weight: 700; vertical-alignment: center; horizontal-alignment: right; }
+                                        Text { width: 185px; text: "DISCLOSURE"; color: Theme.ink-quiet; font-size: 9px; font-weight: 700; }
+                                        Text { width: 170px; text: "PURPOSE"; color: Theme.ink-quiet; font-size: 9px; font-weight: 700; }
+                                        Text { width: 210px; text: "SUBJECT"; color: Theme.ink-quiet; font-size: 9px; font-weight: 700; }
+                                        Text { horizontal-stretch: 1; text: "DETAIL"; color: Theme.ink-quiet; font-size: 9px; font-weight: 700; }
+                                        Text { width: 150px; text: "STATUS"; color: Theme.ink-quiet; font-size: 9px; font-weight: 700; horizontal-alignment: right; }
                                     }
                                     for item in root.utility-audit-rows: Rectangle {
                                         min-height: 64px;
@@ -873,11 +1080,11 @@ export component AppWindow inherits Window {
                                         accessible-role: text;
                                         accessible-label: item.action + ", " + item.subject + ", " + item.status + ". " + item.detail;
                                         HorizontalLayout { padding-left: 10px; padding-right: 10px; spacing: 12px;
-                                            Text { width: 185px; text: item.record-id; color: Theme.blurple-ink; font-size: 9px; vertical-alignment: center; }
-                                            Text { width: 170px; text: item.action; color: Theme.ink; font-size: 10px; font-weight: 650; wrap: word-wrap; vertical-alignment: center; }
-                                            Text { width: 210px; text: item.subject; color: Theme.ink-subtle; font-size: 9px; wrap: word-wrap; vertical-alignment: center; }
-                                            Text { horizontal-stretch: 1; text: item.detail; color: Theme.ink-subtle; font-size: 9px; wrap: word-wrap; vertical-alignment: center; }
-                                            Text { width: 150px; text: item.status; color: Theme.pine; font-size: 9px; wrap: word-wrap; vertical-alignment: center; horizontal-alignment: right; }
+                                            Text { width: 185px; text: item.record-id; color: Theme.signal-strong; font-size: 9px; }
+                                            Text { width: 170px; text: item.action; color: Theme.ink; font-size: 10px; font-weight: 650; wrap: word-wrap; }
+                                            Text { width: 210px; text: item.subject; color: Theme.ink-subtle; font-size: 9px; wrap: word-wrap; }
+                                            Text { horizontal-stretch: 1; text: item.detail; color: Theme.ink-subtle; font-size: 9px; wrap: word-wrap; }
+                                            Text { width: 150px; text: item.status; color: Theme.ink-subtle; font-size: 9px; wrap: word-wrap; horizontal-alignment: right; }
                                         }
                                     }
                                 }
@@ -886,7 +1093,7 @@ export component AppWindow inherits Window {
 
                         if root.active-route == "Exports": VerticalLayout {
                             spacing: 16px;
-                            HonestyPanel { title: "FHIR export boundary"; body: root.utility-export-boundary; accent: Theme.blurple; }
+                            HonestyPanel { title: "FHIR export boundary"; body: root.utility-export-boundary; accent: Theme.signal; }
                             Rectangle {
                                 min-height: 390px;
                                 border-radius: 16px;
@@ -909,12 +1116,12 @@ export component AppWindow inherits Window {
                                         accessible-role: text;
                                         accessible-label: item.label + ", " + item.value + ", " + item.status + ". " + item.detail;
                                         HorizontalLayout { padding: 12px; spacing: 12px;
-                                            Text { width: 130px; text: item.label; color: Theme.ink; font-size: 12px; font-weight: 700; vertical-alignment: center; }
+                                            Text { width: 130px; text: item.label; color: Theme.ink; font-size: 12px; font-weight: 700; }
                                             VerticalLayout { horizontal-stretch: 1; alignment: center; spacing: 3px;
                                                 Text { text: item.value; color: Theme.ink-subtle; font-size: 10px; wrap: word-wrap; }
                                                 Text { text: item.detail; color: Theme.ink-quiet; font-size: 9px; wrap: word-wrap; }
                                             }
-                                            StatusPill { label: item.status; accent: Theme.amber; }
+                                            StatusPill { label: item.status; accent: Theme.warning; }
                                         }
                                     }
                                 }
@@ -923,7 +1130,7 @@ export component AppWindow inherits Window {
 
                         if root.active-route == "Settings": VerticalLayout {
                             spacing: 16px;
-                            HonestyPanel { title: "Settings are not evidence"; body: root.utility-settings-boundary; accent: Theme.pine; }
+                            HonestyPanel { title: "Settings are not evidence"; body: root.utility-settings-boundary; accent: Theme.success; }
                             Rectangle {
                                 min-height: 390px;
                                 border-radius: 16px;
@@ -946,20 +1153,20 @@ export component AppWindow inherits Window {
                                         HorizontalLayout { padding: 12px; spacing: 12px;
                                             VerticalLayout { width: 210px; alignment: center; spacing: 2px;
                                                 Text { text: item.label; color: Theme.ink; font-size: 11px; font-weight: 650; }
-                                                Text { text: item.value; color: Theme.blurple-ink; font-size: 10px; font-weight: 650; }
+                                                Text { text: item.value; color: Theme.signal-strong; font-size: 10px; font-weight: 650; }
                                             }
-                                            Text { horizontal-stretch: 1; text: item.detail; color: Theme.ink-subtle; font-size: 10px; wrap: word-wrap; vertical-alignment: center; }
-                                            StatusPill { label: item.status; accent: item.status == "Fail closed" ? Theme.coral : Theme.amber; }
+                                            Text { horizontal-stretch: 1; text: item.detail; color: Theme.ink-subtle; font-size: 10px; wrap: word-wrap; }
+                                            StatusPill { label: item.status; accent: item.status == "Fail closed" ? Theme.warning : Theme.warning; }
                                         }
                                     }
                                 }
                             }
-                            HonestyPanel { title: "Missing release evidence"; body: root.utility-missing-release-evidence; accent: Theme.coral; }
+                            HonestyPanel { title: "Missing release evidence"; body: root.utility-missing-release-evidence; accent: Theme.warning; }
                         }
 
                         if root.active-route == "Integrations": VerticalLayout {
                             spacing: 16px;
-                            HonestyPanel { title: "Integration boundary"; body: root.utility-integrations-boundary; accent: Theme.pine; }
+                            HonestyPanel { title: "Integration boundary"; body: root.utility-integrations-boundary; accent: Theme.success; }
                             Rectangle {
                                 min-height: 420px;
                                 border-radius: 16px;
@@ -982,10 +1189,10 @@ export component AppWindow inherits Window {
                                         HorizontalLayout { padding: 12px; spacing: 12px;
                                             VerticalLayout { width: 170px; alignment: center; spacing: 2px;
                                                 Text { text: item.label; color: Theme.ink; font-size: 12px; font-weight: 650; }
-                                                Text { text: item.value; color: Theme.blurple-ink; font-size: 10px; font-weight: 650; }
+                                                Text { text: item.value; color: Theme.signal-strong; font-size: 10px; font-weight: 650; }
                                             }
-                                            Text { horizontal-stretch: 1; text: item.detail; color: Theme.ink-subtle; font-size: 10px; wrap: word-wrap; vertical-alignment: center; }
-                                            StatusPill { label: item.status; accent: item.status == "Untouched" ? Theme.ink-quiet : item.status == "Not live" ? Theme.coral : Theme.pine; }
+                                            Text { horizontal-stretch: 1; text: item.detail; color: Theme.ink-subtle; font-size: 10px; wrap: word-wrap; }
+                                            StatusPill { label: item.status; accent: item.status == "Untouched" ? Theme.ink-quiet : item.status == "Not live" ? Theme.warning : Theme.success; }
                                         }
                                     }
                                 }
@@ -997,7 +1204,7 @@ export component AppWindow inherits Window {
                             HonestyPanel {
                                 title: "Documents — bounded intake";
                                 body: root.patient-documents-state;
-                                accent: Theme.blurple;
+                                accent: Theme.signal;
                             }
                             Rectangle {
                                 min-height: 280px;
@@ -1012,103 +1219,138 @@ export component AppWindow inherits Window {
                                     spacing: 12px;
                                     Text { text: "Document intake boundary"; color: Theme.ink; font-size: 16px; font-weight: 700; }
                                     Text { text: "Current trusted posture is intentionally narrow. A file may be admitted to local custody without becoming a clinical fact or an understood document."; color: Theme.ink-subtle; font-size: 12px; wrap: word-wrap; }
-                                    HonestyPanel { title: "Understanding"; body: "OCR/ASR remain bounded stubs unless separately qualified. No document-derived clinical interpretation is claimed."; accent: Theme.coral; }
-                                    HonestyPanel { title: "Authority"; body: "Source custody, extraction evidence, and clinical authority remain separate. Review is required before any consequential use."; accent: Theme.pine; }
-                                    QuickAction { title: "Open patient documents"; subtitle: "View the current synthetic subject boundary"; glyph: "→"; accent: Theme.blurple; activated => { root.patient-tab = "Documents"; root.active-route = "Patients"; } }
+                                    HonestyPanel { title: "Understanding"; body: "OCR/ASR remain bounded stubs unless separately qualified. No document-derived clinical interpretation is claimed."; accent: Theme.warning; }
+                                    HonestyPanel { title: "Authority"; body: "Source custody, extraction evidence, and clinical authority remain separate. Review is required before any consequential use."; accent: Theme.success; }
+                                    QuickAction { title: "Open patient documents"; subtitle: "View the current synthetic subject boundary"; glyph: "→"; accent: Theme.signal; activated => { root.patient-tab = "Documents"; root.active-route = "Patients"; } }
                                 }
                             }
                         }
 
                         if root.active-route == "Home": VerticalLayout {
-                            spacing: 18px;
-
-                            VerticalLayout {
-                                spacing: 8px;
-                                Text { text: "Quick actions"; color: Theme.ink; font-size: 15px; font-weight: 650; }
-                                HorizontalLayout {
-                                    spacing: 12px;
-                                    QuickAction { title: "Prepare care-plan review"; subtitle: "Review-first proposal boundary"; glyph: "✦"; accent: Theme.blurple; activated => { root.ui-action("care-plan"); } }
-                                    QuickAction { title: "Summarize patient"; subtitle: "Evidence-linked brief"; glyph: "≡"; accent: Theme.pine; activated => { root.ui-action("summarize"); } }
-                                    QuickAction { title: "Import data"; subtitle: "FHIR / permitted files"; glyph: "⇧"; accent: Theme.coral; activated => { root.ui-action("import"); } }
-                                    QuickAction { title: "Open command palette"; subtitle: "Cmd/Ctrl + K"; glyph: "⌘"; accent: Theme.lavender; activated => { root.palette-open = true; } }
-                                }
-                            }
-
-                            VerticalLayout {
-                                spacing: 8px;
-                                HorizontalLayout {
-                                    Text { text: "Operational snapshot"; color: Theme.ink; font-size: 15px; font-weight: 650; }
-                                    Rectangle { horizontal-stretch: 1; background: transparent; }
-                                    Text { text: "Synthetic demo"; color: Theme.ink-quiet; font-size: 11px; vertical-alignment: center; }
-                                }
-                                HorizontalLayout {
-                                    spacing: 12px;
-                                    MetricCard { label: "Active patients"; value: "248"; delta: "↑ 12% demo trend"; glyph: "◎"; accent: Theme.blurple; }
-                                    MetricCard { label: "Notes created"; value: "36"; delta: "↑ 28% demo trend"; glyph: "▤"; accent: Theme.pine; }
-                                    MetricCard { label: "Review cues"; value: "12"; delta: "Evidence-state demo"; glyph: "◇"; accent: Theme.coral; }
-                                    MetricCard { label: "Time saved"; value: "3.2h"; delta: "↑ 41% demo trend"; glyph: "◴"; accent: Theme.blurple; }
-                                }
-                            }
+                            spacing: 16px;
 
                             HorizontalLayout {
                                 spacing: 16px;
 
                                 Rectangle {
                                     horizontal-stretch: 3;
-                                    height: 310px;
+                                    min-height: 210px;
                                     border-radius: 16px;
                                     border-width: 1px;
                                     border-color: Theme.border;
                                     background: Theme.surface;
+                                    accessible-role: groupbox;
+                                    accessible-label: "Current clinical workspace for Synthetic Subject A";
                                     VerticalLayout {
-                                        padding: 16px;
-                                        spacing: 10px;
+                                        padding: 20px;
+                                        spacing: 9px;
+                                        Text { text: "CURRENT CLINICAL WORKSPACE"; color: Theme.ink-quiet; font-size: 9px; letter-spacing: 1.1px; }
+                                        Text { text: "Synthetic Subject A"; color: Theme.ink; font-size: 24px; font-weight: 720; letter-spacing: -0.3px; }
+                                        Text { text: "Condition evidence present · coverage unknown · one conflicting source requires review"; color: Theme.ink-subtle; font-size: 12px; wrap: word-wrap; }
+                                        Rectangle { height: 1px; background: Theme.border; }
                                         HorizontalLayout {
-                                            Text { text: "Active patient queue"; color: Theme.ink; font-size: 15px; font-weight: 650; }
+                                            spacing: 18px;
+                                            VerticalLayout { spacing: 2px; Text { text: "SOURCE TRAIL"; color: Theme.ink-quiet; font-size: 8px; letter-spacing: 1px; } Text { text: "3 admitted sources"; color: Theme.ink; font-size: 11px; font-weight: 650; } }
+                                            VerticalLayout { spacing: 2px; Text { text: "IDENTITY"; color: Theme.ink-quiet; font-size: 8px; letter-spacing: 1px; } Text { text: "No silent merge"; color: Theme.ink; font-size: 11px; font-weight: 650; } }
+                                            VerticalLayout { spacing: 2px; Text { text: "AUTHORITY"; color: Theme.ink-quiet; font-size: 8px; letter-spacing: 1px; } Text { text: "Core Host"; color: Theme.ink; font-size: 11px; font-weight: 650; } }
                                             Rectangle { horizontal-stretch: 1; background: transparent; }
-                                            Text { text: "View all →"; color: Theme.blurple-ink; font-size: 11px; }
                                         }
-                                        Text { text: "Synthetic evidence-review queue; not a clinical risk ranking"; color: Theme.ink-subtle; font-size: 11px; }
-                                        Rectangle { height: 1px; background: Theme.border; }
-
-                                        HorizontalLayout { height: 42px; spacing: 12px; Text { text: "Synthetic Subject A"; color: Theme.ink; font-size: 12px; font-weight: 650; vertical-alignment: center; } Text { text: "Condition evidence present"; color: Theme.ink-subtle; font-size: 11px; vertical-alignment: center; } Rectangle { horizontal-stretch: 1; background: transparent; } StatusPill { label: "Evidence review"; accent: Theme.coral; } }
-                                        Rectangle { height: 1px; background: Theme.border; }
-                                        HorizontalLayout { height: 42px; spacing: 12px; Text { text: "Synthetic Subject B"; color: Theme.ink; font-size: 12px; font-weight: 650; vertical-alignment: center; } Text { text: "Coverage evidence unknown"; color: Theme.ink-subtle; font-size: 11px; vertical-alignment: center; } Rectangle { horizontal-stretch: 1; background: transparent; } StatusPill { label: "Coverage gap"; accent: Theme.amber; } }
-                                        Rectangle { height: 1px; background: Theme.border; }
-                                        HorizontalLayout { height: 42px; spacing: 12px; Text { text: "Synthetic Subject C"; color: Theme.ink; font-size: 12px; font-weight: 650; vertical-alignment: center; } Text { text: "Observation evidence available"; color: Theme.ink-subtle; font-size: 11px; vertical-alignment: center; } Rectangle { horizontal-stretch: 1; background: transparent; } StatusPill { label: "New evidence"; accent: Theme.blurple; } }
-                                        Rectangle { height: 1px; background: Theme.border; }
-                                        HorizontalLayout { height: 42px; spacing: 12px; Text { text: "Synthetic Subject D"; color: Theme.ink; font-size: 12px; font-weight: 650; vertical-alignment: center; } Text { text: "Conflicting evidence"; color: Theme.ink-subtle; font-size: 11px; vertical-alignment: center; } Rectangle { horizontal-stretch: 1; background: transparent; } StatusPill { label: "Unresolved"; accent: Theme.danger; } }
+                                        HorizontalLayout {
+                                            spacing: 10px;
+                                            QuickAction { title: "Open patient record"; subtitle: "Timeline, coverage, sources"; glyph: ""; accent: Theme.signal; activated => { root.active-route = "Patients"; } }
+                                            QuickAction { title: "Review evidence"; subtitle: "Trace claims to sources"; glyph: ""; accent: Theme.signal; activated => { root.active-route = "Evidence"; } }
+                                        }
                                     }
                                 }
 
                                 Rectangle {
                                     horizontal-stretch: 2;
-                                    height: 310px;
+                                    min-height: 210px;
                                     border-radius: 16px;
+                                    background: Theme.obsidian;
+                                    accessible-role: groupbox;
+                                    accessible-label: "Inspectable AI layer. " + root.model-runtime-summary;
+                                    VerticalLayout {
+                                        padding: 20px;
+                                        spacing: 9px;
+                                        HorizontalLayout {
+                                            Text { text: "AI LAYER"; color: Theme.nav-subtle; font-size: 9px; letter-spacing: 1.1px; }
+                                            Rectangle { horizontal-stretch: 1; background: transparent; }
+                                            StatusPill { label: "INSPECTABLE"; accent: Theme.signal; }
+                                        }
+                                        Text { text: "AI is visible, not implied."; color: Theme.nav-text; font-size: 18px; font-weight: 700; }
+                                        Text { text: root.model-runtime-summary; color: Theme.nav-subtle; font-size: 11px; wrap: word-wrap; }
+                                        Rectangle { height: 1px; background: Theme.graphite-raised; }
+                                        Text { text: "HF source ≠ runtime authority. Every model must carry task, digest, rights, device and benchmark evidence."; color: Theme.nav-subtle; font-size: 10px; wrap: word-wrap; }
+                                        QuickAction { title: "Inspect Model Center"; subtitle: "Runtime · source · trust · benchmark"; glyph: ""; accent: Theme.signal; activated => { root.active-route = "Models"; } }
+                                    }
+                                }
+                            }
+
+                            VerticalLayout {
+                                spacing: 8px;
+                                Text { text: "Clinical flow"; color: Theme.ink; font-size: 14px; font-weight: 680; }
+                                Rectangle {
+                                    min-height: 132px;
+                                    border-radius: 14px;
                                     border-width: 1px;
                                     border-color: Theme.border;
                                     background: Theme.surface;
-                                    VerticalLayout {
-                                        padding: 16px;
+                                    accessible-role: groupbox;
+                                    accessible-label: "Clinical flow: prepare, understand, act";
+                                    HorizontalLayout {
+                                        padding: 18px;
+                                        spacing: 18px;
+                                        VerticalLayout {
+                                            horizontal-stretch: 1; spacing: 5px;
+                                            Text { text: "01  PREPARE"; color: Theme.signal-strong; font-size: 9px; font-weight: 700; letter-spacing: 0.9px; }
+                                            Text { text: "Know the record before the encounter"; color: Theme.ink; font-size: 13px; font-weight: 650; wrap: word-wrap; }
+                                            Text { text: "Surface longitudinal context, source freshness, conflicts and coverage before work begins."; color: Theme.ink-subtle; font-size: 10px; wrap: word-wrap; }
+                                        }
+                                        Rectangle { width: 1px; background: Theme.border; }
+                                        VerticalLayout {
+                                            horizontal-stretch: 1; spacing: 5px;
+                                            Text { text: "02  UNDERSTAND"; color: Theme.signal-strong; font-size: 9px; font-weight: 700; letter-spacing: 0.9px; }
+                                            Text { text: "Keep intelligence tied to evidence"; color: Theme.ink; font-size: 13px; font-weight: 650; wrap: word-wrap; }
+                                            Text { text: "Assistant and model outputs remain inspectable proposals with source links and explicit limits."; color: Theme.ink-subtle; font-size: 10px; wrap: word-wrap; }
+                                        }
+                                        Rectangle { width: 1px; background: Theme.border; }
+                                        VerticalLayout {
+                                            horizontal-stretch: 1; spacing: 5px;
+                                            Text { text: "03  ACT"; color: Theme.signal-strong; font-size: 9px; font-weight: 700; letter-spacing: 0.9px; }
+                                            Text { text: "Review before anything consequential"; color: Theme.ink; font-size: 13px; font-weight: 650; wrap: word-wrap; }
+                                            Text { text: "Controlled actions bind payload identity, durable outbox state and UNKNOWN reconciliation."; color: Theme.ink-subtle; font-size: 10px; wrap: word-wrap; }
+                                        }
+                                    }
+                                }
+                            }
+
+                            Rectangle {
+                                min-height: 286px;
+                                border-radius: 16px;
+                                border-width: 1px;
+                                border-color: Theme.border;
+                                background: Theme.surface;
+                                VerticalLayout {
+                                    padding: 18px;
+                                    spacing: 9px;
+                                    HorizontalLayout {
+                                        Text { text: "Review queue"; color: Theme.ink; font-size: 14px; font-weight: 680; }
+                                        Rectangle { horizontal-stretch: 1; background: transparent; }
+                                        Text { text: "Synthetic demo · not a clinical risk ranking"; color: Theme.ink-quiet; font-size: 9px; }
+                                    }
+                                    Rectangle { height: 1px; background: Theme.border; }
+                                    HorizontalLayout { height: 44px; spacing: 12px; Text { width: 180px; text: "Synthetic Subject A"; color: Theme.ink; font-size: 11px; font-weight: 650; } Text { text: "Condition evidence present"; color: Theme.ink-subtle; font-size: 10px; } Rectangle { horizontal-stretch: 1; background: transparent; } StatusPill { label: "Evidence review"; accent: Theme.warning; } }
+                                    Rectangle { height: 1px; background: Theme.border; }
+                                    HorizontalLayout { height: 44px; spacing: 12px; Text { width: 180px; text: "Synthetic Subject B"; color: Theme.ink; font-size: 11px; font-weight: 650; } Text { text: "Coverage evidence unknown"; color: Theme.ink-subtle; font-size: 10px; } Rectangle { horizontal-stretch: 1; background: transparent; } StatusPill { label: "Coverage gap"; accent: Theme.warning; } }
+                                    Rectangle { height: 1px; background: Theme.border; }
+                                    HorizontalLayout { height: 44px; spacing: 12px; Text { width: 180px; text: "Synthetic Subject C"; color: Theme.ink; font-size: 11px; font-weight: 650; } Text { text: "Observation evidence available"; color: Theme.ink-subtle; font-size: 10px; } Rectangle { horizontal-stretch: 1; background: transparent; } StatusPill { label: "New evidence"; accent: Theme.signal; } }
+                                    Rectangle { height: 1px; background: Theme.border; }
+                                    HorizontalLayout { height: 44px; spacing: 12px; Text { width: 180px; text: "Synthetic Subject D"; color: Theme.ink; font-size: 11px; font-weight: 650; } Text { text: "Conflicting evidence"; color: Theme.ink-subtle; font-size: 10px; } Rectangle { horizontal-stretch: 1; background: transparent; } StatusPill { label: "Unresolved"; accent: Theme.danger; } }
+                                    HorizontalLayout {
                                         spacing: 10px;
-                                        HorizontalLayout {
-                                            Text { text: "MedScale Assistant"; color: Theme.ink; font-size: 15px; font-weight: 650; }
-                                            Rectangle { horizontal-stretch: 1; background: transparent; }
-                                            StatusPill { label: "Local"; accent: Theme.pine; }
-                                        }
-                                        Rectangle {
-                                            height: 86px;
-                                            border-radius: 14px;
-                                            background: Theme.blurple-soft;
-                                            VerticalLayout {
-                                                padding: 14px;
-                                                spacing: 4px;
-                                                Text { text: "How can I help today?"; color: Theme.ink; font-size: 14px; font-weight: 650; }
-                                                Text { text: "Summarize, navigate, inspect evidence, or prepare a reviewable workflow."; color: Theme.ink-subtle; font-size: 11px; wrap: word-wrap; }
-                                            }
-                                        }
-                                        QuickAction { title: "Summarize current patient"; subtitle: "Source-aware brief"; glyph: "≡"; accent: Theme.blurple; activated => { root.ui-action("summarize"); } }
-                                        QuickAction { title: "Inspect privacy status"; subtitle: "Doctor + evidence posture"; glyph: "✓"; accent: Theme.pine; activated => { root.ui-action("privacy-status"); } }
+                                        QuickAction { title: "Open all patients"; subtitle: "Longitudinal workspace"; glyph: ""; accent: Theme.signal; activated => { root.active-route = "Patients"; } }
+                                        QuickAction { title: "Open proof ledger"; subtitle: "See where OpenMed is ahead"; glyph: ""; accent: Theme.signal; activated => { root.active-route = "Evidence"; } }
                                     }
                                 }
                             }
@@ -1139,9 +1381,9 @@ export component AppWindow inherits Window {
             spacing: 8px;
             Text { text: "Command palette"; color: Theme.ink; font-size: 16px; font-weight: 700; }
             palette-search := LineEdit { placeholder-text: "Search commands…"; accessible-label: "Command palette search"; }
-            QuickAction { title: "Go to Patients"; subtitle: "Open patient workspace"; glyph: "○"; accent: Theme.blurple; activated => { root.active-route = "Patients"; root.palette-open = false; } }
-            QuickAction { title: "Open Insights"; subtitle: "Evidence-aware population view"; glyph: "▥"; accent: Theme.pine; activated => { root.active-route = "Insights"; root.palette-open = false; } }
-            QuickAction { title: "Open Workflows"; subtitle: "Automation studio"; glyph: "⌘"; accent: Theme.coral; activated => { root.active-route = "Workflows"; root.palette-open = false; } }
+            QuickAction { title: "Go to Patients"; subtitle: "Open patient workspace"; glyph: ""; accent: Theme.signal; activated => { root.active-route = "Patients"; root.palette-open = false; } }
+            QuickAction { title: "Open Models"; subtitle: "Inspect local model/runtime truth"; glyph: ""; accent: Theme.signal; activated => { root.active-route = "Models"; root.palette-open = false; } }
+            QuickAction { title: "Open Evidence"; subtitle: "MedScale × OpenMed proof ledger"; glyph: ""; accent: Theme.signal; activated => { root.active-route = "Evidence"; root.palette-open = false; } }
         }
     }
 }

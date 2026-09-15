@@ -8,15 +8,10 @@ component FocusableClickArea {
     callback clicked();
 
     forward-focus: focus-scope;
-
     touch-area := TouchArea {
         enabled: root.enabled;
-        clicked => {
-            focus-scope.focus();
-            root.clicked();
-        }
+        clicked => { focus-scope.focus(); root.clicked(); }
     }
-
     focus-scope := FocusScope {
         enabled: root.enabled;
         width: 0px;
@@ -37,38 +32,36 @@ export component NavItem inherits Rectangle {
     callback activated();
 
     forward-focus: interaction;
-    height: 40px;
-    border-radius: 10px;
-    border-width: interaction.has-focus ? 2px : 0px;
-    border-color: Theme.blurple;
-    background: selected ? Theme.blurple-soft : interaction.has-hover ? Theme.surface-raised : transparent;
+    height: 34px;
+    border-radius: 9px;
+    border-width: interaction.has-focus ? 1px : 0px;
+    border-color: Theme.signal;
+    background: selected ? Theme.graphite-raised : interaction.has-hover ? Theme.graphite : transparent;
     accessible-role: button;
     accessible-label: label;
     accessible-action-default => { root.activated(); }
 
     HorizontalLayout {
-        padding-left: 12px;
-        padding-right: 12px;
-        spacing: 10px;
+        padding-left: 11px;
+        padding-right: 11px;
+        spacing: 11px;
         alignment: start;
-        Text {
-            text: glyph;
-            color: selected ? Theme.blurple-ink : Theme.ink-subtle;
-            font-size: 15px;
-            vertical-alignment: center;
+        Rectangle {
+            width: 6px;
+            height: 6px;
+            border-radius: 3px;
+            background: selected ? Theme.signal : Theme.nav-subtle.with-alpha(0.48);
         }
         Text {
             text: label;
-            color: selected ? Theme.blurple-ink : Theme.ink;
-            font-size: 14px;
-            font-weight: selected ? 650 : 500;
-            vertical-alignment: center;
+            color: selected ? Theme.nav-text : Theme.nav-subtle;
+            font-size: 12px;
+            font-weight: selected ? 650 : 520;
         }
     }
 
     interaction := FocusableClickArea {
-        width: 100%;
-        height: 100%;
+        width: 100%; height: 100%;
         clicked => { root.activated(); }
     }
 }
@@ -79,39 +72,34 @@ export component SegmentTab inherits Rectangle {
     callback activated();
 
     forward-focus: interaction;
-    height: 36px;
+    height: 34px;
     min-width: 92px;
-    border-radius: 9px;
+    border-radius: 8px;
     border-width: interaction.has-focus ? 2px : 1px;
-    border-color: interaction.has-focus ? Theme.blurple : selected ? Theme.blurple : Theme.border;
-    background: selected ? Theme.blurple-soft : interaction.has-hover ? Theme.surface-raised : Theme.surface;
+    border-color: interaction.has-focus ? Theme.signal : selected ? Theme.signal : Theme.border;
+    background: selected ? Theme.signal-soft : interaction.has-hover ? Theme.surface-raised : Theme.surface;
     accessible-role: button;
     accessible-label: label + (selected ? ", selected" : "");
     accessible-action-default => { root.activated(); }
 
     Text {
         text: label;
-        color: selected ? Theme.blurple-ink : Theme.ink-subtle;
+        color: selected ? Theme.signal-strong : Theme.ink-subtle;
         font-size: 11px;
-        font-weight: selected ? 650 : 500;
+        font-weight: selected ? 650 : 520;
         horizontal-alignment: center;
-        vertical-alignment: center;
-    }
 
-    interaction := FocusableClickArea {
-        width: 100%;
-        height: 100%;
-        clicked => { root.activated(); }
     }
+    interaction := FocusableClickArea { width: 100%; height: 100%; clicked => { root.activated(); } }
 }
 
 export component HonestyPanel inherits Rectangle {
     in property <string> title;
     in property <string> body;
-    in property <color> accent: Theme.amber;
+    in property <color> accent: Theme.warning;
 
-    min-height: 116px;
-    border-radius: 14px;
+    min-height: 112px;
+    border-radius: 12px;
     border-width: 1px;
     border-color: Theme.border;
     background: Theme.surface;
@@ -119,12 +107,12 @@ export component HonestyPanel inherits Rectangle {
     accessible-label: title + ". " + body;
 
     HorizontalLayout {
-        padding: 16px;
+        padding: 15px;
         spacing: 12px;
-        Rectangle { width: 4px; border-radius: 2px; background: accent; }
+        Rectangle { width: 3px; border-radius: 1px; background: accent; }
         VerticalLayout {
-            spacing: 6px;
-            Text { text: title; color: Theme.ink; font-size: 13px; font-weight: 650; }
+            spacing: 5px;
+            Text { text: title; color: Theme.ink; font-size: 12px; font-weight: 650; }
             Text { text: body; color: Theme.ink-subtle; font-size: 11px; wrap: word-wrap; }
         }
     }
@@ -134,77 +122,64 @@ export component QuickAction inherits Rectangle {
     in property <string> title;
     in property <string> subtitle;
     in property <string> glyph;
-    in property <color> accent: Theme.blurple;
+    in property <color> accent: Theme.signal;
     callback activated();
 
     forward-focus: interaction;
     min-width: 170px;
-    height: 76px;
-    border-radius: 14px;
+    height: 72px;
+    border-radius: 12px;
     border-width: interaction.has-focus ? 2px : 1px;
-    border-color: interaction.has-focus ? Theme.blurple : Theme.border;
+    border-color: interaction.has-focus ? Theme.signal : Theme.border;
     background: interaction.has-hover ? Theme.surface-raised : Theme.surface;
     accessible-role: button;
     accessible-label: title + ". " + subtitle;
     accessible-action-default => { root.activated(); }
 
     HorizontalLayout {
-        padding: 14px;
-        spacing: 12px;
-        alignment: start;
-        Text {
-            width: 28px;
-            text: glyph;
-            color: accent;
-            font-size: 18px;
-            font-weight: 700;
-            horizontal-alignment: center;
-            vertical-alignment: center;
+        padding: 13px;
+        spacing: 11px;
+        Rectangle {
+            width: 3px;
+            height: 38px;
+            border-radius: 2px;
+            background: accent;
         }
         VerticalLayout {
-            spacing: 2px;
+            spacing: 3px;
             alignment: center;
-            Text { text: title; color: Theme.ink; font-size: 13px; font-weight: 650; }
-            Text { text: subtitle; color: Theme.ink-subtle; font-size: 11px; }
+            Text { text: title; color: Theme.ink; font-size: 12px; font-weight: 650; }
+            Text { text: subtitle; color: Theme.ink-subtle; font-size: 10px; }
         }
     }
-
-    interaction := FocusableClickArea {
-        width: 100%;
-        height: 100%;
-        clicked => { root.activated(); }
-    }
+    interaction := FocusableClickArea { width: 100%; height: 100%; clicked => { root.activated(); } }
 }
 
 export component ToolbarAction inherits Rectangle {
     in property <string> label;
-    in property <string> glyph: "✦";
+    in property <string> glyph: "";
     callback activated();
 
     forward-focus: interaction;
-    height: 44px;
-    min-width: 132px;
-    border-radius: 11px;
-    border-width: interaction.has-focus ? 2px : 0px;
-    border-color: Theme.blurple;
-    background: interaction.has-hover ? #E5E4FF : Theme.blurple-soft;
+    height: 40px;
+    min-width: 112px;
+    border-radius: 9px;
+    border-width: interaction.has-focus ? 2px : 1px;
+    border-color: interaction.has-focus ? Theme.signal : Theme.border;
+    background: interaction.has-hover ? Theme.signal-soft : Theme.surface;
     accessible-role: button;
     accessible-label: label;
     accessible-action-default => { root.activated(); }
 
-    HorizontalLayout {
-        padding-left: 12px;
-        padding-right: 12px;
-        spacing: 8px;
-        Text { text: glyph; color: Theme.blurple-ink; font-size: 15px; vertical-alignment: center; }
-        Text { text: label; color: Theme.ink; font-size: 12px; font-weight: 650; vertical-alignment: center; }
-    }
+    Text {
+        text: label;
+        color: Theme.ink;
+        font-size: 11px;
+        font-weight: 650;
+        horizontal-alignment: center;
 
-    interaction := FocusableClickArea {
-        width: 100%;
-        height: 100%;
-        clicked => { root.activated(); }
     }
+    interaction := FocusableClickArea { width: 100%; height: 100%; clicked => { root.activated(); } }
 }
 
 export component MetricCard inherits Rectangle {
@@ -212,11 +187,11 @@ export component MetricCard inherits Rectangle {
     in property <string> value;
     in property <string> delta;
     in property <string> glyph;
-    in property <color> accent: Theme.blurple;
+    in property <color> accent: Theme.signal;
 
     min-width: 170px;
-    height: 102px;
-    border-radius: 14px;
+    height: 98px;
+    border-radius: 12px;
     border-width: 1px;
     border-color: Theme.border;
     background: Theme.surface;
@@ -228,29 +203,29 @@ export component MetricCard inherits Rectangle {
         spacing: 4px;
         HorizontalLayout {
             spacing: 8px;
-            Text { text: glyph; color: accent; font-size: 15px; }
-            Text { text: label; color: Theme.ink-subtle; font-size: 12px; vertical-alignment: center; }
+            Rectangle { width: 7px; height: 7px; border-radius: 4px; background: accent; }
+            Text { text: label; color: Theme.ink-subtle; font-size: 11px; }
         }
-        Text { text: value; color: Theme.ink; font-size: 24px; font-weight: 700; }
-        Text { text: delta; color: Theme.pine; font-size: 11px; font-weight: 600; }
+        Text { text: value; color: Theme.ink; font-size: 23px; font-weight: 700; }
+        Text { text: delta; color: Theme.ink-quiet; font-size: 10px; font-weight: 550; }
     }
 }
 
 export component StatusPill inherits Rectangle {
     in property <string> label;
-    in property <color> accent: Theme.mint;
-    height: 24px;
+    in property <color> accent: Theme.success;
+    height: 22px;
     min-width: 72px;
-    border-radius: 12px;
-    background: accent.with-alpha(0.12);
+    border-radius: 11px;
+    background: accent.with-alpha(0.10);
     accessible-role: text;
     accessible-label: label;
     Text {
         text: label;
         color: Theme.ink;
-        font-size: 10px;
+        font-size: 9px;
         font-weight: 650;
         horizontal-alignment: center;
-        vertical-alignment: center;
+
     }
 }

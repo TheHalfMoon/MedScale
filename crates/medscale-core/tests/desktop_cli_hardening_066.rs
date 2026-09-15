@@ -56,7 +56,7 @@ fn home_demo_does_not_invent_clinical_risk_or_real_roster() {
         );
     }
     assert!(ui.contains("not a clinical risk ranking"));
-    assert!(ui.contains("Prepare care-plan review"));
+    assert!(ui.contains("Review before anything consequential"));
 }
 
 #[test]
@@ -121,10 +121,10 @@ fn primary_text_tokens_keep_engineering_contrast_floor_without_wcag_claim() {
         .expect("Desktop UI");
 
     for required in [
-        "ink: #17182B",
-        "ink-subtle: #596078",
-        "ink-quiet: #646B80",
-        "blurple-ink: #4F50E8",
+        "ink: #0D1420",
+        "ink-subtle: #455468",
+        "ink-quiet: #5E6D80",
+        "signal-strong: #0047B3",
     ] {
         assert!(
             theme.contains(required),
@@ -133,13 +133,12 @@ fn primary_text_tokens_keep_engineering_contrast_floor_without_wcag_claim() {
     }
 
     let surface = [0xFF, 0xFF, 0xFF];
-    let soft = [0xEE, 0xED, 0xFF];
+    let soft = [0xEA, 0xF2, 0xFF];
     for (name, rgb) in [
-        ("ink", [0x17, 0x18, 0x2B]),
-        ("ink-subtle", [0x59, 0x60, 0x78]),
-        ("ink-quiet", [0x64, 0x6B, 0x80]),
-        ("blurple-ink", [0x4F, 0x50, 0xE8]),
-        ("pine", [0x2F, 0x4F, 0x46]),
+        ("ink", [0x0D, 0x14, 0x20]),
+        ("ink-subtle", [0x45, 0x54, 0x68]),
+        ("ink-quiet", [0x5E, 0x6D, 0x80]),
+        ("signal-strong", [0x00, 0x47, 0xB3]),
     ] {
         assert!(
             contrast_ratio(rgb, surface) >= 4.5,
@@ -152,7 +151,7 @@ fn primary_text_tokens_keep_engineering_contrast_floor_without_wcag_claim() {
     }
 
     assert!(components.contains("color: Theme.ink;"));
-    assert!(!ui.contains("color: Theme.amber;"));
-    assert!(!ui.contains("color: Theme.coral;"));
+    assert!(!ui.contains("color: Theme.warning;"));
+    assert!(!ui.contains("color: Theme.success;"));
     assert!(!ui.contains("color: Theme.danger;"));
 }
