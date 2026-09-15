@@ -15,3 +15,6 @@ The OCR-resolved Rust rules were applied to the three supported files. No high-c
 The OCR-excluded Markdown/planning/evidence changes were reviewed manually for canonical-state consistency and authority/release claims. They retain `RELEASE_READY=false`, `PRIVATE_DATA_READY=false`, `MULTI_CLIENT_RELEASE_READY=false`, no WCAG-conformance claim, no qualified-hardware attainment claim, no real-PHI authorization, and Spec 012/MESC remains optional/deferred.
 
 OpenCodeReview is supplemental review evidence only. Exact-head GitHub CI, portable-package qualification, protected merge, post-merge main CI, and canonical governance remain authoritative.
+
+## Exact-range binding
+The implementation/metadata review range is bound from canonical Spec 066 merge `31e7c6c83a67c297939243ec13c4522e6b6e4b4f` to Spec 067 implementation commit `19244374aa57f6b8261a5be772b85c98e2ede501`. OCR exact-range preview reported 25 changed files: 3 supported Rust files and 22 `unsupported_ext` files. The supported-file set matched the workspace preview and produced no new high-confidence host-agent finding under the resolved Rust rules.
