@@ -29,3 +29,8 @@ These sources extend the original 185-URL corpus; they do not replace or silentl
 | SUPPLY_CHAIN | CANDIDATE | https://github.com/rust-fuzz/cargo-fuzz | Rust fuzzing tool for hostile-input surfaces; native donors need equivalent upstream fuzzing |
 | PLATFORM_PRIVACY | AUTHORITATIVE | https://developer.apple.com/documentation/security/ksecattrsynchronizable | Apple Keychain synchronization semantics; sensitive key material must not silently sync |
 | PLATFORM_MOBILE | AUTHORITATIVE | https://developer.android.com/guide/practices/page-sizes | Android 16 KB page-size compatibility requirement; mobile CI input |
+| PRODUCT_DESIGN | EVIDENCE | https://www.abridge.com/ | clinical-workflow/product-design reference only; no runtime authority or copied proprietary assets |
+| PRODUCT_DESIGN | EVIDENCE | https://github.com/pbakaus/impeccable | Apache-2.0 design-review methodology and anti-pattern reference; not a product runtime dependency |
+| PRODUCT_DESIGN | EVIDENCE | https://impeccable.style/ | Impeccable design-language documentation and review workflow |
+| TYPOGRAPHY | AUTHORITATIVE | https://github.com/vercel/geist-font | MedScale typography source; Geist Sans/Mono upstream |
+| TYPOGRAPHY | AUTHORITATIVE | https://github.com/vercel/geist-font/blob/main/LICENSE.txt | SIL Open Font License 1.1 evidence for Geist |

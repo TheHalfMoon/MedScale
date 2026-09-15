@@ -72,11 +72,13 @@ fn native_desktop_shell_is_pinned_non_webview_and_branded() {
     assert!(components.contains("accessible-action-default"));
     assert!(components.contains("interaction.has-focus ? 2px"));
     assert!(components.contains("event.text == \" \" || event.text == \"\\n\""));
-    assert!(theme.contains("#5B5CF6"));
-    assert!(theme.contains("#2F4F46"));
-    assert!(theme.contains("#FF785C"));
-    assert!(theme.contains("#D8B4FE"));
-    assert!(mark.contains("#5B5CF6"));
+    // Historical Spec 060 requires a branded native shell, not a frozen legacy palette.
+    // Spec 068 supersedes the original multicolor identity with MedScale Signal.
+    assert!(theme.contains("signal: #0A66FF"));
+    assert!(theme.contains("obsidian: #0A0E14"));
+    assert!(app.contains("default-font-family: \"Geist\""));
+    assert!(mark.contains("#0A66FF"));
+    assert!(!mark.contains("<rect"));
     let deny = std::fs::read_to_string(root.join("deny.toml")).expect("deny config");
     assert!(deny.contains("LicenseRef-Slint-Royalty-free-2.0"));
     assert!(deny.contains("clipboard-win@5.4.1"));

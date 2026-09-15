@@ -12,6 +12,7 @@ use slint::{ComponentHandle, ModelRc, VecModel};
 
 mod patient_workspace;
 mod population_insights;
+mod product_intelligence;
 mod utility_surfaces;
 mod workflow_studio;
 
@@ -235,6 +236,40 @@ fn main() -> ExitCode {
                 value: row.value.clone().into(),
                 detail: row.detail.clone().into(),
                 status: row.status.clone().into(),
+            }),
+    )));
+
+    let product_intelligence = product_intelligence::ProductIntelligenceVm::current_truth();
+    ui.set_model_runtime_summary(product_intelligence.model_runtime_summary.clone().into());
+    ui.set_model_runtime_boundary(product_intelligence.model_runtime_boundary.clone().into());
+    ui.set_model_source_summary(product_intelligence.model_source_summary.clone().into());
+    ui.set_openmed_baseline(product_intelligence.openmed_baseline.clone().into());
+    ui.set_competitive_summary(product_intelligence.competitive_summary.clone().into());
+    ui.set_model_rows(ModelRc::new(VecModel::from_iter(
+        product_intelligence
+            .models
+            .iter()
+            .map(|row| ModelStatusItem {
+                task: row.task.clone().into(),
+                model: row.model.clone().into(),
+                source: row.source.clone().into(),
+                runtime: row.runtime.clone().into(),
+                device: row.device.clone().into(),
+                trust: row.trust.clone().into(),
+                benchmark: row.benchmark.clone().into(),
+                state: row.state.clone().into(),
+            }),
+    )));
+    ui.set_competitive_evidence_rows(ModelRc::new(VecModel::from_iter(
+        product_intelligence
+            .evidence
+            .iter()
+            .map(|row| CompetitiveEvidenceItem {
+                capability: row.capability.clone().into(),
+                medscale: row.medscale.clone().into(),
+                openmed: row.openmed.clone().into(),
+                verdict: row.verdict.clone().into(),
+                evidence: row.evidence.clone().into(),
             }),
     )));
 

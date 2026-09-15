@@ -198,3 +198,17 @@ Read [whole-product review](WHOLE_PRODUCT_REVIEW_2026-09-09.md) and
 [trusted V1 delivery priorities](TRUSTED_V1_DELIVERY_PLAN.md). Historical scope closures
 remain intact; next bounded planning work is tracked in BUILD_QUEUE.md. Runtime promotion
 requires the owning Spec Kit lifecycle. No blanket advanced-capability promotion is implied.
+
+## 2026-09-15 Product differentiation reopening
+
+The founder explicitly rejected the prior product-level visual direction and model/competitive visibility. This is a fresh promotion under the existing rule that deferred Specs 068+ require founder promotion.
+
+```text
+068 product identity + IA + truthful Models/Evidence surfaces
+  -> 069 real local model runtime + Hugging Face pack acquisition path
+  -> 070 Model Center + runtime/operator UX
+  -> 071 OpenMed evidence center + pinned comparative qualification
+  -> 072 rebuilt-product performance/accessibility/release requalification
+```
+
+Specs 000–067 retain their historical canonical evidence. `MEDSCALE_IMPLEMENTATION_COMPLETE` returns to false until 068–072 close. This sequence does not authorize real PHI, bypass the Core Host authority model, or make MESC release-blocking.
