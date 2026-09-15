@@ -45,6 +45,29 @@ export struct AssistantEvidenceItem {
     metadata: string,
 }
 
+export struct WorkflowStepItem {
+    order: string,
+    title: string,
+    detail: string,
+    state: string,
+}
+
+export struct WorkflowTaskItem {
+    action-id: string,
+    title: string,
+    state: string,
+    payload-digest: string,
+    next-step: string,
+    reconcile-required: bool,
+}
+
+export struct WorkflowMessageItem {
+    title: string,
+    body: string,
+    status: string,
+    related-action-id: string,
+}
+
 export component AppWindow inherits Window {
     title: "MedScale";
     width: 1440px;
@@ -82,6 +105,16 @@ export component AppWindow inherits Window {
     in property <string> insights-gap-state;
     in property <string> insights-recommendation-state;
     in-out property <string> insights-assistant-answer;
+    in property <string> workflow-name;
+    in property <string> workflow-state;
+    in property <string> workflow-outbox-summary;
+    in property <string> workflow-action-boundary;
+    in property <string> workflow-task-boundary;
+    in property <string> workflow-message-boundary;
+    in-out property <string> workflow-review-detail;
+    in property <[WorkflowStepItem]> workflow-steps;
+    in property <[WorkflowTaskItem]> workflow-tasks;
+    in property <[WorkflowMessageItem]> workflow-messages;
     callback ui-action(string);
 
     forward-focus: global-keys;
@@ -215,7 +248,7 @@ export component AppWindow inherits Window {
                             VerticalLayout {
                                 spacing: 2px;
                                 Text { text: root.active-route == "Home" ? "Good morning, Dr. Doe" : root.active-route == "Patients" ? root.patient-name : root.active-route; color: Theme.ink; font-size: 28px; font-weight: 700; }
-                                Text { text: root.active-route == "Home" ? "A calm view of what needs attention today." : root.active-route == "Patients" ? "Trusted longitudinal workspace · Synthetic demo" : root.active-route == "Insights" ? "Evidence-aware population view · Synthetic demo" : "This surface is scheduled in a later Desktop slice."; color: Theme.ink-subtle; font-size: 14px; }
+                                Text { text: root.active-route == "Home" ? "A calm view of what needs attention today." : root.active-route == "Patients" ? "Trusted longitudinal workspace · Synthetic demo" : root.active-route == "Insights" ? "Evidence-aware population view · Synthetic demo" : root.active-route == "Workflows" ? "Review-first controlled-action studio · Synthetic demo" : root.active-route == "Tasks" ? "Derived outbox review queue · No second task authority" : root.active-route == "Messages" ? "Local review previews · No external transport claim" : "This surface is scheduled in a later Desktop slice."; color: Theme.ink-subtle; font-size: 14px; }
                             }
                             Rectangle { horizontal-stretch: 1; background: transparent; }
                             Rectangle {
@@ -625,6 +658,159 @@ export component AppWindow inherits Window {
                                                 Text { text: item.snippet; color: Theme.ink-subtle; font-size: 10px; wrap: word-wrap; }
                                                 Text { text: item.metadata; color: Theme.ink-quiet; font-size: 9px; wrap: word-wrap; }
                                             }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        if root.active-route == "Workflows": VerticalLayout {
+                            spacing: 18px;
+                            HorizontalLayout {
+                                spacing: 12px;
+                                MetricCard { label: "Studio posture"; value: "Review first"; delta: "No Desktop commit"; glyph: "⌘"; accent: Theme.blurple; }
+                                MetricCard { label: "Outbox state"; value: "5 demo"; delta: root.workflow-outbox-summary; glyph: "⇥"; accent: Theme.pine; }
+                                MetricCard { label: "UNKNOWN policy"; value: "Reconcile"; delta: "Blind retry forbidden"; glyph: "!"; accent: Theme.coral; }
+                                MetricCard { label: "Payload identity"; value: "SHA-256"; delta: "Bound before send"; glyph: "#"; accent: Theme.amber; }
+                            }
+
+                            HorizontalLayout {
+                                spacing: 16px;
+                                Rectangle {
+                                    horizontal-stretch: 3;
+                                    min-height: 420px;
+                                    border-radius: 16px;
+                                    border-width: 1px;
+                                    border-color: Theme.border;
+                                    background: Theme.surface;
+                                    accessible-role: groupbox;
+                                    accessible-label: "Review-first workflow graph. Core Host owns controlled actions.";
+                                    VerticalLayout {
+                                        padding: 16px;
+                                        spacing: 8px;
+                                        Text { text: root.workflow-name; color: Theme.ink; font-size: 16px; font-weight: 700; }
+                                        Text { text: root.workflow-state; color: Theme.amber; font-size: 11px; wrap: word-wrap; }
+                                        Rectangle { height: 1px; background: Theme.border; }
+                                        for item in root.workflow-steps: Rectangle {
+                                            min-height: 66px;
+                                            border-radius: 12px;
+                                            border-width: 1px;
+                                            border-color: Theme.border;
+                                            background: Theme.surface-raised;
+                                            accessible-role: text;
+                                            accessible-label: "Step " + item.order + ", " + item.title + ", " + item.state + ". " + item.detail;
+                                            HorizontalLayout {
+                                                padding: 12px;
+                                                spacing: 12px;
+                                                Rectangle {
+                                                    width: 38px;
+                                                    height: 38px;
+                                                    border-radius: 10px;
+                                                    background: Theme.blurple-soft;
+                                                    Text { text: item.order; color: Theme.blurple; font-size: 11px; font-weight: 700; horizontal-alignment: center; vertical-alignment: center; }
+                                                }
+                                                VerticalLayout {
+                                                    horizontal-stretch: 1;
+                                                    alignment: center;
+                                                    spacing: 3px;
+                                                    Text { text: item.title; color: Theme.ink; font-size: 12px; font-weight: 650; }
+                                                    Text { text: item.detail; color: Theme.ink-subtle; font-size: 10px; wrap: word-wrap; }
+                                                }
+                                                StatusPill { label: item.state; accent: item.state == "Fail closed" ? Theme.coral : item.state == "Required" ? Theme.amber : Theme.pine; }
+                                            }
+                                        }
+                                    }
+                                }
+                                VerticalLayout {
+                                    horizontal-stretch: 2;
+                                    spacing: 12px;
+                                    HonestyPanel { title: "Authority boundary"; body: root.workflow-action-boundary; accent: Theme.pine; }
+                                    HonestyPanel { title: "Task semantics"; body: root.workflow-task-boundary; accent: Theme.blurple; }
+                                    QuickAction { title: "Open review tasks"; subtitle: "Derived from durable outbox state"; glyph: "✓"; accent: Theme.blurple; activated => { root.active-route = "Tasks"; } }
+                                    QuickAction { title: "Open message previews"; subtitle: "No external send from this UI"; glyph: "✉"; accent: Theme.pine; activated => { root.active-route = "Messages"; } }
+                                }
+                            }
+                        }
+
+                        if root.active-route == "Tasks": VerticalLayout {
+                            spacing: 16px;
+                            HonestyPanel { title: "Derived review queue"; body: root.workflow-task-boundary; accent: Theme.blurple; }
+                            Rectangle {
+                                min-height: 390px;
+                                border-radius: 16px;
+                                border-width: 1px;
+                                border-color: Theme.border;
+                                background: Theme.surface;
+                                accessible-role: groupbox;
+                                accessible-label: "Review tasks derived from durable controlled-action outbox entries";
+                                VerticalLayout {
+                                    padding: 16px;
+                                    spacing: 0px;
+                                    HorizontalLayout { height: 38px; spacing: 12px;
+                                        Text { width: 190px; text: "REVIEW ITEM"; color: Theme.ink-quiet; font-size: 9px; font-weight: 700; vertical-alignment: center; }
+                                        Text { width: 90px; text: "STATE"; color: Theme.ink-quiet; font-size: 9px; font-weight: 700; vertical-alignment: center; }
+                                        Text { horizontal-stretch: 1; text: "NEXT SAFE STEP"; color: Theme.ink-quiet; font-size: 9px; font-weight: 700; vertical-alignment: center; }
+                                        Text { width: 130px; text: "ACTION"; color: Theme.ink-quiet; font-size: 9px; font-weight: 700; vertical-alignment: center; horizontal-alignment: right; }
+                                    }
+                                    for item in root.workflow-tasks: Rectangle {
+                                        min-height: 74px;
+                                        border-width: 1px;
+                                        border-color: Theme.border;
+                                        background: Theme.surface;
+                                        accessible-role: groupbox;
+                                        accessible-label: item.title + ", " + item.state + ". " + item.next-step;
+                                        HorizontalLayout {
+                                            padding-left: 10px;
+                                            padding-right: 10px;
+                                            spacing: 12px;
+                                            VerticalLayout { width: 190px; alignment: center; spacing: 2px;
+                                                Text { text: item.title; color: Theme.ink; font-size: 11px; font-weight: 650; wrap: word-wrap; }
+                                                Text { text: item.action-id; color: Theme.ink-quiet; font-size: 8px; }
+                                            }
+                                            Text { width: 90px; text: item.state; color: item.reconcile-required ? Theme.coral : item.state == "Failed" ? Theme.amber : Theme.ink-subtle; font-size: 10px; font-weight: 650; vertical-alignment: center; }
+                                            VerticalLayout { horizontal-stretch: 1; alignment: center; spacing: 2px;
+                                                Text { text: item.next-step; color: Theme.ink-subtle; font-size: 10px; wrap: word-wrap; }
+                                                Text { text: "Payload digest: " + item.payload-digest; color: Theme.ink-quiet; font-size: 8px; }
+                                            }
+                                            QuickAction { width: 130px; title: "Inspect"; subtitle: "No commit"; glyph: "→"; accent: item.reconcile-required ? Theme.coral : Theme.blurple; activated => { root.ui-action("workflow-review:" + item.action-id); } }
+                                        }
+                                    }
+                                }
+                            }
+                            HonestyPanel { title: "Selected review detail"; body: root.workflow-review-detail; accent: Theme.pine; }
+                        }
+
+                        if root.active-route == "Messages": VerticalLayout {
+                            spacing: 16px;
+                            HonestyPanel { title: "Message boundary"; body: root.workflow-message-boundary; accent: Theme.pine; }
+                            Rectangle {
+                                min-height: 420px;
+                                border-radius: 16px;
+                                border-width: 1px;
+                                border-color: Theme.border;
+                                background: Theme.surface;
+                                accessible-role: groupbox;
+                                accessible-label: "Local review message previews; no external messaging transport";
+                                VerticalLayout {
+                                    padding: 16px;
+                                    spacing: 10px;
+                                    for item in root.workflow-messages: Rectangle {
+                                        min-height: 72px;
+                                        border-radius: 12px;
+                                        border-width: 1px;
+                                        border-color: Theme.border;
+                                        background: Theme.surface-raised;
+                                        accessible-role: text;
+                                        accessible-label: item.title + ", " + item.status + ". " + item.body;
+                                        HorizontalLayout {
+                                            padding: 12px;
+                                            spacing: 12px;
+                                            VerticalLayout { horizontal-stretch: 1; alignment: center; spacing: 3px;
+                                                Text { text: item.title; color: Theme.ink; font-size: 11px; font-weight: 650; }
+                                                Text { text: item.body; color: Theme.ink-subtle; font-size: 10px; wrap: word-wrap; }
+                                                Text { text: "Related action: " + item.related-action-id; color: Theme.ink-quiet; font-size: 8px; }
+                                            }
+                                            StatusPill { label: item.status; accent: item.status == "Reconcile first" ? Theme.coral : item.status == "Review required" ? Theme.amber : Theme.pine; }
                                         }
                                     }
                                 }
