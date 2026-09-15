@@ -317,4 +317,46 @@ impl CliSession {
         };
         Ok(packs)
     }
+
+    /// Read the durable external-action outbox through the same authority facade as Desktop.
+    pub fn outbox(
+        &mut self,
+    ) -> Result<Vec<medscale_contracts::actions::OutboxEntry>, AuthorityError> {
+        let resp = self.dispatch(Capability::ListOutbox, RequestBody::ListOutbox)?;
+        let ResponseBody::Outbox { entries } = resp else {
+            return Err(AuthorityError::InvalidArgument {
+                message: "expected outbox".to_owned(),
+            });
+        };
+        Ok(entries)
+    }
+
+    /// Read append-only disclosure records through the authority facade.
+    pub fn disclosures(
+        &mut self,
+    ) -> Result<Vec<medscale_contracts::workflow::DisclosureRecord>, AuthorityError> {
+        let resp = self.dispatch(Capability::ListDisclosures, RequestBody::ListDisclosures)?;
+        let ResponseBody::DisclosureList { records } = resp else {
+            return Err(AuthorityError::InvalidArgument {
+                message: "expected disclosure list".to_owned(),
+            });
+        };
+        Ok(records)
+    }
+
+    /// Read the honest FHIR support matrix; this does not claim full conformance.
+    pub fn fhir_support_matrix(
+        &mut self,
+    ) -> Result<medscale_contracts::fhir::FhirSupportMatrix, AuthorityError> {
+        let resp = self.dispatch(
+            Capability::GetFhirSupportMatrix,
+            RequestBody::GetFhirSupportMatrix,
+        )?;
+        let ResponseBody::FhirSupportMatrix { matrix } = resp else {
+            return Err(AuthorityError::InvalidArgument {
+                message: "expected FHIR support matrix".to_owned(),
+            });
+        };
+        Ok(matrix)
+    }
 }

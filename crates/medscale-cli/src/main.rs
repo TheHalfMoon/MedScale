@@ -12,6 +12,7 @@ use medscale_core::{
     CliSession, CoreFacade, HostIpcClient, HostIpcServer, JourneyConfig, build_doctor_report,
     endpoint_for_vault_root, privacy_proof_artifact_present, run_minimum_lovable_journey,
 };
+use serde::Serialize;
 
 #[derive(Debug, Parser)]
 #[command(name = "medscale", version, about = "MedScale local-first CLI")]
@@ -72,6 +73,36 @@ enum Commands {
         #[arg(long)]
         json: bool,
     },
+    /// Compact product/runtime status without secret-bearing values.
+    Status {
+        #[arg(long)]
+        json: bool,
+    },
+    /// Explain CLI/Desktop contract parity and intentional presentation-only gaps.
+    Capabilities {
+        #[arg(long)]
+        json: bool,
+    },
+    /// Grouped longitudinal patient reads over trusted presentation contracts.
+    Patient {
+        #[command(subcommand)]
+        action: PatientCmd,
+    },
+    /// Read-only controlled-action views.
+    Actions {
+        #[command(subcommand)]
+        action: ActionsCmd,
+    },
+    /// Read-only disclosure/audit views.
+    Audit {
+        #[command(subcommand)]
+        action: AuditCmd,
+    },
+    /// FHIR support and interchange honesty.
+    Fhir {
+        #[command(subcommand)]
+        action: FhirCmd,
+    },
     /// Emit PRIVACY_PROOF JSON schema (baseline).
     PrivacyProof {
         #[arg(long)]
@@ -96,6 +127,79 @@ enum Commands {
     HostIpc {
         #[command(subcommand)]
         action: HostIpcCmd,
+    },
+}
+
+#[derive(Debug, Subcommand)]
+enum PatientCmd {
+    /// Emit one combined timeline + Brief + coverage snapshot.
+    Show {
+        #[arg(long)]
+        vault_id: String,
+        #[arg(long)]
+        subject: String,
+        #[arg(long)]
+        json: bool,
+    },
+    /// Deterministic subject timeline.
+    Timeline {
+        #[arg(long)]
+        vault_id: String,
+        #[arg(long)]
+        subject: String,
+        #[arg(long)]
+        json: bool,
+    },
+    /// Narrow LLM-free Brief.
+    Brief {
+        #[arg(long)]
+        vault_id: String,
+        #[arg(long)]
+        subject: String,
+        #[arg(long)]
+        json: bool,
+    },
+    /// Coverage accounting.
+    Coverage {
+        #[arg(long)]
+        vault_id: String,
+        #[arg(long)]
+        subject: String,
+        #[arg(long)]
+        json: bool,
+    },
+}
+
+#[derive(Debug, Subcommand)]
+enum ActionsCmd {
+    /// List durable controlled-action outbox entries; UNKNOWN is not retry authority.
+    Outbox {
+        #[arg(long)]
+        vault_id: String,
+        #[arg(long)]
+        json: bool,
+    },
+}
+
+#[derive(Debug, Subcommand)]
+enum AuditCmd {
+    /// List append-only disclosure records.
+    Disclosures {
+        #[arg(long)]
+        vault_id: String,
+        #[arg(long)]
+        json: bool,
+    },
+}
+
+#[derive(Debug, Subcommand)]
+enum FhirCmd {
+    /// Print the honest FHIR R4 support matrix; not a full-conformance claim.
+    Support {
+        #[arg(long)]
+        vault_id: String,
+        #[arg(long)]
+        json: bool,
     },
 }
 
@@ -195,6 +299,39 @@ enum HostIpcCmd {
     },
 }
 
+#[derive(Debug, Serialize)]
+struct CliStatusSummary {
+    product_name: String,
+    version: String,
+    local_only: bool,
+    synthetic_only: bool,
+    real_phi_authorized: bool,
+    desktop_shell: String,
+    network_default_deny: bool,
+    private_data_ready: bool,
+    release_ready: bool,
+    multi_client_release_ready: bool,
+    wcag_conformance_claimed: bool,
+    missing_release_evidence: Vec<String>,
+}
+
+#[derive(Debug, Serialize)]
+struct CliPatientSnapshot {
+    subject: String,
+    timeline: medscale_contracts::presentation::SubjectTimelineV1,
+    brief: medscale_contracts::presentation::SubjectBriefV1,
+    coverage: medscale_contracts::presentation::SubjectCoverageV1,
+    authority_note: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+struct CliCapabilityRow {
+    surface: &'static str,
+    path: &'static str,
+    authority: &'static str,
+    status: &'static str,
+}
+
 /// Stable CLI exit codes (Spec 021).
 const EXIT_OK: u8 = 0;
 const EXIT_ERROR: u8 = 1;
@@ -236,6 +373,85 @@ fn fail_json(code: &str, message: impl Into<String>, as_json: bool) -> anyhow::E
     } else {
         anyhow::anyhow!("{}: {}", err.code, err.message)
     }
+}
+
+fn status_summary(report: &medscale_contracts::doctor::DoctorReport) -> CliStatusSummary {
+    CliStatusSummary {
+        product_name: report.product_name.clone(),
+        version: report.version.clone(),
+        local_only: report.local_only,
+        synthetic_only: report.synthetic_only,
+        real_phi_authorized: report.real_phi_authorized,
+        desktop_shell: report.desktop_shell.clone(),
+        network_default_deny: report.network_broker.default_deny,
+        private_data_ready: report.vault_privacy.private_data_ready,
+        release_ready: report.release_qualification.release_ready,
+        multi_client_release_ready: report.host_authority.multi_client_release_ready,
+        wcag_conformance_claimed: report.accessibility.wcag_conformance_claimed,
+        missing_release_evidence: report
+            .release_qualification
+            .missing_evidence_classes
+            .clone(),
+    }
+}
+
+fn capability_rows() -> Vec<CliCapabilityRow> {
+    vec![
+        CliCapabilityRow {
+            surface: "Status / doctor",
+            path: "status | doctor",
+            authority: "DoctorReport",
+            status: "CLI + Desktop",
+        },
+        CliCapabilityRow {
+            surface: "Patient longitudinal",
+            path: "patient show|timeline|brief|coverage",
+            authority: "trusted presentation contracts",
+            status: "CLI + Desktop",
+        },
+        CliCapabilityRow {
+            surface: "Population Insights",
+            path: "underlying patient/evidence reads",
+            authority: "presentation only; no risk authority",
+            status: "Desktop visual aggregation",
+        },
+        CliCapabilityRow {
+            surface: "Controlled actions",
+            path: "actions outbox",
+            authority: "ListOutbox / EffectState",
+            status: "CLI read + Desktop review",
+        },
+        CliCapabilityRow {
+            surface: "Workflow Studio",
+            path: "actions outbox",
+            authority: "outbox/action contracts",
+            status: "Desktop visual composition",
+        },
+        CliCapabilityRow {
+            surface: "Audit",
+            path: "audit disclosures",
+            authority: "ListDisclosures",
+            status: "CLI + Desktop",
+        },
+        CliCapabilityRow {
+            surface: "FHIR",
+            path: "fhir support",
+            authority: "GetFhirSupportMatrix",
+            status: "CLI + Desktop",
+        },
+        CliCapabilityRow {
+            surface: "Packs",
+            path: "packs install|list",
+            authority: "Pack admission contracts",
+            status: "CLI authority path",
+        },
+        CliCapabilityRow {
+            surface: "Host IPC",
+            path: "host-ipc serve|call",
+            authority: "versioned AuthorityRequest",
+            status: "CLI operator path",
+        },
+    ]
 }
 
 fn run() -> Result<()> {
@@ -451,6 +667,50 @@ fn run() -> Result<()> {
             assert_no_secret_markers(&rendered)?;
             Ok(())
         }
+        Commands::Status { json } => {
+            let report = build_doctor_report(None, false, privacy_proof_artifact_present());
+            let status = status_summary(&report);
+            if json {
+                println!("{}", serde_json::to_string_pretty(&status)?);
+            } else {
+                println!("{} {}", status.product_name, status.version);
+                println!("local_only: {}", status.local_only);
+                println!("synthetic_only: {}", status.synthetic_only);
+                println!("real_phi_authorized: {}", status.real_phi_authorized);
+                println!("desktop_shell: {}", status.desktop_shell);
+                println!("network_default_deny: {}", status.network_default_deny);
+                println!("private_data_ready: {}", status.private_data_ready);
+                println!("release_ready: {}", status.release_ready);
+                println!(
+                    "multi_client_release_ready: {}",
+                    status.multi_client_release_ready
+                );
+                println!(
+                    "wcag_conformance_claimed: {}",
+                    status.wcag_conformance_claimed
+                );
+                println!(
+                    "missing_release_evidence: {}",
+                    status.missing_release_evidence.join(",")
+                );
+            }
+            assert_no_secret_markers(&serde_json::to_string(&status)?)?;
+            Ok(())
+        }
+        Commands::Capabilities { json } => {
+            let rows = capability_rows();
+            if json {
+                println!("{}", serde_json::to_string_pretty(&rows)?);
+            } else {
+                for row in rows {
+                    println!(
+                        "{} | {} | {} | {}",
+                        row.surface, row.path, row.authority, row.status
+                    );
+                }
+            }
+            Ok(())
+        }
         Commands::Vault { action } => match action {
             VaultCmd::Create {
                 vault_id,
@@ -541,6 +801,137 @@ fn run() -> Result<()> {
             let body = session.coverage(&subject).map_err(auth)?;
             print_json_or_debug(&body, json)
         }
+        Commands::Patient { action } => match action {
+            PatientCmd::Show {
+                vault_id,
+                subject,
+                json,
+            } => {
+                let mut session = CliSession::connect(&vault_id).map_err(auth)?;
+                let timeline = session.timeline(&subject).map_err(auth)?;
+                let brief = session.brief(&subject).map_err(auth)?;
+                let coverage = session.coverage(&subject).map_err(auth)?;
+                let snapshot = CliPatientSnapshot {
+                    subject,
+                    timeline,
+                    brief,
+                    coverage,
+                    authority_note: "Read-only trusted projections; missing/conflicting evidence is preserved and no clinical interpretation is invented.".to_owned(),
+                };
+                if json {
+                    println!("{}", serde_json::to_string_pretty(&snapshot)?);
+                } else {
+                    println!("patient: {}", snapshot.subject);
+                    println!("timeline_events: {}", snapshot.timeline.events.len());
+                    println!("coverage_slots: {}", snapshot.coverage.slots.len());
+                    println!("brief: narrow LLM-free trusted projection");
+                    println!("authority: {}", snapshot.authority_note);
+                }
+                assert_no_secret_markers(&serde_json::to_string(&snapshot)?)?;
+                Ok(())
+            }
+            PatientCmd::Timeline {
+                vault_id,
+                subject,
+                json,
+            } => {
+                let mut session = CliSession::connect(&vault_id).map_err(auth)?;
+                let body = session.timeline(&subject).map_err(auth)?;
+                print_json_or_debug(&body, json)
+            }
+            PatientCmd::Brief {
+                vault_id,
+                subject,
+                json,
+            } => {
+                let mut session = CliSession::connect(&vault_id).map_err(auth)?;
+                let body = session.brief(&subject).map_err(auth)?;
+                print_json_or_debug(&body, json)
+            }
+            PatientCmd::Coverage {
+                vault_id,
+                subject,
+                json,
+            } => {
+                let mut session = CliSession::connect(&vault_id).map_err(auth)?;
+                let body = session.coverage(&subject).map_err(auth)?;
+                print_json_or_debug(&body, json)
+            }
+        },
+        Commands::Actions { action } => match action {
+            ActionsCmd::Outbox { vault_id, json } => {
+                let mut session = CliSession::connect(&vault_id).map_err(auth)?;
+                let entries = session.outbox().map_err(auth)?;
+                if json {
+                    println!("{}", serde_json::to_string_pretty(&entries)?);
+                } else if entries.is_empty() {
+                    println!("outbox: empty");
+                    println!("note: read-only view; UNKNOWN never authorizes blind retry");
+                } else {
+                    for entry in entries {
+                        println!(
+                            "{} | {} | {:?} | payload_sha256={}",
+                            entry.action_id.as_str(),
+                            entry.action,
+                            entry.effect_state,
+                            entry.payload_digest.to_hex()
+                        );
+                    }
+                }
+                Ok(())
+            }
+        },
+        Commands::Audit { action } => match action {
+            AuditCmd::Disclosures { vault_id, json } => {
+                let mut session = CliSession::connect(&vault_id).map_err(auth)?;
+                let records = session.disclosures().map_err(auth)?;
+                if json {
+                    println!("{}", serde_json::to_string_pretty(&records)?);
+                } else if records.is_empty() {
+                    println!("disclosures: empty");
+                } else {
+                    for record in records {
+                        println!(
+                            "{} | purpose={} | scope={} | synthetic_only={} | release_ready_claimed={}",
+                            record.disclosure_id.as_str(),
+                            record.purpose,
+                            record.scope,
+                            record.synthetic_only,
+                            record.release_ready_claimed
+                        );
+                    }
+                }
+                Ok(())
+            }
+        },
+        Commands::Fhir { action } => match action {
+            FhirCmd::Support { vault_id, json } => {
+                let mut session = CliSession::connect(&vault_id).map_err(auth)?;
+                let matrix = session.fhir_support_matrix().map_err(auth)?;
+                if json {
+                    println!("{}", serde_json::to_string_pretty(&matrix)?);
+                } else {
+                    println!("FHIR {} support matrix", matrix.fhir_version);
+                    println!("synthetic_only: {}", matrix.synthetic_only);
+                    println!(
+                        "full_conformance_claimed: {}",
+                        matrix.full_conformance_claimed
+                    );
+                    println!("release_ready: {}", matrix.release_ready);
+                    for resource in &matrix.resources {
+                        println!(
+                            "{} | lexical={:?} structural={:?} provenance={:?} clinical_interpretation={:?}",
+                            resource.resource_type,
+                            resource.lexical,
+                            resource.structural,
+                            resource.provenance,
+                            resource.clinical_interpretation
+                        );
+                    }
+                }
+                Ok(())
+            }
+        },
         Commands::PrivacyProof { json } => {
             let proof = PrivacyProof::spec_006_baseline();
             if json {
@@ -942,6 +1333,73 @@ mod tests {
         assert!(!manifest.contains("medscale-storage"));
         assert!(!manifest.contains("rusqlite"));
         assert!(!manifest.contains("tauri"));
+    }
+
+    #[test]
+    fn cli_product_paths_are_discoverable_and_structured() {
+        use clap::CommandFactory;
+
+        let mut command = Cli::command();
+        let mut help = Vec::new();
+        command.write_long_help(&mut help).expect("top-level help");
+        let help = String::from_utf8(help).expect("utf8 help").to_lowercase();
+        for required in [
+            "status",
+            "capabilities",
+            "patient",
+            "actions",
+            "audit",
+            "fhir",
+            "host-ipc",
+        ] {
+            assert!(
+                help.contains(required),
+                "missing product CLI path: {required}"
+            );
+        }
+
+        for (group, child) in [
+            ("patient", "show"),
+            ("actions", "outbox"),
+            ("audit", "disclosures"),
+            ("fhir", "support"),
+        ] {
+            let parent = command.find_subcommand_mut(group).expect("group command");
+            let child = parent.find_subcommand_mut(child).expect("child command");
+            let mut child_help = Vec::new();
+            child
+                .write_long_help(&mut child_help)
+                .expect("render grouped help");
+            let child_help = String::from_utf8(child_help).expect("utf8").to_lowercase();
+            assert!(
+                child_help.contains("--json"),
+                "{group} {child} missing --json"
+            );
+        }
+    }
+
+    #[test]
+    fn capability_map_is_explicit_about_visual_only_parity() {
+        let rows = capability_rows();
+        assert!(rows.iter().any(|row| {
+            row.surface == "Population Insights" && row.status == "Desktop visual aggregation"
+        }));
+        assert!(rows.iter().any(|row| {
+            row.surface == "Controlled actions" && row.authority.contains("EffectState")
+        }));
+        let json = serde_json::to_string(&rows).expect("capability json");
+        assert_no_secret_markers(&json).expect("no secrets");
+    }
+
+    #[test]
+    fn cli_read_parity_uses_existing_authority_contracts() {
+        let mut session = CliSession::connect("cli-parity").expect("session");
+        assert!(session.outbox().expect("outbox").is_empty());
+        assert!(session.disclosures().expect("disclosures").is_empty());
+        let matrix = session.fhir_support_matrix().expect("FHIR support");
+        assert!(matrix.is_honest_ready_base());
+        assert!(!matrix.full_conformance_claimed);
+        assert!(!matrix.release_ready);
     }
 
     #[test]
