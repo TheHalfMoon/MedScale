@@ -18,3 +18,6 @@ OpenCodeReview is supplemental review evidence only. Protected-branch exact-head
 
 ## Exact-range binding
 OpenCodeReview exact-range preview from final implementation merge `92ff377379c857e31d6be9a58612ba08b5e52cfd` to closure commit `6fdc73ffbcf11348f5051689fa2d096907f8c3a3` reported 14 changed files, `reviewable_count=0`, and `excluded_count=14`; every closure file was Markdown and classified `unsupported_ext`. The result therefore confirms scope/filtering only and does not substitute for the manual semantic review above.
+
+## Closure CI finding and correction
+Initial closure head `f3e11249fbb430f6db21969dc160b66d10ce114a` ran CI as `34939544209`. Ubuntu formatting, dependency-direction, and Clippy passed, but workspace tests failed in `native_desktop_ui_060::product_phase_keeps_mobile_after_desktop_cli_launch` because the closure rewrite had removed the canonical sentence `Mobile remains deferred until Desktop+CLI launch` from `BUILD_QUEUE.md`. The product rule remains correct because repository implementation completion is not launch/release readiness. The sentence was restored without weakening or changing the regression test. The failed run is consumed historical evidence and must not be treated as qualification for the corrected head.
