@@ -13,10 +13,10 @@ This qualification covers the Model Center runtime/operator UX implementation be
 - `cargo clippy --workspace --all-targets --locked -- -D warnings` — PASS on the candidate implementation before the final startup-honesty refinement.
 - `cargo test --workspace --locked` — PASS / exit 0 on the candidate implementation; the pinned external Hugging Face test remains intentionally ignored because model weights are not vendored.
 - Final affected-scope `cargo clippy -p medscale-desktop --all-targets --locked -- -D warnings` — PASS after the startup-honesty refinement.
-- Final affected-scope `cargo test -p medscale-desktop --locked` — PASS: 19 unit tests and 3 runtime-performance tests.
+- Final affected-scope `cargo test -p medscale-desktop --locked` — PASS after final review fixes: 20 unit tests and 3 runtime-performance tests.
 - `cargo run -p medscale-desktop --locked -- --smoke` — PASS. Smoke mode exits before opening a Model Center Core session.
 - `cargo +1.88.0 check --workspace --all-targets --locked` — PASS.
-- Final affected-scope `cargo +1.88.0 check -p medscale-desktop --all-targets --locked` — PASS.
+- Final affected-scope `cargo +1.88.0 check -p medscale-desktop --all-targets --locked` — PASS on review head `49e8fc122910ceaca3bc7c8917a5426aaa406397`.
 
 ## Authority and honesty regressions
 
@@ -27,6 +27,7 @@ This qualification covers the Model Center runtime/operator UX implementation be
 - Session inventory and pinned qualification references are rendered as different scopes. A qualification reference is never labeled installed/admitted.
 - Empty session inventory is explicit, and restart persistence is not claimed.
 - Startup and refresh failures are surfaced in operator status rather than silently represented as successful refresh.
+- A regression proves the local Pack admission helper releases its `RefCell` mutable borrow before inventory refresh, preventing nested-borrow panic on the success path.
 
 ## Environment note
 
