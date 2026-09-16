@@ -6,7 +6,7 @@ Spec 067 closed the then-final native product, but Specs 068–071 subsequently 
 
 ## Release truth
 
-The release doctor remains intentionally not release-ready. Canonical Spec 059 identifies five release residual evidence classes that require external authority or measurement: macOS signed-product qualification, release SBOM signing provenance, qualified-hardware performance attainment, checksum/provenance signing verification, and final-v0 accessibility qualification. MESC is optional and must not enter that residual set.
+The release doctor remains intentionally not release-ready. Canonical Spec 059 identifies five release residual evidence classes that require external authority or measurement: macOS signed-product qualification, release SBOM signing provenance, qualified-hardware performance attainment, checksum/provenance signing verification, and final-v0 accessibility qualification. MESC is a separate project/repository and is excluded from the MedScale residual set, external-gate map, completion model, and execution scope.
 
 ## Accessibility truth
 
@@ -18,4 +18,4 @@ The repository has launch, idle-RSS, delivery-plan-scale, and portable-package m
 
 ## Authority boundaries
 
-No real PHI, production credentials, online Hugging Face acquisition, OpenMed trusted-runtime import, MESC mutation, or external gate bypass is authorized by this requalification.
+No real PHI, production credentials, online Hugging Face acquisition, OpenMed trusted-runtime import, work in the separate MESC project, or external gate bypass is authorized by this requalification.

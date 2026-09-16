@@ -1,6 +1,6 @@
-//! Decoupling: MESC is an optional external integration, never a MedScale
-//! completion, startup, workflow, or release gate (Spec 012
-//! DEFERRED_BY_CANONICAL_DESIGN).
+//! Historical MESC interoperability compatibility plus current project separation.
+//! MESC is a separate project/repository and is not a MedScale completion,
+//! startup, workflow, release, or execution authority.
 
 use medscale_contracts::mesc::MescArtifactDoctorStatus;
 use medscale_core::build_doctor_report;
@@ -30,6 +30,9 @@ fn trusted_core_starts_and_workflow_ready_with_no_mesc_artifact() {
     assert!(!report.mesc_artifact.artifact_admitted);
     assert!(!report.mesc_artifact.required);
     assert!(!report.mesc_artifact.blocks_release());
+    assert_eq!(report.mesc_artifact.disposition, "SEPARATE_PROJECT");
+    assert_eq!(report.mesc_artifact.gate, "NONE");
+    assert_eq!(report.mesc_artifact.integration_status, "OUT_OF_SCOPE");
     assert!(report.mesc_artifact.is_honest_ready_base());
     assert!(
         report.workflow.workflow_ready_base,

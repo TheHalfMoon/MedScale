@@ -42,6 +42,8 @@ fn rebuilt_native_route_inventory_includes_models_and_evidence() {
         );
     }
     assert!(!ui.contains("This surface is scheduled in a later Desktop slice."));
+    assert!(!ui.contains("label: \"MESC\""));
+    assert!(!ui.contains("Optional / deferred"));
     assert!(ui.contains("Synthetic Subject A"));
 }
 
@@ -166,6 +168,9 @@ fn rebuilt_performance_packet_covers_models_evidence_without_attainment_claim() 
 fn release_residuals_remain_exactly_external_after_rebuild() {
     let root = repo_root();
     let report = build_doctor_report(None, false, privacy_proof_artifact_present());
+    assert_eq!(report.mesc_artifact.disposition, "SEPARATE_PROJECT");
+    assert_eq!(report.mesc_artifact.gate, "NONE");
+    assert_eq!(report.mesc_artifact.integration_status, "OUT_OF_SCOPE");
     let rq = &report.release_qualification;
     assert!(rq.material_findings_clearance);
     assert!(!rq.release_ready);
@@ -193,7 +198,18 @@ fn release_residuals_remain_exactly_external_after_rebuild() {
     for class in &expected {
         assert!(audit.contains(class), "residual not mapped: {class}");
     }
-    assert!(audit.contains("MESC is optional/deferred and is not a release residual"));
+    assert!(
+        audit
+            .contains("MESC is a separate project and is excluded from MedScale release residuals")
+    );
+    assert!(!gates.contains("| MESC_RELEASED_ARTIFACT |"));
+    let completion =
+        std::fs::read_to_string(root.join("docs/planning/PROJECT_COMPLETION_STATUS.md"))
+            .expect("completion status");
+    assert!(!completion.contains("MESC_RELEASE_BLOCKING"));
+    let separation = std::fs::read_to_string(root.join("docs/planning/MESC_PROJECT_SEPARATION.md"))
+        .expect("MESC project separation decision");
+    assert!(separation.contains("separate project/repository"));
     assert!(gates.contains("Spec 072"));
     assert!(gates.contains("including Models/Evidence"));
 }

@@ -19,7 +19,7 @@ CURSOR_IMPLEMENTATION_AUTHORITY = YES_WITHIN_CANONICAL_V2_PLAN
 ASK_FOUNDER_FOR_ORDINARY_IMPLEMENTATION_DECISIONS = NO
 CONTINUE_TO_NEXT_ELIGIBLE_UNIT = YES
 REAL_PHI_AUTHORITY = NO
-MESC_MUTATION_AUTHORITY = NO
+MESC_PROJECT_AUTHORITY = OUT_OF_SCOPE_SEPARATE_REPOSITORY
 PRODUCT_RUNTIME_NETWORK_EGRESS = DEFAULT_DENY
 ```
 
@@ -65,7 +65,7 @@ If a real human/external gate is required, record it in `EXTERNAL_GATES.md`, con
 - FHIR R4 4.0.1 is initial interchange, not canonical DB; validator output is evidence only.
 - One Rust authority path serves all product surfaces.
 - Workers receive no ambient canonical DB, master keys, unrestricted filesystem, network, secrets, or authority.
-- MESC is independent and `ARTIFACT_FIRST + EXCEPTIONAL_SANDBOXED_SERVICE`.
+- MESC is a separate repository/project and outside MedScale execution authority. Historical interoperability artifacts do not create current MedScale scope.
 - External-action `UNKNOWN` is never blindly retried.
 
 ## Donor and source rule
@@ -76,7 +76,7 @@ Permission to copy code does not imply permission to redistribute model weights,
 
 ## H0 boundary
 
-H0-A/H0-B are synthetic-only and LLM-free. No real PHI, models, OpenMed/MESC integration, OCR/ASR/vector/agents, live SMART/NPHIES, external actions, or product runtime network.
+H0-A/H0-B are synthetic-only and LLM-free. No real PHI, models, OpenMed integration, work in the separate MESC project, OCR/ASR/vector/agents, live SMART/NPHIES, external actions, or product runtime network.
 
 ## Mutation discipline
 
