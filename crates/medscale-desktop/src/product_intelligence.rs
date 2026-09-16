@@ -1,12 +1,21 @@
-//! Model Center and comparative-evidence presentation (Specs 068–070).
+//! Model Center and comparative-evidence presentation (Specs 068–071).
 //!
 //! Spec 070 distinguishes session-admitted Pack inventory from qualification
 //! references. Desktop reads Pack state through the Core-owned `CliSession` API;
 //! it never imports the runtime crate or treats Hugging Face as an authority plane.
+//! Spec 071 binds comparative presentation to the pinned OpenMed claim ledger and
+//! fails closed when matched BenchmarkManifest evidence is absent.
 
 use medscale_contracts::envelopes::AuthorityError;
 use medscale_contracts::packs::{PackArtifactKind, PackManifestV0, PackPromotionState};
 use medscale_core::CliSession;
+use serde_json::Value;
+use std::collections::HashSet;
+
+const OPENMED_CLAIM_LEDGER_JSON: &str =
+    include_str!("../../../evidence/071-openmed-evidence-center/CLAIM_LEDGER.json");
+const OPENMED_BASELINE_COMMIT: &str = "59d9cb0a2e0ccbba8fa3d891a66d83ffaf45e837";
+const OPENMED_BASELINE_TREE: &str = "1c949e35b2b8f2ea69da4284b370074fc4bf84ab";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ModelStatusVm {
@@ -29,9 +38,101 @@ pub struct CompetitiveEvidenceVm {
     pub openmed: String,
     pub verdict: String,
     pub evidence: String,
+    pub limitations: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct ClaimLedgerSummary {
+    valid: bool,
+    total: usize,
+    unmeasured: usize,
+    waived: usize,
+    structural_only: usize,
+    pattern_only: usize,
+    benchmark_manifests: usize,
+}
+
+impl ClaimLedgerSummary {
+    const fn invalid() -> Self {
+        Self {
+            valid: false,
+            total: 0,
+            unmeasured: 0,
+            waived: 0,
+            structural_only: 0,
+            pattern_only: 0,
+            benchmark_manifests: 0,
+        }
+    }
+}
+
+fn summarize_claim_ledger(raw: &str) -> ClaimLedgerSummary {
+    let Ok(value) = serde_json::from_str::<Value>(raw) else {
+        return ClaimLedgerSummary::invalid();
+    };
+    let Some(rows) = value.get("rows").and_then(Value::as_array) else {
+        return ClaimLedgerSummary::invalid();
+    };
+    let baseline = value.get("openmed_baseline");
+    let baseline_ok = baseline
+        .and_then(|entry| entry.get("baseline_commit"))
+        .and_then(Value::as_str)
+        == Some(OPENMED_BASELINE_COMMIT)
+        && baseline
+            .and_then(|entry| entry.get("baseline_tree"))
+            .and_then(Value::as_str)
+            == Some(OPENMED_BASELINE_TREE);
+    let benchmark_manifests = value
+        .get("benchmark_manifest_count")
+        .and_then(Value::as_u64)
+        .and_then(|count| usize::try_from(count).ok())
+        .unwrap_or(usize::MAX);
+    if !baseline_ok || rows.len() != 39 || benchmark_manifests == usize::MAX {
+        return ClaimLedgerSummary::invalid();
+    }
+
+    let mut summary = ClaimLedgerSummary {
+        valid: true,
+        total: rows.len(),
+        unmeasured: 0,
+        waived: 0,
+        structural_only: 0,
+        pattern_only: 0,
+        benchmark_manifests,
+    };
+    let mut capability_ids = HashSet::with_capacity(rows.len());
+    for row in rows {
+        let Some(capability_id) = row.get("capability_id").and_then(Value::as_str) else {
+            return ClaimLedgerSummary::invalid();
+        };
+        if capability_id.is_empty()
+            || !capability_ids.insert(capability_id)
+            || row.get("baseline_commit").and_then(Value::as_str) != Some(OPENMED_BASELINE_COMMIT)
+            || row.get("parity_claim").and_then(Value::as_bool) != Some(false)
+            || row.get("surpass_claim").and_then(Value::as_bool) != Some(false)
+            || row
+                .get("benchmark_manifest_present")
+                .and_then(Value::as_bool)
+                != Some(false)
+        {
+            return ClaimLedgerSummary::invalid();
+        }
+        match row.get("claim_state").and_then(Value::as_str) {
+            Some("UNMEASURED") => summary.unmeasured += 1,
+            Some("WAIVED") => summary.waived += 1,
+            Some("STRUCTURAL_DIFFERENTIATION_ONLY") => summary.structural_only += 1,
+            Some("PATTERN_ABSORPTION_ONLY") => summary.pattern_only += 1,
+            _ => return ClaimLedgerSummary::invalid(),
+        }
+    }
+    if summary.unmeasured + summary.waived + summary.structural_only + summary.pattern_only
+        != summary.total
+    {
+        return ClaimLedgerSummary::invalid();
+    }
+    summary
+}
+
 pub struct ProductIntelligenceVm {
     pub model_runtime_summary: String,
     pub model_runtime_boundary: String,
@@ -103,71 +204,80 @@ impl ProductIntelligenceVm {
             scope: "CAPABILITY GAP".to_owned(),
             task: "Accelerated inference".to_owned(),
             model: "No accelerated runtime promoted".to_owned(),
-            source: "Spec 071 comparison pending".to_owned(),
+            source: "Spec 071: accelerated comparison remains unmeasured".to_owned(),
             runtime: "Portable tract baseline only".to_owned(),
             device: "CPU baseline".to_owned(),
             trust: "No runtime-winner claim".to_owned(),
-            benchmark: "Apple Silicon / accelerated comparison pending".to_owned(),
+            benchmark: "No matched accelerated-runtime BenchmarkManifest".to_owned(),
             digest: "—".to_owned(),
             state: "NOT ADMITTED".to_owned(),
         });
 
+        let ledger = summarize_claim_ledger(OPENMED_CLAIM_LEDGER_JSON);
         let evidence = vec![
             CompetitiveEvidenceVm {
                 capability: "Source custody".to_owned(),
                 medscale: "Immutable source bytes + explicit transformation/loss chain".to_owned(),
-                openmed: "Strong provenance, narrower product authority scope".to_owned(),
-                verdict: "PROVEN ADVANTAGE".to_owned(),
-                evidence: "Specs 002/003 + source/provenance contracts".to_owned(),
+                openmed: "Pinned v2.2.0 documents provenance and signed audit/review evidence surfaces".to_owned(),
+                verdict: "STRUCTURAL ONLY".to_owned(),
+                evidence: "MedScale Specs 002/003 · OpenMed docs/feature-map.md @ 59d9cb0a · claim ledger: source-custody".to_owned(),
+                limitations: "Different semantic targets; no matched BenchmarkManifest proves comparative superiority.".to_owned(),
             },
             CompetitiveEvidenceVm {
                 capability: "Identity safety".to_owned(),
                 medscale: "Explicit IdentityAssertion; no silent patient merge".to_owned(),
-                openmed: "Not a category-center capability".to_owned(),
-                verdict: "PROVEN ADVANTAGE".to_owned(),
-                evidence: "Specs 002/019 adversarial identity semantics".to_owned(),
+                openmed: "Pinned baseline has provenance/clinical processing surfaces; identity authority is not a matched benchmark axis".to_owned(),
+                verdict: "STRUCTURAL ONLY".to_owned(),
+                evidence: "MedScale Specs 002/019 · OpenMed pinned feature map · claim ledger: identity".to_owned(),
+                limitations: "Structural contract difference only; no parity or surpass claim.".to_owned(),
             },
             CompetitiveEvidenceVm {
                 capability: "Longitudinal truth / conflict".to_owned(),
                 medscale: "Versioned assertions, absence/freshness/conflict without silent resolution".to_owned(),
-                openmed: "Timeline/provenance capabilities".to_owned(),
-                verdict: "PROVEN ADVANTAGE".to_owned(),
-                evidence: "Specs 004/019 trusted record semantics".to_owned(),
+                openmed: "Pinned baseline documents timeline/provenance capabilities".to_owned(),
+                verdict: "STRUCTURAL ONLY".to_owned(),
+                evidence: "MedScale Specs 004/019 · OpenMed pinned feature map · claim ledger: longitudinal-truth-conflict".to_owned(),
+                limitations: "No matched longitudinal benchmark; superiority is not claimed.".to_owned(),
             },
             CompetitiveEvidenceVm {
                 capability: "Controlled actions".to_owned(),
                 medscale: "Durable intent + payload identity + UNKNOWN reconciliation; blind retry forbidden".to_owned(),
-                openmed: "Inspectable agent review and service boundaries".to_owned(),
-                verdict: "PROVEN ADVANTAGE".to_owned(),
-                evidence: "Specs 014/034/063 outbox/effect-state evidence".to_owned(),
+                openmed: "Pinned baseline documents service, agent and operational surfaces".to_owned(),
+                verdict: "STRUCTURAL ONLY".to_owned(),
+                evidence: "MedScale Specs 014/034/063 · OpenMed pinned feature map · claim ledger: controlled-external-actions".to_owned(),
+                limitations: "Authority semantics differ; no matched BenchmarkManifest proves an advantage.".to_owned(),
             },
             CompetitiveEvidenceVm {
                 capability: "Clinical NER".to_owned(),
-                medscale: "Portable ONNX runtime + pinned HF NER qualification; clinical-domain model benchmark still pending".to_owned(),
-                openmed: "Large public model catalog + rerunnable NER benchmarks".to_owned(),
-                verdict: "OPENMED AHEAD".to_owned(),
-                evidence: "Spec 069 real HF model execution; Spec 071 owns comparative benchmark qualification".to_owned(),
+                medscale: "Real portable ONNX execution is proven; clinical-domain quality comparison is not measured".to_owned(),
+                openmed: "Pinned v2.2.0 exposes clinical NER families and an evaluation harness".to_owned(),
+                verdict: "UNMEASURED".to_owned(),
+                evidence: "MedScale Spec 069 · OpenMed docs/feature-map.md + docs/eval-harness.md · claim ledger: clinical-ner".to_owned(),
+                limitations: "No same-model/same-corpus F1, precision, recall, latency and RSS BenchmarkManifest.".to_owned(),
             },
             CompetitiveEvidenceVm {
                 capability: "PII / de-identification".to_owned(),
-                medscale: "Real ONNX runtime exists; production de-identification model/PHI benchmark not promoted".to_owned(),
-                openmed: "Multilingual local model family and de-identification pipeline".to_owned(),
-                verdict: "OPENMED AHEAD".to_owned(),
-                evidence: "Spec 007 corpus program; Spec 069 runtime proof; clinical model proof pending 071".to_owned(),
+                medscale: "Runtime path exists; no production de-identification model or PHI benchmark is promoted".to_owned(),
+                openmed: "Pinned baseline documents multilingual PII, de-identification methods and validation/eval contracts".to_owned(),
+                verdict: "UNMEASURED".to_owned(),
+                evidence: "OpenMed docs/anonymization.md + docs/clinical-validation-protocol.md @ 59d9cb0a · claim ledger: pii-detection/de-identification".to_owned(),
+                limitations: "Feature presence is verified; matched recall/leakage/false-negative comparison is absent.".to_owned(),
             },
             CompetitiveEvidenceVm {
-                capability: "Model ecosystem".to_owned(),
-                medscale: "Signed provenance-first Pack lifecycle + pinned HF import qualification; online acquisition still gated".to_owned(),
-                openmed: "2,000+ public models and broad runtime coverage".to_owned(),
-                verdict: "OPENMED AHEAD".to_owned(),
-                evidence: "Specs 008/015/069; raw model count is not a MedScale success metric".to_owned(),
+                capability: "Model registry breadth".to_owned(),
+                medscale: "Signed provenance-first Pack lifecycle; raw catalogue cardinality is deliberately not a success metric".to_owned(),
+                openmed: "Pinned models.jsonl contains 2266 manifest rows and a manifest-backed registry".to_owned(),
+                verdict: "ANTI-METRIC".to_owned(),
+                evidence: "OpenMed docs/model-registry.md + models.jsonl @ 59d9cb0a · claim ledger: model-catalogue-breadth".to_owned(),
+                limitations: "2266 is dated inventory context only; model count does not establish quality, trust or parity.".to_owned(),
             },
             CompetitiveEvidenceVm {
                 capability: "Apple Silicon inference".to_owned(),
-                medscale: "Portable tract CPU baseline measured; no accelerated Apple Silicon adapter admitted".to_owned(),
-                openmed: "MLX is a first-class accelerated runtime".to_owned(),
-                verdict: "OPENMED AHEAD".to_owned(),
-                evidence: "Spec 069 portable baseline; Spec 071 owns accelerated runtime comparison".to_owned(),
+                medscale: "tract CPU baseline measured; no accelerated Apple Silicon runtime is admitted".to_owned(),
+                openmed: "Pinned v2.2.0 documents Python MLX and Swift MLX paths for supported model families".to_owned(),
+                verdict: "UNMEASURED".to_owned(),
+                evidence: "MedScale evidence/071/RUNTIME_COMPARISON.md · OpenMed docs/mlx-backend.md @ 59d9cb0a · claim ledger: apple-silicon-mlx".to_owned(),
+                limitations: "No same-model/same-corpus/same-hardware BenchmarkManifest; runtime winner is explicitly refused.".to_owned(),
             },
         ];
 
@@ -183,8 +293,23 @@ impl ProductIntelligenceVm {
             } else {
                 format!("{admitted} Core-admitted Pack(s) in this Desktop session. Restart persistence is not claimed.")
             },
-            openmed_baseline: "OpenMed v2.2.0 · pinned commit 59d9cb0a…".to_owned(),
-            competitive_summary: "MedScale is structurally stronger in source custody, identity, longitudinal truth, and controlled-action authority. OpenMed remains ahead in production clinical-model breadth, PII/de-ID breadth, and accelerated local inference; Spec 069 proves the portable HF/ONNX path but does not erase those gaps.".to_owned(),
+            openmed_baseline: format!(
+                "OpenMed v2.2.0 · commit {} · tree {}",
+                OPENMED_BASELINE_COMMIT, OPENMED_BASELINE_TREE
+            ),
+            competitive_summary: if ledger.valid {
+                format!(
+                    "Claim ledger {}/39 accounted · {} unmeasured · {} structural-only · {} waived · {} pattern-only · {} BenchmarkManifest(s). No parity, surpass, privacy-superiority or runtime-winner claim is authorized.",
+                    ledger.total,
+                    ledger.unmeasured,
+                    ledger.structural_only,
+                    ledger.waived,
+                    ledger.pattern_only,
+                    ledger.benchmark_manifests
+                )
+            } else {
+                "Comparative evidence ledger is invalid. Fail closed: no parity, surpass, structural-advantage or runtime-winner claim is authorized.".to_owned()
+            },
             models,
             evidence,
         }
@@ -245,7 +370,10 @@ fn runtime_device(runtime: &str) -> &'static str {
 
 #[cfg(test)]
 mod tests {
-    use super::ProductIntelligenceVm;
+    use super::{
+        OPENMED_BASELINE_COMMIT, OPENMED_BASELINE_TREE, OPENMED_CLAIM_LEDGER_JSON,
+        ProductIntelligenceVm, summarize_claim_ledger,
+    };
     use medscale_contracts::objects::{DigestSha256, OpaqueId};
     use medscale_contracts::packs::{
         PackArtifactEntry, PackArtifactKind, PackManifestV0, PackPromotionState,
@@ -338,13 +466,54 @@ mod tests {
                 .contains("real portable ONNX runtime")
         );
         assert!(vm.models.iter().any(|row| row.state == "MODEL GAP"));
-        assert!(vm.evidence.iter().any(|row| row.verdict == "OPENMED AHEAD"));
+        assert!(vm.evidence.iter().any(|row| row.verdict == "UNMEASURED"));
         assert!(
             vm.evidence
                 .iter()
-                .any(|row| row.verdict == "PROVEN ADVANTAGE")
+                .any(|row| row.verdict == "STRUCTURAL ONLY")
         );
-        assert!(!vm.competitive_summary.contains("unqualified superiority"));
+        assert!(vm.evidence.iter().any(|row| row.verdict == "ANTI-METRIC"));
+        assert!(vm.evidence.iter().all(|row| {
+            !matches!(
+                row.verdict.as_str(),
+                "PROVEN ADVANTAGE" | "OPENMED AHEAD" | "PARITY" | "SURPASS"
+            )
+        }));
+        assert!(vm.competitive_summary.contains("39/39 accounted"));
+        assert!(vm.competitive_summary.contains("0 BenchmarkManifest(s)"));
+        assert!(vm.competitive_summary.contains("No parity, surpass"));
+        assert!(vm.openmed_baseline.contains(OPENMED_BASELINE_COMMIT));
+        assert!(vm.openmed_baseline.contains(OPENMED_BASELINE_TREE));
         assert!(vm.model_source_summary.contains("not signature authority"));
+    }
+
+    #[test]
+    fn spec_071_claim_ledger_is_complete_and_fail_closed() {
+        let summary = summarize_claim_ledger(OPENMED_CLAIM_LEDGER_JSON);
+        assert!(summary.valid);
+        assert_eq!(summary.total, 39);
+        assert_eq!(summary.unmeasured, 22);
+        assert_eq!(summary.waived, 10);
+        assert_eq!(summary.structural_only, 6);
+        assert_eq!(summary.pattern_only, 1);
+        assert_eq!(summary.benchmark_manifests, 0);
+    }
+
+    #[test]
+    fn duplicate_capability_claim_ledger_fails_closed() {
+        let mut value: serde_json::Value =
+            serde_json::from_str(OPENMED_CLAIM_LEDGER_JSON).expect("valid canonical ledger");
+        let rows = value["rows"].as_array_mut().expect("ledger rows");
+        rows[1]["capability_id"] = rows[0]["capability_id"].clone();
+        let malformed = serde_json::to_string(&value).expect("serialize malformed ledger");
+        let summary = summarize_claim_ledger(&malformed);
+        assert!(!summary.valid);
+    }
+
+    #[test]
+    fn malformed_claim_ledger_fails_closed() {
+        let summary = summarize_claim_ledger(r#"{"rows": []}"#);
+        assert!(!summary.valid);
+        assert_eq!(summary.benchmark_manifests, 0);
     }
 }

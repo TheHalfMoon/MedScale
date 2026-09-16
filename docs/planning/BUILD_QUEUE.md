@@ -85,8 +85,8 @@ See Trusted V1 delivery plan. Specs 018–067 are closed; Spec 012 remains optio
 | 067 | Final UI Product Qualification | `CLOSED_CANONICAL` | Exact-head `9b4eb259…` passed run `34936519051`, PR #111 merged as `92ff3773…`, and post-merge main run `34937549663` passed all six required jobs. OpenCodeReview delegation supplemented manual docs review. |
 | 068 | Product Differentiation Rebuild | `CLOSED_CANONICAL` | Founder-reopened product bar: original MedScale identity, Models route, Evidence route, truthful OpenMed comparison. |
 | 069 | Real Local Model Runtime + HF Pack Path | `CLOSED_CANONICAL` | Admit real bounded inference behind worker/authority boundaries; explicit HF acquisition through Network Broker/pack provenance. |
-| 070 | Model Center + Runtime UX | `IN_PROGRESS` | Make installed/available models, tasks, devices, provenance, trust, benchmark and promotion state visible. |
-| 071 | OpenMed Evidence Center | `PROMOTED_PENDING_070` | Productize exact comparative evidence; prove or refuse every parity/surpass claim. |
+| 070 | Model Center + Runtime UX | `CLOSED_CANONICAL` | Authority-backed session Pack inventory/admission and truthful runtime/operator state merged and post-main qualified. |
+| 071 | OpenMed Evidence Center | `IN_PROGRESS` | Productize exact comparative evidence; prove or refuse every parity/surpass claim. |
 | 072 | Product Requalification | `PROMOTED_PENDING_071` | Re-run product, accessibility, performance and release-candidate qualification on the rebuilt product. |
 | 073+ | Advanced deferred work | `DEFERRED_BY_CANONICAL_DESIGN` | Plugins/GraphRAG/replicas/imaging/CUDA/mobile-after-launch/etc.; require fresh promotion. |
 
@@ -98,5 +98,5 @@ Do not stop merely because a PR merged, one milestone passed, or an external opt
 
 **Mobile remains deferred until Desktop+CLI launch.** No mobile application implementation is authorized by Specs 068-072.
 
-**Next eligible (honest):** Spec **068** is `CLOSED_CANONICAL`; Spec **069** is `CLOSED_CANONICAL`; Spec **070** is `IN_PROGRESS` for authority-backed Model Center and runtime/operator UX. Release qualification remains paused. Follow 070 -> 071 -> 072 before forming a new release candidate. `RELEASE_READY`, `PRIVATE_DATA_READY`, and `MULTI_CLIENT_RELEASE_READY` remain false. Spec 012/MESC remains optional/deferred and untouched.
+**Next eligible (honest):** Spec **068** is `CLOSED_CANONICAL`; Spec **069** is `CLOSED_CANONICAL`; Spec **070** is `CLOSED_CANONICAL`; Spec **071** is `IN_PROGRESS` for the evidence-backed OpenMed comparison surface and claim ledger. Release qualification remains paused. Follow 071 -> 072 before forming a new release candidate. `RELEASE_READY`, `PRIVATE_DATA_READY`, and `MULTI_CLIENT_RELEASE_READY` remain false. Spec 012/MESC remains optional/deferred and untouched.
 

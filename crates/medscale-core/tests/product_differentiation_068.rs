@@ -51,9 +51,11 @@ fn models_and_competitive_evidence_are_first_class_and_truthful() {
     assert!(app.contains("AI is visible, not implied."));
     assert!(product.contains("real portable ONNX runtime admitted"));
     assert!(product.contains("production clinical model not promoted"));
-    assert!(product.contains("OPENMED AHEAD"));
-    assert!(product.contains("PROVEN ADVANTAGE"));
-    assert!(product.contains("OPENMED AHEAD"));
+    assert!(product.contains("verdict: \"UNMEASURED\""));
+    assert!(product.contains("verdict: \"STRUCTURAL ONLY\""));
+    assert!(product.contains("verdict: \"ANTI-METRIC\""));
+    assert!(!product.contains("verdict: \"PROVEN ADVANTAGE\""));
+    assert!(!product.contains("verdict: \"OPENMED AHEAD\""));
     assert!(!product.contains("beats OpenMed"));
 }
 
@@ -85,7 +87,8 @@ fn canonical_status_reopens_until_product_differentiation_sequence_closes() {
             .expect("completion status");
     assert!(status.contains("STATUS = PRODUCT_DIFFERENTIATION_REBUILD_IN_PROGRESS"));
     assert!(status.contains("MEDSCALE_IMPLEMENTATION_COMPLETE = FALSE"));
-    assert!(status.contains("NEXT_PROMOTED_SPEC = 070"));
+    assert!(status.contains("NEXT_PROMOTED_SPEC = 071"));
+    assert!(!status.contains("NEXT_PROMOTED_SPEC = 072"));
     assert!(status.contains("MEDSCALE_IMPLEMENTATION_COMPLETE = FALSE"));
 }
 

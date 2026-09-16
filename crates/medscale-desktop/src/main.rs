@@ -51,6 +51,7 @@ fn apply_product_intelligence(ui: &AppWindow, vm: &product_intelligence::Product
             openmed: row.openmed.clone().into(),
             verdict: row.verdict.clone().into(),
             evidence: row.evidence.clone().into(),
+            limitations: row.limitations.clone().into(),
         },
     ))));
 }
