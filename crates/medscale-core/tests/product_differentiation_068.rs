@@ -51,9 +51,11 @@ fn models_and_competitive_evidence_are_first_class_and_truthful() {
     assert!(app.contains("AI is visible, not implied."));
     assert!(product.contains("real portable ONNX runtime admitted"));
     assert!(product.contains("production clinical model not promoted"));
-    assert!(product.contains("OPENMED AHEAD"));
-    assert!(product.contains("PROVEN ADVANTAGE"));
-    assert!(product.contains("OPENMED AHEAD"));
+    assert!(product.contains("verdict: \"UNMEASURED\""));
+    assert!(product.contains("verdict: \"STRUCTURAL ONLY\""));
+    assert!(product.contains("verdict: \"ANTI-METRIC\""));
+    assert!(!product.contains("verdict: \"PROVEN ADVANTAGE\""));
+    assert!(!product.contains("verdict: \"OPENMED AHEAD\""));
     assert!(!product.contains("beats OpenMed"));
 }
 
