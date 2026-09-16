@@ -16,6 +16,7 @@ Unsupported Slint, Markdown, planning, task and evidence files were reviewed man
 1. **Startup inventory failure could be represented too optimistically.** The Desktop startup path now surfaces `Core inventory unavailable at startup` when `PacksList` fails instead of leaving only a successful-session status while falling back to the truthful empty projection.
 2. **Pack v0 signature scope could be overstated in UI copy.** Model Center now states that Pack v0 signing binds identity/version/epoch, content digest, rights URI and SBOM reference, while runtime requirements, benchmark links and promotion state are declarations/Core state rather than signature authority. Generic admitted rows label runtime data as `Declared`.
 3. **Successful local Pack admission could retain a `RefCell` mutable borrow across refresh.** Admission now executes through a helper whose mutable borrow ends before the success arm refreshes inventory. A regression proves a second mutable borrow succeeds immediately after admission.
+4. **The absolute-path unit test encoded a Unix-only `/tmp/...` assumption.** Exact-head Windows CI correctly rejected that path as non-absolute. The regression now derives an absolute path from `std::env::temp_dir()`, preserving the production `Path::is_absolute()` contract across supported platforms.
 
 ## Final regression evidence
 
@@ -36,6 +37,6 @@ The pinned external Hugging Face runtime test remains intentionally ignored in o
 
 No new `unsafe` block, shell/process execution path, network acquisition path, Hugging Face SDK dependency, direct Desktop `medscale-pack` dependency, secret handling, or real-PHI authority was introduced. Model Center uses a least-privilege Core session limited to `PacksList` and `PacksInstallLocal`; a regression proves `OpenSyntheticVault` is denied with `SessionDenied`. Absolute-path prevalidation is presentation ergonomics only; canonicalization, signature/digest verification, artifact-path/symlink containment, byte bounds and admission remain Core/Pack responsibilities.
 
-**Final review verdict**: `NO_MATERIAL_FINDINGS_REMAIN` for review head `49e8fc122910ceaca3bc7c8917a5426aaa406397`.
+**Final review verdict**: `NO_MATERIAL_FINDINGS_REMAIN` for the implementation through portability-correction code head `e8cf4f2d0c91d7717bb83869a65ee765990be071`. The following evidence-only commit does not change reviewed runtime behavior.
 
 Protected exact-head GitHub CI, protected merge, post-main verification and canonical queue promotion remain required before Spec 070 closure.

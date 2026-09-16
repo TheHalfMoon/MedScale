@@ -29,6 +29,10 @@ This qualification covers the Model Center runtime/operator UX implementation be
 - Startup and refresh failures are surfaced in operator status rather than silently represented as successful refresh.
 - A regression proves the local Pack admission helper releases its `RefCell` mutable borrow before inventory refresh, preventing nested-borrow panic on the success path.
 
+## Exact-head CI portability correction
+
+The first PR exact-head Windows run exposed a Unix-only test fixture assumption: `/tmp/signed-pack` is not an absolute Windows path. Production validation remained correct. The regression now uses `std::env::temp_dir()` to construct a platform-native absolute path before applying the same trim/absolute-path assertions. The portability correction code head is `e8cf4f2d0c91d7717bb83869a65ee765990be071`. A new exact-head CI run is required; the failed head is not reusable.
+
 ## Environment note
 
 One intermediate local link attempt failed with `No space left on device` / mixed native build-cache warnings. Only temporary MedScale build targets were removed. A clean rebuild with reduced debug/incremental artifacts then passed Desktop tests and the full workspace suite. The environment failure is not counted as a source-code failure.
