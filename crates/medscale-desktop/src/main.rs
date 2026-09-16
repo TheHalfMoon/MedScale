@@ -1,10 +1,13 @@
 //! Native MedScale Desktop shell — Slint, no WebView/Tauri (Spec 060).
 
-use medscale_core::{CoreFacade, build_doctor_report, privacy_proof_artifact_present};
+use medscale_core::{CliSession, CoreFacade, build_doctor_report, privacy_proof_artifact_present};
+use std::cell::RefCell;
 use std::env;
 use std::hint::black_box;
 use std::io::{self, Write};
+use std::path::Path;
 use std::process::ExitCode;
+use std::rc::Rc;
 use std::thread;
 use std::time::Duration;
 
@@ -19,6 +22,58 @@ mod workflow_studio;
 slint::include_modules!();
 
 const PERF_IDLE_MAX_MS: u64 = 10_000;
+
+fn apply_product_intelligence(ui: &AppWindow, vm: &product_intelligence::ProductIntelligenceVm) {
+    ui.set_model_runtime_summary(vm.model_runtime_summary.clone().into());
+    ui.set_model_runtime_boundary(vm.model_runtime_boundary.clone().into());
+    ui.set_model_source_summary(vm.model_source_summary.clone().into());
+    ui.set_model_inventory_summary(vm.model_inventory_summary.clone().into());
+    ui.set_openmed_baseline(vm.openmed_baseline.clone().into());
+    ui.set_competitive_summary(vm.competitive_summary.clone().into());
+    ui.set_model_rows(ModelRc::new(VecModel::from_iter(vm.models.iter().map(
+        |row| ModelStatusItem {
+            scope: row.scope.clone().into(),
+            task: row.task.clone().into(),
+            model: row.model.clone().into(),
+            source: row.source.clone().into(),
+            runtime: row.runtime.clone().into(),
+            device: row.device.clone().into(),
+            trust: row.trust.clone().into(),
+            benchmark: row.benchmark.clone().into(),
+            digest: row.digest.clone().into(),
+            state: row.state.clone().into(),
+        },
+    ))));
+    ui.set_competitive_evidence_rows(ModelRc::new(VecModel::from_iter(vm.evidence.iter().map(
+        |row| CompetitiveEvidenceItem {
+            capability: row.capability.clone().into(),
+            medscale: row.medscale.clone().into(),
+            openmed: row.openmed.clone().into(),
+            verdict: row.verdict.clone().into(),
+            evidence: row.evidence.clone().into(),
+        },
+    ))));
+}
+
+fn refresh_model_center(
+    ui: &AppWindow,
+    session: &Rc<RefCell<CliSession>>,
+) -> Result<(), medscale_contracts::envelopes::AuthorityError> {
+    let vm = product_intelligence::ProductIntelligenceVm::from_session(&mut session.borrow_mut())?;
+    apply_product_intelligence(ui, &vm);
+    Ok(())
+}
+
+fn validated_model_pack_path(raw: &str) -> Result<&str, &'static str> {
+    let path = raw.trim();
+    if path.is_empty() {
+        return Err("Enter an absolute local Pack directory");
+    }
+    if !Path::new(path).is_absolute() {
+        return Err("Local Pack directory must be an absolute path");
+    }
+    Ok(path)
+}
 
 fn perf_idle_ms(args: &[String]) -> Result<Option<u64>, &'static str> {
     let Some(index) = args.iter().position(|arg| arg == "--perf-idle-ms") else {
@@ -239,50 +294,97 @@ fn main() -> ExitCode {
             }),
     )));
 
-    let product_intelligence = product_intelligence::ProductIntelligenceVm::current_truth();
-    ui.set_model_runtime_summary(product_intelligence.model_runtime_summary.clone().into());
-    ui.set_model_runtime_boundary(product_intelligence.model_runtime_boundary.clone().into());
-    ui.set_model_source_summary(product_intelligence.model_source_summary.clone().into());
-    ui.set_openmed_baseline(product_intelligence.openmed_baseline.clone().into());
-    ui.set_competitive_summary(product_intelligence.competitive_summary.clone().into());
-    ui.set_model_rows(ModelRc::new(VecModel::from_iter(
-        product_intelligence
-            .models
-            .iter()
-            .map(|row| ModelStatusItem {
-                task: row.task.clone().into(),
-                model: row.model.clone().into(),
-                source: row.source.clone().into(),
-                runtime: row.runtime.clone().into(),
-                device: row.device.clone().into(),
-                trust: row.trust.clone().into(),
-                benchmark: row.benchmark.clone().into(),
-                state: row.state.clone().into(),
-            }),
-    )));
-    ui.set_competitive_evidence_rows(ModelRc::new(VecModel::from_iter(
-        product_intelligence
-            .evidence
-            .iter()
-            .map(|row| CompetitiveEvidenceItem {
-                capability: row.capability.clone().into(),
-                medscale: row.medscale.clone().into(),
-                openmed: row.openmed.clone().into(),
-                verdict: row.verdict.clone().into(),
-                evidence: row.evidence.clone().into(),
-            }),
-    )));
+    let model_session = match CliSession::connect_pack_operator("desktop-model-center") {
+        Ok(session) => {
+            ui.set_model_operator_status("Core session ready · local admission only".into());
+            Some(Rc::new(RefCell::new(session)))
+        }
+        Err(err) => {
+            ui.set_model_operator_status(format!("Core session unavailable: {err:?}").into());
+            None
+        }
+    };
+    let product_intelligence = if let Some(session) = &model_session {
+        match product_intelligence::ProductIntelligenceVm::from_session(&mut session.borrow_mut()) {
+            Ok(vm) => vm,
+            Err(err) => {
+                ui.set_model_operator_status(
+                    format!("Core inventory unavailable at startup: {err:?}").into(),
+                );
+                product_intelligence::ProductIntelligenceVm::current_truth()
+            }
+        }
+    } else {
+        product_intelligence::ProductIntelligenceVm::current_truth()
+    };
+    apply_product_intelligence(&ui, &product_intelligence);
 
     // Spec 061 keeps patient presentation read-only and routes consequential work to review surfaces.
     // Consequential operations are routed to their owning review surfaces; no action is committed here.
     let weak = ui.as_weak();
     let insights_for_actions = insights.clone();
     let workflow_for_actions = workflow.clone();
+    let model_session_for_actions = model_session.clone();
     ui.on_ui_action(move |action| {
         let Some(ui) = weak.upgrade() else {
             return;
         };
         let action = action.as_str();
+        if action == "model-refresh" {
+            if let Some(session) = &model_session_for_actions {
+                match refresh_model_center(&ui, session) {
+                    Ok(()) => ui.set_model_operator_status("Core inventory refreshed".into()),
+                    Err(err) => ui.set_model_operator_status(
+                        format!("Core inventory refresh failed: {err:?}").into(),
+                    ),
+                }
+            } else {
+                ui.set_model_operator_status(
+                    "Core session unavailable; inventory not refreshed".into(),
+                );
+            }
+            return;
+        }
+        if action == "model-admit" {
+            let Some(session) = &model_session_for_actions else {
+                ui.set_model_operator_status(
+                    "Core session unavailable; Pack admission denied".into(),
+                );
+                return;
+            };
+            let raw_path = ui.get_model_pack_path().to_string();
+            let path = match validated_model_pack_path(&raw_path) {
+                Ok(path) => path,
+                Err(message) => {
+                    ui.set_model_operator_status(message.into());
+                    return;
+                }
+            };
+            match session.borrow_mut().packs_install_local(path) {
+                Ok(result) if result.admitted => {
+                    let pack_id = result
+                        .pack_id
+                        .as_ref()
+                        .map_or("unknown", medscale_contracts::objects::OpaqueId::as_str);
+                    ui.set_model_pack_path("".into());
+                    match refresh_model_center(&ui, session) {
+                        Ok(()) => ui.set_model_operator_status(
+                            format!("Pack admitted by Core: {pack_id}").into(),
+                        ),
+                        Err(err) => ui.set_model_operator_status(
+                            format!("Pack admitted by Core: {pack_id}; inventory refresh failed: {err:?}").into(),
+                        ),
+                    }
+                }
+                Ok(result) => ui.set_model_operator_status(
+                    format!("Pack admission refused: {:?}", result.reason).into(),
+                ),
+                Err(err) => {
+                    ui.set_model_operator_status(format!("Pack admission failed: {err:?}").into())
+                }
+            }
+            return;
+        }
         if let Some(query) = action.strip_prefix("insights-assistant:") {
             ui.set_insights_assistant_answer(insights_for_actions.answer_query(query).into());
             ui.set_active_route("Insights".into());
@@ -318,7 +420,7 @@ fn main() -> ExitCode {
 
 #[cfg(test)]
 mod tests {
-    use super::perf_idle_ms;
+    use super::{perf_idle_ms, validated_model_pack_path};
 
     #[test]
     fn perf_idle_probe_is_bounded_and_explicit() {
@@ -331,9 +433,23 @@ mod tests {
     }
 
     #[test]
-    fn no_tauri_in_manifest() {
+    fn model_pack_path_requires_an_absolute_directory_path() {
+        assert!(validated_model_pack_path("").is_err());
+        assert!(validated_model_pack_path("relative/pack").is_err());
+        assert_eq!(
+            validated_model_pack_path(" /tmp/signed-pack "),
+            Ok("/tmp/signed-pack")
+        );
+    }
+
+    #[test]
+    fn no_tauri_or_runtime_crate_in_manifest() {
         let manifest =
             std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/Cargo.toml")).unwrap();
         assert!(!manifest.contains("tauri"));
+        assert!(
+            !manifest.contains("medscale-pack"),
+            "Desktop must reach Pack state through Core authority, not the runtime crate"
+        );
     }
 }
