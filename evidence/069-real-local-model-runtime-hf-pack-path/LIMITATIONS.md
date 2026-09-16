@@ -7,3 +7,4 @@
 - No MLX, Core ML, GPU, or ONNX Runtime accelerated adapter is promoted by Spec 069.
 - PII/de-identification recall, clinical NER quality, multilingual model quality, and OpenMed comparative performance remain unproven until the later promoted specs.
 - The synthetic Pack trust root used by repository fixtures/qualification is not production release signing authority.
+- Pack v1's historical Ed25519 signing payload predates Spec 069 and does not separately sign the `runtime_requirements` string. Spec 069 therefore does not treat that field alone as execution authority: the content-bound `model.meta.json` signs the runtime family/provenance, Core independently gates synthetic-only execution, and prepared-cache reuse additionally binds the admitted runtime contract. A future Pack schema may sign the complete executable manifest directly.

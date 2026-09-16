@@ -1061,7 +1061,11 @@ impl CoreFacade {
                         }
                     })?;
                 let digest = manifest.content_digest.clone();
-                let cached = self.prepared_models().get(&digest).cloned();
+                let cached = self
+                    .prepared_models()
+                    .get(&digest)
+                    .filter(|prepared| prepared.matches_runtime_contract(&manifest))
+                    .cloned();
                 let (prepared, prepared_cache_hit) = if let Some(prepared) = cached {
                     if prepared.fixed_sequence_length() > max_tokens {
                         return Err(AuthorityError::InvalidArgument {
@@ -1081,7 +1085,11 @@ impl CoreFacade {
                         }
                     })?);
                     let mut cache = self.prepared_models();
-                    if let Some(existing) = cache.get(&digest).cloned() {
+                    if let Some(existing) = cache
+                        .get(&digest)
+                        .filter(|prepared| prepared.matches_runtime_contract(&manifest))
+                        .cloned()
+                    {
                         (existing, true)
                     } else {
                         if cache.len() >= MAX_PREPARED_MODEL_CACHE

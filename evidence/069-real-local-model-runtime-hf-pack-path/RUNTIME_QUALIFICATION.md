@@ -7,17 +7,17 @@ The repository contains a tiny signed ONNX token-classification Pack used by ord
 Focused result after the final provenance/runtime schema changes:
 
 ```text
-onnx_runtime_069: 7 passed
-real_local_model_runtime_069: 5 passed
+onnx_runtime_069: 9 passed
+real_local_model_runtime_069: 6 passed
 ```
 
 The Core integration also proves Strict session enforcement, explicit denial of real-PHI model execution, and that Desktop/CLI do not own `tract-onnx`, `tokenizers`, or `medscale-pack` runtime dependencies.
 
 ## Prepared-model behavior
 
-Core re-admits current Pack bytes and verifies signed content identity on every evaluation request. Prepared execution plans may be cached by `content_digest` only. User input is not cached. A second request against the same exact digest reports `prepared_cache_hit=true`; a changed digest cannot reuse the prepared plan.
+Core re-admits current Pack bytes and verifies signed content identity on every evaluation request. Prepared execution plans remain indexed by `content_digest` only, but reuse additionally requires an exact runtime-contract binding over `runtime_requirements` plus the artifact path/kind/digest structure. User input is not cached. A same-digest Pack with a different runtime contract is re-prepared instead of receiving a cache hit, and alias Pack identity is supplied per invocation rather than retained in the prepared plan.
 
-Artifact ceilings are explicit and enforced before execution: 1 GiB for ONNX model bytes, 64 MiB for tokenizer/fixture bytes, and 1 MiB for model metadata. Runtime preparation consumes the exact verified model/tokenizer bytes rather than reopening those files after verification.
+Artifact ceilings are explicit and enforced before execution: 1 MiB for `pack.manifest.json`, 1 GiB for ONNX model bytes, 64 MiB for tokenizer/fixture bytes, and 1 MiB for model metadata. Admission bounds the manifest before JSON parsing. Runtime preparation consumes the exact verified model/tokenizer bytes rather than reopening those files after verification. The optimized tract model must also expose exactly one static `f32` output with shape `[1, fixed_sequence_length, labels]` before a runnable plan is created, so an out-of-contract output shape is refused before inference execution.
 ## Final local candidate qualification — 2026-09-16
 
 The final pre-PR tree was qualified from base `75b5a173a63ed2057c6ecf96ef12faf18ed5e479`. Exact commit identity is intentionally bound only after the candidate is committed; protected exact-head GitHub CI remains required before canonical closure.
@@ -25,8 +25,8 @@ The final pre-PR tree was qualified from base `75b5a173a63ed2057c6ecf96ef12faf18
 ```text
 cargo fmt --all -- --check                                      PASS
 git diff --check                                               PASS
-cargo test -p medscale-pack --test onnx_runtime_069 --locked  7 passed
-cargo test -p medscale-core --test real_local_model_runtime_069 --locked  5 passed
+cargo test -p medscale-pack --test onnx_runtime_069 --locked  9 passed
+cargo test -p medscale-core --test real_local_model_runtime_069 --locked  6 passed
 cargo test -p medscale-core --test product_differentiation_068 --locked   5 passed
 Desktop product-intelligence truth unit                        1 passed
 cargo clippy --workspace --all-targets --locked -- -D warnings PASS

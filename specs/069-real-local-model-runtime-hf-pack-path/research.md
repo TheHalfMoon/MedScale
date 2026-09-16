@@ -12,7 +12,7 @@
 
 ## Artifact byte-bound contract
 
-Spec 069 bounds artifact bytes before any model/tokenizer load: ONNX model artifacts are capped at 1 GiB, tokenizer/fixture artifacts at 64 MiB, and model provenance metadata at 1 MiB. Pack admission and direct runtime verification both enforce the same ceilings with bounded reads. The runtime feeds the already-verified tokenizer/model bytes directly into `tokenizers` and tract rather than reopening artifact paths after digest verification, so a post-verification file growth or swap cannot become the bytes that are executed.
+Spec 069 bounds bytes before parsing or model/tokenizer load: `pack.manifest.json` is capped at 1 MiB, ONNX model artifacts at 1 GiB, tokenizer/fixture artifacts at 64 MiB, and model provenance metadata at 1 MiB. Pack admission and direct runtime verification enforce the artifact ceilings with bounded reads. The runtime feeds the already-verified tokenizer/model bytes directly into `tokenizers` and tract rather than reopening artifact paths after digest verification, so a post-verification file growth or swap cannot become the bytes that are executed. After input facts are fixed, the optimized model must expose exactly one static `f32` output shaped `[1, fixed_sequence_length, labels]` before conversion into a runnable plan; out-of-contract output allocation is therefore refused before inference execution.
 
 ## Qualification model
 

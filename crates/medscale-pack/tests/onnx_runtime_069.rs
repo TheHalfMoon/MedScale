@@ -126,6 +126,44 @@ fn admission_and_runtime_reject_oversized_model_before_loading() {
 }
 
 #[test]
+fn pack_admission_rejects_oversized_manifest_before_json_parse() {
+    let root = temp_copy();
+    fs::OpenOptions::new()
+        .write(true)
+        .open(root.join("pack.manifest.json"))
+        .expect("open manifest")
+        .set_len(1_048_577)
+        .expect("create sparse oversized manifest");
+    let err = admit_pack_dir(&root).expect_err("oversized manifest must be refused");
+    assert!(
+        err.to_string()
+            .contains("manifest exceeds admitted byte bound")
+    );
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn prepare_rejects_static_output_shape_before_execution() {
+    let root = temp_copy();
+    let mut manifest = admit_pack_dir(&root).expect("initial admission");
+    let labels = b"[\n  \"O\"\n]\n";
+    fs::write(root.join("labels.json"), labels).expect("write one-label metadata");
+    let labels_artifact = manifest
+        .artifacts
+        .iter_mut()
+        .find(|artifact| artifact.relative_path == "labels.json")
+        .expect("labels artifact");
+    labels_artifact.digest = medscale_contracts::objects::DigestSha256::of(labels);
+
+    let runtime = OnnxTokenClassifierRuntime::new(4).expect("runtime");
+    assert!(matches!(
+        runtime.prepare(&root, &manifest),
+        Err(OnnxRuntimeError::OutputShape)
+    ));
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
 fn pack_admission_rejects_parent_traversal_before_reading_artifact() {
     let root = temp_copy();
     let manifest_path = root.join("pack.manifest.json");

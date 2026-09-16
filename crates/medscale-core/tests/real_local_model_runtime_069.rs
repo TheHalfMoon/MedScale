@@ -252,6 +252,74 @@ fn prepared_cache_reuse_never_leaks_the_first_pack_identity() {
 }
 
 #[test]
+fn prepared_cache_reuse_requires_the_same_runtime_contract() {
+    let facade = CoreFacade::new_legacy_lease_only_engineering();
+    acquire_lease(&facade);
+    facade
+        .dispatch(request(
+            Capability::PacksInstallLocal,
+            RequestBody::PacksInstallLocal {
+                local_path: pack_dir().display().to_string(),
+            },
+        ))
+        .result
+        .expect("install first pack");
+    let first = facade.dispatch(request(
+        Capability::PacksEvaluateLocal,
+        RequestBody::PacksEvaluateLocal {
+            request: evaluation_request(true),
+        },
+    ));
+    let ResponseBody::PackEvaluation { result: first } = first.result.expect("first evaluation")
+    else {
+        panic!("expected first evaluation");
+    };
+    assert!(!first.prepared_cache_hit);
+
+    let alias_id = OpaqueId::new("pack-tiny-token-classifier-v0-contract-alias");
+    let alias_dir = pack_copy_with_id(alias_id.as_str());
+    let manifest_path = alias_dir.join("pack.manifest.json");
+    let mut manifest: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(&manifest_path).expect("manifest bytes"))
+            .expect("manifest json");
+    manifest["runtime_requirements"] = serde_json::Value::String(
+        "tract_onnx_token_classification_v1;synthetic_only=true;fixed_sequence_length=4;contract_variant=alias".to_owned(),
+    );
+    std::fs::write(
+        &manifest_path,
+        serde_json::to_string_pretty(&manifest).expect("serialize manifest") + "\n",
+    )
+    .expect("write altered runtime contract");
+    facade
+        .dispatch(request(
+            Capability::PacksInstallLocal,
+            RequestBody::PacksInstallLocal {
+                local_path: alias_dir.display().to_string(),
+            },
+        ))
+        .result
+        .expect("install altered-contract alias");
+    let alias = facade.dispatch(request(
+        Capability::PacksEvaluateLocal,
+        RequestBody::PacksEvaluateLocal {
+            request: PackEvaluationRequest {
+                pack_id: alias_id,
+                local_path: alias_dir.display().to_string(),
+                input: "alice visited clinic today".to_owned(),
+                max_tokens: 4,
+                synthetic_only: true,
+            },
+        },
+    ));
+    let ResponseBody::PackEvaluation { result: alias } = alias.result.expect("alias evaluation")
+    else {
+        panic!("expected alias evaluation");
+    };
+    assert!(!alias.prepared_cache_hit);
+    let _ = std::fs::remove_dir_all(alias_dir);
+}
+
+#[test]
 fn desktop_and_cli_still_do_not_own_runtime_dependencies() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..");
     for crate_name in ["medscale-desktop", "medscale-cli"] {

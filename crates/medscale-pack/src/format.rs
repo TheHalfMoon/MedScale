@@ -60,6 +60,8 @@ pub fn forbidden_reason(kind: PackArtifactKind) -> Option<PackAdmitReason> {
         .then_some(PackAdmitReason::ForbiddenArtifactKind)
 }
 
+const MAX_MANIFEST_BYTES: u64 = 1_048_576;
+
 pub(crate) const fn artifact_size_limit(kind: PackArtifactKind) -> u64 {
     match kind {
         PackArtifactKind::OnnxModel => 1_073_741_824,
@@ -179,10 +181,25 @@ struct WireManifest {
 
 /// Load and validate a pack directory containing `pack.manifest.json` + artifacts.
 pub fn admit_pack_dir(path: &Path) -> Result<PackManifestV0, AdmitError> {
-    let manifest_path = path.join("pack.manifest.json");
-    let raw = fs::read(&manifest_path).map_err(|e| AdmitError::Io(e.to_string()))?;
+    let manifest_path = safe_artifact_path(path, "pack.manifest.json")?;
+    let metadata = fs::metadata(&manifest_path).map_err(|err| AdmitError::Io(err.to_string()))?;
+    if !metadata.is_file() || metadata.len() > MAX_MANIFEST_BYTES {
+        return Err(AdmitError::InvalidManifest(
+            "pack manifest exceeds admitted byte bound".into(),
+        ));
+    }
+    let file = fs::File::open(&manifest_path).map_err(|err| AdmitError::Io(err.to_string()))?;
+    let mut raw = Vec::new();
+    file.take(MAX_MANIFEST_BYTES + 1)
+        .read_to_end(&mut raw)
+        .map_err(|err| AdmitError::Io(err.to_string()))?;
+    if u64::try_from(raw.len()).unwrap_or(u64::MAX) > MAX_MANIFEST_BYTES {
+        return Err(AdmitError::InvalidManifest(
+            "pack manifest exceeds admitted byte bound".into(),
+        ));
+    }
     let wire: WireManifest =
-        serde_json::from_slice(&raw).map_err(|e| AdmitError::InvalidManifest(e.to_string()))?;
+        serde_json::from_slice(&raw).map_err(|err| AdmitError::InvalidManifest(err.to_string()))?;
 
     if wire.rights_uri.trim().is_empty() {
         return Err(AdmitError::MissingRights);

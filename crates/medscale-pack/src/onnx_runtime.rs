@@ -72,6 +72,7 @@ pub struct OnnxTokenClassifierRuntime {
 /// no user input is retained between evaluations.
 pub struct PreparedOnnxTokenClassifier {
     content_digest: DigestSha256,
+    runtime_contract_digest: DigestSha256,
     provenance: ModelSourceProvenance,
     tokenizer: Tokenizer,
     labels: Vec<String>,
@@ -84,6 +85,7 @@ impl fmt::Debug for PreparedOnnxTokenClassifier {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("PreparedOnnxTokenClassifier")
             .field("content_digest", &self.content_digest)
+            .field("runtime_contract_digest", &self.runtime_contract_digest)
             .field("provenance", &self.provenance)
             .field("input_names", &self.input_names)
             .field("fixed_sequence_length", &self.fixed_sequence_length)
@@ -183,13 +185,34 @@ impl OnnxTokenClassifierRuntime {
                 )
                 .map_err(|_| OnnxRuntimeError::ModelExecution)?;
         }
-        let runnable = model
+        let optimized = model
             .into_optimized()
-            .and_then(|model| model.into_runnable())
             .map_err(|_| OnnxRuntimeError::ModelExecution)?;
+        if optimized
+            .output_outlets()
+            .map_err(|_| OnnxRuntimeError::OutputShape)?
+            .len()
+            != 1
+        {
+            return Err(OnnxRuntimeError::OutputShape);
+        }
+        let output_fact = optimized
+            .output_fact(0)
+            .map_err(|_| OnnxRuntimeError::OutputShape)?;
+        let expected_output_shape = [1, fixed_sequence_length, labels.len()];
+        if output_fact.datum_type != f32::datum_type()
+            || output_fact.shape.as_concrete() != Some(expected_output_shape.as_slice())
+        {
+            return Err(OnnxRuntimeError::OutputShape);
+        }
+        let runnable = optimized
+            .into_runnable()
+            .map_err(|_| OnnxRuntimeError::ModelExecution)?;
+        let runtime_contract_digest = runtime_contract_digest(pack)?;
 
         Ok(PreparedOnnxTokenClassifier {
             content_digest: pack.content_digest.clone(),
+            runtime_contract_digest,
             provenance,
             tokenizer,
             labels,
@@ -215,6 +238,14 @@ impl PreparedOnnxTokenClassifier {
     #[must_use]
     pub const fn fixed_sequence_length(&self) -> usize {
         self.fixed_sequence_length
+    }
+
+    /// True only when the current admitted manifest has the same executable contract.
+    #[must_use]
+    pub fn matches_runtime_contract(&self, pack: &PackManifestV0) -> bool {
+        runtime_contract_digest(pack)
+            .map(|digest| digest == self.runtime_contract_digest)
+            .unwrap_or(false)
     }
 
     #[must_use]
@@ -426,6 +457,12 @@ fn select_artifact(
         Some("model.meta.json") => "model.meta.json",
         _ => "onnx_model",
     }))
+}
+
+fn runtime_contract_digest(pack: &PackManifestV0) -> Result<DigestSha256, OnnxRuntimeError> {
+    let bytes = serde_json::to_vec(&(pack.runtime_requirements.as_str(), &pack.artifacts))
+        .map_err(|_| OnnxRuntimeError::RuntimeNotAdmitted)?;
+    Ok(DigestSha256::of(&bytes))
 }
 
 fn validate_provenance(provenance: &ModelSourceProvenance) -> Result<(), OnnxRuntimeError> {
