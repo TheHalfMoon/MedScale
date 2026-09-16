@@ -450,9 +450,12 @@ mod tests {
     fn model_pack_path_requires_an_absolute_directory_path() {
         assert!(validated_model_pack_path("").is_err());
         assert!(validated_model_pack_path("relative/pack").is_err());
+
+        let absolute = std::env::temp_dir().join("signed-pack");
+        let raw = format!(" {} ", absolute.display());
         assert_eq!(
-            validated_model_pack_path(" /tmp/signed-pack "),
-            Ok("/tmp/signed-pack")
+            validated_model_pack_path(&raw),
+            Ok(absolute.to_str().expect("temp path must be valid UTF-8"))
         );
     }
 
