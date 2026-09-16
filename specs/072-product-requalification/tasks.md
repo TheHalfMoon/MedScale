@@ -6,5 +6,5 @@
 - [x] T4 Add exact external-only release residual audit and synchronize living gate references.
 - [x] T5 Pass focused product/release regressions, Desktop tests, smoke/perf, formatting, Clippy, Rust 1.88, and workspace qualification.
 - [x] T6 Complete exact-range review and resolve all material findings.
-- [ ] T7 Pass exact-head required CI, protected merge, and post-main verification.
-- [ ] T8 Close 072 canonically and hand off final repository-implementation closure.
+- [x] T7 Pass exact-head required CI, protected merge, and post-main verification.
+- [x] T8 Close 072 canonically and hand off final repository-implementation closure.

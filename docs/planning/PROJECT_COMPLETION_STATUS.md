@@ -1,20 +1,20 @@
 # MedScale Project Completion Status
 
 ```text
-STATUS = PRODUCT_DIFFERENTIATION_REBUILD_IN_PROGRESS
+STATUS = REPOSITORY_IMPLEMENTATION_COMPLETE_PENDING_EXTERNAL_GATES
 MEDSCALE_TRUSTED_V1_IMPLEMENTATION_COMPLETE = TRUE
-MEDSCALE_DESKTOP_CLI_PRODUCT_PHASE_COMPLETE = FALSE
-MEDSCALE_IMPLEMENTATION_COMPLETE = FALSE
+MEDSCALE_DESKTOP_CLI_PRODUCT_PHASE_COMPLETE = TRUE
+MEDSCALE_IMPLEMENTATION_COMPLETE = TRUE
 MEDSCALE_RELEASE_READY = FALSE
 PRIVATE_DATA_READY = FALSE
 MULTI_CLIENT_RELEASE_READY = FALSE
 REAL_PHI_AUTHORIZED = FALSE
 KNOWN_REPOSITORY_OWNED_TRUSTED_V1_RESIDUALS = 0
-KNOWN_REPOSITORY_OWNED_DESKTOP_CLI_RESIDUALS = 2
-NEXT_PROMOTED_SPEC = 072
+KNOWN_REPOSITORY_OWNED_DESKTOP_CLI_RESIDUALS = 0
+NEXT_PROMOTED_SPEC = NONE
 ```
 
-Trusted V1 and the prior Desktop+CLI baseline through Spec 067 are canonically closed historical implementation evidence. Spec 067 final exact head `9b4eb25995cdbf23ff7a0b6a389be870d6004c38` passed all six required jobs in run `34936519051`, PR #111 merged normally as `92ff377379c857e31d6be9a58612ba08b5e52cfd`, and post-merge main run `34937549663` passed all six required jobs. The 2026-09-15 founder product-bar decision reopened repository implementation through Specs 068–072; Specs 068–071 are now `CLOSED_CANONICAL` and Spec 072 remains the single promoted `IN_PROGRESS` repository-owned unit. Mobile remains deferred.
+Repository-owned MedScale implementation is canonically complete through Spec 072. The 2026-09-15 founder product-bar reopening was closed by Spec 072 after rebuilt-product qualification, protected merge, and post-main verification. Specs 068–072 are `CLOSED_CANONICAL`; no repository-owned implementation unit remains promoted. Mobile and all 073+ advanced work remain deferred unless freshly promoted by a new canonical decision.
 
 This implementation closure does not imply distribution/release qualification. `RELEASE_READY=false`, `PRIVATE_DATA_READY=false`, `MULTI_CLIENT_RELEASE_READY=false`, `REAL_PHI_AUTHORIZED=false`, qualified-hardware budget attainment is unproven, production signing/notarization is not granted, final macOS signed-product/App Sandbox enforcement remains external, and WCAG/assistive-technology qualification remains externally unmeasured. MESC is a separate project/repository and is excluded from MedScale completion and release calculations. Historical MedScale Specs 012/036 remain provenance only.
 
@@ -33,3 +33,8 @@ Spec 070 final head `9cf2037bad29adbba034836347927834c345c1ba` passed all six re
 ## Spec 071 canonical closure
 
 Spec 071 final head `fc8e7092cfe622db4ae0a77922be587989ec376a` passed all six required jobs in pull-request run `35073913261`. PR #116 merged normally as `e2031bdef918980cc184aed811f381e41f5dfb8b`, and post-merge main run `35075937209` passed all six required jobs. The pinned OpenMed v2.2.0 comparator, complete 39-row fail-closed claim ledger, and native Evidence Center are therefore canonical. Product requalification remains owned by Spec 072.
+
+
+## Spec 072 canonical closure
+
+Spec 072 final head `02e343ff11fbe914a0b312d4e8235552d9b89917` passed all six required jobs in pull-request run `35089753209`. PR #117 merged normally as `f97637e7e9435be8972cc908ced8354be0f7b24e`, and post-merge main run `35091230970` passed all six required jobs. Rebuilt-product routes, Model Center and Evidence Center truth boundaries, accessibility/performance external action packets, five-class release residual accounting, and MESC project separation are therefore canonical. No repository-owned MedScale implementation residual remains promoted.

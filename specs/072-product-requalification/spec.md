@@ -1,6 +1,6 @@
 # Spec 072 — Product Requalification
 
-**Status**: IN_PROGRESS
+**Status**: CLOSED_CANONICAL
 **Base**: `e2031bdef918980cc184aed811f381e41f5dfb8b`
 
 ## Goal

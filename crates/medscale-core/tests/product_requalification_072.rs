@@ -213,9 +213,12 @@ fn release_residuals_remain_exactly_external_after_rebuild() {
     let closure =
         std::fs::read_to_string(root.join("docs/planning/REPOSITORY_IMPLEMENTATION_CLOSURE.md"))
             .expect("repository implementation closure");
-    assert!(closure.contains("HISTORICAL_BASELINE_SUPERSEDED_BY_PRODUCT_REOPENING"));
-    assert!(closure.contains("CURRENT_PROMOTED_SPEC = 072"));
-    assert!(closure.contains("CURRENT_REPOSITORY_IMPLEMENTATION_COMPLETE = FALSE"));
+    assert!(closure.contains("STATUS = REPOSITORY_IMPLEMENTATION_COMPLETE_PENDING_EXTERNAL_GATES"));
+    assert!(closure.contains("PROMOTED_REPOSITORY_OWNED_RESIDUALS = 0"));
+    assert!(closure.contains("NEXT_PROMOTED_SPEC = NONE"));
+    assert!(
+        closure.contains("FINAL_IMPLEMENTATION_MERGE = f97637e7e9435be8972cc908ced8354be0f7b24e")
+    );
     assert!(
         !completion
             .contains("No repository-owned Desktop+CLI implementation unit remains promoted")

@@ -81,15 +81,16 @@ fn home_is_a_clinical_workspace_not_an_admin_dashboard() {
 }
 
 #[test]
-fn canonical_status_reopens_until_product_differentiation_sequence_closes() {
+fn canonical_status_closes_after_product_differentiation_sequence() {
     let status =
         std::fs::read_to_string(repo_root().join("docs/planning/PROJECT_COMPLETION_STATUS.md"))
             .expect("completion status");
-    assert!(status.contains("STATUS = PRODUCT_DIFFERENTIATION_REBUILD_IN_PROGRESS"));
-    assert!(status.contains("MEDSCALE_IMPLEMENTATION_COMPLETE = FALSE"));
-    assert!(status.contains("NEXT_PROMOTED_SPEC = 072"));
+    assert!(status.contains("STATUS = REPOSITORY_IMPLEMENTATION_COMPLETE_PENDING_EXTERNAL_GATES"));
+    assert!(status.contains("MEDSCALE_IMPLEMENTATION_COMPLETE = TRUE"));
+    assert!(status.contains("KNOWN_REPOSITORY_OWNED_DESKTOP_CLI_RESIDUALS = 0"));
+    assert!(status.contains("NEXT_PROMOTED_SPEC = NONE"));
     assert!(!status.contains("NEXT_PROMOTED_SPEC = 073"));
-    assert!(status.contains("MEDSCALE_IMPLEMENTATION_COMPLETE = FALSE"));
+    assert!(status.contains("MEDSCALE_RELEASE_READY = FALSE"));
 }
 
 #[test]
