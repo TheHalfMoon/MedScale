@@ -64,6 +64,15 @@ fn refresh_model_center(
     Ok(())
 }
 
+fn admit_model_pack(
+    session: &Rc<RefCell<CliSession>>,
+    path: &str,
+) -> Result<medscale_contracts::packs::PackAdmitResult, medscale_contracts::envelopes::AuthorityError>
+{
+    let mut session = session.borrow_mut();
+    session.packs_install_local(path)
+}
+
 fn validated_model_pack_path(raw: &str) -> Result<&str, &'static str> {
     let path = raw.trim();
     if path.is_empty() {
@@ -360,7 +369,8 @@ fn main() -> ExitCode {
                     return;
                 }
             };
-            match session.borrow_mut().packs_install_local(path) {
+            let admission = admit_model_pack(session, path);
+            match admission {
                 Ok(result) if result.admitted => {
                     let pack_id = result
                         .pack_id
@@ -420,7 +430,11 @@ fn main() -> ExitCode {
 
 #[cfg(test)]
 mod tests {
-    use super::{perf_idle_ms, validated_model_pack_path};
+    use super::{admit_model_pack, perf_idle_ms, validated_model_pack_path};
+    use medscale_core::CliSession;
+    use std::cell::RefCell;
+    use std::path::PathBuf;
+    use std::rc::Rc;
 
     #[test]
     fn perf_idle_probe_is_bounded_and_explicit() {
@@ -439,6 +453,23 @@ mod tests {
         assert_eq!(
             validated_model_pack_path(" /tmp/signed-pack "),
             Ok("/tmp/signed-pack")
+        );
+    }
+
+    #[test]
+    fn model_pack_admission_releases_session_borrow_before_refresh() {
+        let session = Rc::new(RefCell::new(
+            CliSession::connect_pack_operator("desktop-model-center-borrow-test")
+                .expect("connect least-privilege Model Center session"),
+        ));
+        let fixture = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("../../evidence/008-local-ai-capability-fabric/fixtures/pack-fixture-ner-v0");
+        let result = admit_model_pack(&session, &fixture.display().to_string())
+            .expect("admit signed fixture through scoped borrow");
+        assert!(result.admitted);
+        assert!(
+            session.try_borrow_mut().is_ok(),
+            "admission must release RefCell borrow before Model Center refresh"
         );
     }
 
