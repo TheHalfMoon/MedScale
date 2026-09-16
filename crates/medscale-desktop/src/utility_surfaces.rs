@@ -182,13 +182,6 @@ impl UtilitySurfacesVm {
                     .to_owned(),
                 status: "Offline-first".to_owned(),
             },
-            UtilityRowVm {
-                label: "MESC".to_owned(),
-                value: "Optional / deferred".to_owned(),
-                detail: "Absence does not block trusted core, product completion, or release qualification."
-                    .to_owned(),
-                status: "Untouched".to_owned(),
-            },
         ];
 
         Self {
@@ -320,9 +313,8 @@ mod tests {
                 .any(|row| { row.label == "NPHIES" && row.value == "External gate" })
         );
         assert!(
-            vm.integration_rows
-                .iter()
-                .any(|row| { row.label == "MESC" && row.value == "Optional / deferred" })
+            vm.integration_rows.iter().all(|row| row.label != "MESC"),
+            "separate MESC project must not appear as a MedScale integration"
         );
     }
 }

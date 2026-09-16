@@ -9,23 +9,24 @@ SPEC_000 = CLOSED_CANONICAL
 SPEC_001 = CLOSED_CANONICAL (see BUILD_QUEUE.md for live states)
 FOUNDER_STANDING_CURSOR_IMPLEMENTATION_AUTHORITY = ACTIVE
 REAL_PHI = NOT_AUTHORIZED
-MESC_MUTATION = NOT_AUTHORIZED
+MESC_PROJECT = SEPARATE_REPOSITORY_OUT_OF_SCOPE
 ```
 
-The earlier planning-only gate has been superseded by `IMPLEMENTATION_AUTHORITY.md`. Cursor must follow live BUILD_QUEUE.md; Specs 001�011 and 013�015 are CLOSED_CANONICAL; Spec 012 is DEFERRED_BY_CANONICAL_DESIGN (optional MESC integration; never a completion or release gate). It must not ask the founder for ordinary engineering decisions already governed by the plan.
+The earlier planning-only gate has been superseded by `IMPLEMENTATION_AUTHORITY.md`. Cursor must follow live BUILD_QUEUE.md; Specs 001�011 and 013�015 are CLOSED_CANONICAL; Specs 012 and 036 are retained as historical interoperability provenance only under `MESC_PROJECT_SEPARATION.md`; they are not current MedScale execution, completion, or release authority. It must not ask the founder for ordinary engineering decisions already governed by the plan.
 
 ## 2. Mandatory read order
 
 1. `/CURSOR.md`
 2. `/AGENTS.md`
 3. `IMPLEMENTATION_AUTHORITY.md`
-4. `BUILD_QUEUE.md`
-5. `MASTER_BUILD_PLAN_V2.md`
-6. `SPECKIT_MASTER_ROADMAP_V2.md`
-7. `IMPLEMENTATION_DECISION_DEFAULTS.md`
-8. `SOURCE_ACQUISITION_AND_COPY_PLAN.md`
-9. `V0_UI_INTEGRATION_CONTRACT.md`
-10. relevant source/OSS/OpenMed matrices and current spec package
+4. `MESC_PROJECT_SEPARATION.md`
+5. `BUILD_QUEUE.md`
+6. `MASTER_BUILD_PLAN_V2.md`
+7. `SPECKIT_MASTER_ROADMAP_V2.md`
+8. `IMPLEMENTATION_DECISION_DEFAULTS.md`
+9. `SOURCE_ACQUISITION_AND_COPY_PLAN.md`
+10. `V0_UI_INTEGRATION_CONTRACT.md`
+11. relevant source/OSS/OpenMed matrices and current spec package
 
 ## 3. Build order
 
@@ -47,7 +48,7 @@ Then dependency-controlled tracks:
 005 + 006 -> 009 Mobile base; AI features also require 008
 008 -> 010 Documents/OCR/Voice
 004 + 008 -> 011 Evidence/Retrieval/Medical Intelligence
-008 -> 012 MESC Artifact Integration (optional lane; artifact admit additionally requires a released MESC artifact)
+Historical only: Spec 012 records prior MESC artifact-interoperability work; it is not a current MedScale build dependency.
 005 + 006 -> 013 FHIR/SMART/Network Broker -> 014 Controlled Actions/NPHIES
 008 + 013 (+ mobile pack constraints) -> 015 Online Pack/HF Ecosystem
 016+ remains deferred until canonically promoted
@@ -71,7 +72,7 @@ Spec **032** is `CLOSED_CANONICAL` READY_BASE (Q03 privacy probes + Q05 NOTICE i
 Spec **033** is `CLOSED_CANONICAL` READY_BASE (Q09 Windows AppContainer FS measured; `windows_appcontainer_fs_measured=true`; `platform_qualified=false`).
 Spec **034** is `CLOSED_CANONICAL` READY_BASE (Q12 durable outbox restart; `outbox_restart_qualified=true`; NPHIES still gated).
 Spec **035** is `CLOSED_CANONICAL` READY_BASE (EncryptedVault authority sync; `encrypted_authority_sync_qualified=true`; `PRIVATE_DATA_READY` still FALSE).
-Spec **036** is `CLOSED_CANONICAL` READY_BASE (MESC synthetic verifier; `verifier_ready_base=true`; MESC artifact NOT_AVAILABLE with no core/completion/release impact; Spec 012 optional).
+Spec **036** is retained as `CLOSED_CANONICAL` historical interoperability provenance; it is not a current MedScale lane, gate, completion axis, or release axis.
 Spec **037** is `CLOSED_CANONICAL` READY_BASE (required-checks packet + checksum verify + license counsel packet + broker transport-fail fixtures; `RELEASE_READY` still FALSE).
 Spec **038** is `CLOSED_CANONICAL` READY_BASE (Q09 AppContainer network measured; `windows_appcontainer_network_measured=true`; LPAC scaffold; sandbox gate still OPEN).
 Spec **039** is `CLOSED_CANONICAL` READY_BASE (entry-doc honesty + PHI readiness checklist + signing/provenance prep packets; no RELEASE_READY claim).

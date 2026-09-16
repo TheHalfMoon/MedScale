@@ -4,10 +4,10 @@
 //! Spec 036 ships a synthetic-manifest verifier READY_BASE; product admit remains
 //! fail-closed on `MESC_RELEASED_ARTIFACT` until a real upstream release qualifies.
 //!
-//! Canonical decoupling: MESC is an OPTIONAL external integration. It is not a
-//! MedScale completion gate, release gate, or runtime requirement. Spec 012 is
-//! DEFERRED_BY_CANONICAL_DESIGN; absence of a MESC artifact must not block the
-//! trusted core, the offline workflow, or release qualification.
+//! Current governance: MESC is a separate project/repository. These contracts are
+//! retained only for historical interoperability and backward-compatible decoding.
+//! They do not create a current MedScale integration lane, external gate, completion
+//! axis, release axis, or execution authority.
 
 use serde::{Deserialize, Serialize};
 
@@ -25,11 +25,11 @@ pub struct MescArtifactDoctorStatus {
     pub shared_db_or_keys: bool,
     pub disposition: String,
     pub gate: String,
-    /// MESC integration is optional: false means its absence never blocks
-    /// MedScale core operation, project completion, or release readiness.
+    /// Historical compatibility field. Current MedScale doctor state keeps this
+    /// false because MESC is a separate project and cannot block MedScale.
     #[serde(default)]
     pub required: bool,
-    /// Optional-integration status: NOT_CONFIGURED | NOT_AVAILABLE | AVAILABLE.
+    /// Compatibility status. Current MedScale doctor state uses OUT_OF_SCOPE.
     #[serde(default = "default_mesc_integration_status")]
     pub integration_status: String,
 }
@@ -40,9 +40,7 @@ fn default_mesc_integration_status() -> String {
 }
 
 impl MescArtifactDoctorStatus {
-    /// Canonical doctor default: no MESC artifact configured; core unaffected.
-    /// Fail-closed admit is preserved: user-attempted admission still requires
-    /// the upstream artifact gate to clear.
+    /// Historical compatibility default retained for decoding/tests from Specs 012/036.
     #[must_use]
     pub fn not_configured() -> Self {
         Self {
@@ -55,6 +53,22 @@ impl MescArtifactDoctorStatus {
             gate: "OPTIONAL_MESC_ARTIFACT".to_owned(),
             required: false,
             integration_status: "NOT_CONFIGURED".to_owned(),
+        }
+    }
+
+    /// Current MedScale doctor state: MESC is a separate project/repository.
+    #[must_use]
+    pub fn separate_project() -> Self {
+        Self {
+            present: true,
+            artifact_admitted: false,
+            verifier_ready_base: true,
+            python_runtime_imported: false,
+            shared_db_or_keys: false,
+            disposition: "SEPARATE_PROJECT".to_owned(),
+            gate: "NONE".to_owned(),
+            required: false,
+            integration_status: "OUT_OF_SCOPE".to_owned(),
         }
     }
 
@@ -78,13 +92,18 @@ impl MescArtifactDoctorStatus {
 
     #[must_use]
     pub fn is_honest_ready_base(&self) -> bool {
+        let legacy_interop =
+            self.gate == "MESC_RELEASED_ARTIFACT" || self.gate == "OPTIONAL_MESC_ARTIFACT";
+        let separate_project = self.gate == "NONE"
+            && self.integration_status == "OUT_OF_SCOPE"
+            && self.disposition == "SEPARATE_PROJECT";
         self.present
             && !self.artifact_admitted
             && self.verifier_ready_base
             && !self.python_runtime_imported
             && !self.shared_db_or_keys
             && !self.required
-            && (self.gate == "MESC_RELEASED_ARTIFACT" || self.gate == "OPTIONAL_MESC_ARTIFACT")
+            && (legacy_interop || separate_project)
     }
 
     /// Release-qualification predicate: MESC absence must never fail release.

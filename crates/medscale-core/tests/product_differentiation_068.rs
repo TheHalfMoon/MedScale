@@ -87,8 +87,8 @@ fn canonical_status_reopens_until_product_differentiation_sequence_closes() {
             .expect("completion status");
     assert!(status.contains("STATUS = PRODUCT_DIFFERENTIATION_REBUILD_IN_PROGRESS"));
     assert!(status.contains("MEDSCALE_IMPLEMENTATION_COMPLETE = FALSE"));
-    assert!(status.contains("NEXT_PROMOTED_SPEC = 071"));
-    assert!(!status.contains("NEXT_PROMOTED_SPEC = 072"));
+    assert!(status.contains("NEXT_PROMOTED_SPEC = 072"));
+    assert!(!status.contains("NEXT_PROMOTED_SPEC = 073"));
     assert!(status.contains("MEDSCALE_IMPLEMENTATION_COMPLETE = FALSE"));
 }
 

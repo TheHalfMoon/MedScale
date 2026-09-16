@@ -51,10 +51,11 @@ fn utility_boundary_reuses_doctor_fhir_disclosure_and_broker_truth() {
         "Default deny",
         "Not authorized",
         "WCAG not claimed",
-        "Optional / deferred",
     ] {
         assert!(model.contains(term), "missing 064 boundary term: {term}");
     }
+    assert!(!model.contains("label: \"MESC\""));
+    assert!(!model.contains("Optional / deferred"));
 }
 
 #[test]

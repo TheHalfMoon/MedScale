@@ -8,5 +8,5 @@
 - [x] T6 Remove unmanifested `PROVEN ADVANTAGE`/parity/surpass language from product surfaces.
 - [x] T7 Add claim-discipline, baseline, UI, smoke/perf and Rust 1.88 regressions.
 - [x] T8 Complete exact-range review and resolve all material findings.
-- [ ] T9 Pass exact-head required CI, protected merge and post-main verification.
-- [ ] T10 Close 071 and promote 072 Product Requalification.
+- [x] T9 Pass exact-head required CI, protected merge and post-main verification.
+- [x] T10 Close 071 and promote 072 Product Requalification.

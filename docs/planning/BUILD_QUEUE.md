@@ -5,7 +5,7 @@
 **Rule:** update this file whenever a unit enters or leaves a canonical state.
 
 **Autonomous stop status (historical V2 scoped closure):** superseded for Trusted V1 follow-on work.
-**Live follow-on status (2026-09-15):** Specs **016**–**067** are `CLOSED_CANONICAL`; Spec **012** is `DEFERRED_BY_CANONICAL_DESIGN` as optional MESC integration. Trusted V1 and the separately promoted Desktop+CLI implementation phase are repository-complete pending external gates. Honesty: `PRIVATE_DATA_READY=false`; `RELEASE_READY=false`; `budgets_claimed_met=false`; sandbox `platform_qualified=false`.
+**Live follow-on status (2026-09-15):** Specs **016**–**067** are `CLOSED_CANONICAL`; Spec **012** and Spec **036** are historical MESC interoperability provenance only under `MESC_PROJECT_SEPARATION.md`; MESC is a separate project and neither spec is current MedScale execution authority. Trusted V1 and the separately promoted Desktop+CLI implementation phase are repository-complete pending external gates. Honesty: `PRIVATE_DATA_READY=false`; `RELEASE_READY=false`; `budgets_claimed_met=false`; sandbox `platform_qualified=false`.
 
 ## 2026-09-11 planning refinement
 
@@ -27,7 +27,7 @@ See Trusted V1 delivery plan. Specs 018–067 are closed; Spec 012 remains optio
 | 009 | Mobile iOS + Android | `CLOSED_CANONICAL` | READY_BASE: doctor/mobile axes, keystore sync forbid, FFI stubs; no apps. |
 | 010 | Documents + OCR + Voice | `CLOSED_CANONICAL` | MIME quarantine + OCR/ASR stubs merged; real engines deferred. |
 | 011 | Evidence / Retrieval / Medical Intelligence | `CLOSED_CANONICAL` | Lexical retrieval to evidence-only EvaluationRecords; relevance is not authority. |
-| 012 | MESC Artifact Integration (optional) | `DEFERRED_BY_CANONICAL_DESIGN` | Fail-closed admit + doctor optional-integration axis shipped; Spec **036** verifier READY_BASE; ARTIFACT_IMPORT lane gated on a real upstream release; MESC absence never blocks core, completion, or release. |
+| 012 | Historical MESC Artifact Interoperability | `DEFERRED_BY_CANONICAL_DESIGN` | Historical interoperability provenance only. MESC is a separate project; this row is not a current MedScale build lane, dependency, gate, completion axis, or release axis. |
 | 013 | FHIR / SMART / Network Broker | `CLOSED_CANONICAL` | Fail-closed broker + stub SMART/FHIR adapters merged; continue Spec 014 when workflow evidence ready. |
 | 014 | Controlled Actions / NPHIES | `CLOSED_CANONICAL` | READY_BASE: outbox + payload-bound intents; NPHIES remains external gate. |
 | 015 | HF + Online Pack Ecosystem | `CLOSED_CANONICAL` | READY_BASE deny path via Network Broker; HF online remains external gate. |
@@ -51,7 +51,7 @@ See Trusted V1 delivery plan. Specs 018–067 are closed; Spec 012 remains optio
 | 033 | Windows AppContainer FS (Q09 residual) | `CLOSED_CANONICAL` | READY_BASE: AppContainer child FS deny (windows_appcontainer_fs_measured); network/LPAC scaffold; platform_qualified=false; WORKER_OS_SANDBOX gate OPEN. |
 | 034 | Durable Outbox Restart (Q12 residual) | `CLOSED_CANONICAL` | READY_BASE: SyntheticVault outbox reload + UNKNOWN reconcile; `outbox_restart_qualified`; NPHIES gated. |
 | 035 | EncryptedVault Authority Sync (Q02/Q03 residual) | `CLOSED_CANONICAL` | READY_BASE: EncryptedVault persists/reloads authority graph; `encrypted_authority_sync_qualified`; PRIVATE_DATA_READY=false. |
-| 036 | MESC Synthetic Verifier (012 residual) | `CLOSED_CANONICAL` | READY_BASE: synthetic manifest verifier + fixtures; `verifier_ready_base=true`; MESC artifact NOT_AVAILABLE with no core/completion/release impact (Spec 012 optional). |
+| 036 | Historical MESC Synthetic Verifier | `CLOSED_CANONICAL` | Historical interoperability provenance only. The verifier evidence remains preserved, but MESC is a separate project and this row creates no current MedScale execution or release authority. |
 | 037 | Release Prep + Transport Fail Fixtures | `CLOSED_CANONICAL` | READY_BASE: REQUIRED_CHECKS packet + checksum verify + license counsel packet + broker transport fail fixtures; RELEASE_READY=false. |
 | 038 | Windows AppContainer Network (Q09 residual) | `CLOSED_CANONICAL` | READY_BASE: AppContainer TCP deny (`windows_appcontainer_network_measured`); LPAC scaffold; platform_qualified=false. |
 | 039 | Release Honesty Packets | `CLOSED_CANONICAL` | READY_BASE: START_HERE/SPECKIT sync + PHI readiness checklist + signing/provenance prep + unsigned release-manifest scaffold. |
@@ -86,8 +86,8 @@ See Trusted V1 delivery plan. Specs 018–067 are closed; Spec 012 remains optio
 | 068 | Product Differentiation Rebuild | `CLOSED_CANONICAL` | Founder-reopened product bar: original MedScale identity, Models route, Evidence route, truthful OpenMed comparison. |
 | 069 | Real Local Model Runtime + HF Pack Path | `CLOSED_CANONICAL` | Admit real bounded inference behind worker/authority boundaries; explicit HF acquisition through Network Broker/pack provenance. |
 | 070 | Model Center + Runtime UX | `CLOSED_CANONICAL` | Authority-backed session Pack inventory/admission and truthful runtime/operator state merged and post-main qualified. |
-| 071 | OpenMed Evidence Center | `IN_PROGRESS` | Productize exact comparative evidence; prove or refuse every parity/surpass claim. |
-| 072 | Product Requalification | `PROMOTED_PENDING_071` | Re-run product, accessibility, performance and release-candidate qualification on the rebuilt product. |
+| 071 | OpenMed Evidence Center | `CLOSED_CANONICAL` | Pinned OpenMed evidence, 39-row fail-closed claim ledger, and native comparative Evidence Center merged and post-main qualified. |
+| 072 | Product Requalification | `IN_PROGRESS` | Re-run product, accessibility, performance and release-candidate qualification on the rebuilt product. |
 | 073+ | Advanced deferred work | `DEFERRED_BY_CANONICAL_DESIGN` | Plugins/GraphRAG/replicas/imaging/CUDA/mobile-after-launch/etc.; require fresh promotion. |
 
 ## Automatic progression
@@ -98,5 +98,5 @@ Do not stop merely because a PR merged, one milestone passed, or an external opt
 
 **Mobile remains deferred until Desktop+CLI launch.** No mobile application implementation is authorized by Specs 068-072.
 
-**Next eligible (honest):** Spec **068** is `CLOSED_CANONICAL`; Spec **069** is `CLOSED_CANONICAL`; Spec **070** is `CLOSED_CANONICAL`; Spec **071** is `IN_PROGRESS` for the evidence-backed OpenMed comparison surface and claim ledger. Release qualification remains paused. Follow 071 -> 072 before forming a new release candidate. `RELEASE_READY`, `PRIVATE_DATA_READY`, and `MULTI_CLIENT_RELEASE_READY` remain false. Spec 012/MESC remains optional/deferred and untouched.
+**Next eligible (honest):** Spec **068** is `CLOSED_CANONICAL`; Spec **069** is `CLOSED_CANONICAL`; Spec **070** is `CLOSED_CANONICAL`; Spec **071** is `CLOSED_CANONICAL`; Spec **072** is `IN_PROGRESS` for rebuilt-product qualification. Release qualification remains paused until 072 closes; then perform final repository-implementation closure before any release-ready claim. `RELEASE_READY`, `PRIVATE_DATA_READY`, and `MULTI_CLIENT_RELEASE_READY` remain false. MESC is a separate project/repository and is excluded from MedScale execution, completion, and release criteria; historical Specs 012/036 remain provenance only.
 
