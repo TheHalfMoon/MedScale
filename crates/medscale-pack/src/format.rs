@@ -1,7 +1,8 @@
 //! Format gates and local-path admission (Spec 008 + Spec 026 signer).
 
 use std::fs;
-use std::path::Path;
+use std::io::Read;
+use std::path::{Component, Path, PathBuf};
 
 use medscale_contracts::objects::{DigestSha256, OpaqueId};
 use medscale_contracts::packs::{
@@ -59,6 +60,36 @@ pub fn forbidden_reason(kind: PackArtifactKind) -> Option<PackAdmitReason> {
         .then_some(PackAdmitReason::ForbiddenArtifactKind)
 }
 
+pub(crate) const fn artifact_size_limit(kind: PackArtifactKind) -> u64 {
+    match kind {
+        PackArtifactKind::OnnxModel => 1_073_741_824,
+        PackArtifactKind::TokenizerMeta | PackArtifactKind::FixtureBytes => 67_108_864,
+        PackArtifactKind::ModelMetadata => 1_048_576,
+        PackArtifactKind::Pickle | PackArtifactKind::CodeBin | PackArtifactKind::OnnxCustomOp => 0,
+    }
+}
+
+fn read_bounded_artifact(path: &Path, kind: PackArtifactKind) -> Result<Vec<u8>, AdmitError> {
+    let limit = artifact_size_limit(kind);
+    let metadata = fs::metadata(path).map_err(|err| AdmitError::Io(err.to_string()))?;
+    if !metadata.is_file() || metadata.len() > limit {
+        return Err(AdmitError::InvalidManifest(
+            "artifact exceeds admitted byte bound".into(),
+        ));
+    }
+    let file = fs::File::open(path).map_err(|err| AdmitError::Io(err.to_string()))?;
+    let mut bytes = Vec::new();
+    file.take(limit + 1)
+        .read_to_end(&mut bytes)
+        .map_err(|err| AdmitError::Io(err.to_string()))?;
+    if u64::try_from(bytes.len()).unwrap_or(u64::MAX) > limit {
+        return Err(AdmitError::InvalidManifest(
+            "artifact exceeds admitted byte bound".into(),
+        ));
+    }
+    Ok(bytes)
+}
+
 fn parse_hex_digest(hex: &str) -> Result<DigestSha256, AdmitError> {
     let hex = hex.trim();
     if hex.len() != 64 {
@@ -74,6 +105,32 @@ fn parse_hex_digest(hex: &str) -> Result<DigestSha256, AdmitError> {
             .map_err(|_| AdmitError::InvalidManifest("digest hex".into()))?;
     }
     Ok(DigestSha256::from_bytes(bytes))
+}
+
+fn safe_artifact_path(root: &Path, relative: &str) -> Result<PathBuf, AdmitError> {
+    let relative = Path::new(relative);
+    if relative.is_absolute()
+        || relative
+            .components()
+            .any(|component| !matches!(component, Component::Normal(_)))
+    {
+        return Err(AdmitError::InvalidManifest(
+            "artifact path escapes pack root".into(),
+        ));
+    }
+    let canonical_root = root
+        .canonicalize()
+        .map_err(|err| AdmitError::Io(err.to_string()))?;
+    let candidate = root.join(relative);
+    let canonical_candidate = candidate
+        .canonicalize()
+        .map_err(|err| AdmitError::Io(err.to_string()))?;
+    if !canonical_candidate.starts_with(&canonical_root) {
+        return Err(AdmitError::InvalidManifest(
+            "artifact path escapes pack root".into(),
+        ));
+    }
+    Ok(canonical_candidate)
 }
 
 fn normalize_lf(bytes: Vec<u8>) -> Vec<u8> {
@@ -145,12 +202,14 @@ pub fn admit_pack_dir(path: &Path) -> Result<PackManifestV0, AdmitError> {
         if forbidden_reason(art.kind).is_some() {
             return Err(AdmitError::ForbiddenKind);
         }
-        let file = path.join(&art.relative_path);
-        let mut bytes = fs::read(&file).map_err(|e| AdmitError::Io(e.to_string()))?;
+        let file = safe_artifact_path(path, &art.relative_path)?;
+        let mut bytes = read_bounded_artifact(&file, art.kind)?;
         // Text fixture kinds are LF-canonical (Windows checkouts must not change digests).
         if matches!(
             art.kind,
-            PackArtifactKind::FixtureBytes | PackArtifactKind::TokenizerMeta
+            PackArtifactKind::FixtureBytes
+                | PackArtifactKind::TokenizerMeta
+                | PackArtifactKind::ModelMetadata
         ) {
             bytes = normalize_lf(bytes);
         }

@@ -14,7 +14,10 @@ use crate::mesc::{MescArtifactAdmitRequest, MescArtifactVerifyRequest, MescVerif
 use crate::network::{EgressAllowlistEntry, NetworkBrokerRequest, NetworkBrokerResult};
 use crate::objects::{AmendmentKind, DigestSha256, EffectState, MedicalTime, OpaqueId, VaultId};
 use crate::online_packs::OnlinePackAcquireRequest;
-use crate::packs::{PackAdmitResult, PackManifestV0, PackPromotionState};
+use crate::packs::{
+    PackAdmitResult, PackEvaluationRequest, PackEvaluationResult, PackManifestV0,
+    PackPromotionState,
+};
 use crate::presentation::{DrillDownResult, SubjectBriefV1, SubjectCoverageV1, SubjectTimelineV1};
 use crate::workflow::DisclosureRecord;
 
@@ -56,6 +59,7 @@ pub enum Capability {
     PacksInstallLocal,
     PacksList,
     PacksPromote,
+    PacksEvaluateLocal,
     DocumentIntake,
     OcrStub,
     AsrStub,
@@ -148,6 +152,7 @@ impl Capability {
             Self::PacksInstallLocal,
             Self::PacksList,
             Self::PacksPromote,
+            Self::PacksEvaluateLocal,
             Self::DocumentIntake,
             Self::OcrStub,
             Self::AsrStub,
@@ -298,6 +303,9 @@ pub enum RequestBody {
     PacksPromote {
         pack_id: OpaqueId,
         to: PackPromotionState,
+    },
+    PacksEvaluateLocal {
+        request: PackEvaluationRequest,
     },
     DocumentIntake {
         request: DocumentIntakeRequest,
@@ -454,6 +462,9 @@ pub enum ResponseBody {
     PackPromoted {
         pack_id: OpaqueId,
         state: PackPromotionState,
+    },
+    PackEvaluation {
+        result: PackEvaluationResult,
     },
     DocumentIntake {
         result: DocumentIntakeResult,

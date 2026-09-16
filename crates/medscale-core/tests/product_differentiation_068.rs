@@ -49,8 +49,9 @@ fn models_and_competitive_evidence_are_first_class_and_truthful() {
     assert!(app.contains("label: \"Evidence\""));
     assert!(app.contains("EVIDENCE, NOT MARKETING"));
     assert!(app.contains("AI is visible, not implied."));
-    assert!(product.contains("production inference not admitted"));
-    assert!(product.contains("FixtureRuntime only"));
+    assert!(product.contains("real portable ONNX runtime admitted"));
+    assert!(product.contains("production clinical model not promoted"));
+    assert!(product.contains("OPENMED AHEAD"));
     assert!(product.contains("PROVEN ADVANTAGE"));
     assert!(product.contains("OPENMED AHEAD"));
     assert!(!product.contains("beats OpenMed"));
@@ -84,7 +85,8 @@ fn canonical_status_reopens_until_product_differentiation_sequence_closes() {
             .expect("completion status");
     assert!(status.contains("STATUS = PRODUCT_DIFFERENTIATION_REBUILD_IN_PROGRESS"));
     assert!(status.contains("MEDSCALE_IMPLEMENTATION_COMPLETE = FALSE"));
-    assert!(status.contains("NEXT_PROMOTED_SPEC = 068"));
+    assert!(status.contains("NEXT_PROMOTED_SPEC = 069"));
+    assert!(status.contains("MEDSCALE_IMPLEMENTATION_COMPLETE = FALSE"));
 }
 
 #[test]
