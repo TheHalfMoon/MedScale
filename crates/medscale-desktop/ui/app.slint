@@ -102,6 +102,7 @@ export struct CompetitiveEvidenceItem {
     openmed: string,
     verdict: string,
     evidence: string,
+    limitations: string,
 }
 
 export component AppWindow inherits Window {
@@ -507,7 +508,7 @@ export component AppWindow inherits Window {
                                 border-color: Theme.border;
                                 background: Theme.surface;
                                 accessible-role: groupbox;
-                                accessible-label: item.capability + ". Verdict " + item.verdict;
+                                accessible-label: item.capability + ". Claim state " + item.verdict + ". " + item.limitations;
                                 VerticalLayout {
                                     padding: 15px;
                                     spacing: 9px;
@@ -516,7 +517,7 @@ export component AppWindow inherits Window {
                                         Rectangle { horizontal-stretch: 1; background: transparent; }
                                         StatusPill {
                                             label: item.verdict;
-                                            accent: item.verdict == "PROVEN ADVANTAGE" ? Theme.success : item.verdict == "OPENMED AHEAD" ? Theme.danger : Theme.warning;
+                                            accent: item.verdict == "UNMEASURED" ? Theme.warning : item.verdict == "ANTI-METRIC" ? Theme.ink-quiet : Theme.signal-strong;
                                         }
                                     }
                                     HorizontalLayout {
@@ -536,6 +537,7 @@ export component AppWindow inherits Window {
                                         }
                                     }
                                     Text { text: "Evidence · " + item.evidence; color: Theme.ink-quiet; font-size: 9px; wrap: word-wrap; }
+                                    Text { text: "Limitations · " + item.limitations; color: Theme.ink-subtle; font-size: 9px; wrap: word-wrap; }
                                 }
                             }
                         }
