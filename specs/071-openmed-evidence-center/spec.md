@@ -1,6 +1,6 @@
 # Spec 071 — OpenMed Evidence Center
 
-**Status**: IN_PROGRESS
+**Status**: CLOSED_CANONICAL
 **Base**: `129b63d0d93e8fc14fa0dcd786d95b1ac4697e68`
 
 ## Goal

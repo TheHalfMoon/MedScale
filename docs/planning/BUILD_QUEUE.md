@@ -86,8 +86,8 @@ See Trusted V1 delivery plan. Specs 018–067 are closed; Spec 012 remains optio
 | 068 | Product Differentiation Rebuild | `CLOSED_CANONICAL` | Founder-reopened product bar: original MedScale identity, Models route, Evidence route, truthful OpenMed comparison. |
 | 069 | Real Local Model Runtime + HF Pack Path | `CLOSED_CANONICAL` | Admit real bounded inference behind worker/authority boundaries; explicit HF acquisition through Network Broker/pack provenance. |
 | 070 | Model Center + Runtime UX | `CLOSED_CANONICAL` | Authority-backed session Pack inventory/admission and truthful runtime/operator state merged and post-main qualified. |
-| 071 | OpenMed Evidence Center | `IN_PROGRESS` | Productize exact comparative evidence; prove or refuse every parity/surpass claim. |
-| 072 | Product Requalification | `PROMOTED_PENDING_071` | Re-run product, accessibility, performance and release-candidate qualification on the rebuilt product. |
+| 071 | OpenMed Evidence Center | `CLOSED_CANONICAL` | Pinned OpenMed evidence, 39-row fail-closed claim ledger, and native comparative Evidence Center merged and post-main qualified. |
+| 072 | Product Requalification | `IN_PROGRESS` | Re-run product, accessibility, performance and release-candidate qualification on the rebuilt product. |
 | 073+ | Advanced deferred work | `DEFERRED_BY_CANONICAL_DESIGN` | Plugins/GraphRAG/replicas/imaging/CUDA/mobile-after-launch/etc.; require fresh promotion. |
 
 ## Automatic progression
@@ -98,5 +98,5 @@ Do not stop merely because a PR merged, one milestone passed, or an external opt
 
 **Mobile remains deferred until Desktop+CLI launch.** No mobile application implementation is authorized by Specs 068-072.
 
-**Next eligible (honest):** Spec **068** is `CLOSED_CANONICAL`; Spec **069** is `CLOSED_CANONICAL`; Spec **070** is `CLOSED_CANONICAL`; Spec **071** is `IN_PROGRESS` for the evidence-backed OpenMed comparison surface and claim ledger. Release qualification remains paused. Follow 071 -> 072 before forming a new release candidate. `RELEASE_READY`, `PRIVATE_DATA_READY`, and `MULTI_CLIENT_RELEASE_READY` remain false. Spec 012/MESC remains optional/deferred and untouched.
+**Next eligible (honest):** Spec **068** is `CLOSED_CANONICAL`; Spec **069** is `CLOSED_CANONICAL`; Spec **070** is `CLOSED_CANONICAL`; Spec **071** is `CLOSED_CANONICAL`; Spec **072** is `IN_PROGRESS` for rebuilt-product qualification. Release qualification remains paused until 072 closes; then perform final repository-implementation closure before any release-ready claim. `RELEASE_READY`, `PRIVATE_DATA_READY`, and `MULTI_CLIENT_RELEASE_READY` remain false. Spec 012/MESC remains optional/deferred and untouched.
 
