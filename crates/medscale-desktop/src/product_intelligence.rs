@@ -1,9 +1,9 @@
 //! Product-level model/runtime and competitive-evidence presentation for Spec 068.
 //!
-//! This module is intentionally honest about the current boundary: MedScale has
-//! a pack/fabric contract and FixtureRuntime, but no production ONNX/llama/Candle
-//! runtime is admitted yet. Spec 069 owns that admission. Competitive rows may
-//! say PROVEN only when the repository already carries a bounded evidence class.
+//! This module exposes the current product/runtime truth. Spec 069 admits a real
+//! portable ONNX token-classification runtime and proves a pinned Hugging Face model
+//! locally, but no production clinical model or real-PHI inference is promoted.
+//! Competitive rows may say PROVEN only when bounded repository evidence exists.
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ModelStatusVm {
@@ -42,24 +42,26 @@ impl ProductIntelligenceVm {
     pub fn current_truth() -> Self {
         let models = vec![
             ModelStatusVm {
-                task: "Clinical NER".to_owned(),
-                model: "Production model not admitted".to_owned(),
-                source: "Hugging Face pack path".to_owned(),
-                runtime: "FixtureRuntime only".to_owned(),
-                device: "Local worker boundary".to_owned(),
-                trust: "Pack provenance required".to_owned(),
-                benchmark: "OpenMed parity not yet proven".to_owned(),
-                state: "RUNTIME GAP".to_owned(),
+                task: "NER runtime qualification".to_owned(),
+                model: "onnx-community/bert-base-NER-ONNX".to_owned(),
+                source: "Hugging Face · revision 9faa2f4…".to_owned(),
+                runtime: "tract-onnx 0.22.4 · portable CPU".to_owned(),
+                device: "Local CPU".to_owned(),
+                trust: "Signed Pack provenance + exact source digest".to_owned(),
+                benchmark:
+                    "Release baseline PASS · M2 warm p95 observed ≈ 0.6 s · accelerated runtime pending"
+                        .to_owned(),
+                state: "QUALIFIED BASELINE".to_owned(),
             },
             ModelStatusVm {
                 task: "PII / de-identification".to_owned(),
-                model: "Production model not admitted".to_owned(),
-                source: "Hugging Face pack path".to_owned(),
-                runtime: "FixtureRuntime only".to_owned(),
+                model: "Production clinical model not promoted".to_owned(),
+                source: "Curated Hugging Face Pack path".to_owned(),
+                runtime: "Portable ONNX runtime available".to_owned(),
                 device: "Local worker boundary".to_owned(),
-                trust: "Fail-closed pack admission".to_owned(),
+                trust: "Fail-closed Pack admission".to_owned(),
                 benchmark: "High-risk PHI recall pending".to_owned(),
-                state: "RUNTIME GAP".to_owned(),
+                state: "MODEL GAP".to_owned(),
             },
             ModelStatusVm {
                 task: "Clinical assistant".to_owned(),
@@ -124,40 +126,40 @@ impl ProductIntelligenceVm {
             },
             CompetitiveEvidenceVm {
                 capability: "Clinical NER".to_owned(),
-                medscale: "No production model runtime admitted yet".to_owned(),
+                medscale: "Portable ONNX runtime + pinned HF NER qualification; clinical-domain model benchmark still pending".to_owned(),
                 openmed: "Large public model catalog + rerunnable NER benchmarks".to_owned(),
                 verdict: "OPENMED AHEAD".to_owned(),
-                evidence: "Spec 008 FixtureRuntime-only; Spec 069 promoted".to_owned(),
+                evidence: "Spec 069 real HF model execution; Spec 071 owns comparative benchmark qualification".to_owned(),
             },
             CompetitiveEvidenceVm {
                 capability: "PII / de-identification".to_owned(),
-                medscale: "Contracts and parity corpus design; no production inference yet".to_owned(),
+                medscale: "Real ONNX runtime exists; production de-identification model/PHI benchmark not promoted".to_owned(),
                 openmed: "Multilingual local model family and de-identification pipeline".to_owned(),
                 verdict: "OPENMED AHEAD".to_owned(),
-                evidence: "Spec 007 corpus program; runtime proof pending 069/071".to_owned(),
+                evidence: "Spec 007 corpus program; Spec 069 runtime proof; clinical model proof pending 071".to_owned(),
             },
             CompetitiveEvidenceVm {
                 capability: "Model ecosystem".to_owned(),
-                medscale: "Signed/provenance-first pack lifecycle; online HF path gated".to_owned(),
+                medscale: "Signed provenance-first Pack lifecycle + pinned HF import qualification; online acquisition still gated".to_owned(),
                 openmed: "2,000+ public models and broad runtime coverage".to_owned(),
                 verdict: "OPENMED AHEAD".to_owned(),
-                evidence: "Specs 008/015; raw model count is not a MedScale success metric".to_owned(),
+                evidence: "Specs 008/015/069; raw model count is not a MedScale success metric".to_owned(),
             },
             CompetitiveEvidenceVm {
                 capability: "Apple Silicon inference".to_owned(),
-                medscale: "No MLX production adapter admitted".to_owned(),
+                medscale: "Portable tract CPU baseline measured; no accelerated Apple Silicon adapter admitted".to_owned(),
                 openmed: "MLX is a first-class accelerated runtime".to_owned(),
                 verdict: "OPENMED AHEAD".to_owned(),
-                evidence: "Spec 069 must benchmark runtime candidates before admission".to_owned(),
+                evidence: "Spec 069 portable baseline; Spec 071 owns accelerated runtime comparison".to_owned(),
             },
         ];
 
         Self {
-            model_runtime_summary: "Model Fabric · contracts live · production inference not admitted".to_owned(),
-            model_runtime_boundary: "Current product truth: signed/offline Pack contracts and FixtureRuntime exist. No production ONNX, llama.cpp, Candle, or MLX execution path is admitted yet. Spec 069 owns real runtime admission.".to_owned(),
-            model_source_summary: "Hugging Face is a model source, not an authority plane. Online acquisition must pass the Network Broker and exact pack provenance; runtime remains local and fail closed.".to_owned(),
+            model_runtime_summary: "Model Fabric · real portable ONNX runtime admitted · production clinical model not promoted".to_owned(),
+            model_runtime_boundary: "Current product truth: a local tract ONNX token-classification runtime is admitted for synthetic/evidence-only evaluation, and a pinned Hugging Face NER model has executed through signed Pack provenance. Real PHI remains gated; no production clinical model or accelerated runtime is promoted yet.".to_owned(),
+            model_source_summary: "Hugging Face is an artifact source, never an authority plane. Pinned source revision, original SHA-256, transformation, runtime and license are signed into the Pack. Product online acquisition remains Network Broker gated.".to_owned(),
             openmed_baseline: "OpenMed v2.2.0 · pinned commit 59d9cb0a…".to_owned(),
-            competitive_summary: "MedScale is structurally stronger in source custody, identity, longitudinal truth, and controlled-action authority. OpenMed is currently ahead in production clinical models, PII/de-ID breadth, and accelerated local inference.".to_owned(),
+            competitive_summary: "MedScale is structurally stronger in source custody, identity, longitudinal truth, and controlled-action authority. OpenMed remains ahead in production clinical-model breadth, PII/de-ID breadth, and accelerated local inference; Spec 069 proves the portable HF/ONNX path but does not erase those gaps.".to_owned(),
             models,
             evidence,
         }
@@ -173,9 +175,14 @@ mod tests {
         let vm = ProductIntelligenceVm::current_truth();
         assert!(
             vm.model_runtime_summary
-                .contains("production inference not admitted")
+                .contains("real portable ONNX runtime admitted")
         );
-        assert!(vm.models.iter().any(|row| row.state == "RUNTIME GAP"));
+        assert!(
+            vm.models
+                .iter()
+                .any(|row| row.state == "QUALIFIED BASELINE")
+        );
+        assert!(vm.models.iter().any(|row| row.state == "MODEL GAP"));
         assert!(vm.evidence.iter().any(|row| row.verdict == "OPENMED AHEAD"));
         assert!(
             vm.evidence

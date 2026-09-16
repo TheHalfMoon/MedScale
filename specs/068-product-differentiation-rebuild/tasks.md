@@ -8,5 +8,5 @@
 - [x] T6 Add Evidence route and evidence-backed OpenMed comparison model.
 - [x] T7 Add regression tests preventing unsupported superiority/model-runtime claims.
 - [x] T8 Run local qualification and OpenCodeReview/manual UI review.
-- [ ] T9 Exact-head CI, merge, and post-merge verification.
-- [ ] T10 Close 068 and promote 069 real local model runtime + HF pack path.
+- [x] T9 Exact-head CI, merge, and post-merge verification.
+- [x] T10 Close 068 and promote 069 real local model runtime + HF pack path.

@@ -1,6 +1,7 @@
 //! In-process Core Host authority facade (logical IPC API).
 
-use std::sync::Mutex;
+use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
 
 use medscale_contracts::AUTHORITY_SCHEMA_VERSION;
 use medscale_contracts::envelopes::{
@@ -25,6 +26,8 @@ use medscale_contracts::network::EgressAllowlistEntry;
 use medscale_network::FixtureTransport;
 use medscale_storage::{EncryptedVault, SyntheticVault};
 
+const MAX_PREPARED_MODEL_CACHE: usize = 4;
+
 /// In-process facade owning lease registry + in-memory store + optional vaults.
 #[derive(Debug)]
 pub struct CoreFacade {
@@ -36,6 +39,7 @@ pub struct CoreFacade {
     encrypted: Mutex<Option<EncryptedVault>>,
     allowlist: Mutex<Vec<EgressAllowlistEntry>>,
     packs: Mutex<medscale_pack::PackStore>,
+    prepared_models: Mutex<HashMap<DigestSha256, Arc<medscale_pack::PreparedOnnxTokenClassifier>>>,
     mesc_epochs: Mutex<medscale_pack::MescEpochStore>,
 }
 
@@ -58,6 +62,7 @@ impl CoreFacade {
             encrypted: Mutex::new(None),
             allowlist: Mutex::new(Vec::new()),
             packs: Mutex::new(medscale_pack::PackStore::default()),
+            prepared_models: Mutex::new(HashMap::new()),
             mesc_epochs: Mutex::new(medscale_pack::MescEpochStore::new()),
         }
     }
@@ -111,6 +116,17 @@ impl CoreFacade {
 
     fn packs(&self) -> std::sync::MutexGuard<'_, medscale_pack::PackStore> {
         self.packs
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+    }
+
+    fn prepared_models(
+        &self,
+    ) -> std::sync::MutexGuard<
+        '_,
+        HashMap<DigestSha256, Arc<medscale_pack::PreparedOnnxTokenClassifier>>,
+    > {
+        self.prepared_models
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner)
     }
@@ -1007,6 +1023,126 @@ impl CoreFacade {
                     }),
                 }
             }
+            RequestBody::PacksEvaluateLocal { request } => {
+                self.require_lease(&req.vault_id)?;
+                if !request.synthetic_only {
+                    return Err(AuthorityError::ExternalGateRequired {
+                        gate: "REAL_PHI_MODEL_RUNTIME".to_owned(),
+                    });
+                }
+                let path = std::path::Path::new(&request.local_path);
+                let manifest = medscale_pack::admit_pack_dir(path).map_err(|err| {
+                    AuthorityError::InvalidArgument {
+                        message: format!("pack evaluation admission failed: {err}"),
+                    }
+                })?;
+                if manifest.pack_id != request.pack_id {
+                    return Err(AuthorityError::DigestMismatch);
+                }
+                let stored = self
+                    .packs()
+                    .get(&request.pack_id)
+                    .ok_or(AuthorityError::NotFound)?;
+                if stored.content_digest != manifest.content_digest
+                    || stored.pack_epoch != manifest.pack_epoch
+                    || stored.version != manifest.version
+                {
+                    return Err(AuthorityError::DigestMismatch);
+                }
+                let max_tokens = usize::try_from(request.max_tokens).map_err(|_| {
+                    AuthorityError::InvalidArgument {
+                        message: "max_tokens is not representable".to_owned(),
+                    }
+                })?;
+                let runtime =
+                    medscale_pack::OnnxTokenClassifierRuntime::new(max_tokens).map_err(|err| {
+                        AuthorityError::InvalidArgument {
+                            message: format!("pack runtime configuration denied: {err}"),
+                        }
+                    })?;
+                let digest = manifest.content_digest.clone();
+                let cached = self
+                    .prepared_models()
+                    .get(&digest)
+                    .filter(|prepared| prepared.matches_runtime_contract(&manifest))
+                    .cloned();
+                let (prepared, prepared_cache_hit) = if let Some(prepared) = cached {
+                    if prepared.fixed_sequence_length() > max_tokens {
+                        return Err(AuthorityError::InvalidArgument {
+                            message:
+                                "pack runtime token ceiling is below the prepared model requirement"
+                                    .to_owned(),
+                        });
+                    }
+                    (prepared, true)
+                } else {
+                    // Preparation can be expensive. Never hold the shared cache mutex while
+                    // parsing/optimizing model bytes. Re-check after preparation to handle a
+                    // concurrent request that may have populated the same digest.
+                    let candidate = Arc::new(runtime.prepare(path, &manifest).map_err(|err| {
+                        AuthorityError::InvalidArgument {
+                            message: format!("pack runtime preparation failed: {err}"),
+                        }
+                    })?);
+                    let mut cache = self.prepared_models();
+                    if let Some(existing) = cache
+                        .get(&digest)
+                        .filter(|prepared| prepared.matches_runtime_contract(&manifest))
+                        .cloned()
+                    {
+                        (existing, true)
+                    } else {
+                        if cache.len() >= MAX_PREPARED_MODEL_CACHE
+                            && let Some(evict) = cache.keys().next().cloned()
+                        {
+                            cache.remove(&evict);
+                        }
+                        cache.insert(digest, Arc::clone(&candidate));
+                        (candidate, false)
+                    }
+                };
+                let evaluation =
+                    prepared
+                        .run(&manifest.pack_id, &request.input)
+                        .map_err(|err| AuthorityError::InvalidArgument {
+                            message: format!("pack runtime evaluation failed: {err}"),
+                        })?;
+                let mut store = self.store();
+                let audit_id = store.alloc_id("audit");
+                store.insert(StoredObject::Audit(ActionAuditRecord {
+                    header: ObjectHeader {
+                        id: audit_id.clone(),
+                        schema_version: AUTHORITY_SCHEMA_VERSION,
+                        realm_id: req.realm_id,
+                        authority_scope_id: req.authority_scope_id,
+                    },
+                    kind: ActionAuditKind::Audit,
+                    actor: OpaqueId::new("pack-runtime"),
+                    action: "packs.evaluate_local".to_owned(),
+                    target_refs: vec![manifest.pack_id.clone()],
+                    effect_state: None,
+                    payload_digest: None,
+                    detail: Some(serde_json::json!({
+                        "runtime": medscale_pack::ONNX_TOKEN_CLASSIFIER_RUNTIME_ID,
+                        "input_bytes": request.input.len(),
+                        "evidence_only": true,
+                        "synthetic_only": true,
+                        "prepared_cache_hit": prepared_cache_hit,
+                    })),
+                }));
+                Ok(ResponseBody::PackEvaluation {
+                    result: medscale_contracts::packs::PackEvaluationResult {
+                        pack_id: evaluation.output.pack_id,
+                        content_digest: manifest.content_digest,
+                        runtime_id: medscale_pack::ONNX_TOKEN_CLASSIFIER_RUNTIME_ID.to_owned(),
+                        prepared_cache_hit,
+                        evidence_only: evaluation.output.evidence_only,
+                        proposal_payload: evaluation.output.proposal_payload,
+                        provenance: evaluation.provenance,
+                        audit_id,
+                    },
+                })
+            }
             RequestBody::DocumentIntake { request } => {
                 self.require_lease(&req.vault_id)?;
                 let mut store = self.store();
@@ -1346,6 +1482,10 @@ fn capability_matches(cap: &Capability, body: &RequestBody) -> bool {
             )
             | (Capability::PacksList, RequestBody::PacksList)
             | (Capability::PacksPromote, RequestBody::PacksPromote { .. })
+            | (
+                Capability::PacksEvaluateLocal,
+                RequestBody::PacksEvaluateLocal { .. },
+            )
             | (
                 Capability::DocumentIntake,
                 RequestBody::DocumentIntake { .. }

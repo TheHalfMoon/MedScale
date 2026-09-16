@@ -21,6 +21,7 @@ These sources extend the original 185-URL corpus; they do not replace or silentl
 | INTEROP_RESEARCH | AUTHORITATIVE | https://specifications.openehr.org/ | OpenEHR standard source for later parity/adapters |
 | INTEROP_RESEARCH | AUTHORITATIVE | https://ohdsi.github.io/CommonDataModel/ | OMOP CDM source for later research projection/parity |
 | RUNTIME | CANDIDATE | https://github.com/huggingface/tokenizers | Rust tokenizer candidate; pin/version/regex limits/admission required |
+| RUNTIME | CANDIDATE | https://github.com/sonos/tract | portable Rust ONNX runtime baseline; Spec 069 pins tract-onnx 0.22.4 for Rust 1.88 compatibility |
 | RUNTIME | CANDIDATE | https://github.com/pykeio/ort | Rust ONNX Runtime binding candidate; runtime remains isolated on desktop |
 | RUNTIME | CANDIDATE | https://github.com/tracel-ai/burn | Rust-native runtime benchmark candidate; no preferred status |
 | KEYS | CANDIDATE | https://github.com/open-source-cooperative/keyring-core | current keyring API layer; combine with explicit platform stores |
@@ -34,3 +35,4 @@ These sources extend the original 185-URL corpus; they do not replace or silentl
 | PRODUCT_DESIGN | EVIDENCE | https://impeccable.style/ | Impeccable design-language documentation and review workflow |
 | TYPOGRAPHY | AUTHORITATIVE | https://github.com/vercel/geist-font | MedScale typography source; Geist Sans/Mono upstream |
 | TYPOGRAPHY | AUTHORITATIVE | https://github.com/vercel/geist-font/blob/main/LICENSE.txt | SIL Open Font License 1.1 evidence for Geist |
+| MODEL_QUALIFICATION | EVIDENCE | https://huggingface.co/onnx-community/bert-base-NER-ONNX/tree/9faa2f4a2d59b396888b318f596ff719cc893f1e | Spec 069 pinned MIT external NER qualification input; general-domain only, not a production clinical model |

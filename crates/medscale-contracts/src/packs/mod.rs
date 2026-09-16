@@ -1,6 +1,7 @@
 //! Pack v0 contracts (Spec 008 + Spec 026 signer/anti-rollback).
 
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
 use crate::objects::{DigestSha256, OpaqueId};
 
@@ -20,6 +21,7 @@ pub enum PackPromotionState {
 pub enum PackArtifactKind {
     FixtureBytes,
     TokenizerMeta,
+    ModelMetadata,
     OnnxModel,
     /// Forbidden by default.
     Pickle,
@@ -35,6 +37,24 @@ impl PackArtifactKind {
     pub const fn is_forbidden_by_default(self) -> bool {
         matches!(self, Self::Pickle | Self::CodeBin | Self::OnnxCustomOp)
     }
+}
+
+/// Signed provenance for one model artifact source (Spec 069).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ModelSourceProvenance {
+    pub source_kind: String,
+    pub repository: String,
+    pub revision: String,
+    pub original_file: String,
+    pub source_sha256: String,
+    pub transform: String,
+    pub fixed_sequence_length: u32,
+    pub task: String,
+    pub export_format: String,
+    pub runtime_family: String,
+    pub license_id: String,
+    pub upstream_rights_uri: String,
 }
 
 /// One artifact entry in PackManifestV0.
@@ -77,6 +97,32 @@ pub struct PacksRuntimeDoctorStatus {
     pub current_pack_id: Option<String>,
     pub confinement_claim: String,
     pub online_download_authorized: bool,
+}
+
+/// Bounded local pack evaluation request (Spec 069).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PackEvaluationRequest {
+    pub pack_id: OpaqueId,
+    pub local_path: String,
+    pub input: String,
+    pub max_tokens: u32,
+    /// Spec 069 remains synthetic-only; real PHI requires a later explicit gate.
+    pub synthetic_only: bool,
+}
+
+/// Evidence-only output from a local admitted model runtime.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PackEvaluationResult {
+    pub pack_id: OpaqueId,
+    pub content_digest: DigestSha256,
+    pub runtime_id: String,
+    pub prepared_cache_hit: bool,
+    pub evidence_only: bool,
+    pub proposal_payload: Value,
+    pub provenance: ModelSourceProvenance,
+    pub audit_id: OpaqueId,
 }
 
 /// Pack signer / trust READY_BASE posture (Spec 026 / Q09).

@@ -61,6 +61,14 @@ impl PackStore {
     }
 
     #[must_use]
+    pub fn get(&self, pack_id: &OpaqueId) -> Option<PackManifestV0> {
+        self.packs
+            .iter()
+            .find(|pack| &pack.pack_id == pack_id)
+            .cloned()
+    }
+
+    #[must_use]
     pub fn current_pack_id(&self) -> Option<OpaqueId> {
         self.packs
             .iter()

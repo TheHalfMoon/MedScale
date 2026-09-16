@@ -83,8 +83,8 @@ See Trusted V1 delivery plan. Specs 018–067 are closed; Spec 012 remains optio
 | 065 | CLI Product Experience + Capability Parity | `CLOSED_CANONICAL` | Exact-head `06be6d09…` passed run `34933002914`, PR #109 merged as `11a9652c…`, and post-merge main run `34933737357` passed all six required jobs. |
 | 066 | Desktop + CLI Hardening | `CLOSED_CANONICAL` | Exact-head `ed5cbbb…` passed run `34934782208`, PR #110 merged as `31e7c6c8…`, and post-merge main run `34935549696` passed all six required jobs. OpenCodeReview delegation supplemented manual Slint/docs review. |
 | 067 | Final UI Product Qualification | `CLOSED_CANONICAL` | Exact-head `9b4eb259…` passed run `34936519051`, PR #111 merged as `92ff3773…`, and post-merge main run `34937549663` passed all six required jobs. OpenCodeReview delegation supplemented manual docs review. |
-| 068 | Product Differentiation Rebuild | `IN_REVIEW` | Founder-reopened product bar: original MedScale identity, Models route, Evidence route, truthful OpenMed comparison. |
-| 069 | Real Local Model Runtime + HF Pack Path | `PROMOTED_PENDING_068` | Admit real bounded inference behind worker/authority boundaries; explicit HF acquisition through Network Broker/pack provenance. |
+| 068 | Product Differentiation Rebuild | `CLOSED_CANONICAL` | Founder-reopened product bar: original MedScale identity, Models route, Evidence route, truthful OpenMed comparison. |
+| 069 | Real Local Model Runtime + HF Pack Path | `IN_PROGRESS` | Admit real bounded inference behind worker/authority boundaries; explicit HF acquisition through Network Broker/pack provenance. |
 | 070 | Model Center + Runtime UX | `PROMOTED_PENDING_069` | Make installed/available models, tasks, devices, provenance, trust, benchmark and promotion state visible. |
 | 071 | OpenMed Evidence Center | `PROMOTED_PENDING_070` | Productize exact comparative evidence; prove or refuse every parity/surpass claim. |
 | 072 | Product Requalification | `PROMOTED_PENDING_071` | Re-run product, accessibility, performance and release-candidate qualification on the rebuilt product. |
@@ -98,5 +98,5 @@ Do not stop merely because a PR merged, one milestone passed, or an external opt
 
 **Mobile remains deferred until Desktop+CLI launch.** No mobile application implementation is authorized by Specs 068-072.
 
-**Next eligible (honest):** Spec **068** is `IN_REVIEW` after explicit founder rejection of the prior product UI/positioning. Release qualification is paused. Follow 068 -> 069 -> 070 -> 071 -> 072 before forming a new release candidate. `RELEASE_READY`, `PRIVATE_DATA_READY`, and `MULTI_CLIENT_RELEASE_READY` remain false. Spec 012/MESC remains optional/deferred and untouched.
+**Next eligible (honest):** Spec **068** is `CLOSED_CANONICAL`; Spec **069** is `IN_PROGRESS` for real bounded local model inference and Hugging Face pack provenance. Release qualification remains paused. Follow 069 -> 070 -> 071 -> 072 before forming a new release candidate. `RELEASE_READY`, `PRIVATE_DATA_READY`, and `MULTI_CLIENT_RELEASE_READY` remain false. Spec 012/MESC remains optional/deferred and untouched.
 
