@@ -22,8 +22,36 @@ pub struct CliSession {
 }
 
 impl CliSession {
-    /// Acquire lease, open client session, create session (vault not yet open).
+    /// Acquire lease and open the broad CLI operator session (vault not yet open).
     pub fn connect(vault_id: &str) -> Result<Self, AuthorityError> {
+        Self::connect_with_grants(
+            vault_id,
+            "medscale-cli",
+            "cli-holder",
+            Capability::operator_grants(),
+        )
+    }
+
+    /// Acquire the least-privilege session used by Desktop Model Center.
+    ///
+    /// The session may inspect admitted Packs and submit a local Pack for Core
+    /// admission. It cannot open vaults, evaluate models, promote Packs, use the
+    /// network broker, or invoke unrelated operator capabilities.
+    pub fn connect_pack_operator(vault_id: &str) -> Result<Self, AuthorityError> {
+        Self::connect_with_grants(
+            vault_id,
+            "medscale-model-center",
+            "model-center-holder",
+            vec![Capability::PacksList, Capability::PacksInstallLocal],
+        )
+    }
+
+    fn connect_with_grants(
+        vault_id: &str,
+        client_id: &str,
+        holder_id_hint: &str,
+        granted: Vec<Capability>,
+    ) -> Result<Self, AuthorityError> {
         let facade = CoreFacade::new();
         let vault_id = VaultId::new(vault_id);
         let realm_id = RealmId::new("cli-realm");
@@ -42,8 +70,8 @@ impl CliSession {
         let resp = session.dispatch_bootstrap(
             Capability::AcquireLease,
             RequestBody::AcquireLease {
-                client_id: OpaqueId::new("medscale-cli"),
-                holder_id_hint: Some(OpaqueId::new("cli-holder")),
+                client_id: OpaqueId::new(client_id),
+                holder_id_hint: Some(OpaqueId::new(holder_id_hint)),
             },
         )?;
         let ResponseBody::Lease { holder_id, .. } = resp else {
@@ -56,7 +84,7 @@ impl CliSession {
             Capability::OpenSession,
             RequestBody::OpenSession {
                 holder_id,
-                granted: Capability::operator_grants(),
+                granted,
                 ttl_ticks: 1_000_000,
             },
         )?;

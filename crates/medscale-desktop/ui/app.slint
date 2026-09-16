@@ -84,6 +84,7 @@ export struct AuditTrailItem {
 }
 
 export struct ModelStatusItem {
+    scope: string,
     task: string,
     model: string,
     source: string,
@@ -91,6 +92,7 @@ export struct ModelStatusItem {
     device: string,
     trust: string,
     benchmark: string,
+    digest: string,
     state: string,
 }
 
@@ -164,6 +166,9 @@ export component AppWindow inherits Window {
     in property <string> model-runtime-summary;
     in property <string> model-runtime-boundary;
     in property <string> model-source-summary;
+    in property <string> model-inventory-summary;
+    in-out property <string> model-pack-path: "";
+    in property <string> model-operator-status: "Ready for local Pack inspection";
     in property <string> openmed-baseline;
     in property <string> competitive-summary;
     in property <[ModelStatusItem]> model-rows;
@@ -306,7 +311,7 @@ export component AppWindow inherits Window {
                             accessible-role: text;
                             accessible-label: "Model Fabric status. " + root.model-runtime-summary;
                             Text {
-                                text: "●  Model Fabric · FIXTURE";
+                                text: "●  Model Fabric · LOCAL";
                                 color: Theme.nav-text;
                                 font-size: 9px;
                                 font-weight: 650;
@@ -382,15 +387,48 @@ export component AppWindow inherits Window {
                                 }
                             }
 
+                            Rectangle {
+                                min-height: 116px;
+                                border-radius: 12px;
+                                border-width: 1px;
+                                border-color: Theme.border;
+                                background: Theme.surface;
+                                accessible-role: groupbox;
+                                accessible-label: "Local Pack operator. " + root.model-inventory-summary + ". " + root.model-operator-status;
+                                VerticalLayout {
+                                    padding: 15px;
+                                    spacing: 8px;
+                                    HorizontalLayout {
+                                        Text { text: "LOCAL PACK OPERATOR"; color: Theme.signal-strong; font-size: 9px; font-weight: 650; letter-spacing: 1px; }
+                                        Rectangle { horizontal-stretch: 1; background: transparent; }
+                                        Text { text: root.model-operator-status; color: Theme.ink-quiet; font-size: 9px; }
+                                    }
+                                    Text { text: root.model-inventory-summary; color: Theme.ink-subtle; font-size: 10px; wrap: word-wrap; }
+                                    HorizontalLayout {
+                                        spacing: 8px;
+                                        LineEdit {
+                                            horizontal-stretch: 1;
+                                            height: 36px;
+                                            text <=> root.model-pack-path;
+                                            placeholder-text: "Absolute path to a signed local Pack directory";
+                                            accessible-label: "Local signed Pack directory";
+                                            accepted(text) => { root.model-pack-path = text; root.ui-action("model-admit"); }
+                                        }
+                                        ToolbarAction { label: "Admit local Pack"; activated => { root.ui-action("model-admit"); } }
+                                        ToolbarAction { label: "Refresh"; activated => { root.ui-action("model-refresh"); } }
+                                    }
+                                }
+                            }
+
                             HorizontalLayout {
                                 spacing: 8px;
                                 Text { text: "Runtime inventory"; color: Theme.ink; font-size: 14px; font-weight: 680; }
                                 Rectangle { horizontal-stretch: 1; background: transparent; }
-                                Text { text: "Spec 069 will admit real inference"; color: Theme.ink-quiet; font-size: 10px; }
+                                Text { text: "Core-backed session state · qualification references are separate"; color: Theme.ink-quiet; font-size: 10px; }
                             }
 
                             for item in root.model-rows: Rectangle {
-                                min-height: 108px;
+                                min-height: 126px;
                                 border-radius: 12px;
                                 border-width: 1px;
                                 border-color: Theme.border;
@@ -401,8 +439,9 @@ export component AppWindow inherits Window {
                                     padding: 15px;
                                     spacing: 16px;
                                     VerticalLayout {
-                                        width: 230px;
+                                        width: 250px;
                                         spacing: 4px;
+                                        Text { text: item.scope; color: Theme.signal-strong; font-size: 8px; font-weight: 650; letter-spacing: 0.8px; }
                                         Text { text: item.task; color: Theme.ink; font-size: 13px; font-weight: 680; }
                                         Text { text: item.model; color: Theme.ink-subtle; font-size: 10px; wrap: word-wrap; }
                                         Text { text: item.source; color: Theme.signal-strong; font-size: 9px; font-weight: 600; }
@@ -415,11 +454,12 @@ export component AppWindow inherits Window {
                                         Text { text: "Device   ·  " + item.device; color: Theme.ink-subtle; font-size: 10px; }
                                         Text { text: "Trust      ·  " + item.trust; color: Theme.ink-subtle; font-size: 10px; }
                                         Text { text: "Evidence ·  " + item.benchmark; color: Theme.ink-quiet; font-size: 10px; wrap: word-wrap; }
+                                        Text { text: "Digest    ·  " + item.digest; color: Theme.ink-quiet; font-size: 9px; wrap: word-wrap; }
                                     }
                                     StatusPill {
                                         label: item.state;
-                                        accent: item.state == "ACTIVE" ? Theme.success : item.state == "EXTERNAL GATE" ? Theme.warning : Theme.danger;
-                                                                }
+                                        accent: item.state == "CURRENT" || item.state == "QUALIFIED BASELINE" ? Theme.success : item.state == "CANDIDATE" || item.state == "CANARY" || item.state == "LAST GREEN" ? Theme.warning : item.state == "EMPTY" ? Theme.ink-quiet : Theme.danger;
+                                    }
                                 }
                             }
                         }

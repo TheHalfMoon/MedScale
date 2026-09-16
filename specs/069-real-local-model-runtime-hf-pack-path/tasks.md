@@ -9,5 +9,5 @@
 - [x] T7 Prove deterministic signed synthetic ONNX fixture execution and post-admission tamper rejection.
 - [x] T8 Execute pinned Hugging Face ONNX model locally through the same runtime and signed Pack boundary.
 - [x] T9 Freeze reproducible HF qualification tooling and product-truth documentation.
-- [ ] T10 Complete local qualification, exact-range review, exact-head CI, merge, and post-main closure.
-- [ ] T11 Close 069 and promote 070 Model Center + runtime UX.
+- [x] T10 Complete local qualification, exact-range review, exact-head CI, merge, and post-main closure.
+- [x] T11 Close 069 and promote 070 Model Center + runtime UX.
