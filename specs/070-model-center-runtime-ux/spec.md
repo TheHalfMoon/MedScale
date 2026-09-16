@@ -1,6 +1,6 @@
 # Spec 070 — Model Center + Runtime UX
 
-**Status**: IN_PROGRESS
+**Status**: CLOSED_CANONICAL
 **Base**: `99017b9b22400e5b6d35c217bea02c0602c5649e`
 
 ## Goal
