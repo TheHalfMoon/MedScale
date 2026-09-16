@@ -210,6 +210,16 @@ fn release_residuals_remain_exactly_external_after_rebuild() {
     let separation = std::fs::read_to_string(root.join("docs/planning/MESC_PROJECT_SEPARATION.md"))
         .expect("MESC project separation decision");
     assert!(separation.contains("separate project/repository"));
+    let closure =
+        std::fs::read_to_string(root.join("docs/planning/REPOSITORY_IMPLEMENTATION_CLOSURE.md"))
+            .expect("repository implementation closure");
+    assert!(closure.contains("HISTORICAL_BASELINE_SUPERSEDED_BY_PRODUCT_REOPENING"));
+    assert!(closure.contains("CURRENT_PROMOTED_SPEC = 072"));
+    assert!(closure.contains("CURRENT_REPOSITORY_IMPLEMENTATION_COMPLETE = FALSE"));
+    assert!(
+        !completion
+            .contains("No repository-owned Desktop+CLI implementation unit remains promoted")
+    );
     assert!(gates.contains("Spec 072"));
     assert!(gates.contains("including Models/Evidence"));
 }
