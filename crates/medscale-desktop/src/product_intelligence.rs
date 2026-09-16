@@ -177,7 +177,7 @@ impl ProductIntelligenceVm {
                 "Model Fabric · real portable ONNX runtime · {admitted} Pack(s) admitted this session"
             ),
             model_runtime_boundary: "Core owns Pack admission, promotion and execution; real portable ONNX runtime admitted for synthetic/evidence-only evaluation. Model Center is an operator projection: session-local admitted inventory is read through Core; a qualification reference is not an installed model. Real PHI and accelerated-runtime promotion remain denied.".to_owned(),
-            model_source_summary: "Hugging Face is an artifact source, never an authority plane. Session inventory shows only Core-admitted signed manifest truth; exact external source revision is shown only for the pinned qualification reference where repository evidence proves it.".to_owned(),
+            model_source_summary: "Hugging Face is an artifact source, never an authority plane. Session inventory shows Core-admitted manifest state. Pack v0 signing binds identity/version/epoch, content digest, rights URI and SBOM reference; runtime requirements, benchmark links and promotion state are declarations/Core state, not signature authority. Exact external source revision appears only for the pinned qualification reference where repository evidence proves it.".to_owned(),
             model_inventory_summary: if packs.is_empty() {
                 "No Pack is admitted in this Desktop session. Pack registry state is currently session-local, not restart-persistent.".to_owned()
             } else {
@@ -225,7 +225,7 @@ fn pack_row(pack: &PackManifestV0) -> ModelStatusVm {
         task: task.to_owned(),
         model: format!("{} · v{}", pack.pack_id.as_str(), pack.version),
         source: format!("Signed Pack · rights {}", pack.rights_uri),
-        runtime: pack.runtime_requirements.clone(),
+        runtime: format!("Declared · {}", pack.runtime_requirements),
         device: runtime_device(&pack.runtime_requirements).to_owned(),
         trust: format!("Core-admitted · trust root {}", pack.trust_root_id),
         benchmark,
@@ -292,6 +292,7 @@ mod tests {
         assert_eq!(row.scope, "SESSION INVENTORY");
         assert_eq!(row.state, "CURRENT");
         assert!(row.model.contains("pack-model-center-070"));
+        assert!(row.runtime.contains("Declared"));
         assert!(row.runtime.contains("tract-onnx"));
         assert!(row.trust.contains("synthetic-pack-trust-v1"));
         assert_eq!(row.digest, expected_digest);
@@ -344,5 +345,6 @@ mod tests {
                 .any(|row| row.verdict == "PROVEN ADVANTAGE")
         );
         assert!(!vm.competitive_summary.contains("unqualified superiority"));
+        assert!(vm.model_source_summary.contains("not signature authority"));
     }
 }
