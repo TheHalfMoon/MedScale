@@ -82,18 +82,19 @@ fn home_is_a_clinical_workspace_not_an_admin_dashboard() {
 }
 
 #[test]
-fn spec_068_closure_remains_historical_while_spec_073_is_active() {
+fn spec_068_closure_remains_historical_after_spec_073_closure() {
     let status =
         std::fs::read_to_string(repo_root().join("docs/planning/PROJECT_COMPLETION_STATUS.md"))
             .expect("completion status");
-    assert!(status.contains("STATUS = FINAL_UI_POLISH_IN_PROGRESS"));
-    assert!(status.contains("NEXT_PROMOTED_SPEC = 073"));
+    assert!(status.contains("STATUS = REPOSITORY_IMPLEMENTATION_COMPLETE_PENDING_EXTERNAL_GATES"));
+    assert!(status.contains("MEDSCALE_IMPLEMENTATION_COMPLETE = TRUE"));
+    assert!(status.contains("KNOWN_REPOSITORY_OWNED_DESKTOP_CLI_RESIDUALS = 0"));
+    assert!(status.contains("NEXT_PROMOTED_SPEC = NONE"));
+    assert!(!status.contains("NEXT_PROMOTED_SPEC = 073"));
     assert!(status.contains("MEDSCALE_RELEASE_READY = FALSE"));
     assert!(status.contains("## Spec 068 canonical closure"));
-    assert!(status.contains("Specs 068–072 remain `CLOSED_CANONICAL`"));
-    assert!(status.contains(
-        "Spec 073 is the only currently promoted repository-owned implementation residual"
-    ));
+    assert!(status.contains("## Spec 073 canonical closure"));
+    assert!(status.contains("Specs 068–073 remain `CLOSED_CANONICAL`"));
 }
 
 #[test]

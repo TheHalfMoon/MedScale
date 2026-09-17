@@ -1,6 +1,6 @@
 # Spec 073 — Final UI Polish
 
-Status: IN_PROGRESS
+Status: CLOSED_CANONICAL
 
 ## Founder promotion
 

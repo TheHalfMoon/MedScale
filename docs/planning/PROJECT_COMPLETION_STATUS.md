@@ -1,20 +1,20 @@
 # MedScale Project Completion Status
 
 ```text
-STATUS = FINAL_UI_POLISH_IN_PROGRESS
+STATUS = REPOSITORY_IMPLEMENTATION_COMPLETE_PENDING_EXTERNAL_GATES
 MEDSCALE_TRUSTED_V1_IMPLEMENTATION_COMPLETE = TRUE
-MEDSCALE_DESKTOP_CLI_PRODUCT_PHASE_COMPLETE = FALSE
-MEDSCALE_IMPLEMENTATION_COMPLETE = FALSE
+MEDSCALE_DESKTOP_CLI_PRODUCT_PHASE_COMPLETE = TRUE
+MEDSCALE_IMPLEMENTATION_COMPLETE = TRUE
 MEDSCALE_RELEASE_READY = FALSE
 PRIVATE_DATA_READY = FALSE
 MULTI_CLIENT_RELEASE_READY = FALSE
 REAL_PHI_AUTHORIZED = FALSE
 KNOWN_REPOSITORY_OWNED_TRUSTED_V1_RESIDUALS = 0
-KNOWN_REPOSITORY_OWNED_DESKTOP_CLI_RESIDUALS = 1
-NEXT_PROMOTED_SPEC = 073
+KNOWN_REPOSITORY_OWNED_DESKTOP_CLI_RESIDUALS = 0
+NEXT_PROMOTED_SPEC = NONE
 ```
 
-Repository-owned MedScale implementation was canonically complete through Spec 072. The founder has now explicitly reopened exactly one bounded repository-owned unit, Spec 073 Final UI Polish, for a cross-surface identity pass: native Desktop implementation, safe human-facing CLI identity, and documentation-only Web reference work without expanding backend or authority scope. Specs 068–072 remain `CLOSED_CANONICAL`; Spec 073 is the only currently promoted repository-owned implementation residual. Mobile and all 074+ advanced work remain deferred unless freshly promoted by a new canonical decision. On canonical Spec 073 closure, repository implementation closure must be restored without changing external release gates.
+Repository-owned MedScale implementation is canonically complete through Spec 073. The founder-promoted bounded cross-surface identity pass closed after native Desktop implementation, safe human-facing CLI identity, documentation-only Web reference, exact-head qualification, protected merge, and post-main verification. Specs 068–073 remain `CLOSED_CANONICAL`; no repository-owned implementation unit remains promoted. Mobile and all 074+ advanced work remain deferred unless freshly promoted by a new canonical decision.
 
 This implementation closure does not imply distribution/release qualification. `RELEASE_READY=false`, `PRIVATE_DATA_READY=false`, `MULTI_CLIENT_RELEASE_READY=false`, `REAL_PHI_AUTHORIZED=false`, qualified-hardware budget attainment is unproven, production signing/notarization is not granted, final macOS signed-product/App Sandbox enforcement remains external, and WCAG/assistive-technology qualification remains externally unmeasured. MESC is a separate project/repository and is excluded from MedScale completion and release calculations. Historical MedScale Specs 012/036 remain provenance only.
 
@@ -37,4 +37,9 @@ Spec 071 final head `fc8e7092cfe622db4ae0a77922be587989ec376a` passed all six re
 
 ## Spec 072 canonical closure
 
-Spec 072 final head `02e343ff11fbe914a0b312d4e8235552d9b89917` passed all six required jobs in pull-request run `35089753209`. PR #117 merged normally as `f97637e7e9435be8972cc908ced8354be0f7b24e`, and post-merge main run `35091230970` passed all six required jobs. Rebuilt-product routes, Model Center and Evidence Center truth boundaries, accessibility/performance external action packets, five-class release residual accounting, and MESC project separation are therefore canonical. No repository-owned MedScale implementation residual remains promoted.
+Spec 072 final head `02e343ff11fbe914a0b312d4e8235552d9b89917` passed all six required jobs in pull-request run `35089753209`. PR #117 merged normally as `f97637e7e9435be8972cc908ced8354be0f7b24e`, and post-merge main run `35091230970` passed all six required jobs. Rebuilt-product routes, Model Center and Evidence Center truth boundaries, accessibility/performance external action packets, five-class release residual accounting, and MESC project separation are therefore canonical. Product identity polish remained owned by Spec 073.
+
+
+## Spec 073 canonical closure
+
+Spec 073 final head `3ea26b297ef973ea6d0b992e50c99facfdab55c7` passed all six required jobs in pull-request run `35174991802`. PR #119 merged normally as `f9587c3ed66609b6e2a7c23bf2c45df6a67c8f2e`, and post-merge main run `35175649969` passed all six required jobs. The founder-approved monochrome signature mark with MedScale Shelf, adaptive Light/Dark tokens, embedded typography, icon grammar, dual-dock shell, safe CLI identity, and documentation-only Web reference are therefore canonical. Specs 068–073 remain `CLOSED_CANONICAL`. No repository-owned MedScale implementation residual remains promoted.
