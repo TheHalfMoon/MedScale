@@ -78,6 +78,18 @@ pub enum Capability {
     RejectProposal,
     AppendDisclosure,
     ListDisclosures,
+    ProjectCreate,
+    ProjectRead,
+    ProjectUpdate,
+    ProjectArchive,
+    ExperimentCreate,
+    ExperimentRead,
+    ExperimentUpdate,
+    ExperimentArchive,
+    ProjectArtifactAttach,
+    ProjectArtifactDetach,
+    ProjectGraphRead,
+    ProjectGraphMutate,
 }
 
 impl Capability {
@@ -107,6 +119,9 @@ impl Capability {
                 | Self::ReadCanonicalVisibility
                 | Self::VerifyBlob
                 | Self::GetFhirSupportMatrix
+                | Self::ProjectRead
+                | Self::ExperimentRead
+                | Self::ProjectGraphRead
         )
     }
 
@@ -170,6 +185,18 @@ impl Capability {
             Self::AppendDisclosure,
             Self::ListDisclosures,
             Self::RevokeSession,
+            Self::ProjectCreate,
+            Self::ProjectRead,
+            Self::ProjectUpdate,
+            Self::ProjectArchive,
+            Self::ExperimentCreate,
+            Self::ExperimentRead,
+            Self::ExperimentUpdate,
+            Self::ExperimentArchive,
+            Self::ProjectArtifactAttach,
+            Self::ProjectArtifactDetach,
+            Self::ProjectGraphRead,
+            Self::ProjectGraphMutate,
         ]
     }
 }
@@ -552,6 +579,31 @@ pub enum AuthorityError {
     SessionExpired,
     SessionRevoked,
     SessionDenied,
+    /// Optimistic-concurrency conflict: stale `expected_revision` or duplicate.
+    /// No write was performed.
+    Conflict {
+        message: String,
+    },
+    /// A pinned attachment binding no longer matches its canonical target.
+    StaleReference {
+        message: String,
+    },
+    /// Durable Project Graph bytes failed integrity validation.
+    Corrupt {
+        message: String,
+    },
+    /// Unsupported durable schema or unknown future authority value (fail closed).
+    UnsupportedSchema {
+        message: String,
+    },
+    /// Dependency or target temporarily unresolvable.
+    Unavailable {
+        message: String,
+    },
+    /// Unexpected internal failure (never a substitute for a typed variant).
+    Internal {
+        message: String,
+    },
 }
 
 /// Versioned authority request.

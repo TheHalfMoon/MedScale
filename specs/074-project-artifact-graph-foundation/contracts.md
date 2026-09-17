@@ -320,3 +320,39 @@ ERROR_TYPE = <exact Rust type/path>
 ```
 
 Any later change to those frozen items requires an explicit reason, test impact review, and migration impact review before code proceeds.
+
+## 17. Freeze record (T074-01, FROZEN_FOR_074)
+
+```text
+CONTRACT_FREEZE = FROZEN_FOR_074
+LIVE_BASE_SHA = ee8daef3a2782bbdbcb3324766a5d6b95c09fa09
+CONTRACT_FILES = crates/medscale-contracts/src/project_graph.rs,
+                 crates/medscale-contracts/src/lib.rs,
+                 crates/medscale-contracts/src/envelopes/mod.rs
+REVISION_MODEL = medscale_contracts::project_graph::ProjectRevision (u64 alias)
+                 + check_revision/initial_revision; no canonical precondition
+                 contract existed, so this is the single definition for 074.
+PREDICATE_VOCABULARY = contains, references, associated_with,
+                       experiment_input, experiment_output
+ARTIFACT_KIND_MAPPING = SourceRecord, DerivedSourceArtifact, Proposal,
+                        ClinicalAssertion, EvaluationRecord, IdentityAssertion,
+                        AmendmentRecord, EvidenceDocument, PackManifest,
+                        OtherExplicit(<[a-z0-9._-]{1,128}>);
+                        ActionAuditRecord/Projection/IdentityMergeDecision are
+                        intentionally NOT attachable (stay in owning trails).
+ERROR_TYPE = medscale_contracts::envelopes::AuthorityError, extended additively
+             with Conflict/StaleReference/Corrupt/UnsupportedSchema/Unavailable/
+             Internal { message }; Invalid->InvalidArgument, NotFound->NotFound,
+             Denied->Unauthorized|SessionDenied|WrongScope (most precise applies).
+```
+
+Sequencing note: typed Core request/response envelope bodies and their
+`capability_matches` pairs land in 074-C with the authority paths so the
+facade dispatch match stays exhaustive and every commit builds. The 12 new
+`Capability` variants and the 6 new `AuthorityError` variants above are the
+frozen vocabulary 074-C must use; 074-C may not invent parallel capabilities
+or a second error taxonomy. Experiment restore is NOT admitted (archive is
+terminal for experiments). No `ProjectId`/`ExperimentId` newtypes: identity
+is `header.id: OpaqueId`. No durable timestamps in 074 contracts: ordering
+travels through the existing audit trail; `MedicalTime` keeps clinical
+semantics.

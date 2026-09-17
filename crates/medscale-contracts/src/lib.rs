@@ -18,6 +18,7 @@ pub mod online_packs;
 pub mod os_sandbox;
 pub mod packs;
 pub mod presentation;
+pub mod project_graph;
 pub mod text;
 pub mod worker_policy;
 pub mod workflow;
