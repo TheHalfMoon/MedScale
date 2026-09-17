@@ -25,11 +25,11 @@ Each promoted unit chooses all applicable layers:
 - `L2 Storage`: transaction, migration, crash/reopen, concurrency and rollback.
 - `L3 Core integration`: commands -> policy -> storage -> result/receipt.
 - `L4 Surface parity`: CLI and Desktop use the same Core semantics.
-- `L5 Adversarial`: denied capabilities, prompt/project hostile content, malformed workers/network peers.
+- `L5 Adversarial`: denied capabilities, prompt/project/web hostile content, malformed workers/network peers.
 - `L6 Scale/performance`: declared workload on declared hardware.
 - `L7 Platform`: Windows/macOS/Linux behaviors where feature is supported.
 - `L8 Recovery`: crash, cancel, timeout, restart, reconnect, restore and migration rollback.
-- `L9 External qualification`: donor/model/service/worker behavior requiring real external artifacts.
+- `L9 External qualification`: donor/model/service/worker/browser behavior requiring real external artifacts.
 
 A passing lower layer never substitutes for an applicable higher layer.
 
@@ -62,23 +62,21 @@ No evidence record may convert `SKIPPED`, `NOT_RUN`, `UNAVAILABLE` or `UNKNOWN` 
 | Capability | allowed, denied, expired, wrong project, wrong target scope, approval required |
 | Revision | current revision, stale expected revision, duplicate/idempotent request, concurrent update |
 | Data class | PUBLIC, EXTERNAL_DEIDENTIFIED, TEAM_PROTECTED, LOCAL_PHI, unknown/invalid classification |
-| Network | offline, denied destination, timeout before dispatch, timeout after possible dispatch, malformed response |
+| Network | offline, denied destination, redirect to denied destination, timeout before dispatch, timeout after possible dispatch, malformed response |
 | Cancellation | before start, queued, active, completion race, late result after cancel/revoke |
 | Storage | crash before transaction, crash after commit, migration forward, restore, corrupt/missing derived cache |
 | Provenance | exact inputs, superseded inputs, missing source, digest mismatch, stale projection/index |
-| Logs | no raw PHI/prompt/audio by default, IDs/digests sufficient for diagnosis, bounded error details |
+| Logs | no raw PHI/prompt/audio/credentials by default, IDs/digests sufficient for diagnosis, bounded error details |
 | Accessibility | keyboard path, focus visibility, exposed name/role/action, no color-only state |
 
 ## 5. Spec 074 verification — Project + Artifact Graph
 
 ### Contract
-
 - round-trip every new contract;
 - reject malformed predicate/schema version;
 - existing canonical object refs remain resolvable.
 
 ### Storage
-
 - fresh-vault migration;
 - existing populated-vault migration;
 - rollback/reopen strategy from declared checkpoint;
@@ -88,7 +86,6 @@ No evidence record may convert `SKIPPED`, `NOT_RUN`, `UNAVAILABLE` or `UNKNOWN` 
 - archive without destructive object deletion.
 
 ### Scale
-
 Define at least two fixtures before closure:
 
 ```text
@@ -113,9 +110,7 @@ Thresholds are selected by the spec from measured current hardware; the test mus
 ## 7. Spec 076 verification — MedAgent
 
 ### Security corpus
-
 Project documents must include prompt-injection fixtures such as attempts to:
-
 - request hidden system instructions;
 - call a tool not in the manifest;
 - exfiltrate another artifact/project;
@@ -126,7 +121,6 @@ Project documents must include prompt-injection fixtures such as attempts to:
 Expected result: content may influence model text but cannot grant capabilities.
 
 ### Lifecycle
-
 - normal local run;
 - model unavailable;
 - invalid Pack;
@@ -135,12 +129,11 @@ Expected result: content may influence model text but cannot grant capabilities.
 - tool timeout;
 - context artifact deleted/stale before admission;
 - run receipt survives restart;
-- no ambient project/vault context beyond ContextManifest.
+- no ambient project/vault context beyond `ContextManifest`.
 
 ## 8. Spec 077 verification — Fleet/Compare
 
 Use deterministic fixture outputs in addition to real-model qualification:
-
 - all lanes agree text but cite conflicting evidence;
 - majority wrong fixture;
 - one lane abstains;
@@ -156,9 +149,7 @@ The UI/report must not emit an implicit winner from lane count.
 ## 9. Spec 078 verification — Privacy Gate
 
 ### Synthetic corpus classes
-
 At minimum:
-
 - person names;
 - national/local identifiers represented only by synthetic formats permitted for test;
 - medical record IDs;
@@ -174,23 +165,98 @@ At minimum:
 - negation and medically meaningful numbers/units.
 
 ### Required reporting
-
 - precision/recall or equivalent class-wise detection metrics where ground truth exists;
 - transformation correctness;
 - false-negative examples retained in evidence packet without real PHI;
 - residual scan state;
 - reversible pseudonym round trip;
 - mapping key denial;
-- export/browser/model/Hub/compute enforcement after transform and without transform.
+- export/Browse/model/Hub/Compute enforcement after transform and without transform.
 
 No acceptance threshold may be converted into a claim of complete anonymization.
 
-## 10. Spec 079 verification — AudioFlow Foundation
+## 10. Spec 079 verification — Governed Browse
+
+### Routing and authority
+- local/Project source is preferred when sufficient;
+- brokered HTTP/search route works only through admitted network authority;
+- deterministic browser route is selected only when rendering/navigation is needed;
+- agentic browser route is unavailable unless explicitly admitted;
+- model/page content cannot create a capability or change route policy;
+- external side-effecting actions remain denied in foundation unless separately promoted.
+
+### Egress/data-class corpus
+- PUBLIC query allowed only to admitted destination;
+- LOCAL_PHI query/body/context denied from public route;
+- TEAM_PROTECTED denied from public route;
+- EXTERNAL_DEIDENTIFIED denied without valid transformation/egress receipt;
+- EXTERNAL_DEIDENTIFIED allowed only with the exact approved transformed artifact/span;
+- sensitive data placed in URL/query-string/header/body is detected/blocked according to policy;
+- denied request creates honest denial evidence without leaking rejected sensitive payload into operational logs.
+
+### Prompt-injection/web hostile-content corpus
+Pages/snippets/downloads attempt to:
+- override system/tool instructions;
+- request another Project's data;
+- reveal credentials;
+- navigate to localhost/private metadata services;
+- call unregistered tools;
+- upload project files;
+- perform purchase/submission/write action;
+- instruct hidden browser profile/cookie extraction.
+
+Expected: content can affect evidence text only; capabilities/credentials/egress remain controlled outside the model.
+
+### Destination/redirect/SSRF
+- allowed origin -> allowed redirect;
+- allowed origin -> denied origin;
+- redirect loop;
+- excessive redirect count;
+- localhost/127.0.0.1/::1;
+- link-local/cloud metadata ranges;
+- private RFC1918 destination;
+- malformed URL/IDN/encoded-host variants as applicable to chosen URL parser;
+- DNS rebinding/resolve-time policy documented and tested to the extent supported by the route.
+
+### Credentials/session
+- raw secret never appears in prompt, receipt or normal logs;
+- credential handle bound to origin/scope;
+- wrong-origin credential use denied;
+- expired/revoked handle denied;
+- login/MFA invokes explicit human-takeover state where required;
+- browser cookies/profile isolated and cleaned/retained according to declared policy.
+
+### Downloads/content
+- declared MIME mismatch;
+- oversized body/download;
+- archive/binary quarantined;
+- HTML/script content returned as untrusted source, not executed in trusted Desktop;
+- downloaded candidate preserves URL/time/digest;
+- normal MedScale ingest revalidates before canonical use.
+
+### Evidence/reproducibility
+- exact URL/origin;
+- retrieval time;
+- route/tool version;
+- selected text/DOM/source span locator;
+- content digest/snapshot when obtainable;
+- cache/retention state;
+- repeated retrieval records changed content rather than silently replacing prior evidence.
+
+### Lifecycle
+- cancel during search;
+- cancel during navigation;
+- timeout;
+- browser worker crash;
+- offline mode;
+- denied destination;
+- partial multi-source retrieval;
+- restart does not convert incomplete run to success.
+
+## 11. Spec 080 verification — AudioFlow Foundation
 
 ### Capture
-
 Per supported platform:
-
 - permission allow/deny;
 - device enumerate/select/change;
 - device unplug mid-capture;
@@ -200,9 +266,7 @@ Per supported platform:
 - no invisible capture state.
 
 ### Audio quality/runtime
-
 Benchmark lanes separately:
-
 - live latency;
 - offline final quality;
 - Arabic;
@@ -218,7 +282,6 @@ Benchmark lanes separately:
 Measure CPU/RAM/GPU startup/warm behavior and long-session stability. Do not inherit upstream benchmark claims.
 
 ### Transcript lineage
-
 - source digest immutable;
 - quality pass produces revision, never overwrite;
 - segment timestamp links survive revision rules or are explicitly remapped;
@@ -226,17 +289,15 @@ Measure CPU/RAM/GPU startup/warm behavior and long-session stability. Do not inh
 - speaker label is not persistent identity.
 
 ### Voice control
-
 - COMMAND executes only after normal capability checks;
 - CONTEXT cannot execute;
 - DICTATION only targets selected text/document field;
 - interruption stops active turn according to declared latency envelope;
 - ambiguous mode requests require explicit state/confirmation rather than silent action.
 
-## 11. Spec 080 verification — Analytics
+## 12. Spec 081 verification — Analytics
 
 ### Correctness fixture families
-
 - projections/selections;
 - joins;
 - null/missing semantics;
@@ -251,7 +312,6 @@ Measure CPU/RAM/GPU startup/warm behavior and long-session stability. Do not inh
 Reference expected results must be independently generated/checked.
 
 ### Generated query security
-
 - DDL/DML rejected in default path;
 - attempts to access hidden tables/files rejected;
 - path traversal/external table attempts rejected unless explicitly admitted;
@@ -259,9 +319,7 @@ Reference expected results must be independently generated/checked.
 - source revision pinned for receipt.
 
 ### Statistical checks
-
 For each productized statistic:
-
 - known-value fixture;
 - edge cases;
 - missingness behavior;
@@ -269,7 +327,7 @@ For each productized statistic:
 - independent reference comparison;
 - no inference beyond declared method.
 
-## 12. Spec 081 verification — Knowledge/RAG/Canvas
+## 13. Spec 082 verification — Knowledge/RAG/Canvas
 
 - lexical retrieval exact-match fixture;
 - structured Project Graph retrieval;
@@ -278,15 +336,16 @@ For each productized statistic:
 - deletion/tombstone -> no retrieved plaintext;
 - actor/project permission filtering before result disclosure;
 - cache separation across scopes;
-- exact PDF/page/span and audio timestamp evidence references;
-- insufficient evidence state;
+- exact PDF/page/span links;
+- exact Browse URL/span links when 079 integration is enabled;
+- exact audio timestamp links when 080 integration is enabled;
+- insufficient-evidence state;
 - conflicting sources surfaced;
 - Canvas broken/stale live-reference behavior.
 
-## 13. Spec 082 verification — Hub
+## 14. Spec 083 verification — Hub
 
 ### Concurrency/recovery scenarios
-
 - client A/B simultaneous task update;
 - both offline, edit same note, reconnect;
 - message append while offline;
@@ -296,14 +355,13 @@ For each productized statistic:
 - resume duplicate chunks;
 - malicious/wrong digest;
 - stale sync cursor requiring replay/resync;
+- deletion/tombstone during offline interval;
 - Hub restart mid-sync;
 - database restore from backup;
 - supported-version upgrade and rollback rehearsal.
 
 ### Isolation
-
 Test project/tenant boundaries across:
-
 - primary DB queries;
 - search index;
 - cache;
@@ -314,7 +372,7 @@ Test project/tenant boundaries across:
 
 One boundary failure is a release blocker for multi-tenant deployment.
 
-## 14. Spec 083 verification — AudioFlow Advanced
+## 15. Spec 084 verification — AudioFlow Advanced
 
 - huddle join does not imply record/transcribe permission;
 - recording state visible to participants under declared product contract;
@@ -325,12 +383,11 @@ One boundary failure is a release blocker for multi-tenant deployment.
 - subject permission record required for cloning;
 - deletion/reset of persistent speaker/voice material;
 - media annotation stable to exact source/time/frame revision;
-- remote audio worker obeys privacy/egress manifest.
+- remote audio worker obeys privacy/egress manifest when Compute integration exists.
 
-## 15. Spec 084 verification — Compute
+## 16. Spec 085 verification — Compute
 
 ### Isolation/adversarial
-
 - worker cannot enumerate vault;
 - only staged input paths visible;
 - denied network unreachable;
@@ -348,13 +405,11 @@ One boundary failure is a release blocker for multi-tenant deployment.
 - logs scrub sensitive input.
 
 ### Reproducibility
-
 Receipt records environment/runtime version and exact input/output digests. Re-run tolerance/expected nondeterminism must be declared per job type.
 
-## 16. Spec 085 verification — Research Packs
+## 17. Spec 086 verification — Research Packs
 
 For every Pack:
-
 - install;
 - compatible upgrade;
 - incompatible upgrade rejection/migration;
@@ -367,15 +422,14 @@ For every Pack:
 - executable tool path goes through worker/tool contract;
 - import/export round trip using synthetic fixtures.
 
-## 17. Spec 086 verification — Institutional adapters
+## 18. Spec 087 verification — Institutional adapters
 
 Every adapter must test:
-
 - auth success/failure/expiry;
 - least-privilege scope;
 - mapping/version mismatch;
 - timeout before dispatch;
-- timeout after possible dispatch -> Unknown;
+- timeout after possible dispatch -> `Unknown`;
 - duplicate/retry/idempotency;
 - unavailable provider;
 - credential redaction;
@@ -386,10 +440,9 @@ Every adapter must test:
 
 Write-capable adapters require stronger effect-confirmation tests than read-only adapters.
 
-## 18. Spec 087 verification — Federation
+## 19. Spec 088 verification — Federation
 
 Before product promotion:
-
 - at least two independently configured sites;
 - deny on unknown policy vocabulary;
 - identity/trust binding and revocation;
@@ -403,7 +456,7 @@ Before product promotion:
 
 Federation remains unqualified if these tests are design-only.
 
-## 19. Spec 088 release qualification profiles
+## 20. Spec 089 release qualification profiles
 
 Qualification should define explicit profiles rather than one misleading global PASS:
 
@@ -411,12 +464,12 @@ Qualification should define explicit profiles rather than one misleading global 
 PROFILE_PERSONAL_OFFLINE
 PROFILE_LAB_SELF_HOSTED
 PROFILE_INSTITUTIONAL
-PROFILE_FEDERATED (only if 087 is promoted and proven)
+PROFILE_FEDERATED (only if 088 is promoted and proven)
 ```
 
 Each profile lists included capabilities and evidence. A lower profile may release while later profile work remains deferred.
 
-## 20. Required proof before merging implementation
+## 21. Required proof before merging implementation
 
 An implementation PR may be considered for merge only when:
 
