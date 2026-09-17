@@ -1,6 +1,8 @@
 # MedScale Research OS Open Questions
 
-**Status:** Planning questions that must be answered by evidence before relevant implementation is promoted.
+**Status:** Research-question inventory only. This file is NOT implementation authority. Implementers MUST use `RESEARCH_OS_DECISION_RESOLUTION_REGISTER.md` for safe defaults and owner specs.
+
+Questions remain useful because evidence may later justify superseding a planning default, but an unanswered question is never permission to choose by preference.
 
 ## Core / Project Graph
 
@@ -80,4 +82,13 @@
 41. Which capabilities must remain fully open/local versus optional paid institutional packaging/support without compromising the core promise?
 42. What is the smallest feature set that makes a lab adopt MedScale daily before institution-scale features exist?
 
-These questions are intentionally unresolved. Future specs should close them with measured evidence rather than architecture-by-preference.
+## Governed Browse
+
+43. Which deterministic browser implementation provides the best cross-platform isolation/reliability/dependency profile behind MedScale contracts?
+44. Which agentic browser engine, if any, earns admission for tasks deterministic navigation cannot handle?
+45. What exact URL/DNS/redirect/private-network policy is sufficient against SSRF and rebinding across supported platforms?
+46. Which web sources require site-specific terms/robots/authentication policy in addition to generic Browse policy?
+47. What snapshot/content-retention method best preserves web evidence without creating unnecessary sensitive or copyrighted local copies?
+48. Which external side-effecting browser workflows, if any, are important enough to justify a later explicit effect/approval/idempotency qualification program?
+
+The Decision Resolution Register already supplies fail-safe defaults for these questions. Future specs may change those defaults only with the evidence described there.
