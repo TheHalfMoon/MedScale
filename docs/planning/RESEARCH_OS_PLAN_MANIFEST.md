@@ -8,6 +8,7 @@ Key proposal areas:
 - MedAgent IDE;
 - model/agent Fleet and Compare;
 - Privacy Gate;
+- Governed Browse;
 - AudioFlow;
 - Analytics Gate;
 - RAG/Evidence Graph/Research Canvas;
@@ -17,6 +18,6 @@ Key proposal areas:
 - Research Packs;
 - institutional adapters;
 - later federation;
-- integrated qualification.
+- integrated qualification through candidate Spec 089.
 
 All documents in this packet are planning artifacts until separately promoted by canonical governance.
