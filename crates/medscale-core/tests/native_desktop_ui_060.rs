@@ -70,14 +70,18 @@ fn native_desktop_shell_is_pinned_non_webview_and_branded() {
     assert!(app.contains("event.modifiers.control || event.modifiers.meta"));
     assert!(components.contains("FocusScope"));
     assert!(components.contains("accessible-action-default"));
-    assert!(components.contains("interaction.has-focus ? 2px"));
+    assert!(components.contains("interaction.has-focus ? Theme.focus-width"));
+    assert!(theme.contains("focus-width: 2px"));
     assert!(components.contains("event.text == \" \" || event.text == \"\\n\""));
     // Historical Spec 060 requires a branded native shell, not a frozen legacy palette.
-    // Spec 068 supersedes the original multicolor identity with MedScale Signal.
-    assert!(theme.contains("signal: #0A66FF"));
-    assert!(theme.contains("obsidian: #0A0E14"));
-    assert!(app.contains("default-font-family: \"Geist\""));
-    assert!(mark.contains("#0A66FF"));
+    // Spec 073 supersedes the Spec 068 Signal/Geist identity while preserving native-shell semantics.
+    assert!(theme.contains("signal: dark ? #8FADBC : #4F7185"));
+    assert!(theme.contains("obsidian: #0D0F0E"));
+    assert!(app.contains("default-font-family: \"Instrument Sans\""));
+    assert!(mark.contains("id=\"medscale-signature-m\""));
+    assert!(mark.contains("#0A0A0A"));
+    assert!(mark.contains("#F4F4F1"));
+    assert!(!mark.contains("#0A66FF"));
     assert!(!mark.contains("<rect"));
     let deny = std::fs::read_to_string(root.join("deny.toml")).expect("deny config");
     assert!(deny.contains("LicenseRef-Slint-Royalty-free-2.0"));
@@ -132,10 +136,21 @@ fn product_phase_keeps_mobile_after_desktop_cli_launch() {
 
     assert!(product.contains("Desktop and CLI are the launch surfaces"));
     assert!(product.contains("Mobile applications come only after Desktop + CLI launch"));
-    assert!(design.contains("shape`"));
-    assert!(design.contains("critique`"));
-    assert!(design.contains("audit`"));
-    assert!(design.contains("polish`"));
+    for discipline in [
+        "`shape`",
+        "`critique`",
+        "`audit`",
+        "`distill`",
+        "`typeset`",
+        "`polish`",
+        "`harden`",
+        "`optimize`",
+    ] {
+        assert!(
+            design.contains(discipline),
+            "missing Impeccable discipline: {discipline}"
+        );
+    }
     assert!(queue.contains("065 | CLI Product Experience + Capability Parity"));
     assert!(queue.contains("Mobile remains deferred until Desktop+CLI launch"));
     assert!(ci.contains("Install Linux native Desktop build dependencies"));

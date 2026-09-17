@@ -15,7 +15,12 @@ use medscale_core::{
 use serde::Serialize;
 
 #[derive(Debug, Parser)]
-#[command(name = "medscale", version, about = "MedScale local-first CLI")]
+#[command(
+    name = "medscale",
+    version,
+    about = "MedScale · evidence-first local clinical intelligence CLI",
+    long_about = "MedScale · evidence-first local clinical intelligence CLI\n\nHuman-readable output stays restrained and explicit about authority. Use --json on supported read commands for stable machine-readable output."
+)]
 struct Cli {
     #[command(subcommand)]
     command: Commands,
@@ -395,6 +400,10 @@ fn status_summary(report: &medscale_contracts::doctor::DoctorReport) -> CliStatu
     }
 }
 
+fn human_heading(surface: &str) -> String {
+    format!("MedScale · {surface}")
+}
+
 fn capability_rows() -> Vec<CliCapabilityRow> {
     vec![
         CliCapabilityRow {
@@ -702,6 +711,9 @@ fn run() -> Result<()> {
             if json {
                 println!("{}", serde_json::to_string_pretty(&rows)?);
             } else {
+                println!("{}", human_heading("capability map"));
+                println!("Evidence first. Action second.");
+                println!();
                 for row in rows {
                     println!(
                         "{} | {} | {} | {}",
@@ -1400,6 +1412,15 @@ mod tests {
         assert!(matrix.is_honest_ready_base());
         assert!(!matrix.full_conformance_claimed);
         assert!(!matrix.release_ready);
+    }
+
+    #[test]
+    fn human_identity_is_terminal_native_and_json_contracts_stay_separate() {
+        assert_eq!(human_heading("capability map"), "MedScale · capability map");
+        let rows = capability_rows();
+        let json = serde_json::to_string(&rows).expect("capability json");
+        assert!(!json.contains("Evidence first. Action second."));
+        assert!(!json.contains("MedScale · capability map"));
     }
 
     #[test]

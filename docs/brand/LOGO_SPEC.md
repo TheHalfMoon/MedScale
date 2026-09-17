@@ -1,88 +1,48 @@
 # MedScale Logo Specification
 
-**Status:** CANONICAL_DRAFT_SPEC_068
+**Status:** CANONICAL_SPEC_073 — FOUNDER_APPROVED_SIGNATURE_MARK
 
-## 1. Core idea
+## Approved master mark
 
-The MedScale mark is a geometric `M` built as a continuous clinical-intelligence rail: two stable outer rails joined through one central decision point.
+The MedScale master mark is fixed for Spec 073:
+- black circular field;
+- soft-white/soft-gray continuous rounded `M`;
+- a custom asymmetric inner transition ending in the short **MedScale Shelf** at the center;
+- simple geometry with rounded stroke caps and joins;
+- monochrome only.
 
-The mark expresses:
-- structure without a shield cliché;
-- intelligence without sparkles or a brain icon;
-- continuity without a heartbeat line;
-- authority without institutional heraldry.
+The MedScale Shelf is the recognition cue: the left inner stroke settles into a short measured baseline before the steeper right return. It must remain visible at rail size without becoming a separate symbol, cutout, medical motif, or decorative flourish.
 
-The core mark must work without a container. A rounded app-icon container is a packaging treatment, not the logo itself.
+`crates/medscale-desktop/ui/assets/medscale-mark.svg` is the native runtime source of truth. The same `medscale-signature-m` geometry is used by the app icon and reference surfaces. Routine implementation work must not explore alternate logo directions.
 
-## 2. Primary mark construction
+## Meaning
 
-Use a 48 × 48 reference grid.
-- Optical left/right rails align around x=8 and x=40.
-- The center decision point sits near x=24, y=27.
-- Stroke ends and joins are rounded.
-- Primary stroke weight is approximately 4.5 units at 48 px.
-- The mark must remain legible at 16 px without auxiliary detail.
+The continuous `M` suggests continuity and linked evidence without using a healthcare cliché. The MedScale Shelf adds a measured, ownable rhythm to the center of the letter while preserving immediate `M` recognition. The circle creates a stable compact field that remains legible in rail, window, print, and monochrome contexts.
 
-Do not add a baseline, heartbeat trace, cross, shield, or decorative signal waves to the primary mark.
-## 3. Color variants
+## Color
 
-Approved primary variants:
-- Signal Blue mark on Obsidian.
-- Obsidian mark on Paper/Ice.
-- White mark on Obsidian for constrained monochrome contexts.
-- Single-color black or white for legal, print, embossing, or accessibility constraints.
+Master mark:
+- field: near-black (`#0A0A0A` in the runtime SVG);
+- mark: soft white (`#F4F4F1` in the runtime SVG).
 
-Do not use multi-color mark variants.
+No state, vendor, model, or clinical semantic color is applied to the logo.
 
-## 4. App icon
+## Sizing and clear space
 
-The application icon may place the core mark inside an Obsidian or Signal Blue rounded-square field. The container must never be treated as part of the master logo geometry.
+Preserve clear space of at least 18% of the circle diameter around the mark when it appears in a larger lockup. At small digital sizes, simplify surrounding UI before altering the approved geometry.
 
-App-icon rules:
-- one background color;
-- one foreground mark color;
-- no gradients;
-- no inner shadow, glow, glass, or 3D treatment;
-- no text inside the icon;
-- preserve at least 18% clear space around the mark.
+## Wordmark
 
-## 5. Wordmark
+Canonical written name: `MedScale`.
 
-The canonical written name is `MedScale` with capital `M` and `S`.
+Use Instrument Sans Medium/Semibold for product lockups. Do not split `Med` and `Scale` by color. Lowercase `medscale` is reserved for technical identifiers/package names.
 
-Preferred wordmark behavior:
-- Geist Sans Medium/Semibold once the branded font asset is admitted;
-- tight but not compressed tracking;
-- no custom ligatures that reduce readability;
-- no color split between `Med` and `Scale`.
+## App icon
 
-`medscale` may be used only as a technical identifier, package/repository name, or deliberate campaign treatment, never as the default product wordmark.
-## 6. Clear space and sizing
+`crates/medscale-desktop/ui/assets/medscale-app-icon.svg` uses the same approved monochrome circular treatment. It must not introduce gradients, colored center points, shadows, glow, or additional healthcare/AI symbols.
 
-Minimum clear space equals the visual width of one outer rail around all sides of the mark.
+## Forbidden treatments
 
-Minimum practical sizes:
-- core mark: 16 px digital;
-- mark + wordmark lockup: 96 px wide digital;
-- app icon: platform minimums, using the simplified mark only.
+Never add purple, gradients, a medical cross, ECG/heartbeat trace, shield, stethoscope, brain, sparkle, mascot, literal octopus imagery, vendor logo combination, 3D treatment, or decorative signal waves.
 
-At small sizes, remove optional visual detail before increasing stroke weight or changing geometry.
-
-## 7. Forbidden treatments
-
-Never:
-- place the mark in a rainbow or multi-accent system;
-- add a medical cross, ECG trace, shield, stethoscope, brain, or sparkle;
-- stretch, skew, rotate, outline twice, or add a drop shadow;
-- mimic the Abridge arch, OpenMed identity, Cohere mark/color language, or another healthcare/AI logo;
-- combine the mark with model/vendor logos to imply ownership or endorsement.
-
-## 8. Governance
-
-`crates/medscale-desktop/ui/assets/medscale-mark.svg` is the runtime source of truth after Spec 068 qualification. Any geometry change requires rendered review at 16 px, 24 px, 48 px, and app-icon scale plus monochrome inspection.
-
-## 9. App-icon asset
-
-`crates/medscale-desktop/ui/assets/medscale-app-icon.svg` is the canonical app-icon treatment. It may use an Obsidian container because operating systems require an icon surface, but that container is not part of the master corporate mark.
-
-The master mark and app icon must never be conflated in brand, web, documentation, or product-header use.
+Any future geometry change requires explicit founder authority plus rendered review at small rail size and app-icon scale. The current signature geometry was explicitly founder-authorized during Spec 073 and supersedes the earlier generic rounded-M geometry.

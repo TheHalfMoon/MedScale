@@ -1,4 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none">
-  <path d="M8 37V12L24 28L40 12V37" stroke="#0A66FF" stroke-width="4.6" stroke-linecap="round" stroke-linejoin="round"/>
-  <circle cx="24" cy="28" r="2.35" fill="#0A66FF"/>
+  <title>MedScale signature M</title>
+  <circle cx="24" cy="24" r="22" fill="#0A0A0A"/>
+  <path id="medscale-signature-m" d="M13.2 31.5V18.8C13.2 16.25 16.35 15.15 17.95 17.15L21.7 22.0C22.95 23.6 23.65 24.5 24.95 24.5H28C28.65 24.5 29.05 23.9 29.45 22.9L31.25 17.45C32 15.05 34.8 16.05 34.8 18.65V31.5" stroke="#F4F4F1" stroke-width="4.35" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>

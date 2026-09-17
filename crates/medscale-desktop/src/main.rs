@@ -101,6 +101,38 @@ fn perf_idle_ms(args: &[String]) -> Result<Option<u64>, &'static str> {
     Ok(Some(value))
 }
 
+fn evidence_theme_override() -> Option<i32> {
+    match env::var("MEDSCALE_EVIDENCE_THEME")
+        .ok()?
+        .to_ascii_lowercase()
+        .as_str()
+    {
+        "light" => Some(1),
+        "dark" => Some(2),
+        _ => None,
+    }
+}
+
+fn evidence_route_override() -> Option<&'static str> {
+    match env::var("MEDSCALE_EVIDENCE_ROUTE").ok()?.as_str() {
+        "Home" => Some("Home"),
+        "Patients" => Some("Patients"),
+        "Documents" => Some("Documents"),
+        "Insights" => Some("Insights"),
+        "Models" => Some("Models"),
+        "Evidence" => Some("Evidence"),
+        "Workflows" => Some("Workflows"),
+        "Tasks" => Some("Tasks"),
+        "Messages" => Some("Messages"),
+        "Audit Trail" => Some("Audit Trail"),
+        "Exports" => Some("Exports"),
+        "Integrations" => Some("Integrations"),
+        "Settings" => Some("Settings"),
+        "About" => Some("About"),
+        _ => None,
+    }
+}
+
 fn main() -> ExitCode {
     let args: Vec<String> = env::args().skip(1).collect();
     let smoke = args.iter().any(|arg| arg == "--smoke");
@@ -138,6 +170,12 @@ fn main() -> ExitCode {
         }
     };
     ui.set_product_version(report.version.clone().into());
+    if let Some(theme) = evidence_theme_override() {
+        ui.global::<Theme>().set_evidence_theme(theme);
+    }
+    if let Some(route) = evidence_route_override() {
+        ui.set_active_route(route.into());
+    }
 
     let patient = patient_workspace::PatientWorkspaceVm::synthetic_demo();
     ui.set_patient_name(patient.display_name.into());

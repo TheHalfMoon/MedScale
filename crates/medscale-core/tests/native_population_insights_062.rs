@@ -33,7 +33,11 @@ fn insights_route_is_real_native_and_accessible() {
     assert!(app.contains("for item in root.insights-coverage"));
     assert!(app.contains("for item in root.insights-cohorts"));
     assert!(app.contains("for item in root.insights-evidence"));
-    assert!(app.contains("accessible-label: \"Population evidence assistant query\""));
+    assert!(app.contains("accessible-name: \"Population evidence assistant query\""));
+    let components =
+        std::fs::read_to_string(root.join("crates/medscale-desktop/ui/components.slint"))
+            .expect("desktop components");
+    assert!(components.contains("accessible-label: root.accessible-name"));
 }
 
 #[test]
