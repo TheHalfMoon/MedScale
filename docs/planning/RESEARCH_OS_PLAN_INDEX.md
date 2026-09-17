@@ -11,7 +11,7 @@ This index is the entry point for the Research OS expansion proposal.
 1. [`RESEARCH_OS_VISION.md`](./RESEARCH_OS_VISION.md) — product thesis, target users, deployment ladder, Project Graph and Research Packs.
 2. [`RESEARCH_OS_PRINCIPLES.md`](./RESEARCH_OS_PRINCIPLES.md) — compact non-negotiable product/engineering principles.
 3. [`RESEARCH_OS_DECISIONS.md`](./RESEARCH_OS_DECISIONS.md) — architectural decisions and boundaries.
-4. [`RESEARCH_OS_ARCHITECTURE.md`](./RESEARCH_OS_ARCHITECTURE.md) — authority/intelligence/analytics/collaboration/audio/compute/sync planes.
+4. [`RESEARCH_OS_ARCHITECTURE.md`](./RESEARCH_OS_ARCHITECTURE.md) — authority/intelligence/browse/analytics/collaboration/audio/compute/sync planes and boundaries.
 5. [`RESEARCH_OS_PRODUCT_MAP.md`](./RESEARCH_OS_PRODUCT_MAP.md) — product surfaces and Project workspace composition.
 6. [`AUDIOFLOW_PRODUCT_PLAN.md`](./AUDIOFLOW_PRODUCT_PLAN.md) — audio/voice subsystem, speech routing, meetings/huddles and evidence model.
 7. [`RESEARCH_OS_THREAT_AND_SCALE_MODEL.md`](./RESEARCH_OS_THREAT_AND_SCALE_MODEL.md) — trust zones, threats, deployment/scale tiers and failure scenarios.
@@ -25,9 +25,9 @@ This index is the entry point for the Research OS expansion proposal.
 
 ### C. Implementation contract
 
-12. [`RESEARCH_OS_MASTER_IMPLEMENTATION_CONTRACT.md`](./RESEARCH_OS_MASTER_IMPLEMENTATION_CONTRACT.md) — program-wide authority, identity, revision, state-machine, privacy, network, agent, audio, analytics, Hub, compute and schema rules.
+12. [`RESEARCH_OS_MASTER_IMPLEMENTATION_CONTRACT.md`](./RESEARCH_OS_MASTER_IMPLEMENTATION_CONTRACT.md) — program-wide authority, identity, revision, state-machine, privacy, network, agent, Browse, audio, analytics, Hub, compute and schema rules.
 13. [`RESEARCH_OS_REPOSITORY_IMPLEMENTATION_MAP.md`](./RESEARCH_OS_REPOSITORY_IMPLEMENTATION_MAP.md) — mapping of the plan onto the current MedScale crates/modules/storage/network/Pack/CLI/Desktop boundaries.
-14. [`RESEARCH_OS_SPEC_IMPLEMENTATION_CONTRACTS.md`](./RESEARCH_OS_SPEC_IMPLEMENTATION_CONTRACTS.md) — minimum implementation shape for candidate Specs 074-088.
+14. [`RESEARCH_OS_SPEC_IMPLEMENTATION_CONTRACTS.md`](./RESEARCH_OS_SPEC_IMPLEMENTATION_CONTRACTS.md) — minimum implementation shape for candidate Specs 074-089.
 15. [`RESEARCH_OS_IMPLEMENTER_INSTRUCTIONS.md`](./RESEARCH_OS_IMPLEMENTER_INSTRUCTIONS.md) — mandatory instructions for Muse/Codex/Claude/Cursor/human implementers after canonical promotion.
 16. [`RESEARCH_OS_FUTURE_SPEC_TEMPLATE.md`](./RESEARCH_OS_FUTURE_SPEC_TEMPLATE.md) — mandatory content for any future promoted Research OS spec.
 17. [`RESEARCH_OS_MIGRATION_STRATEGY.md`](./RESEARCH_OS_MIGRATION_STRATEGY.md) — compatibility, migration and recovery posture.
@@ -39,7 +39,7 @@ This index is the entry point for the Research OS expansion proposal.
 20. [`RESEARCH_OS_VERIFICATION_MATRIX.md`](./RESEARCH_OS_VERIFICATION_MATRIX.md) — required verification layers and evidence expectations.
 21. [`RESEARCH_OS_DEFINITION_OF_READY.md`](./RESEARCH_OS_DEFINITION_OF_READY.md) — when a future unit may be implemented.
 22. [`RESEARCH_OS_BUILD_RULES.md`](./RESEARCH_OS_BUILD_RULES.md) — build/execution discipline.
-23. [`RESEARCH_OS_EXECUTION_ROADMAP.md`](./RESEARCH_OS_EXECUTION_ROADMAP.md) — dependency-ordered candidate Specs 074-088, subject to live frontier reconciliation.
+23. [`RESEARCH_OS_EXECUTION_ROADMAP.md`](./RESEARCH_OS_EXECUTION_ROADMAP.md) — dependency-ordered candidate Specs 074-089, subject to live frontier reconciliation.
 24. [`RESEARCH_OS_COMPLETION_CRITERIA.md`](./RESEARCH_OS_COMPLETION_CRITERIA.md) — program-level completion semantics.
 25. [`RESEARCH_OS_REVIEW_CHECKLIST.md`](./RESEARCH_OS_REVIEW_CHECKLIST.md) — review checklist for this packet and later promoted work.
 
