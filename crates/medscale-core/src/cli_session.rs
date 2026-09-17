@@ -196,6 +196,15 @@ impl CliSession {
         Ok(())
     }
 
+    /// Default local vault root for a vault id (platform data directory).
+    ///
+    /// Desktop resolves its Projects vault location through Core so surfaces
+    /// never depend on storage layout directly.
+    #[must_use]
+    pub fn default_vault_root(vault_id: &str) -> std::path::PathBuf {
+        medscale_storage::default_vault_root(vault_id)
+    }
+
     pub fn ingest_fhir_file(&mut self, path: &str) -> Result<OpaqueId, AuthorityError> {
         let bytes = std::fs::read(path).map_err(|e| AuthorityError::InvalidArgument {
             message: e.to_string(),
