@@ -152,8 +152,7 @@ impl Project {
         name: String,
         description: Option<String>,
     ) -> Result<Self, String> {
-        validate_name(&name)?;
-        validate_description(description.as_deref())?;
+        validate_metadata_fields(&name, description.as_deref())?;
         Ok(Self {
             header,
             revision: initial_revision(),
@@ -195,8 +194,7 @@ impl Experiment {
         name: String,
         description: Option<String>,
     ) -> Result<Self, String> {
-        validate_name(&name)?;
-        validate_description(description.as_deref())?;
+        validate_metadata_fields(&name, description.as_deref())?;
         Ok(Self {
             header,
             project_id,
@@ -699,6 +697,15 @@ impl ProjectContext {
         }
         Ok(())
     }
+}
+
+/// Validates Project/Experiment metadata bounds without contacting storage.
+///
+/// Shared by constructors, Core update paths, and backup-restore replay so the
+/// same bounds hold on every write path.
+pub fn validate_metadata_fields(name: &str, description: Option<&str>) -> Result<(), String> {
+    validate_name(name)?;
+    validate_description(description)
 }
 
 fn validate_name(name: &str) -> Result<(), String> {

@@ -207,3 +207,34 @@ PROJECT_TABLES = <exact names>
 INDEXES = <exact names/queries>
 ROLLBACK_METHOD = <verified method>
 ```
+
+## 16. Freeze record (T074-02, FROZEN_FOR_074)
+
+```text
+MIGRATION_CONTRACT = FROZEN_FOR_074
+CURRENT_STORAGE_VERSION = 2
+074_STORAGE_VERSION = 3
+MIGRATION_CODE_PATH = crates/medscale-storage/src/sqlite_meta.rs (migrate),
+                      crates/medscale-storage/src/project_graph.rs (V3_DDL + rows)
+BACKUP_CODE_PATH = crates/medscale-storage/src/backup.rs (restore_v3 / restore_v2),
+                   crates/medscale-storage/src/encrypted_vault.rs (sealed backup/restore)
+PROJECT_TABLES = projects, experiments, project_artifact_refs, project_graph_edges
+INDEXES = idx_projects_scope_status,
+          idx_experiments_project, idx_experiments_project_status,
+          idx_refs_project, idx_refs_project_experiment,
+          idx_refs_active_tuple (partial unique, backstop),
+          idx_edges_project_subject, idx_edges_project_object,
+          idx_edges_project_predicate,
+          idx_edges_active_tuple (partial unique, backstop)
+ROLLBACK_METHOD = restore verified pre-migration backup (no destructive
+                  down-migration; interrupted journal fails closed with
+                  MigrationIncomplete)
+```
+
+Representation decision: rows ARE the canonical encoding (scalar columns plus
+validated JSON for `ArtifactVersionBinding` and endpoints only). No parallel
+`body_json` exists to diverge; reads re-validate and report `Corrupt` or
+`UnsupportedSchema`. Synthetic backup snapshot is schema 3 (additive 074
+arrays); restore accepts 2 (legacy, no 074 rows) and 3 (exact replay with
+re-validation). EncryptedVault sealed backup carries the whole DB file, so 074
+rows ride the existing sealed path with no code change.

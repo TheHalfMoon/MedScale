@@ -54,7 +54,7 @@ pub fn backup_vault(vault: &SyntheticVault, dest: &Path) -> Result<BackupManifes
     }
 
     let manifest = BackupManifest {
-        schema_version: 2,
+        schema_version: 3,
         vault_id: vault.vault_id.clone(),
         created_at: "1970-01-01T00:00:00Z".to_owned(),
         metadata_snapshot_digest: snapshot_digest,
@@ -103,11 +103,12 @@ pub fn restore_vault(src: &Path, dest_vault_root: &Path) -> Result<(u64, u64), S
 
     let snapshot_value: serde_json::Value =
         serde_json::from_slice(&snapshot).map_err(|e| e.to_string())?;
-    if snapshot_value
+    let snapshot_schema = snapshot_value
         .get("schema_version")
-        .and_then(|v| v.as_u64())
-        == Some(2)
-    {
+        .and_then(|v| v.as_u64());
+    if snapshot_schema == Some(3) {
+        restore_v3(&vault, &snapshot_value, &mut sources)?;
+    } else if snapshot_schema == Some(2) {
         restore_v2(&vault, &snapshot_value, &mut sources)?;
     } else {
         let entries: Vec<serde_json::Value> =
@@ -164,6 +165,82 @@ fn restore_v2(
         .meta
         .replace_authority_snapshot(&rows, next_seq)
         .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+fn restore_v3(
+    vault: &SyntheticVault,
+    snapshot: &serde_json::Value,
+    sources: &mut u64,
+) -> Result<(), String> {
+    restore_v2(vault, snapshot, sources)?;
+    // Spec 074 rows replay exactly (ids/revisions preserved); every row is
+    // re-validated so a tampered snapshot fails closed instead of persisting.
+    if let Some(projects) = snapshot.get("projects").and_then(|v| v.as_array()) {
+        for value in projects {
+            let project: medscale_contracts::project_graph::Project =
+                serde_json::from_value(value.clone()).map_err(|e| e.to_string())?;
+            medscale_contracts::project_graph::validate_metadata_fields(
+                &project.name,
+                project.description.as_deref(),
+            )
+            .map_err(|e| e.to_string())?;
+            if project.revision < 1 {
+                return Err("tampered project revision".to_owned());
+            }
+            vault
+                .meta
+                .restore_project_row(&project)
+                .map_err(|e| e.to_string())?;
+        }
+    }
+    if let Some(experiments) = snapshot.get("experiments").and_then(|v| v.as_array()) {
+        for value in experiments {
+            let experiment: medscale_contracts::project_graph::Experiment =
+                serde_json::from_value(value.clone()).map_err(|e| e.to_string())?;
+            medscale_contracts::project_graph::validate_metadata_fields(
+                &experiment.name,
+                experiment.description.as_deref(),
+            )
+            .map_err(|e| e.to_string())?;
+            if experiment.revision < 1 {
+                return Err("tampered experiment revision".to_owned());
+            }
+            vault
+                .meta
+                .restore_experiment_row(&experiment)
+                .map_err(|e| e.to_string())?;
+        }
+    }
+    if let Some(refs) = snapshot.get("refs").and_then(|v| v.as_array()) {
+        for value in refs {
+            let reference: medscale_contracts::project_graph::ProjectArtifactRef =
+                serde_json::from_value(value.clone()).map_err(|e| e.to_string())?;
+            reference.artifact.validate().map_err(|e| e.to_string())?;
+            if reference.revision < 1 {
+                return Err("tampered ref revision".to_owned());
+            }
+            vault
+                .meta
+                .restore_ref_row(&reference)
+                .map_err(|e| e.to_string())?;
+        }
+    }
+    if let Some(edges) = snapshot.get("edges").and_then(|v| v.as_array()) {
+        for value in edges {
+            let edge: medscale_contracts::project_graph::ProjectGraphEdge =
+                serde_json::from_value(value.clone()).map_err(|e| e.to_string())?;
+            edge.subject.validate().map_err(|e| e.to_string())?;
+            edge.object.validate().map_err(|e| e.to_string())?;
+            if edge.revision < 1 {
+                return Err("tampered edge revision".to_owned());
+            }
+            vault
+                .meta
+                .restore_edge_row(&edge)
+                .map_err(|e| e.to_string())?;
+        }
+    }
     Ok(())
 }
 
