@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <title>MedScale ScaleFold M — light monochrome</title>
+  <g fill="#F8FAFF">
+    <path d="M7 50V30L23 14H34V27L20 41V50H7Z"/>
+    <path d="M25 50V30L41 14H52V29L38 43V50H25Z"/>
+    <path d="M47 50V31H57V50H47Z"/>
+  </g>
+</svg>
