@@ -2,334 +2,523 @@
 
 **Status:** Candidate roadmap only. This document does not promote or authorize a specification.
 
-## Sequencing principle
+## 1. Sequencing principle
 
-The Research OS expansion must be dependency-ordered. Do not implement collaboration, audio, analytics, or federation as isolated feature islands. The Project/Artifact/Capability substrate must exist first.
+The Research OS expansion is a dependency graph, not one giant feature branch and not a blindly serial queue.
 
-The candidate numbering below assumes the current active canonical sequence retains ownership of all work through Spec 073. Before any unit is promoted, reverify `specs/CURRENT.md` and canonical governance. If the active frontier changes, renumber/rebase this roadmap rather than overriding it.
+The Project/Artifact/Authority substrate must land first. After the cross-cutting privacy boundary exists, bounded product planes may advance in parallel only when their contracts are independent and their predecessor evidence is closed.
 
-## Program map
+The numbering below assumes canonical MedScale remains closed through Spec 073 at promotion time. Before promotion, reverify live governance and renumber if the canonical frontier moved. Never reuse a number already owned by live main.
+
+## 2. Program dependency graph
 
 ```text
 074 Project + Artifact Graph Foundation
-  -> 075 Collaboration Substrate
-  -> 076 MedAgent Workbench
-       -> 077 Model Fleet + Compare
-       -> 078 Privacy Gate
-            -> 079 AudioFlow Foundation
-            -> 080 Analytics Gate
-                 -> 081 Knowledge + Research Canvas
-                      -> 082 MedScale Hub
-                           -> 083 AudioFlow Advanced
-                           -> 084 MedScale Compute
-                                -> 085 Research Packs
-                                     -> 086 Institutional Adapters
-                                          -> 087 Federation
-                                               -> 088 Whole-Platform Qualification
+  |
+  +--> 075 Collaboration Substrate
+  |      |
+  |      +-------------------------------> 083 MedScale Hub
+  |
+  +--> 076 MedAgent Workbench
+         |
+         +--> 077 Model Fleet + Compare
+         |
+         +--> 078 Privacy Gate
+                |
+                +--> 079 Governed Browse
+                +--> 080 AudioFlow Foundation
+                +--> 081 Analytics Gate
+                +--> 082 Knowledge + Research Canvas
+                +--> 085 MedScale Compute
+                |
+                +--> 083 MedScale Hub  (also requires 075)
+
+080 + 083 -------------------------------> 084 AudioFlow Advanced
+074 + 076 + 081 + 082 -------------------> 086 Research Packs
+078 + 083 + 085 + 086 -------------------> 087 Institutional Adapters
+087 -------------------------------------> 088 Federation
+074-088 ---------------------------------> 089 Whole-Platform Qualification
 ```
 
-Parallelism is allowed only where contracts and evidence prove independence.
+Integration dependencies are stricter than build dependencies. Example: Knowledge may implement local document retrieval before AudioFlow closes, but audio-timestamp retrieval is not qualified until both 080 and 082 integration evidence exists.
+
+## 3. Parallelism rules
+
+Parallel work is allowed only when:
+
+1. predecessor contracts are closed on canonical main;
+2. neither branch edits the same authority/storage schema without an agreed contract;
+3. each branch has independent migrations/recovery/evidence;
+4. integration acceptance is explicitly assigned to one owning spec;
+5. no branch assumes an unmerged sibling behavior.
+
+Default: prefer sequential promotion for 074-078. After 078, 079/080/081/082/083/085 may be shaped independently, but implementation concurrency is decided from live changed-path/dependency truth.
 
 ---
 
-## 074 — Project + Artifact Graph Foundation
+# 074 — Project + Artifact Graph Foundation
 
-### Goal
-Create the durable product ontology on which all new work depends.
+## Goal
+Create the durable organizing ontology on which the expansion depends without replacing existing MedScale authority objects.
 
-### Required outcomes
-- `Project`, `Experiment`, `Artifact`, `Run`, `EvidenceRef`, `Dataset`, `Document`, `Finding` contracts;
-- stable artifact IDs, revisions, digests, provenance, creator, project ownership, classification;
-- explicit relationships forming the Project Graph;
-- local project workspace UX without requiring Hub/network;
-- migration strategy for current MedScale artifacts/routes;
-- activity references cannot mutate canonical artifacts indirectly;
-- CLI parity for project/artifact inspection.
+## Required outcomes
+- `Project`, `Experiment`, `ArtifactDescriptor`, typed Project Graph relations and Project context contracts;
+- reuse existing `OpaqueId`, `ObjectHeader`, digest/provenance/audit semantics;
+- stable revisions and project ownership references;
+- existing specialized/FHIR/Pack/authority objects are referenced, not flattened or copied;
+- offline Project workspace requires no Hub/network;
+- migration from pre-074 vault preserves current CLI/Desktop semantics;
+- archive/tombstone behavior and recovery are explicit;
+- CLI + native Desktop project vertical slice.
 
-### Acceptance focus
-Determinism, migration safety, provenance, offline lifecycle, large-project scale, no duplicate authority model.
+## Non-goals
+No team server, agent IDE, analytics, audio or RAG implementation.
 
----
-
-## 075 — Collaboration Substrate
-
-### Goal
-Introduce rooms, threads, tasks, notes, activity, workflow/approval events, and agent identities while keeping canonical data separate from collaboration state.
-
-### Required outcomes
-- MedScale-owned event envelope;
-- `Room`, thread, task, note/canvas, approval/refusal contracts;
-- member and agent identities;
-- ephemeral presence/typing separated from durable history;
-- immutable artifact references in events;
-- local single-user mode remains fully functional;
-- selective Buzz source-adoption record and exact copied/adapted paths if used;
-- searchable activity history;
-- tamper-evident audit checkpoints.
-
-### Non-goal
-No mandatory server or real-time multi-device sync yet.
+## Closure focus
+Deterministic lifecycle, migration/reopen, provenance, compatibility, graph integrity, no duplicate authority/ID model.
 
 ---
 
-## 076 — MedAgent Workbench
+# 075 — Collaboration Substrate
 
-### Goal
-Make MedAgent the primary governed intelligence workspace inside a Project.
+## Depends on
+074.
 
-### Required outcomes
-- split-pane agent IDE UX;
-- project/context selector;
-- one admitted local model lane;
-- tools exposed only through capability manifests;
-- structured RunManifest;
-- evidence/source panel;
-- proposal-only output semantics;
-- cancel/interrupt/steer lifecycle;
-- run history as project artifacts;
-- browser and external providers still denied unless separately gated.
+## Goal
+Create local-first collaboration semantics that later sync through Hub: rooms, threads, tasks, notes, activity, approvals and participant identities.
 
----
+## Required outcomes
+- MedScale-owned collaboration event envelope;
+- rooms/threads/messages/tasks/note revisions/approval contracts;
+- human/service/agent participant identity references without granting clinical/research authority;
+- exact artifact revision references;
+- optimistic concurrency for tasks;
+- conflict-copy/user-resolution behavior for note documents;
+- ephemeral presence separated from durable history;
+- searchable local activity;
+- tamper-evident audit/checkpoints;
+- selective Buzz donor qualification if code/patterns are transferred.
 
-## 077 — Model Fleet + Compare
+## Non-goals
+No mandatory Hub, no CRDT, no Nostr replacement for canonical data, no Tauri/React shell.
 
-### Goal
-Run multiple model/agent lanes under one task and compare observable results without manufacturing a winner.
-
-### Required outcomes
-- `AgentLane` and `FleetRun` contracts;
-- multiple admitted local models;
-- optional delegate adapters for approved external coding/research agents on non-sensitive data;
-- side-by-side result panes;
-- agreement/disagreement and contradiction extraction;
-- evidence/citation comparison;
-- structured-output validity;
-- latency/resource/runtime facts;
-- abstention/unknown semantics;
-- no consensus-equals-truth behavior.
+## Closure focus
+Local single-user/offline collaboration works; collaboration cannot implicitly mutate canonical artifacts.
 
 ---
 
-## 078 — Privacy Gate
+# 076 — MedAgent Workbench
 
-### Goal
-Make sensitive-data classification and transformation a cross-platform boundary rather than a one-off PII feature.
+## Depends on
+074. 075 participant/activity integration is preferred before final closure; a promoted spec must state whether it is a hard predecessor based on live contracts.
 
-### Required outcomes
-- data-class model (`LOCAL_PHI`, `TEAM_PROTECTED`, `EXTERNAL_DEIDENTIFIED`, `PUBLIC` or canonically refined equivalent);
-- deterministic + model-assisted PII/PHI recognition;
-- redact/tokenize/generalize/pseudonymize transformations;
-- residual scan and explicit uncertainty;
-- `DeidReceipt`;
-- reversible pseudonymization only under scoped local/institutional key authority;
-- enforcement on model, browser, export, Hub, adapter, compute, and connector boundaries;
-- no UI claim that automated de-identification proves absence of sensitive data.
+## Goal
+Make MedAgent the governed intelligence workspace inside a Project.
+
+## Required outcomes
+- split-pane agent IDE/workbench;
+- explicit `ContextManifest` rather than ambient project/vault access;
+- one admitted local model Pack lane;
+- typed tool manifests/invocations/receipts;
+- proposal/evidence-only model output semantics;
+- run state machine and RunReceipt;
+- inspectable model/runtime/data/network posture;
+- cancel/interrupt/steer;
+- run history as Project artifacts;
+- browser/external providers remain denied until 079.
+
+## Closure focus
+A real local project-grounded run completes without network, ambient vault access or hidden authority.
 
 ---
 
-## 079 — AudioFlow Foundation
+# 077 — Model Fleet + Compare
 
-### Goal
-Add local-first audio capture, transcription, diarization, dictation, and voice control as evidence-bearing Project capabilities.
+## Depends on
+076.
 
-### Required outcomes
-- `AudioSession`, `AudioSource`, `TranscriptRevision`, `AudioEvidenceRef`;
-- native capture/control contract;
-- imported audio/video path;
-- visible capture state;
-- capture health and conditioning boundary;
-- VAD/segmentation ownership;
-- `VoiceRuntimeRouter`;
-- at least one streaming local STT route and one higher-quality offline route;
-- diarization/alignment path;
-- medical terminology/numeric safety evaluation corpus;
+## Goal
+Run multiple bounded lanes and compare observable results without inventing a winner or treating consensus as truth.
+
+## Required outcomes
+- `AgentLane`, `FleetRun`, lane-specific context/tool/data/network policy;
+- multiple admitted local model lanes;
+- same-task and role-specialized lane semantics;
+- optional delegate adapters only on policy-approved non-sensitive/transformed data;
+- side-by-side results;
+- agreement/disagreement, contradiction candidates, evidence/citation overlap, unsupported-claim candidates, abstention, schema validity, tool/runtime/resource facts;
+- partial lane failure remains explicit;
+- comparison artifact inherits the most restrictive participating input/output classification unless a typed privacy transformation proves otherwise.
+
+## Closure focus
+No permission union across lanes; unknown stays unknown; no default quality/intelligence score.
+
+---
+
+# 078 — Privacy Gate
+
+## Depends on
+074 + 076. 077 is not a hard prerequisite.
+
+## Goal
+Make sensitive-data classification, de-identification and egress decisions a reusable product boundary.
+
+## Required outcomes
+- canonical data-class semantics (`LOCAL_PHI`, `TEAM_PROTECTED`, `EXTERNAL_DEIDENTIFIED`, `PUBLIC` or canonically refined equivalents);
+- deterministic + structured/FHIR-aware + admitted local model recognizers;
+- redact/tokenize/generalize/pseudonymize/drop transformations under policy;
+- immutable transformed artifacts; source never overwritten;
+- residual scan + explicit uncertainty;
+- `DeidReceipt` and re-identification audit capability;
+- policy enforcement hooks for model, browser, export, Hub, compute, connector and analytics-adapter boundaries;
+- synthetic/permitted multilingual benchmark corpus;
+- no product claim that automated scanning proves all PHI/PII absent.
+
+## Closure focus
+Fail-closed boundary decisions, classification propagation, reversible-map key separation, denial tests.
+
+---
+
+# 079 — Governed Browse
+
+## Depends on
+076 + 078 + existing MedScale Network Broker authority.
+
+## Goal
+Give MedAgent/research workflows web search and browser capability without bypassing privacy, network authority or evidence provenance.
+
+## Foundation scope
+Read/retrieve/research first. External side-effecting browser actions are not foundation behavior.
+
+## Required outcomes
+- `BrowseRequest`, `BrowsePolicy`, `BrowseRoute`, `BrowseEvidence`, `BrowseReceipt` contracts;
+- search/HTTP acquisition through admitted network broker;
+- deterministic browser automation (Playwright-class) behind a bounded worker/adapter when required;
+- agentic browser fallback only when deterministic navigation is insufficient and explicitly permitted;
+- browser context is hostile/untrusted input and cannot change instructions/capabilities;
+- `PUBLIC` may browse under network policy;
+- `EXTERNAL_DEIDENTIFIED` requires valid transform/egress decision;
+- `LOCAL_PHI` and `TEAM_PROTECTED` are denied from public browsing routes by default;
+- credential handles stay outside model prompts; login/MFA uses explicit human takeover/session boundary;
+- exact URL/source, retrieval time, route/tool identity, content hash where obtainable, selected evidence spans and snapshot/retention policy;
+- robots/terms/site-specific constraints represented by adapter policy where applicable;
+- cancel/timeout/redirect/download/file-type limits;
+- download ingestion returns quarantined candidate/source bytes for normal MedScale validation rather than trusted content;
+- CLI + MedAgent Browse panel/activity + evidence linking.
+
+## Explicit non-goals
+- no general autonomous purchasing/submission/clinical-system writes;
+- no unrestricted browser profile/cookie import;
+- no hidden credential extraction;
+- no public browsing of sensitive raw project context;
+- no claim that web content is clinical truth.
+
+## Closure focus
+Public/deidentified research retrieval works with receipts and prompt-injection/egress/credential/redirect/download abuse tests. Sensitive egress fails closed.
+
+---
+
+# 080 — AudioFlow Foundation
+
+## Depends on
+076 + 078.
+
+## Goal
+Add local-first audio capture, transcription, diarization, dictation and voice control as evidence-bearing Project capabilities.
+
+## Required outcomes
+- `AudioSession`, `AudioSource`, `TranscriptRevision`, `DiarizationRevision`, `AudioEvidenceRef`;
+- native capture/control contract and imported audio/video path;
+- visible capture state and capture-health semantics;
+- source digest + retention policy;
+- conditioning/VAD ownership;
+- evidence-selected `VoiceRuntimeRouter` routes;
+- at least one qualified streaming local STT path and one offline-quality path;
+- diarization/alignment;
+- medical number/unit/negation terminology benchmark where claimed;
 - Arabic + Arabic-English code-switch evaluation dimension;
 - non-destructive transcript revision ledger;
-- command/context/dictation voice semantics for MedAgent;
+- explicit `COMMAND` / `CONTEXT` / `DICTATION` semantics for MedAgent;
 - interruption/cancellation;
-- VoiceStudio/Himsat/Wispral donor qualification records;
-- no wake word as default.
+- VoiceStudio/Himsat/Wispral donor qualification;
+- no default wake word/always-listening.
+
+## Closure focus
+No silent cloud fallback; route unavailable is explicit; source audio and transcript lineage remain reproducible.
 
 ---
 
-## 080 — Analytics Gate
+# 081 — Analytics Gate
 
-### Goal
-Provide reproducible native analysis without making a BI server a Desktop dependency.
+## Depends on
+074 + 078.
 
-### Required outcomes
-- governed analytical views over project data;
+## Goal
+Provide reproducible native data analysis without making a BI server or unrestricted notebook a Desktop dependency.
+
+## Required outcomes
+- governed analytical views over exact Project artifact revisions;
 - Arrow/Parquet interchange where appropriate;
-- DataFusion qualification or justified alternative;
-- SQL editor and natural-language query proposal path;
+- DataFusion qualification or documented bounded alternative behind same contract;
+- SQL editor + natural-language query proposal path;
+- parser/planner default-deny for writes/DDL;
 - cohort/query builder;
-- `QueryReceipt` with exact SQL/inputs/revisions/runtime;
-- derived Dataset/Figure artifacts;
-- statistical validation hooks and explicit not-run states;
+- `QueryReceipt` with exact SQL/plan/input revisions/engine/config;
+- derived Dataset/Table/Figure artifacts with classification propagation;
+- statistical operations with independent correctness fixtures and explicit assumption/not-run state;
 - native table/chart surfaces;
-- read-only default for AI-generated queries;
-- privacy enforcement before materialization/export.
+- privacy enforcement before adapter/export materialization;
+- arbitrary Python/R/shell deferred to 085 Compute.
+
+## Closure focus
+Reproducibility, read-only default, cancellation/timeouts, source-revision pinning, independent statistical correctness.
 
 ---
 
-## 081 — Knowledge + Research Canvas
+# 082 — Knowledge + Research Canvas
 
-### Goal
-Join documents, data, audio, evidence, retrieval, and visual reasoning without generic vector-only RAG.
+## Depends on
+074 + 076 + 078.
 
-### Required outcomes
-- lexical + structured + vector + graph retrieval plan;
-- permission-filtered retrieval;
-- exact source spans/pages/timestamps/revisions;
+## Goal
+Create permission-aware project knowledge, retrieval and visual research composition without treating vector search as authority.
+
+## Required outcomes
+- `IndexManifest`, source/chunk/parser identity and stale/tombstone semantics;
+- embedded/local lexical search first;
+- vector retrieval only if benchmark demonstrates value;
+- structured Project Graph + lexical + optional vector retrieval plan;
+- authorization before disclosure and cache reuse;
+- exact page/span/revision evidence links;
 - `RetrievalReceipt`;
-- Project/Evidence Graph projection;
-- Research Canvas containing live references to artifacts, not pasted copies;
-- literature/paper workflow;
-- MedAgent grounding over Project Graph;
-- contradiction and missing-evidence inspection.
+- Research Canvas with live artifact references rather than silent copies;
+- literature/library workflow;
+- MedAgent grounding over exact evidence;
+- explicit insufficient-evidence state;
+- contradiction/missing-evidence inspection.
+
+## Integration gates
+- web evidence is indexed only after 079 closes and its BrowseReceipt contract is admitted;
+- audio timestamp evidence is indexed only after 080 closes;
+- analytics derived artifacts are indexed only after 081 closes.
+
+## Closure focus
+No cross-project leaks, stale-index honesty, deletion/tombstone propagation, evidence spans survive restart/rebuild.
 
 ---
 
-## 082 — MedScale Hub
+# 083 — MedScale Hub
 
-### Goal
-Enable user-controlled lab/team collaboration without a mandatory MedScale cloud.
+## Depends on
+074 + 075 + 078.
 
-### Required outcomes
-- self-hostable Hub;
-- team/project membership and invitations;
-- room/thread/task/note synchronization;
-- artifact metadata and transfer coordination;
-- policy-aware search;
-- workflow coordination;
-- audit checkpoints;
+## Goal
+Enable user-controlled multi-device lab/team collaboration without a mandatory MedScale cloud.
+
+## Required outcomes
+- self-hostable single-Hub topology first;
+- team/project membership + invitations;
+- versioned Hub handshake and device identity;
+- sync of rooms/threads/tasks/note revisions/activity;
+- artifact metadata + policy-approved resumable object transfer;
+- monotonic cursors/idempotent submission/conflict responses;
+- tenant/project scope applied before DB/search/cache/pubsub/object lookup;
+- protected Hub data encrypted at rest; transport encryption mandatory outside loopback/dev;
+- explicit operator trust statement (not zero-knowledge unless a later E2EE design proves it);
+- revocation propagation; late results/data quarantined or denied;
+- deletion/tombstone propagation with honest backup-retention semantics and no silent resurrection;
+- workflow/audit coordination;
 - offline-first reconnect/conflict behavior;
-- encrypted transport and explicit server trust posture;
-- single-laptop mode remains valid;
-- backup/recovery and upgrade/rollback strategy.
+- backup/restore + schema upgrade/rollback;
+- Personal single-laptop mode remains fully valid.
 
-Candidate deployment targets: workstation, LAN server, on-prem server, private VPC.
+## Candidate deployments
+Workstation, LAN server, on-prem server, private VPC.
+
+## Closure focus
+Two-client offline/conflict/reconnect, revocation, tenant isolation, malicious digest, backup/restore, upgrade rollback.
 
 ---
 
-## 083 — AudioFlow Advanced
+# 084 — AudioFlow Advanced
 
-### Goal
-Turn AudioFlow into the full audio intelligence workspace after capture/transcript foundations are proven.
+## Depends on
+080 + 075 + 083 for shared huddle behavior.
 
-### Required outcomes
-- project audio huddles;
-- humans + scoped agents in audio sessions;
-- live transcript/evidence/task extraction;
+## Goal
+Turn AudioFlow into full team audio intelligence after capture/transcript/Hub foundations are proven.
+
+## Required outcomes
+- Project audio huddles;
+- humans + explicitly scoped agents in audio sessions;
+- permission to join is distinct from permission to record/transcribe/export;
+- live transcript/evidence/task proposals;
 - TTS/listen-back;
 - optional duplex agent voice;
-- voice design/cloning under explicit permission and provenance;
-- synthetic-audio watermark/provenance strategy;
+- voice design/cloning only with explicit subject permission/provenance;
+- synthetic-agent/voice output labeling and export provenance/watermark policy;
 - media time/frame annotations;
-- batch audio workflow;
-- optional remote audio workers;
-- persistent speaker identity remains opt-in/encrypted/deletable.
+- batch workflows;
+- optional remote audio workers through Compute once available;
+- persistent speaker identity opt-in/encrypted/deletable.
+
+## Closure focus
+Consent/permission separation, duplex interruption, synthetic-origin labeling, retention/deletion and long-session team behavior.
 
 ---
 
-## 084 — MedScale Compute
+# 085 — MedScale Compute
 
-### Goal
-Scale jobs from local hardware to lab/institutional compute without widening data authority.
+## Depends on
+076 + 078. Local worker foundation does not require Hub; remote lab-worker integration may later integrate 083.
 
-### Required outcomes
-- `ComputeJobManifest`;
-- local CPU/GPU worker;
-- self-hosted remote worker;
-- bounded input artifact access;
-- network/filesystem/secret policy;
-- quotas, cancellation, expiry, crash containment;
-- signed/hashed outputs and logs;
-- reproducible environment/runtime identity;
-- OpenSandbox or alternative isolation qualification;
-- no worker receives ambient vault access.
+## Goal
+Scale bounded jobs from local CPU/GPU to lab/institutional compute without widening vault authority.
 
----
+## Required outcomes
+- `ComputeJobManifest`, worker capability/lease/heartbeat/input lease/output candidate/receipt contracts;
+- local bounded worker first;
+- exact input staging; no vault mount/ambient key store;
+- filesystem/network/secret/resource policy;
+- timeout/OOM/crash/cancel/lost/partial semantics;
+- output schema/digest validation before Core admission;
+- late completion after revocation quarantined;
+- reproducible runtime/environment identity;
+- log redaction;
+- self-hosted remote worker after local proof;
+- container/OpenSandbox/OS sandbox choice evidence-selected by workload/platform;
+- institutional schedulers deferred to 087.
 
-## 085 — Research Packs
-
-### Goal
-Expand from health-data workflows to broader lab/research workflows without bloating Core.
-
-### Initial candidates
-- Clinical Research;
-- AI Research;
-- Imaging;
-- Omics;
-- Wet Lab;
-- Systematic Review.
-
-Each Pack must define schemas, workflows, validation, tool/model needs, UI extensions, evidence semantics, and export/import boundaries while remaining subordinate to Core authority.
+## Closure focus
+Filesystem escape, egress denial, malicious output, duplicate/late completion, crash/OOM/timeout and reproducible output evidence.
 
 ---
 
-## 086 — Institutional Adapters
+# 086 — Research Packs
 
-### Goal
-Connect MedScale to real organizational infrastructure through explicit adapters.
+## Depends on
+074 + 076 + 081 + 082. 085 is required only for Pack features that execute arbitrary/heavy worker code.
 
-Candidate adapters:
-- institutional identity/SSO;
+## Goal
+Expand to lab/research domains without bloating or weakening Core.
+
+## Initial proof order
+1. Clinical Research;
+2. AI Research;
+3. Systematic Review;
+4. Imaging;
+5. Omics;
+6. Wet Lab.
+
+## Required outcomes
+- versioned declarative `ResearchPackManifest`;
+- artifact schema/validation/workflow/view descriptors;
+- tool/model requirements;
+- evidence semantics;
+- import/export boundaries;
+- migrations/upgrades;
+- uninstall disables Pack but preserves domain data until explicit export/delete;
+- no arbitrary trusted-process UI/native code by default;
+- executable extension uses normal tool/worker authority;
+- clear distinction from executable/model Packs in naming/contracts/UI.
+
+## Closure focus
+At least the first Pack proves domain extension without alternate authority, unsafe UI plugins or destructive migration.
+
+---
+
+# 087 — Institutional Adapters
+
+## Depends on
+078 + 083 + 085 + 086.
+
+## Goal
+Connect MedScale to organizational infrastructure through explicit adapters without making them required for Personal/Lab operation.
+
+## Candidate adapter families
+- institutional identity/SSO binding to stable local MedScale identity;
 - object storage;
 - LIMS/ELN;
 - EHR/FHIR systems;
 - HPC/Slurm/Kubernetes;
 - institutional model registry;
-- Superset/BI;
-- OpenRAG/OpenSearch or equivalent large retrieval service;
-- notification/communication systems.
+- Superset/BI over approved materialized views;
+- OpenRAG/OpenSearch-class scale services;
+- notification/communication systems;
+- approved side-effecting browser/connector workflows where APIs are unavailable.
 
-No adapter becomes required for personal/lab local-first operation.
+## Required posture
+Every adapter gets destination/data-class/capability/credential/effect-state/provenance contracts. External writes preserve `Unknown` when confirmation is uncertain and never retry blindly.
 
 ---
 
-## 087 — Federation
+# 088 — Federation
 
-### Goal
-Enable controlled collaboration across institutions without requiring a central MedScale data cloud.
+## Depends on
+087.
 
-Research areas:
+## Goal
+Research and, only if proven, enable controlled cross-institution collaboration without requiring a central MedScale data cloud.
+
+## Research/qualification areas
 - signed project/artifact bundles;
 - cross-institution identity/trust;
-- federated queries/analytics;
-- data stays at site where required;
-- policy negotiation;
-- provenance across institutions;
-- consent/data-use constraints;
-- revocation and expiry;
+- minimal policy vocabulary and unknown-policy deny;
+- data-stays-at-site default;
+- federated query/aggregate/model tasks only when statistically/privacy valid;
+- provenance across sites;
+- consent/data-use/retention/export constraints;
+- revocation/expiry;
 - result aggregation without hidden source loss.
 
-Federation must remain research/qualification work until the trust model is proven.
+Federation remains non-release-blocking until explicitly promoted by product governance.
 
 ---
 
-## 088 — Whole-Platform Qualification
+# 089 — Whole-Platform Qualification
 
-### Goal
-Qualify the integrated Research OS rather than declaring completion from feature presence.
+## Depends on
+Every Research OS capability claimed for the target release. Deferred optional features are listed explicitly rather than faked as qualified.
 
-Required evidence families:
-- privacy/PHI boundary testing;
-- model/agent authority testing;
-- browser/egress abuse testing;
-- Hub tenancy and authorization;
-- audio capture/privacy and long-session stability;
-- ASR/diarization quality on declared populations/tasks;
-- analytics correctness and reproducibility;
-- collaboration concurrency/conflict recovery;
-- compute isolation;
-- backup/restore/migration;
+## Goal
+Qualify the integrated Research OS, not merely the existence of feature code.
+
+## Required evidence families
+- authority/capability bypass tests;
+- privacy/PHI/PII boundary tests;
+- model/agent/fleet authority and context isolation;
+- browser prompt-injection/egress/credential/download abuse;
+- Hub tenancy/auth/revocation/conflict/deletion/backup;
+- AudioFlow capture/privacy/quality/long-session behavior on declared populations/tasks;
+- Analytics correctness/reproducibility;
+- Knowledge permission/staleness/evidence grounding;
+- collaboration concurrency/recovery;
+- Compute isolation;
+- migration/backup/restore/upgrade rollback;
+- Research Pack migration/removal/security;
 - accessibility;
-- performance and resource envelopes;
-- provenance/attribution closure;
-- failure/recovery drills;
-- platform-specific packaging/signing where applicable.
+- performance/resource envelopes by deployment tier;
+- donor/license/SBOM/provenance closure;
+- platform packaging/signing where applicable;
+- explicit unsupported/external/deferred axes.
 
-## Promotion rule
+## Release statement rule
+No Research OS release claim may be broader than the exact deployment tiers, platforms, data classes and evidence qualified by this unit.
 
-This roadmap is not self-authorizing. A candidate unit becomes executable only when canonical governance promotes a bounded specification with dependencies, acceptance criteria, recovery rules, and evidence requirements. Live repository truth always overrides this document.
+---
+
+## 4. Promotion rule
+
+This roadmap is not self-authorizing. A candidate unit becomes executable only when canonical governance promotes a bounded specification using the Future Spec Template and exact live repository truth.
+
+A promotion must:
+
+1. verify the number/name is unused;
+2. bind exact predecessor closure evidence;
+3. bind exact current crate/module/storage paths;
+4. close architecture defaults through the Decision Resolution Register;
+5. identify any evidence-selected dependencies and their qualification harness;
+6. define migration/recovery and test/evidence commands;
+7. leave adjacent candidate units non-executable.
+
+Live repository truth always overrides this roadmap.
