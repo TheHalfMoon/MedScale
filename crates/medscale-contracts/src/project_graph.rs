@@ -106,6 +106,17 @@ pub enum ProjectStatus {
     Archived,
 }
 
+impl ProjectStatus {
+    /// Returns the canonical snake_case name.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Active => "active",
+            Self::Archived => "archived",
+        }
+    }
+}
+
 /// Lifecycle of an Experiment. No move between Projects in 074.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -117,6 +128,16 @@ pub enum ExperimentStatus {
 }
 
 impl ExperimentStatus {
+    /// Returns the canonical snake_case name.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Draft => "draft",
+            Self::Active => "active",
+            Self::Completed => "completed",
+            Self::Archived => "archived",
+        }
+    }
     /// Returns true for the transitions admitted in 074.
     ///
     /// Draft -> Active -> Completed -> Archived, plus early archive from any

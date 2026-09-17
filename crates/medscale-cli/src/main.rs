@@ -14,6 +14,8 @@ use medscale_core::{
 };
 use serde::Serialize;
 
+mod project;
+
 #[derive(Debug, Parser)]
 #[command(
     name = "medscale",
@@ -132,6 +134,16 @@ enum Commands {
     HostIpc {
         #[command(subcommand)]
         action: HostIpcCmd,
+    },
+    /// Project workspace (Spec 074; organizational references through Core).
+    Project {
+        #[command(subcommand)]
+        action: project::ProjectCmd,
+    },
+    /// Experiment workspace (Spec 074; scoped to one Project).
+    Experiment {
+        #[command(subcommand)]
+        action: project::ExperimentCmd,
     },
 }
 
@@ -342,7 +354,29 @@ const EXIT_OK: u8 = 0;
 const EXIT_ERROR: u8 = 1;
 const EXIT_JSON_ERROR: u8 = 2;
 
+/// Main-thread stack budget.
+///
+/// Windows reserves 1 MiB for the main thread while clap parsing plus the
+/// synchronous dispatch match exceed it in debug builds once the command tree
+/// grows (observed stack overflow on plain `medscale status` after the Spec
+/// 074 project commands landed; 1 MiB spawned-thread probes of every parse
+/// path pass, so the budget need is just above the platform default). Run the
+/// CLI body on an explicit 8 MiB thread instead of relying on platform
+/// main-stack defaults. The `cli_wire_enum_sizes_stay_stack_safe` test guards
+/// the wire types; this guards the platform.
+const CLI_STACK_SIZE: usize = 8 << 20;
+
 fn main() -> ExitCode {
+    std::thread::Builder::new()
+        .name("medscale-main".to_owned())
+        .stack_size(CLI_STACK_SIZE)
+        .spawn(run_main)
+        .expect("spawn main thread")
+        .join()
+        .unwrap_or_else(|_| ExitCode::from(EXIT_ERROR))
+}
+
+fn run_main() -> ExitCode {
     match run() {
         Ok(()) => ExitCode::from(EXIT_OK),
         Err(err) => {
@@ -1089,6 +1123,8 @@ fn run() -> Result<()> {
                 Ok(())
             }
         },
+        Commands::Project { action } => project::run_project(action),
+        Commands::Experiment { action } => project::run_experiment(action),
     }
 }
 
@@ -1345,6 +1381,28 @@ mod tests {
         assert!(!manifest.contains("medscale-storage"));
         assert!(!manifest.contains("rusqlite"));
         assert!(!manifest.contains("tauri"));
+    }
+
+    #[test]
+    fn cli_wire_enum_sizes_stay_stack_safe() {
+        // Windows default main-thread stack is 1 MiB; every command parses on
+        // it. This guard fails loudly instead of overflowing the binary.
+        eprintln!("size Commands={}", std::mem::size_of::<Commands>());
+        eprintln!(
+            "size RequestBody={}",
+            std::mem::size_of::<medscale_contracts::envelopes::RequestBody>()
+        );
+        eprintln!(
+            "size ResponseBody={}",
+            std::mem::size_of::<medscale_contracts::envelopes::ResponseBody>()
+        );
+        eprintln!(
+            "size AuthorityRequest={}",
+            std::mem::size_of::<medscale_contracts::envelopes::AuthorityRequest>()
+        );
+        assert!(std::mem::size_of::<Commands>() <= 4096);
+        assert!(std::mem::size_of::<medscale_contracts::envelopes::RequestBody>() <= 4096);
+        assert!(std::mem::size_of::<medscale_contracts::envelopes::ResponseBody>() <= 4096);
     }
 
     #[test]
