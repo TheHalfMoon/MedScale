@@ -62,7 +62,7 @@ This branch is documentation-only planning for the proposed Research OS expansio
 
 - `RESEARCH_OS_LAB_ADOPTION_JOURNEYS.md`
 - `RESEARCH_OS_METRICS.md`
-- `RESEARCH_OS_OPEN_QUESTIONS.md` (question inventory only; implementation defaults live in Decision Resolution Register)
+- `RESEARCH_OS_OPEN_QUESTIONS.md` (research inventory only; implementation defaults live in Decision Resolution Register)
 - `RESEARCH_OS_NON_GOALS.md`
 - `RESEARCH_OS_SCOPE_BOUNDARY.md`
 - `RESEARCH_OS_PLAN_MANIFEST.md`
@@ -76,6 +76,8 @@ The packet is intentionally more specific than a normal roadmap. It now defines:
 - canonical object/revision/relationship rules;
 - state and error taxonomies;
 - data classes and privacy boundary behavior;
+- MedAgent context/tool/fleet boundaries;
+- Governed Browse routing, egress, credential, hostile-content, redirect/SSRF, quarantine and evidence rules;
 - collaboration conflict defaults;
 - Hub trust/sync defaults;
 - worker/compute least-privilege rules;
@@ -83,7 +85,7 @@ The packet is intentionally more specific than a normal roadmap. It now defines:
 - Analytics read-only/query provenance rules;
 - retrieval/index staleness/permission rules;
 - Research Pack extension boundaries;
-- per-candidate-spec implementation shape;
+- per-candidate-spec implementation shape through candidate Spec 089;
 - repository/crate/module ownership defaults;
 - mandatory test/evidence layers;
 - implementer stop conditions;
@@ -99,9 +101,10 @@ This still does **not** make any candidate spec executable. A promoted unit must
 4. Review source/license/permission statements against exact revisions before any transfer; planning ledger entries are not adoption approval.
 5. Ensure no private connected-source information is disclosed publicly.
 6. Keep engine/vendor choices explicitly evidence-selected where the Decision Resolution Register says so.
-7. Review the implementation contracts for duplicate ID/provenance/audit/policy models against current code.
-8. Keep PR #121 planning-only; do not merge from implementation automation.
-9. After planning acceptance, promote only the first dependency-ordered bounded unit (074 or renumbered equivalent) through normal Spec Kit/canonical governance.
+7. Review implementation contracts for duplicate ID/provenance/audit/policy models against current code.
+8. Run a full planning-diff consistency search for stale candidate spec numbering and cross-plane dependencies after every roadmap insertion/renumbering.
+9. Keep PR #121 planning-only; do not merge from implementation automation.
+10. After planning acceptance, promote only the first dependency-ordered bounded unit (074 or renumbered equivalent) through normal Spec Kit/canonical governance.
 
 ## Planning completion condition
 
@@ -113,6 +116,6 @@ The planning packet may be considered review-ready when:
 - every candidate spec has dependency, ownership, contracts, failure semantics and closure gates;
 - implementation is mapped onto the current repository structure;
 - verification and migration/recovery requirements are explicit;
-- a gap-closure review finds no material unresolved cross-plane dependency.
+- a gap-closure review finds no material unresolved cross-plane dependency or stale candidate-number reference.
 
 Review-ready planning is not implementation completion and not project release readiness.
