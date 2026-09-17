@@ -19,6 +19,11 @@ use crate::packs::{
     PackPromotionState,
 };
 use crate::presentation::{DrillDownResult, SubjectBriefV1, SubjectCoverageV1, SubjectTimelineV1};
+use crate::project_graph::{
+    ArtifactDescriptor, Experiment, ExperimentSummary, GraphDirection, GraphEndpoint,
+    GraphNeighborPage, Project, ProjectArtifactRef, ProjectContext, ProjectGraphEdge,
+    ProjectGraphPredicate, ProjectStatus, ProjectSummary, ResolvedArtifactRef,
+};
 use crate::workflow::DisclosureRecord;
 
 /// Capability required to execute a facade operation.
@@ -396,6 +401,100 @@ pub enum RequestBody {
         note: Option<String>,
     },
     ListDisclosures,
+    // Spec 074: every mutation flows through Core authority paths. Surfaces
+    // never write project storage directly.
+    ProjectCreate {
+        name: String,
+        description: Option<String>,
+    },
+    ProjectGet {
+        project_id: OpaqueId,
+    },
+    ProjectList {
+        status: Option<ProjectStatus>,
+        limit: Option<u32>,
+        cursor: Option<String>,
+    },
+    ProjectUpdate {
+        project_id: OpaqueId,
+        expected_revision: u64,
+        name: Option<String>,
+        description: Option<Option<String>>,
+    },
+    ProjectArchive {
+        project_id: OpaqueId,
+        expected_revision: u64,
+    },
+    ProjectRestore {
+        project_id: OpaqueId,
+        expected_revision: u64,
+    },
+    ExperimentCreate {
+        project_id: OpaqueId,
+        name: String,
+        description: Option<String>,
+    },
+    ExperimentGet {
+        experiment_id: OpaqueId,
+    },
+    ExperimentList {
+        project_id: OpaqueId,
+        limit: Option<u32>,
+        cursor: Option<String>,
+    },
+    ExperimentUpdate {
+        experiment_id: OpaqueId,
+        expected_revision: u64,
+        name: Option<String>,
+        description: Option<Option<String>>,
+    },
+    ExperimentArchive {
+        experiment_id: OpaqueId,
+        expected_revision: u64,
+    },
+    ProjectAttach {
+        project_id: OpaqueId,
+        experiment_id: Option<OpaqueId>,
+        artifact: ArtifactDescriptor,
+    },
+    ProjectDetach {
+        ref_id: OpaqueId,
+        expected_revision: u64,
+    },
+    ProjectListRefs {
+        project_id: OpaqueId,
+        experiment_id: Option<OpaqueId>,
+        active_only: bool,
+        limit: Option<u32>,
+        cursor: Option<String>,
+    },
+    GraphEdgeCreate {
+        project_id: OpaqueId,
+        subject: GraphEndpoint,
+        predicate: ProjectGraphPredicate,
+        object: GraphEndpoint,
+    },
+    GraphEdgeRemove {
+        edge_id: OpaqueId,
+        expected_revision: u64,
+    },
+    GraphNeighbors {
+        project_id: OpaqueId,
+        start: GraphEndpoint,
+        predicates: Option<Vec<ProjectGraphPredicate>>,
+        direction: Option<GraphDirection>,
+        limit: Option<u32>,
+        cursor: Option<String>,
+    },
+    ProjectContextResolve {
+        project_id: OpaqueId,
+        experiment_id: Option<OpaqueId>,
+        refs_limit: Option<u32>,
+        graph_limit: Option<u32>,
+    },
+    ProjectSummaryQuery {
+        project_id: OpaqueId,
+    },
 }
 
 /// Successful response body variants.
@@ -532,6 +631,40 @@ pub enum ResponseBody {
     },
     MescVerify {
         report: MescVerifyReport,
+    },
+    // Spec 074 typed results (revisioned, scope-checked, no raw payloads).
+    Project {
+        project: Project,
+    },
+    ProjectList {
+        projects: Vec<ProjectSummary>,
+        next_cursor: Option<String>,
+    },
+    Experiment {
+        experiment: Experiment,
+    },
+    ExperimentList {
+        experiments: Vec<ExperimentSummary>,
+        next_cursor: Option<String>,
+    },
+    ProjectRef {
+        reference: ProjectArtifactRef,
+    },
+    ProjectRefList {
+        refs: Vec<ResolvedArtifactRef>,
+        next_cursor: Option<String>,
+    },
+    GraphEdge {
+        edge: ProjectGraphEdge,
+    },
+    GraphNeighbors {
+        page: GraphNeighborPage,
+    },
+    ProjectContext {
+        context: ProjectContext,
+    },
+    ProjectSummary {
+        summary: ProjectSummary,
     },
 }
 

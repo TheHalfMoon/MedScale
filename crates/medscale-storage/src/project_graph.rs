@@ -1202,6 +1202,40 @@ impl SqliteMetaStore {
         )?;
         Ok(count as u64)
     }
+
+    /// Lists active edges of one Project in edge-id order (context slices).
+    pub fn list_edges(
+        &self,
+        project_id: &OpaqueId,
+        limit: u32,
+        after: Option<&str>,
+    ) -> Result<(Vec<ProjectGraphEdge>, Option<String>), MetaError> {
+        check_cursor(after)?;
+        let limit = limit.clamp(1, 100) as i64 + 1;
+        let after = after.unwrap_or_default();
+        let mut stmt = self.conn().prepare(
+            "SELECT edge_id, project_id, subject_kind, subject_id, subject_json, predicate, object_kind, object_id, object_json, status, revision, realm_id, authority_scope_id, schema_version
+             FROM project_graph_edges
+             WHERE project_id = ?1 AND status = 'active' AND edge_id > ?2
+             ORDER BY edge_id LIMIT ?3",
+        )?;
+        let mapped = stmt.query_map(
+            params![project_id.as_str(), after, limit],
+            map_edge_row_result,
+        )?;
+        let mut out = Vec::new();
+        for row in mapped {
+            out.push(row.map_err(to_meta)??);
+        }
+        let next = if out.len() == limit as usize {
+            // Drop the lookahead row; the cursor is the last RETURNED id.
+            out.pop();
+            out.last().map(|e| e.header.id.as_str().to_owned())
+        } else {
+            None
+        };
+        Ok((out, next))
+    }
 }
 
 fn map_edge_row_result(
