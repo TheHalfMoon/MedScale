@@ -24,7 +24,7 @@ crates/medscale-desktop     native Slint product UI adapter
 
 ## 2. Existing primitives that MUST be reused
 
-Before adding Research OS types, inspect and reuse the current contracts around:
+Before adding Research OS types, inspect and reuse current contracts around:
 
 - `OpaqueId`;
 - `ObjectHeader`;
@@ -36,19 +36,19 @@ Before adding Research OS types, inspect and reuse the current contracts around:
 - `ActionAuditRecord`;
 - current evidence/document/network/Pack envelopes and IDs.
 
-`EvaluationRecord` remains evidence-only; `Projection` remains rebuildable/non-authoritative; `ActionAuditRecord` remains the basis for durable audit/external-action intent semantics. Do not invent `ResearchId`, `AgentAuditId`, `AudioDigest`, `AnalyticsAudit` or equivalent parallel foundations if an existing primitive can express the same semantics.
+`EvaluationRecord` remains evidence-only; `Projection` remains rebuildable/non-authoritative; `ActionAuditRecord` remains the basis for durable audit/external-action intent semantics. Do not invent `ResearchId`, `AgentAuditId`, `AudioDigest`, `BrowseAudit`, `AnalyticsAudit` or equivalent parallel foundations if an existing primitive can express the same semantics.
 
 ## 3. Dependency direction
 
 Research OS implementation MUST preserve the existing dependency-direction gate.
 
-Target shape:
+Conceptual target:
 
 ```text
 contracts <- storage/fhir/keys/network/pack <- core <- cli/desktop
 ```
 
-Exact existing dependency direction remains governed by repository checks; this diagram is conceptual, not permission to add a new dependency edge.
+Exact existing dependency direction remains governed by repository checks; this diagram is not permission to add a new dependency edge.
 
 Rules:
 
@@ -58,7 +58,7 @@ Rules:
 4. `medscale-pack` verifies/adopts executable/model artifacts; it does not grant project/user authority.
 5. `medscale-core` is the only product authority orchestrator.
 6. CLI/Desktop call Core paths and never reproduce policy logic.
-7. Hub/workers introduced later must remain external/bounded clients or services of Core-owned contracts, not alternate authority planes.
+7. Hub/browser/workers introduced later remain bounded clients/services of Core-owned contracts, not alternate authority planes.
 
 ## 4. Contract module placement defaults
 
@@ -71,13 +71,15 @@ projects/        074 Project, Experiment, ProjectGraphEdge, ArtifactDescriptor
 collaboration/   075 Room, Message, Task, NoteDocument, Approval contracts
 agents/          076 AgentIdentity, ContextManifest, ToolManifest, Run contracts
 privacy/         078 DataClass, PrivacyTransform, EgressDecision, DeidReceipt
-audio/           079 AudioSource, AudioSession, TranscriptRevision, AudioEvidenceRef
-analytics/       080 AnalysisPlan, QueryReceipt, CohortDefinition, Figure/Table contracts
-knowledge/       081 IndexManifest, RetrievalPlan/Receipt, Canvas contracts
-hub/             082 sync/protocol envelopes if they remain pure contracts
-compute/         084 ComputeJobManifest, leases, worker/output contracts
-research_packs/  085 ResearchPackManifest and declarative extension contracts
-federation/      087 only after research authorizes a protocol
+browse/          079 BrowseRequest/Route/Session/Evidence/Receipt contracts if not cleaner under network/evidence
+audio/           080 AudioSource, AudioSession, TranscriptRevision, AudioEvidenceRef
+analytics/       081 AnalysisPlan, QueryReceipt, CohortDefinition, Figure/Table contracts
+knowledge/       082 IndexManifest, RetrievalPlan/Receipt, Canvas contracts
+hub/             083 sync/protocol envelopes if they remain pure contracts
+compute/         085 ComputeJobManifest, leases, worker/output contracts
+research_packs/  086 ResearchPackManifest and declarative extension contracts
+institutional/   087 adapter-neutral identity/mapping/effect envelopes only where generic
+federation/      088 only after research authorizes a protocol
 ```
 
 Do not create all modules up front. A module appears only with its promoted spec.
@@ -86,7 +88,7 @@ If a contract is clearly a specialization of an existing module (`evidence`, `do
 
 ## 5. Core module placement defaults
 
-Current Core already contains `authority`, `effects`, `ipc`, `process`, `text`, `validate`, `workflow`, `doctor` and session surfaces. Research OS should extend these patterns rather than create an independent application service.
+Current Core already contains `authority`, `effects`, `ipc`, `process`, `text`, `validate`, `workflow`, `doctor` and session surfaces. Research OS extends these patterns rather than creating an independent application service.
 
 Candidate domain modules after promotion:
 
@@ -95,25 +97,27 @@ core/src/projects/        074 lifecycle + graph authority
 core/src/collaboration/   075 local room/task/note authority
 core/src/agents/          076 run/context/tool orchestration
 core/src/privacy/         078 classification/transformation/egress decisions
-core/src/audio/           079 route/capture/transcript authority (not raw DSP if separable)
-core/src/analytics/       080 governed analysis orchestration
-core/src/knowledge/       081 indexing/retrieval orchestration
-core/src/hub/             082 sync admission/reconciliation client-side authority
-core/src/compute/         084 job admission/lease/output admission
-core/src/research_packs/  085 Pack extension validation
+core/src/browse/          079 browse policy/route/session/evidence admission, not browser engine internals
+core/src/audio/           080 route/capture/transcript authority, not raw DSP if separable
+core/src/analytics/       081 governed analysis orchestration
+core/src/knowledge/       082 indexing/retrieval orchestration
+core/src/hub/             083 sync admission/reconciliation client-side authority
+core/src/compute/         085 job admission/lease/output admission
+core/src/research_packs/  086 Pack extension validation
 ```
 
-The names are defaults, not blanket authorization. If existing modules already own the behavior, extend them instead.
+The names are defaults, not blanket authorization. If existing modules already own behavior, extend them instead.
 
 ### Core command location
 
 A promoted spec must choose one consistent typed command/query pattern compatible with current Core. Do not add ad-hoc methods directly to Desktop/CLI.
 
-Every mutation path must be traceable to:
+Every mutation or sensitive action path must be traceable to:
 
 ```text
-request -> actor/session -> relationship/capability -> privacy -> revision/precondition
-        -> validation -> storage transaction/effect intent -> receipt/audit -> result
+request -> actor/session -> relationship/capability -> privacy/data class
+        -> revision/precondition -> deterministic validation
+        -> storage transaction/effect intent -> receipt/audit -> result
 ```
 
 ## 6. Storage map
@@ -123,10 +127,10 @@ Current storage already contains encrypted vault, SQLite metadata, blob, migrati
 Default use:
 
 - metadata/relations/index metadata: evolve current SQLCipher/SQLite metadata paths;
-- large datasets/media/audio/model-adjacent artifacts: existing blob/content-addressed storage patterns where semantics fit;
+- large datasets/media/audio/download/model-adjacent artifacts: existing blob/content-addressed storage patterns where semantics fit;
 - schema migration: `medscale-storage` migration mechanism;
 - backup/recovery: extend existing backup contract before adding a second backup system;
-- concurrency: preserve current single-writer/transaction assumptions until a Hub spec explicitly changes them.
+- concurrency: preserve current transaction/writer assumptions until a promoted spec explicitly changes them.
 
 ### Storage creation rule
 
@@ -149,7 +153,7 @@ migration forward path
 rollback/recovery path
 ```
 
-### Suggested first schema families
+### Suggested schema families
 
 Do not pre-create them; these are ownership guides:
 
@@ -158,15 +162,16 @@ Do not pre-create them; these are ownership guides:
 075: rooms, room_memberships, collab_events, tasks, note_revisions, approvals
 076: agent_runs, agent_turns, tool_receipts, context_manifests or sealed refs
 078: privacy_transform metadata, deid_receipts, pseudonym-map references only
-079: audio_source metadata, audio_sessions, transcript_revisions, diarization revisions
-080: analysis/query receipts, governed view metadata, cohort definitions
-081: index manifests/chunks/embedding metadata/canvas revisions
-082: sync cursors/outbox/inbox/conflict metadata (Hub server schema separately qualified)
-084: compute jobs/leases/receipts/output candidates
-085: installed research-pack metadata/migration state
+079: browse_sessions/receipts/evidence metadata and quarantined download refs only when persistence is required
+080: audio_source metadata, audio_sessions, transcript_revisions, diarization revisions
+081: analysis/query receipts, governed view metadata, cohort definitions
+082: index manifests/chunks/embedding metadata/canvas revisions
+083: sync cursors/outbox/inbox/conflict metadata; Hub server schema separately qualified
+085: compute jobs/leases/receipts/output candidates
+086: installed research-pack metadata/migration state
 ```
 
-Sensitive payloads SHOULD remain sealed/blob-backed where the existing vault pattern requires it; metadata tables must not become accidental plaintext transcript/prompt/audio stores.
+Sensitive payloads SHOULD remain sealed/blob-backed where the existing vault pattern requires it; metadata tables must not become accidental plaintext prompt/transcript/audio/browser credential stores.
 
 ## 7. Migration rule
 
@@ -183,12 +188,12 @@ pre-spec fixture vault
  -> exercise new behavior
  -> close/reopen
  -> verify exact objects/revisions/digests
- -> re-run migration (must be safe/idempotent according to current migration framework)
+ -> re-run migration safely/idempotently according to current framework
 ```
 
-If rollback of schema bytes is unsafe, the spec must define restore-from-pre-migration-backup rather than pretending down-migration is safe.
+If rollback of schema bytes is unsafe, define restore-from-pre-migration-backup rather than pretending down-migration is safe.
 
-No spec may destructively rewrite current canonical object IDs merely to fit the Project Graph.
+No spec may destructively rewrite current canonical object IDs merely to fit Project Graph or later Research OS views.
 
 ## 8. CLI map
 
@@ -203,15 +208,16 @@ medscale project ...
 medscale experiment ...
 medscale agent ...
 medscale privacy ...
+medscale browse ...
 medscale audio ...
 medscale analytics ...
 medscale knowledge ...
 medscale hub ...
 medscale compute ...
-medscale pack ...   (extend existing Pack workflows, do not fork model stores)
+medscale pack ...
 ```
 
-Every command with state-changing behavior calls Core; JSON output must use typed Core results and preserve `Denied`, `Conflict`, `Unknown`, `Partial`, etc.
+Every command with state-changing/sensitive behavior calls Core; JSON output must use typed Core results and preserve `Denied`, `Conflict`, `Unknown`, `Partial`, `Stale`, etc.
 
 ## 9. Desktop map
 
@@ -226,13 +232,16 @@ Projects         074
 Project rooms    075
 MedAgent         076
 Fleet Compare    077
-Privacy          078 (cross-cutting + inspectable surface)
-Audio            079 / AudioFlow
-Analytics        080
-Knowledge/Canvas 081
-Team/Hub status  082
-Compute          084
-Research Packs   085
+Privacy          078 cross-cutting + inspectable surface
+Browse           079 integrated primarily into MedAgent/Project evidence, not a generic unsafe web browser
+Audio            080 / AudioFlow foundation
+Analytics        081
+Knowledge/Canvas 082
+Team/Hub status  083
+Audio Huddles    084 advanced AudioFlow
+Compute          085
+Research Packs   086
+Institution      087 adapter/admin surfaces where applicable
 ```
 
 UI files/modules should be decomposed by product surface as complexity grows. `main.rs` remains composition/bootstrap, not the home for Research OS business logic.
@@ -240,39 +249,57 @@ UI files/modules should be decomposed by product surface as complexity grows. `m
 Rules:
 
 - no fake/mock product state presented as real capability;
-- loading/empty/error/denied/unavailable/partial/stale states are explicit;
-- authority/data/network/model identity visible where trust depends on it;
+- loading/empty/error/denied/unavailable/partial/stale/unknown states are explicit;
+- authority/data/network/model/origin identity visible where trust depends on it;
+- browser evidence is visually distinct from model summary;
 - Core result states are not collapsed to generic success/error;
 - keyboard/accessibility requirements remain part of acceptance.
 
-## 10. Network map
+## 10. Network and Browse map
 
 All Research OS product egress extends `medscale-network` or a canonical successor broker.
 
-Current anchors include adapter, allowlist and transport layers. New browsing, Hub, connector or institutional routes must use versioned request types and Core-approved destination/data policy.
+Current anchors include adapter, allowlist and transport layers. New Browse, Hub, connector or institutional routes must use versioned request types and Core-approved destination/data policy.
 
 No new crate may call arbitrary HTTP/WebSocket directly merely because it is a Hub/browser/audio dependency.
 
-Potential future separations:
+Candidate separation only after promoted-spec proof:
 
 ```text
-network/adapters      deterministic HTTP/API adapters
-network/browser       only if deterministic browsing becomes a distinct bounded transport
-network/hub           Hub transport client
-network/institutional provider adapters
+network/adapters       deterministic HTTP/API adapters
+network/browse         broker-facing browse transport/policy glue if existing network modules become too crowded
+network/hub            Hub transport client
+network/institutional  provider adapters
 ```
 
-A headless Hub server introduced by 082 is a separate deployment component and must not weaken the Desktop/Core broker rule for outbound product actions.
+### Spec 079 Browse execution placement
+
+Default flow:
+
+```text
+MedAgent/Desktop/CLI
+ -> Core Browse request
+ -> capability + Privacy Gate
+ -> medscale-network route/destination policy
+ -> HTTP/search OR bounded deterministic browser worker
+ -> untrusted result parser/quarantine
+ -> Core evidence validation/admission
+ -> BrowseReceipt / Project evidence link
+```
+
+Browser rendering/automation libraries do not become Core dependencies. Raw credentials stay in `medscale-keys`/scoped external credential boundary and are referenced by handles only. Redirects are re-checked; private-network/loopback targets are denied by default for public Browse.
+
+A headless Hub server introduced by 083 is a separate deployment component and must not weaken the Desktop/Core broker rule for outbound product actions.
 
 ## 11. Pack/runtime map
 
 `medscale-pack` already contains format, store and runtime/ONNX support. Research OS model/audio/retrieval Pack work MUST extend this trust/provenance system.
 
-079 AudioFlow must first prove whether audio model/runtime metadata fits an extension of the existing Pack format. Default is **extend**, not create an independent Audio model store.
+080 AudioFlow must first prove whether audio model/runtime metadata fits an extension of the existing Pack format. Default is **extend**, not create an independent audio model store.
 
-076/077 MedAgent/Fleet use admitted Packs; they do not load arbitrary Hugging Face repositories directly from the UI.
+076/077 MedAgent/Fleet use admitted Packs; they do not load arbitrary Hugging Face repositories directly from UI.
 
-085 Research Packs are a distinct *domain extension manifest* concept and must not be confused with executable/model Pack admission. If both use the word Pack, contracts and UI must make the distinction explicit.
+086 Research Packs are a distinct domain-extension manifest concept and must not be confused with executable/model Pack admission. Contracts/UI must make that distinction explicit.
 
 ## 12. Worker boundary map
 
@@ -284,37 +311,37 @@ Initial hierarchy:
 in-process trusted deterministic operation
   only if admitted library/runtime and risk allows
 
-local bounded worker
-  custom/heavy model, Python/R, arbitrary analysis code, risky parser
+bounded local process/worker
+  deterministic browser rendering, custom/heavy model, Python/R, arbitrary analysis code, risky parser
 
 self-hosted remote worker
   lab GPU or institutional compute
 
 container/OpenSandbox/HPC adapter
-  only after 084/086 qualification
+  only after 085/087 qualification
 ```
 
-The worker process receives staged exact input refs/bytes, not the vault path.
+The worker receives staged exact inputs/capabilities, not the vault path. Spec 079 browser worker gets only approved navigation/request/credential handles; Spec 085 Compute formalizes the general worker lease/job contract.
 
 ## 13. Hub deployment map
 
-082 may add new server crates/binaries only after local collaboration contracts are closed.
+083 may add new server crates/binaries only after local collaboration contracts are closed.
 
 Candidate shape, subject to promoted-spec proof:
 
 ```text
-crates/medscale-hub-contracts   only if existing contracts crate cannot cleanly hold wire types
-crates/medscale-hub-server      Axum or evidence-selected server runtime
+crates/medscale-hub-contracts   only if existing contracts cannot cleanly hold wire types
+crates/medscale-hub-server      evidence-selected server runtime
 crates/medscale-hub-client      preferably transport/client logic integrated with network/Core boundaries
 ```
 
-**Do not create these crates during 074-081.**
+**Do not create these crates during 074-082.**
 
 Buzz may donate isolated patterns/components only after exact revision/path provenance and behavior tests. Nostr/Buzz relay semantics are not automatically the Hub protocol.
 
 ## 14. AudioFlow implementation map
 
-Foundation 079 order:
+Foundation 080 order:
 
 ```text
 1. audio contracts + Pack metadata extension design
@@ -336,11 +363,11 @@ Foundation 079 order:
 
 Do not start by copying VoiceStudio UI/backend. Use VoiceStudio/Himsat/Wispral as qualified donors behind MedScale contracts.
 
-083 later adds huddles/TTS/duplex/cloning. These MUST NOT block 079 closure.
+084 later adds huddles/TTS/duplex/cloning. These MUST NOT block 080 closure.
 
 ## 15. Analytics implementation map
 
-080 order:
+081 order:
 
 ```text
 1. AnalyticalView / Query contracts
@@ -357,11 +384,11 @@ Do not start by copying VoiceStudio UI/backend. Use VoiceStudio/Himsat/Wispral a
 12. optional adapter contract only; no Superset dependency in default Desktop
 ```
 
-`population_insights.rs` is existing product behavior to inspect/reconcile; 080 must not create a competing analytics truth without migration/compatibility analysis.
+`population_insights.rs` is existing product behavior to inspect/reconcile; 081 must not create a competing analytics truth without migration/compatibility analysis.
 
 ## 16. Knowledge/RAG implementation map
 
-081 order:
+082 order:
 
 ```text
 source parser evidence -> IndexManifest -> lexical index -> permission filtering
@@ -370,6 +397,11 @@ source parser evidence -> IndexManifest -> lexical index -> permission filtering
 ```
 
 Indexes are projections. Existing evidence/document modules are primary sources of truth.
+
+Integrations are conditional:
+- 079 Browse closes before web-source receipt/span indexing is accepted;
+- 080 AudioFlow closes before audio-timestamp evidence indexing is accepted;
+- 081 Analytics closes before derived analytical artifacts receive specialized knowledge integration.
 
 No vector DB service is mandatory for Personal/Lab.
 
@@ -395,7 +427,7 @@ If adapting the component imports Buzz identity/protocol/storage assumptions tha
 
 ## 18. VoiceStudio adaptation map
 
-079/083 must separately qualify:
+080/084 must separately qualify:
 
 - model/engine registry patterns;
 - streaming transcription protocol patterns;
@@ -404,7 +436,7 @@ If adapting the component imports Buzz identity/protocol/storage assumptions tha
 - diarization/batch concepts;
 - later TTS/cloning/dubbing features.
 
-Do not import Electron as the MedScale shell. Do not put Python into Core. If Python engines win quality benchmarks, run them as pinned optional workers.
+Do not import Electron as MedScale shell. Do not put Python into Core. If Python engines win quality benchmarks, run them as pinned optional workers.
 
 ## 19. Test placement default
 
@@ -418,7 +450,7 @@ storage migration/reopen/transaction tests
 Core authority/state-machine tests
 CLI integration tests
 Desktop state/adapter/accessibility tests
-network/Pack/worker integration tests where applicable
+network/Pack/browser/worker integration tests where applicable
 adversarial privacy/security tests
 performance/soak/benchmark harnesses
 full workspace gates
@@ -428,7 +460,7 @@ Evidence goes under the repository's existing `evidence/<spec>-.../` convention,
 
 ## 20. CI and dependency gates
 
-The current main CI already runs formatting, dependency-direction checking, clippy, workspace tests, portable release qualification, performance evidence, cargo-deny and supply-chain policy checks.
+Current main CI runs formatting, dependency-direction checking, clippy, workspace tests, portable release qualification, performance evidence, cargo-deny and supply-chain policy checks.
 
 Every promoted spec must identify which existing gates remain applicable and which new focused/platform/benchmark jobs are needed. Do not weaken current gates to land Research OS work.
 
@@ -451,7 +483,7 @@ Otherwise implement as an existing-crate module.
 
 The first Research OS unit remains 074 (or the renumbered equivalent if live main advances): Project + Artifact Graph Foundation.
 
-The first implementation PR for that unit should be smaller than the full product surface. Recommended dependency-ordered slices:
+Recommended dependency-ordered slices:
 
 ```text
 074-A contracts + serialization/invariant tests
