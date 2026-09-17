@@ -1,121 +1,152 @@
-# MedScale Research OS Planning Status
+# MedScale Research OS Planning Status V2
 
-**Planning branch:** `plan/medscale-research-os`  
-**Review PR:** `#121` (draft, planning-only)  
-**Planning base verified:** `main` = `c795796132ce633b23b693d55bccc0521d0d26aa`  
-**Base truth:** repository-owned implementation is closed canonically through Spec 073; the Research OS packet is a founder-directed future expansion proposal and does not silently reopen closed specs.
+**Amendment branch:** `plan/research-os-data-extensions-amendment`  
+**Base main:** `a80c33307afc4577790282652e5b20911beb4bbe`  
+**Original Research OS planning PR:** `#121` — merged to main as `a80c33307afc4577790282652e5b20911beb4bbe`  
+**Promoted implementation lane:** Spec 074 only, Draft PR `#122`  
+**V2 amendment review lane:** Draft PR `#123`  
+**V2 amendment status:** `REVIEW_READY / PLANNING_ONLY`; no 075+ implementation authority.
 
-## Scope
+## Scope of Amendment 001
 
-This branch is documentation-only planning for the proposed Research OS expansion. It intentionally does not:
+The founder added three major platform requirements after the original Research OS packet merged:
 
-- modify production code;
-- modify active/current Spec Kit authority;
-- promote Spec 074 or any later candidate;
-- change current Product/Design authority;
-- claim implementation, qualification or release readiness;
-- authorize real PHI;
-- change the separate MESC boundary;
-- merge itself.
+1. first-class **Data Source Fabric** for local data, databases, Kaggle, Hugging Face datasets and later institutional/object-store sources;
+2. first-class **R Workspace** integration with RStudio/Posit and Compute-mediated R execution;
+3. **Community Extensions** / Hub registry ecosystem with Obsidian-quality developer/community experience but stronger healthcare/research capability isolation.
 
-## Planning packet layers
+These requirements materially change future dependencies and candidate numbering, but they do not expand already-promoted Spec 074.
 
-### Product / architecture
+## V2 candidate sequence
 
-- `RESEARCH_OS_PLAN_INDEX.md`
-- `RESEARCH_OS_VISION.md`
-- `RESEARCH_OS_PRINCIPLES.md`
-- `RESEARCH_OS_DECISIONS.md`
-- `RESEARCH_OS_ARCHITECTURE.md`
-- `RESEARCH_OS_PRODUCT_MAP.md`
-- `AUDIOFLOW_PRODUCT_PLAN.md`
-- `RESEARCH_OS_THREAT_AND_SCALE_MODEL.md`
+```text
+074 Project + Artifact Graph Foundation              [separately promoted]
+075 Data Source Fabric                               [candidate]
+076 Collaboration Substrate                          [candidate]
+077 MedAgent Workbench                               [candidate]
+078 Model Fleet + Compare                            [candidate]
+079 Privacy Gate                                     [candidate]
+080 Governed Browse                                  [candidate]
+081 AudioFlow Foundation                             [candidate]
+082 Analytics Gate                                   [candidate]
+083 Knowledge + Research Canvas                      [candidate]
+084 MedScale Hub                                     [candidate]
+085 MedScale Compute                                 [candidate]
+086 R Workspace                                      [candidate]
+087 Community Extensions                             [candidate]
+088 AudioFlow Advanced                               [candidate]
+089 Research Packs                                   [candidate]
+090 Institutional Adapters                           [candidate]
+091 Federation                                       [candidate]
+092 Whole-Platform Qualification                     [candidate]
+```
 
-### Sources / donor governance
+Every 075+ number remains candidate-only and must be reconciled against live canonical main before promotion.
 
-- `RESEARCH_OS_SOURCE_LEDGER.md`
-- `SOURCE_ADOPTION_MATRIX.md`
-- `RESEARCH_OS_DONOR_RULE.md`
+## V2 amendment artifacts
 
-### Implementation hardening
+### Founder/program amendment
+- `RESEARCH_OS_PROGRAM_AMENDMENT_001_DATA_EXTENSIONS.md`
 
-- `RESEARCH_OS_MASTER_IMPLEMENTATION_CONTRACT.md`
-- `RESEARCH_OS_REPOSITORY_IMPLEMENTATION_MAP.md`
-- `RESEARCH_OS_SPEC_IMPLEMENTATION_CONTRACTS.md`
-- `RESEARCH_OS_IMPLEMENTER_INSTRUCTIONS.md`
-- `RESEARCH_OS_DECISION_RESOLUTION_REGISTER.md`
-- `RESEARCH_OS_FUTURE_SPEC_TEMPLATE.md`
-- `RESEARCH_OS_MIGRATION_STRATEGY.md`
-- `RESEARCH_OS_EVIDENCE_RECEIPTS.md`
+### Product plans
+- `DATA_SOURCE_FABRIC_PLAN.md`
+- `R_WORKSPACE_PRODUCT_PLAN.md`
+- `COMMUNITY_EXTENSIONS_PRODUCT_PLAN.md`
 
-### Verification / execution governance
+### Integrated program contracts
+- `RESEARCH_OS_EXECUTION_ROADMAP.md` — V2 074-092 dependency graph;
+- `RESEARCH_OS_V2_DECISION_REGISTER.md` — 50 explicit defaults/evidence-selected decisions;
+- `RESEARCH_OS_V2_IMPLEMENTATION_CONTRACT_ADDENDUM.md`;
+- `RESEARCH_OS_V2_SPEC_IMPLEMENTATION_CONTRACTS.md` — per-candidate implementation contracts 075-092;
+- `RESEARCH_OS_V2_REPOSITORY_MAP_ADDENDUM.md`;
+- `RESEARCH_OS_V2_VERIFICATION_ADDENDUM.md`;
+- `RESEARCH_OS_V2_GAP_CLOSURE_REVIEW.md`;
+- updated `SOURCE_ADOPTION_MATRIX.md`;
+- updated `RESEARCH_OS_PLAN_INDEX.md`;
+- updated `RESEARCH_OS_PACKET_VERSION.md`;
+- updated `RESEARCH_OS_FINAL_PLANNING_ASSERTIONS.md`.
 
-- `RESEARCH_OS_ACCEPTANCE_FRAMEWORK.md`
-- `RESEARCH_OS_VERIFICATION_MATRIX.md`
-- `RESEARCH_OS_DEFINITION_OF_READY.md`
-- `RESEARCH_OS_BUILD_RULES.md`
-- `RESEARCH_OS_EXECUTION_ROADMAP.md`
-- `RESEARCH_OS_COMPLETION_CRITERIA.md`
-- `RESEARCH_OS_REVIEW_CHECKLIST.md`
+## Authority truth
 
-### Supporting product planning
+The amendment does **not** authorize:
 
-- `RESEARCH_OS_LAB_ADOPTION_JOURNEYS.md`
-- `RESEARCH_OS_METRICS.md`
-- `RESEARCH_OS_OPEN_QUESTIONS.md` (research inventory only; implementation defaults live in Decision Resolution Register)
-- `RESEARCH_OS_NON_GOALS.md`
-- `RESEARCH_OS_SCOPE_BOUNDARY.md`
-- `RESEARCH_OS_PLAN_MANIFEST.md`
-- `RESEARCH_OS_PACKET_VERSION.md`
+- candidate Spec 075 implementation;
+- database network egress in production;
+- Kaggle/Hugging Face credentials in production;
+- R execution;
+- Wasmtime/Extism or any extension runtime;
+- Community Registry operation;
+- third-party extension installation;
+- real PHI;
+- MESC mutation;
+- automatic implementation of 075 after 074 closes.
 
-## Implementation-readiness posture
+Current planning truth:
 
-The packet is intentionally more specific than a normal roadmap. It now defines:
+```text
+SPEC_074_IMPLEMENTATION_AUTHORIZED=true
+SPEC_075_PLUS_IMPLEMENTATION_AUTHORIZED=false
+RESEARCH_OS_V2_AMENDMENT_REVIEW_READY=true
+RESEARCH_OS_V2_AMENDMENT_IMPLEMENTED=false
+MATERIAL_KNOWN_V2_PLANNING_GAPS=0
+REAL_PHI_AUTHORIZED=false
+MESC_MUTATION_AUTHORIZED=false
+```
 
-- authority and dependency direction;
-- canonical object/revision/relationship rules;
-- state and error taxonomies;
-- data classes and privacy boundary behavior;
-- MedAgent context/tool/fleet boundaries;
-- Governed Browse routing, egress, credential, hostile-content, redirect/SSRF, quarantine and evidence rules;
-- collaboration conflict defaults;
-- Hub trust/sync defaults;
-- worker/compute least-privilege rules;
-- AudioFlow routing/transcript lineage;
-- Analytics read-only/query provenance rules;
-- retrieval/index staleness/permission rules;
-- Research Pack extension boundaries;
-- per-candidate-spec implementation shape through candidate Spec 089;
-- repository/crate/module ownership defaults;
-- mandatory test/evidence layers;
-- implementer stop conditions;
-- safe defaults for previously open architecture questions.
+`MATERIAL_KNOWN_V2_PLANNING_GAPS=0` means no presently known material founder requirement in Amendment 001 lacks a planned owner, authority boundary, failure model, repository placement or verification path. It does not claim implementation or technology qualification.
 
-This still does **not** make any candidate spec executable. A promoted unit must bind these program contracts to exact live paths/types/tests and current main.
+## Important supersession rule
 
-## Required reconciliation before merge
+The original Research OS packet remains valuable architecture context, but for **candidate 075+ semantic numbering/dependencies**, Program Amendment 001 + V2 Roadmap + V2 Decision Register + V2 addenda/contracts are the current planning truth.
 
-1. Reverify current `main`, `AGENTS.md`, `BUILD_QUEUE.md`, implementation authority, Product and Design authority.
-2. Confirm Spec 074+ numbering is still unused at merge time; renumber candidates if necessary.
-3. Verify the plan does not contradict work promoted after the planning base.
-4. Review source/license/permission statements against exact revisions before any transfer; planning ledger entries are not adoption approval.
-5. Ensure no private connected-source information is disclosed publicly.
-6. Keep engine/vendor choices explicitly evidence-selected where the Decision Resolution Register says so.
-7. Review implementation contracts for duplicate ID/provenance/audit/policy models against current code.
-8. Run a full planning-diff consistency search for stale candidate spec numbering and cross-plane dependencies after every roadmap insertion/renumbering.
-9. Keep PR #121 planning-only; do not merge from implementation automation.
-10. After planning acceptance, promote only the first dependency-ordered bounded unit (074 or renumbered equivalent) through normal Spec Kit/canonical governance.
+Any future promotion packet must remove ambiguity by naming the semantic unit, not relying on an old integer alone.
 
-## Planning completion condition
+Example:
 
-The planning packet may be considered review-ready when:
+```text
+Candidate 075 = Data Source Fabric
+not the former V1 alias "Collaboration Substrate"
+```
 
-- all material brainstorm capabilities map to a bounded architecture surface;
-- no known architecture question is left to implementer preference;
-- evidence-selected choices have an owner, benchmark/qualification requirement and fail-safe default;
-- every candidate spec has dependency, ownership, contracts, failure semantics and closure gates;
-- implementation is mapped onto the current repository structure;
-- verification and migration/recovery requirements are explicit;
-- a gap-closure review finds no material unresolved cross-plane dependency or stale candidate-number reference.
+## Completed amendment hardening
 
-Review-ready planning is not implementation completion and not project release readiness.
+- [x] integrate Data Source/R/Extensions into roadmap;
+- [x] add product plans for all three founder requirements;
+- [x] add shared implementation contracts;
+- [x] add per-spec implementation contracts 075-092;
+- [x] add repository ownership map;
+- [x] add verification campaigns;
+- [x] add V2 Decision Register with fail-safe defaults;
+- [x] update source-adoption policy;
+- [x] update index/status/version/final assertions;
+- [x] classify V1 future numbering as historical when conflicting;
+- [x] record V2 cross-plane/stale-numbering gap closure;
+- [x] preserve 074 scope and PR #122 separation;
+- [x] keep amendment documentation-only;
+- [x] open planning-only review PR #123;
+- [ ] verify exact-head CI state for the final PR #123 head.
+
+## Implementation interaction with Spec 074
+
+Spec 074 remains bounded to Project + Artifact Graph Foundation.
+
+The V2 amendment may be reviewed in parallel with Spec 074 implementation because it changes only future planning. However:
+
+- do not merge amendment content into the Spec 074 implementation branch;
+- do not add Data Sources/R/Extensions code to PR #122;
+- Muse/implementation agents working Spec 074 should ignore V2 future implementation except where it confirms explicit non-goals;
+- after Spec 074 canonical closure, the next candidate is Data Source Fabric only if separately promoted under then-live authority.
+
+## Planning completion result
+
+The amendment now satisfies its planning-completion condition:
+
+- all three founder requirements map to bounded contracts and product surfaces;
+- Data Source Fabric has one source/credential/snapshot model across local/DB/Kaggle/HF;
+- R has explicit isolation/staging/reproducibility/publication rules;
+- Extensions have signing/capability/sandbox/update/rollback/registry rules;
+- repository ownership and verification campaigns are explicit;
+- V2 decisions cannot be delegated to implementer preference without evidence;
+- old future-number references are explicitly superseded for 075+ planning;
+- V2 gap review reports no material known cross-plane gap;
+- no implementation or release-readiness claim is made.
