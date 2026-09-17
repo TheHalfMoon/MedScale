@@ -4,6 +4,7 @@
 **Base main:** `a80c33307afc4577790282652e5b20911beb4bbe`  
 **Original Research OS planning PR:** `#121` — merged to main as `a80c33307afc4577790282652e5b20911beb4bbe`  
 **Promoted implementation lane:** Spec 074 only, Draft PR `#122`  
+**V2 amendment review lane:** Draft PR `#123`  
 **V2 amendment status:** `REVIEW_READY / PLANNING_ONLY`; no 075+ implementation authority.
 
 ## Scope of Amendment 001
@@ -122,8 +123,8 @@ not the former V1 alias "Collaboration Substrate"
 - [x] record V2 cross-plane/stale-numbering gap closure;
 - [x] preserve 074 scope and PR #122 separation;
 - [x] keep amendment documentation-only;
-- [ ] open planning-only review PR;
-- [ ] verify exact-head review/CI state after PR creation.
+- [x] open planning-only review PR #123;
+- [ ] verify exact-head CI state for the final PR #123 head.
 
 ## Implementation interaction with Spec 074
 
