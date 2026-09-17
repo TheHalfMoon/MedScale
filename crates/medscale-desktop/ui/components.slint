@@ -25,6 +25,88 @@ component FocusableClickArea {
     }
 }
 
+
+export component SearchField inherits Rectangle {
+    in property <string> placeholder;
+    in property <string> accessible-name: "Search";
+    callback accepted(string);
+
+    height: 40px;
+    border-radius: Theme.radius-control;
+    border-width: input.has-focus ? Theme.focus-width : 1px;
+    border-color: input.has-focus ? Theme.signal : Theme.border;
+    background: Theme.surface-raised;
+    forward-focus: input;
+
+    HorizontalLayout {
+        padding-left: 12px;
+        padding-right: 12px;
+        spacing: 0px;
+        Rectangle {
+            horizontal-stretch: 1;
+            background: transparent;
+            placeholder-text := Text {
+                width: parent.width;
+                height: parent.height;
+                text: input.text == "" ? root.placeholder : "";
+                color: Theme.ink-quiet;
+                font-size: 12px;
+                vertical-alignment: center;
+                accessible-role: none;
+            }
+            input := TextInput {
+                width: parent.width;
+                height: parent.height;
+                single-line: true;
+                color: Theme.ink;
+                font-family: "Instrument Sans";
+                font-size: 12px;
+                selection-background-color: Theme.signal;
+                selection-foreground-color: Theme.surface;
+                accessible-role: text-input;
+                accessible-label: root.accessible-name;
+                accepted => { root.accepted(self.text); }
+            }
+        }
+    }
+}
+
+export component RailAction inherits Rectangle {
+    in property <string> label;
+    in property <image> icon;
+    in property <bool> selected: false;
+    callback activated();
+
+    forward-focus: interaction;
+    width: 42px;
+    height: 42px;
+    border-radius: Theme.radius-compact;
+    border-width: interaction.has-focus ? Theme.focus-width : 0px;
+    border-color: Theme.signal-glow;
+    background: selected ? #FFFFFF18 : interaction.has-hover ? #FFFFFF0D : transparent;
+    accessible-role: button;
+    accessible-label: label + (selected ? ", selected section" : "");
+    accessible-action-default => { root.activated(); }
+
+    Rectangle {
+        x: 0px;
+        y: 9px;
+        width: selected ? 2px : 0px;
+        height: 24px;
+        border-radius: 1px;
+        background: Theme.nav-text;
+    }
+    Image {
+        source: icon;
+        width: 20px;
+        height: 20px;
+        x: (parent.width - self.width) / 2;
+        y: (parent.height - self.height) / 2;
+        image-fit: contain;
+    }
+    interaction := FocusableClickArea { width: 100%; height: 100%; clicked => { root.activated(); } }
+}
+
 export component NavItem inherits Rectangle {
     in property <string> label;
     in property <string> glyph;
@@ -32,29 +114,29 @@ export component NavItem inherits Rectangle {
     callback activated();
 
     forward-focus: interaction;
-    height: 34px;
-    border-radius: 9px;
-    border-width: interaction.has-focus ? 1px : 0px;
+    height: 32px;
+    border-radius: Theme.radius-control;
+    border-width: interaction.has-focus ? Theme.focus-width : 0px;
     border-color: Theme.signal;
-    background: selected ? Theme.graphite-raised : interaction.has-hover ? Theme.graphite : transparent;
+    background: selected ? Theme.sidebar-selected : interaction.has-hover ? Theme.surface-raised : transparent;
     accessible-role: button;
-    accessible-label: label;
+    accessible-label: label + (selected ? ", selected" : "");
     accessible-action-default => { root.activated(); }
 
     HorizontalLayout {
-        padding-left: 11px;
-        padding-right: 11px;
-        spacing: 11px;
+        padding-left: 9px;
+        padding-right: 9px;
+        spacing: 9px;
         alignment: start;
         Rectangle {
-            width: 6px;
-            height: 6px;
-            border-radius: 3px;
-            background: selected ? Theme.signal : Theme.nav-subtle.with-alpha(0.48);
+            width: selected ? 2px : 1px;
+            height: selected ? 16px : 8px;
+            border-radius: 1px;
+            background: selected ? Theme.signal-strong : Theme.border-strong;
         }
         Text {
             text: label;
-            color: selected ? Theme.nav-text : Theme.nav-subtle;
+            color: selected ? Theme.ink : Theme.ink-subtle;
             font-size: 12px;
             font-weight: selected ? 650 : 520;
         }
@@ -72,23 +154,22 @@ export component SegmentTab inherits Rectangle {
     callback activated();
 
     forward-focus: interaction;
-    height: 34px;
+    height: 33px;
     min-width: 92px;
-    border-radius: 8px;
-    border-width: interaction.has-focus ? 2px : 1px;
-    border-color: interaction.has-focus ? Theme.signal : selected ? Theme.signal : Theme.border;
-    background: selected ? Theme.signal-soft : interaction.has-hover ? Theme.surface-raised : Theme.surface;
+    border-radius: Theme.radius-control;
+    border-width: interaction.has-focus ? Theme.focus-width : 1px;
+    border-color: interaction.has-focus ? Theme.signal : selected ? Theme.border-strong : Theme.border;
+    background: selected ? Theme.sidebar-selected : interaction.has-hover ? Theme.surface-raised : Theme.surface;
     accessible-role: button;
     accessible-label: label + (selected ? ", selected" : "");
     accessible-action-default => { root.activated(); }
 
     Text {
         text: label;
-        color: selected ? Theme.signal-strong : Theme.ink-subtle;
+        color: selected ? Theme.ink : Theme.ink-subtle;
         font-size: 11px;
         font-weight: selected ? 650 : 520;
         horizontal-alignment: center;
-
     }
     interaction := FocusableClickArea { width: 100%; height: 100%; clicked => { root.activated(); } }
 }
@@ -99,7 +180,7 @@ export component HonestyPanel inherits Rectangle {
     in property <color> accent: Theme.warning;
 
     min-height: 112px;
-    border-radius: 12px;
+    border-radius: Theme.radius-panel;
     border-width: 1px;
     border-color: Theme.border;
     background: Theme.surface;
@@ -109,11 +190,11 @@ export component HonestyPanel inherits Rectangle {
     HorizontalLayout {
         padding: 15px;
         spacing: 12px;
-        Rectangle { width: 3px; border-radius: 1px; background: accent; }
+        Rectangle { width: 6px; height: 6px; border-radius: 3px; background: accent; }
         VerticalLayout {
             spacing: 5px;
             Text { text: title; color: Theme.ink; font-size: 12px; font-weight: 650; }
-            Text { text: body; color: Theme.ink-subtle; font-size: 11px; wrap: word-wrap; }
+            Text { text: body; color: Theme.ink-subtle; font-family: "Source Serif 4"; font-size: 12px; wrap: word-wrap; }
         }
     }
 }
@@ -127,9 +208,9 @@ export component QuickAction inherits Rectangle {
 
     forward-focus: interaction;
     min-width: 170px;
-    height: 72px;
-    border-radius: 12px;
-    border-width: interaction.has-focus ? 2px : 1px;
+    height: 70px;
+    border-radius: Theme.radius-compact;
+    border-width: interaction.has-focus ? Theme.focus-width : 1px;
     border-color: interaction.has-focus ? Theme.signal : Theme.border;
     background: interaction.has-hover ? Theme.surface-raised : Theme.surface;
     accessible-role: button;
@@ -140,16 +221,16 @@ export component QuickAction inherits Rectangle {
         padding: 13px;
         spacing: 11px;
         Rectangle {
-            width: 3px;
-            height: 38px;
-            border-radius: 2px;
+            width: 6px;
+            height: 6px;
+            border-radius: 3px;
             background: accent;
         }
         VerticalLayout {
             spacing: 3px;
             alignment: center;
             Text { text: title; color: Theme.ink; font-size: 12px; font-weight: 650; }
-            Text { text: subtitle; color: Theme.ink-subtle; font-size: 10px; }
+            Text { text: subtitle; color: Theme.ink-subtle; font-size: 11px; }
         }
     }
     interaction := FocusableClickArea { width: 100%; height: 100%; clicked => { root.activated(); } }
@@ -161,12 +242,12 @@ export component ToolbarAction inherits Rectangle {
     callback activated();
 
     forward-focus: interaction;
-    height: 40px;
-    min-width: 112px;
-    border-radius: 9px;
-    border-width: interaction.has-focus ? 2px : 1px;
+    height: 38px;
+    min-width: 108px;
+    border-radius: Theme.radius-control;
+    border-width: interaction.has-focus ? Theme.focus-width : 1px;
     border-color: interaction.has-focus ? Theme.signal : Theme.border;
-    background: interaction.has-hover ? Theme.signal-soft : Theme.surface;
+    background: interaction.has-hover ? Theme.surface-raised : Theme.surface;
     accessible-role: button;
     accessible-label: label;
     accessible-action-default => { root.activated(); }
@@ -177,7 +258,6 @@ export component ToolbarAction inherits Rectangle {
         font-size: 11px;
         font-weight: 650;
         horizontal-alignment: center;
-
     }
     interaction := FocusableClickArea { width: 100%; height: 100%; clicked => { root.activated(); } }
 }
@@ -190,42 +270,86 @@ export component MetricCard inherits Rectangle {
     in property <color> accent: Theme.signal;
 
     min-width: 170px;
-    height: 98px;
-    border-radius: 12px;
-    border-width: 1px;
-    border-color: Theme.border;
-    background: Theme.surface;
+    height: 94px;
+    border-radius: 0px;
+    border-width: 0px;
+    border-color: transparent;
+    background: transparent;
     accessible-role: text;
     accessible-label: label + ": " + value + ". " + delta;
 
     VerticalLayout {
-        padding: 14px;
+        padding: 13px;
         spacing: 4px;
+        Text { text: label; color: Theme.ink-subtle; font-size: 11px; }
+        Text { text: value; color: Theme.ink; font-size: 21px; font-weight: 680; }
         HorizontalLayout {
-            spacing: 8px;
-            Rectangle { width: 7px; height: 7px; border-radius: 4px; background: accent; }
-            Text { text: label; color: Theme.ink-subtle; font-size: 11px; }
+            spacing: 6px;
+            Rectangle { width: 12px; height: 2px; border-radius: 1px; background: accent; }
+            Text { text: delta; color: Theme.ink-quiet; font-size: 11px; font-weight: 520; }
         }
-        Text { text: value; color: Theme.ink; font-size: 23px; font-weight: 700; }
-        Text { text: delta; color: Theme.ink-quiet; font-size: 10px; font-weight: 550; }
     }
 }
 
 export component StatusPill inherits Rectangle {
     in property <string> label;
     in property <color> accent: Theme.success;
-    height: 22px;
-    min-width: 72px;
-    border-radius: 11px;
-    background: accent.with-alpha(0.10);
+    in property <color> text-color: Theme.ink;
+    height: 24px;
+    min-width: 78px;
+    border-radius: Theme.radius-control;
+    border-width: 1px;
+    border-color: accent.with-alpha(0.42);
+    background: accent.with-alpha(0.08);
     accessible-role: text;
     accessible-label: label;
     Text {
         text: label;
-        color: Theme.ink;
-        font-size: 9px;
+        color: root.text-color;
+        font-size: 11px;
         font-weight: 650;
         horizontal-alignment: center;
+    }
+}
 
+export component AdaptiveLineEdit inherits Rectangle {
+    in-out property <string> text;
+    in property <string> placeholder;
+    in property <string> accessible-name: "Text input";
+    callback accepted(string);
+
+    height: 36px;
+    border-radius: Theme.radius-control;
+    border-width: input.has-focus ? Theme.focus-width : 1px;
+    border-color: input.has-focus ? Theme.signal : Theme.border;
+    background: Theme.surface-raised;
+    forward-focus: input;
+
+    Text {
+        x: 11px;
+        y: 0px;
+        width: parent.width - 22px;
+        height: parent.height;
+        text: input.text == "" ? root.placeholder : "";
+        color: Theme.ink-quiet;
+        font-size: 11px;
+        vertical-alignment: center;
+        accessible-role: none;
+    }
+    input := TextInput {
+        x: 11px;
+        y: 0px;
+        width: parent.width - 22px;
+        height: parent.height;
+        text <=> root.text;
+        single-line: true;
+        color: Theme.ink;
+        font-family: "Instrument Sans";
+        font-size: 12px;
+        selection-background-color: Theme.signal;
+        selection-foreground-color: Theme.surface;
+        accessible-role: text-input;
+        accessible-label: root.accessible-name;
+        accepted => { root.accepted(self.text); }
     }
 }

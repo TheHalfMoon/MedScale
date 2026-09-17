@@ -121,32 +121,50 @@ fn primary_text_tokens_keep_engineering_contrast_floor_without_wcag_claim() {
         .expect("Desktop UI");
 
     for required in [
-        "ink: #0D1420",
-        "ink-subtle: #455468",
-        "ink-quiet: #5E6D80",
-        "signal-strong: #0047B3",
+        "ink: dark ? #F0F1ED : #171918",
+        "ink-subtle: dark ? #BCC0BA : #505653",
+        "ink-quiet: dark ? #919791 : #646B67",
+        "signal-strong: dark ? #BDD2DC : #355A6E",
     ] {
         assert!(
             theme.contains(required),
-            "missing hardened text token: {required}"
+            "missing hardened adaptive text token: {required}"
         );
     }
 
-    let surface = [0xFF, 0xFF, 0xFF];
-    let soft = [0xEA, 0xF2, 0xFF];
+    let light_surface = [0xFB, 0xFA, 0xF7];
+    let light_soft = [0xE5, 0xED, 0xF1];
     for (name, rgb) in [
-        ("ink", [0x0D, 0x14, 0x20]),
-        ("ink-subtle", [0x45, 0x54, 0x68]),
-        ("ink-quiet", [0x5E, 0x6D, 0x80]),
-        ("signal-strong", [0x00, 0x47, 0xB3]),
+        ("ink", [0x17, 0x19, 0x18]),
+        ("ink-subtle", [0x50, 0x56, 0x53]),
+        ("ink-quiet", [0x64, 0x6B, 0x67]),
+        ("signal-strong", [0x35, 0x5A, 0x6E]),
     ] {
         assert!(
-            contrast_ratio(rgb, surface) >= 4.5,
-            "{name} below surface contrast floor"
+            contrast_ratio(rgb, light_surface) >= 4.5,
+            "{name} below light surface contrast floor"
         );
         assert!(
-            contrast_ratio(rgb, soft) >= 4.5,
-            "{name} below soft-surface contrast floor"
+            contrast_ratio(rgb, light_soft) >= 4.5,
+            "{name} below light soft-surface contrast floor"
+        );
+    }
+
+    let dark_surface = [0x1E, 0x21, 0x1F];
+    let dark_raised = [0x26, 0x2A, 0x27];
+    for (name, rgb) in [
+        ("ink", [0xF0, 0xF1, 0xED]),
+        ("ink-subtle", [0xBC, 0xC0, 0xBA]),
+        ("ink-quiet", [0x91, 0x97, 0x91]),
+        ("signal-strong", [0xBD, 0xD2, 0xDC]),
+    ] {
+        assert!(
+            contrast_ratio(rgb, dark_surface) >= 4.5,
+            "{name} below dark surface contrast floor"
+        );
+        assert!(
+            contrast_ratio(rgb, dark_raised) >= 4.5,
+            "{name} below dark raised-surface contrast floor"
         );
     }
 

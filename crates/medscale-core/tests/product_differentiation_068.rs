@@ -12,7 +12,7 @@ fn repo_root() -> PathBuf {
 }
 
 #[test]
-fn medscale_signal_identity_replaces_rejected_multicolor_brand() {
+fn historical_spec_068_rejected_multicolor_palette_remains_retired() {
     let root = repo_root();
     let theme = std::fs::read_to_string(root.join("crates/medscale-desktop/ui/theme.slint"))
         .expect("theme");
@@ -24,8 +24,8 @@ fn medscale_signal_identity_replaces_rejected_multicolor_brand() {
             "rejected palette returned: {rejected_hex}"
         );
     }
-    assert!(theme.contains("signal: #0A66FF"));
-    assert!(theme.contains("obsidian: #0A0E14"));
+    assert!(theme.contains("Mist Blue"));
+    assert!(theme.contains("obsidian: #0D0F0E"));
     for retired_name in ["blurple", "coral", "lavender", "pine", "mint", "amber"] {
         assert!(
             !theme.contains(retired_name),
@@ -33,6 +33,7 @@ fn medscale_signal_identity_replaces_rejected_multicolor_brand() {
         );
     }
     assert!(design.contains("SUPERSEDED_BY_SPEC_068"));
+    assert!(design.contains("SUPERSEDED_BY_SPEC_073"));
     assert!(!design.contains("Cohere-inspired"));
 }
 
@@ -47,7 +48,8 @@ fn models_and_competitive_evidence_are_first_class_and_truthful() {
 
     assert!(app.contains("label: \"Models\""));
     assert!(app.contains("label: \"Evidence\""));
-    assert!(app.contains("EVIDENCE, NOT MARKETING"));
+    assert!(app.contains("MedScale × OpenMed"));
+    assert!(app.contains("Pinned OpenMed evidence · measured claims only · limitations explicit"));
     assert!(app.contains("AI is visible, not implied."));
     assert!(product.contains("real portable ONNX runtime admitted"));
     assert!(product.contains("production clinical model not promoted"));
@@ -70,27 +72,28 @@ fn home_is_a_clinical_workspace_not_an_admin_dashboard() {
     .expect("Abridge product review");
 
     assert!(app.contains("Clinical Workspace"));
-    assert!(app.contains("CURRENT CLINICAL WORKSPACE"));
     assert!(app.contains("Clinical flow"));
-    assert!(app.contains("01  PREPARE"));
-    assert!(app.contains("02  UNDERSTAND"));
-    assert!(app.contains("03  ACT"));
+    assert!(app.contains("Know the record before the encounter"));
+    assert!(app.contains("Keep intelligence tied to evidence"));
+    assert!(app.contains("Review before anything consequential"));
     assert!(!app.contains("Operational snapshot"));
     assert!(review.contains("the clinical work itself is the interface"));
     assert!(review.contains("Prepare → Understand → Act"));
 }
 
 #[test]
-fn canonical_status_closes_after_product_differentiation_sequence() {
+fn spec_068_closure_remains_historical_while_spec_073_is_active() {
     let status =
         std::fs::read_to_string(repo_root().join("docs/planning/PROJECT_COMPLETION_STATUS.md"))
             .expect("completion status");
-    assert!(status.contains("STATUS = REPOSITORY_IMPLEMENTATION_COMPLETE_PENDING_EXTERNAL_GATES"));
-    assert!(status.contains("MEDSCALE_IMPLEMENTATION_COMPLETE = TRUE"));
-    assert!(status.contains("KNOWN_REPOSITORY_OWNED_DESKTOP_CLI_RESIDUALS = 0"));
-    assert!(status.contains("NEXT_PROMOTED_SPEC = NONE"));
-    assert!(!status.contains("NEXT_PROMOTED_SPEC = 073"));
+    assert!(status.contains("STATUS = FINAL_UI_POLISH_IN_PROGRESS"));
+    assert!(status.contains("NEXT_PROMOTED_SPEC = 073"));
     assert!(status.contains("MEDSCALE_RELEASE_READY = FALSE"));
+    assert!(status.contains("## Spec 068 canonical closure"));
+    assert!(status.contains("Specs 068–072 remain `CLOSED_CANONICAL`"));
+    assert!(status.contains(
+        "Spec 073 is the only currently promoted repository-owned implementation residual"
+    ));
 }
 
 #[test]
@@ -107,15 +110,16 @@ fn brand_identity_is_canonical_and_runtime_bound() {
         std::fs::read_to_string(root.join("docs/brand/TYPOGRAPHY_SYSTEM.md")).expect("typography");
     let logo = std::fs::read_to_string(root.join("docs/brand/LOGO_SPEC.md")).expect("logo");
 
-    assert!(app.contains("default-font-family: \"Geist\""));
+    assert!(app.contains("default-font-family: \"Instrument Sans\""));
     assert!(brand.contains("Clinical Intelligence OS"));
     assert!(brand.contains("Evidence first. Action second."));
-    assert!(typography.contains("Geist Sans"));
-    assert!(typography.contains("Geist Mono"));
-    assert!(logo.contains("core mark must work without a container"));
-    assert!(
-        !mark.contains("<rect"),
-        "master mark must not bake in an app-icon container"
-    );
-    assert!(mark.contains("#0A66FF"));
+    assert!(typography.contains("Instrument Sans"));
+    assert!(typography.contains("Source Serif 4"));
+    assert!(logo.contains("FOUNDER_APPROVED_SIGNATURE_MARK"));
+    assert!(logo.contains("MedScale Shelf"));
+    assert!(mark.contains("<circle"));
+    assert!(mark.contains("#0A0A0A"));
+    assert!(mark.contains("#F4F4F1"));
+    assert!(mark.contains("id=\"medscale-signature-m\""));
+    assert!(!mark.contains("#0A66FF"));
 }

@@ -1,29 +1,46 @@
+import { Palette } from "std-widgets.slint";
+
 export global Theme {
-    // MedScale Signal — monochrome-first, one primary product accent.
-    in property <color> signal: #0A66FF;
-    in property <color> signal-hover: #0056D6;
-    in property <color> signal-strong: #0047B3;
-    in property <color> signal-soft: #EAF2FF;
-    in property <color> signal-glow: #B8D5FF;
+    // Spec 073: light-first, OS-adaptive clinical workspace tokens.
+    // 0 = system; 1 = deterministic light evidence; 2 = deterministic dark evidence.
+    in-out property <int> evidence-theme: 0;
+    out property <bool> dark: evidence-theme == 2 ? true : evidence-theme == 1 ? false : Palette.color-scheme == ColorScheme.dark;
 
-    in property <color> obsidian: #0A0E14;
-    in property <color> graphite: #111822;
-    in property <color> graphite-raised: #17212E;
-    in property <color> nav-text: #F4F7FA;
-    in property <color> nav-subtle: #96A3B5;
+    // Mist Blue: interaction/focus only, never decorative branding.
+    out property <color> signal: dark ? #8FADBC : #4F7185;
+    out property <color> signal-hover: dark ? #A5BFCC : #426579;
+    out property <color> signal-strong: dark ? #BDD2DC : #355A6E;
+    out property <color> signal-soft: dark ? #28383F : #E5EDF1;
+    out property <color> signal-glow: dark ? #AFC6D1 : #708C9B;
 
-    in property <color> ink: #0D1420;
-    in property <color> ink-subtle: #455468;
-    in property <color> ink-quiet: #5E6D80;
-    in property <color> border: #DCE3EB;
-    in property <color> border-strong: #C7D0DC;
-    in property <color> canvas: #F3F6F9;
-    in property <color> surface: #FFFFFF;
-    in property <color> surface-raised: #F8FAFC;
+    // The identity remains monochrome. These fixed dark tokens are reserved for
+    // the icon rail and deliberate high-authority surfaces.
+    out property <color> obsidian: #0D0F0E;
+    out property <color> graphite: #171A18;
+    out property <color> graphite-raised: #252927;
+    out property <color> nav-text: #F1F2EE;
+    out property <color> nav-subtle: #A2A8A2;
 
-    in property <color> success: #0B8F69;
-    in property <color> warning: #B87500;
-    in property <color> danger: #C64242;
+    // Adaptive product surfaces.
+    out property <color> ink: dark ? #F0F1ED : #171918;
+    out property <color> ink-subtle: dark ? #BCC0BA : #505653;
+    out property <color> ink-quiet: dark ? #919791 : #646B67;
+    out property <color> border: dark ? #363B38 : #D8D9D3;
+    out property <color> border-strong: dark ? #49504C : #C4C7C0;
+    out property <color> canvas: dark ? #171918 : #F5F4F0;
+    out property <color> surface: dark ? #1E211F : #FBFAF7;
+    out property <color> surface-raised: dark ? #262A27 : #F0EFEA;
+    out property <color> sidebar: dark ? #1A1D1B : #F0EFEA;
+    out property <color> sidebar-selected: dark ? #2A302D : #E3E7E3;
 
+    // Clinical semantics. Color is always paired with language/state.
+    out property <color> success: dark ? #8EAF9B : #4F7562;
+    out property <color> warning: dark ? #D2A86C : #94672B;
+    out property <color> danger: dark ? #D58C8C : #A65353;
 
+    // Geometry tokens keep the workspace calm rather than pill/card-heavy.
+    out property <length> radius-control: 7px;
+    out property <length> radius-panel: 10px;
+    out property <length> radius-compact: 8px;
+    out property <length> focus-width: 2px;
 }

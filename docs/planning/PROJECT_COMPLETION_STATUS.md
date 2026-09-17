@@ -1,20 +1,20 @@
 # MedScale Project Completion Status
 
 ```text
-STATUS = REPOSITORY_IMPLEMENTATION_COMPLETE_PENDING_EXTERNAL_GATES
+STATUS = FINAL_UI_POLISH_IN_PROGRESS
 MEDSCALE_TRUSTED_V1_IMPLEMENTATION_COMPLETE = TRUE
-MEDSCALE_DESKTOP_CLI_PRODUCT_PHASE_COMPLETE = TRUE
-MEDSCALE_IMPLEMENTATION_COMPLETE = TRUE
+MEDSCALE_DESKTOP_CLI_PRODUCT_PHASE_COMPLETE = FALSE
+MEDSCALE_IMPLEMENTATION_COMPLETE = FALSE
 MEDSCALE_RELEASE_READY = FALSE
 PRIVATE_DATA_READY = FALSE
 MULTI_CLIENT_RELEASE_READY = FALSE
 REAL_PHI_AUTHORIZED = FALSE
 KNOWN_REPOSITORY_OWNED_TRUSTED_V1_RESIDUALS = 0
-KNOWN_REPOSITORY_OWNED_DESKTOP_CLI_RESIDUALS = 0
-NEXT_PROMOTED_SPEC = NONE
+KNOWN_REPOSITORY_OWNED_DESKTOP_CLI_RESIDUALS = 1
+NEXT_PROMOTED_SPEC = 073
 ```
 
-Repository-owned MedScale implementation is canonically complete through Spec 072. The 2026-09-15 founder product-bar reopening was closed by Spec 072 after rebuilt-product qualification, protected merge, and post-main verification. Specs 068–072 are `CLOSED_CANONICAL`; no repository-owned implementation unit remains promoted. Mobile and all 073+ advanced work remain deferred unless freshly promoted by a new canonical decision.
+Repository-owned MedScale implementation was canonically complete through Spec 072. The founder has now explicitly reopened exactly one bounded repository-owned unit, Spec 073 Final UI Polish, for a cross-surface identity pass: native Desktop implementation, safe human-facing CLI identity, and documentation-only Web reference work without expanding backend or authority scope. Specs 068–072 remain `CLOSED_CANONICAL`; Spec 073 is the only currently promoted repository-owned implementation residual. Mobile and all 074+ advanced work remain deferred unless freshly promoted by a new canonical decision. On canonical Spec 073 closure, repository implementation closure must be restored without changing external release gates.
 
 This implementation closure does not imply distribution/release qualification. `RELEASE_READY=false`, `PRIVATE_DATA_READY=false`, `MULTI_CLIENT_RELEASE_READY=false`, `REAL_PHI_AUTHORIZED=false`, qualified-hardware budget attainment is unproven, production signing/notarization is not granted, final macOS signed-product/App Sandbox enforcement remains external, and WCAG/assistive-technology qualification remains externally unmeasured. MESC is a separate project/repository and is excluded from MedScale completion and release calculations. Historical MedScale Specs 012/036 remain provenance only.
 

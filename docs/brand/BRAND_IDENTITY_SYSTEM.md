@@ -1,128 +1,59 @@
 # MedScale Brand Identity System
 
-**Status:** CANONICAL_DRAFT_SPEC_068
+**Status:** CANONICAL_SPEC_073
 **Owner:** MedScale product identity
 **Product category:** Clinical Intelligence OS
 
-## 1. Brand thesis
+## Brand thesis
 
 MedScale turns clinical data, model output, and workflow state into inspectable evidence before anything becomes authority.
 
 **Brand promise:** Evidence-native clinical intelligence.
 **Operating line:** Evidence first. Action second.
-**Internal design test:** The work is the interface.
+**Design test:** The work is the interface.
 
-MedScale is not an AI scribe, generic healthcare dashboard, chatbot shell, or EHR skin. It is an intelligence and authority layer for clinical work.
+MedScale is not an AI scribe, generic healthcare dashboard, chatbot shell, EHR skin, or readiness claim.
 
-## 2. Character
+## Character
 
-MedScale must feel:
-- precise, calm, and technically serious;
-- premium without luxury theatrics;
-- clinical without hospital-corporate visual clichés;
-- intelligent without AI spectacle;
-- inspectable rather than magical;
-- fast, dense when useful, and quiet when not.
-## 3. Positioning boundaries
+MedScale is precise, calm, technically serious, clinical without hospital clichés, intelligent without AI spectacle, and premium without decorative luxury treatment.
 
-MedScale may claim a capability only when the product can point to its evidence.
+## Approved identity
 
-Do not use:
-- revolutionary, magical, effortless, or generic AI-superiority language;
-- unsupported "better than" competitor claims;
-- fake activity, fake impact metrics, or fabricated patient outcomes;
-- healthcare clichés such as heartbeat marks, crosses, shields, or brain/sparkle AI icons.
+The master mark is a black circular field with a soft-white rounded continuous `M`. Its proprietary visual cue is the **MedScale Shelf**: a short measured baseline at the inner center before the steeper right return. The mark is monochrome and does not change color for product state.
 
-Competitive references are allowed only in the Evidence Center and research/evidence documents with `PROVEN`, `PARTIAL`, `NOT_YET_PROVEN`, or equivalent evidence states.
+Brand color is black, white, and gray. Functional product colors are restrained Mist Blue (interaction/focus), Sage (positive semantics), amber (warning/review), and red (danger/failure). Product color must always carry meaning and must never become a supporting rainbow palette.
 
-## 4. Brand architecture
+Forbidden brand treatments include purple logo variants, gradients, glows, glassmorphism, colored icon tiles, heartbeat/cross/shield/brain/sparkle motifs, mascots, and literal octopus imagery.
 
-- **MedScale** — company/product master brand.
-- **Core Host** — canonical local authority path; technical product term, not a sub-brand.
-- **Model Fabric** — model/runtime/provenance layer; technical product term.
-- **Model Center** — user-facing model inspection surface.
-- **Evidence Center** — user-facing proof and comparative evidence surface.
-- **Evidence Ledger** — inspectable evidence record, not a separate brand.
+## Theme
 
-Do not create colored sub-brand logos for these concepts.
-## 5. Visual system
+Light mode is the primary design target: warm off-white canvas, quiet paper surfaces, neutral ink, and subtle borders. Dark mode follows the operating-system theme where supported and uses layered charcoal surfaces. The permanent icon rail may remain black in both modes.
 
-MedScale is monochrome-first with one product signal color.
+## Typography
 
-### Product colors
-- `Signal Blue` `#0A66FF` — primary focus, selected state, and intentional action emphasis.
-- `Signal Hover` `#0056D6`.
-- `Signal Strong` `#0047B3` — accessible signal text on light surfaces.
-- `Signal Soft` `#EAF2FF`.
-- `Obsidian` `#0A0E14` — navigation and high-authority dark surfaces.
-- `Graphite` `#111822` and `Graphite Raised` `#17212E`.
-- `Ice` `#F3F6F9` — working canvas.
-- `Paper` `#FFFFFF` — primary reading/work surface.
-- `Ink` `#0D1420`, `Ink Subtle` `#455468`, `Ink Quiet` `#68778A`.
+Instrument Sans is the UI/product family. Source Serif 4 is the selected long-form clinical/writing family. Platform monospace is used for terminal output and machine-readable identifiers.
 
-Semantic green, amber, and red are status colors only. They are not brand accents.
+Geist/Geist Mono were part of the historical Spec 068 direction and are not active MedScale identity fonts under Spec 073.
 
-No purple-to-blue gradients, supporting rainbow palette, glassmorphism, neon glow, decorative blobs, or colored icon tiles.
+## Product signature
 
-## 6. Composition grammar
-
-The default surface is a workspace, not a dashboard.
-
-Priority order:
-1. current clinical/work context;
-2. source and evidence state;
-3. intelligence/model state;
-4. reviewable next action;
-5. governance detail on demand.
-Avoid page structures dominated by KPI grids, nested cards, or generic SaaS hero areas. Prefer one dominant work surface with secondary context around it.
-
-### Navigation
-Navigation is grouped by user intent:
-- Workspace
-- Intelligence
-- Operations
-- Governance
-
-Models and Evidence are first-class Intelligence routes. They may not be buried in Settings.
-
-## 7. Typography direction
-
-The branded target family is **Geist Sans**, with **Geist Mono** for hashes, model IDs, evidence IDs, digests, commands, and other machine-readable strings.
-
-Abridge is a craft reference, not a typeface donor. Its public marketing CSS currently uses Avantt; MedScale intentionally does not copy or redistribute that family.
-
-Until a tracked font-asset admission step is completed, native application builds may use platform UI fallback. The type scale, weight hierarchy, line height, and tracking remain mandatory regardless of fallback family.
-
-Typography details are canonical in `docs/brand/TYPOGRAPHY_SYSTEM.md`.
-
-## 8. Product signature
-
-MedScale should be recognizable without its logo through:
-- dark structured navigation against an ice/paper workspace;
-- Signal Blue used sparingly for focus and intent;
-- source/evidence metadata placed close to AI output;
-- compact uppercase micro-labels only for system layers and state;
+MedScale should remain recognizable without its logo through:
+- the narrow black icon rail plus adaptive named-route dock;
+- warm, continuous light work surfaces and calm layered charcoal dark surfaces;
+- Mist Blue reserved for interaction/focus rather than branding spectacle;
+- evidence/source metadata near generated or derived material;
 - restrained geometry and thin structural dividers;
-- explicit state language such as `PROVEN`, `REVIEW REQUIRED`, `RUNTIME GAP`, and `UNKNOWN`.
-## 9. Reference discipline
+- explicit truth language such as `PROVEN`, `REVIEW REQUIRED`, `UNKNOWN`, `NOT ADMITTED`, and `UNMEASURED`.
 
-Abridge contributes workflow lessons: keep the clinician's work central, keep source material close to generated output, and organize around the care journey rather than software modules.
+## Positioning boundaries
 
-OpenMed contributes capability lessons: models, providers, runtime choices, and technical state should be inspectable rather than hidden.
+Do not claim superiority, clinical authority, production readiness, WCAG conformance, or release readiness without bound evidence. Do not create fake activity, impact, or patient-outcome metrics.
 
-Impeccable contributes review discipline: shape, critique, distill, typeset, polish, harden, optimize, and deterministic anti-pattern detection.
+MESC is a separate project and is not a MedScale gate, integration dependency, residual, or completion condition.
 
-None of these sources is visual authority for MedScale. MedScale must remain recognizable as itself.
+## Reference discipline
 
-## 10. Quality gates
+Abridge, Linear, Apple, Vercel, Cohere, Mistral, OpenMed, and Impeccable may inform craft/research. None is visual authority for MedScale, and no proprietary visual asset is copied.
 
-Every primary surface must pass:
-- **Shape:** one primary user goal and clear hierarchy.
-- **Critique:** no generic AI/SaaS tells; no competitor mimicry.
-- **Distill:** remove elements that do not change understanding or action.
-- **Typeset:** deliberate hierarchy, measure, rhythm, and scanability.
-- **Polish:** consistent spacing, alignment, interaction, and copy.
-- **Harden:** long data, empty/error/conflict states, localization pressure, keyboard access.
-- **Optimize:** responsive interaction, bounded memory, and no unnecessary runtime weight.
-
-A green compiler or test run does not establish visual acceptance. Rendered review is mandatory for primary surfaces.
+Impeccable contributes critique discipline. Historical Spec 068 evidence remains historical and must not be rewritten to imply it used the Spec 073 identity.

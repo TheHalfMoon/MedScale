@@ -1,143 +1,121 @@
 # MedScale Design System
 
-This document is the canonical visual and interaction direction for the Desktop + CLI product. The founder explicitly rejected the earlier multicolor direction on 2026-09-15 as derivative and below the product bar. Spec 068 supersedes that visual direction with the MedScale Signal system below. Impeccable is used as a review discipline (`shape`, `critique`, `audit`, `polish`, `harden`, `optimize`), not as a runtime dependency.
+**Canonical authority:** Spec 073 — Final UI Polish
+
+Spec 073 supersedes the Spec 068 active visual identity while preserving Spec 068 as historical product-differentiation evidence. The approved identity is monochrome, light-first, evidence-native, and deliberately quiet. Impeccable remains a review discipline (`shape`, `critique`, `audit`, `distill`, `typeset`, `polish`, `harden`, `optimize`), not a runtime dependency.
 
 ## 1. Brand
 
-### Mark
-Use the MedScale Signal mark: a compact geometric `M` contained in a rounded signal-blue field. It must remain legible at 16 px, app-icon scale, and monochrome. Do not use the previous double-arch mark or mimic another AI/healthcare brand.
+### Approved mark
+The approved MedScale mark is a black circular field containing a soft-white rounded continuous `M`. Its signature recognition cue is the **MedScale Shelf**, a short measured baseline in the inner center of the letter before the steeper right return. The mark is monochrome. It is not a place for product-state color.
 
-### MedScale Signal palette
-MedScale is monochrome-first with one product accent. Color is functional, not decorative.
-- `Signal`: `#0A66FF` — selected state, focus, primary navigation/action emphasis.
-- `Signal Hover`: `#0056D6`.
-- `Signal Strong`: `#0047B3` — accessible signal-colored text on light surfaces.
-- `Signal Soft`: `#EAF2FF`.
-- `Signal Glow`: `#B8D5FF` — restrained dark-surface support only.
-- `Obsidian`: `#0A0E14` — primary navigation shell.
-- `Graphite`: `#111822` and `Graphite Raised`: `#17212E`.
-- `Ink`: `#0D1420`; `Ink Subtle`: `#455468`; `Ink Quiet`: `#68778A`.
-- `Border`: `#DCE3EB`; `Border Strong`: `#C7D0DC`.
-- `Canvas`: `#F3F6F9`; `Surface`: `#FFFFFF`; `Surface Raised`: `#F8FAFC`.
-- Semantic-only states: `Success #0B8F69`, `Warning #B87500`, `Danger #C64242`.
+Forbidden logo treatments include purple, gradients, medical crosses, ECG/heartbeat traces, shields, brains, sparkles, mascots, and literal octopus imagery. The founder-authorized Spec 073 signature geometry is fixed; it must not be redesigned inside routine product implementation work.
 
-Do not build a supporting rainbow palette. Do not use blurple/coral/lavender/pine as brand language. Charts may introduce additional colors only when the data genuinely requires distinct series and every distinction remains accessible without color.
+### Product color
+Brand identity is black, white, and gray. Product color communicates state or interaction:
+- **Mist Blue** — primary interaction, selection, and focus.
+- **Sage** — positive/qualified semantics.
+- **Amber** — warning/review semantics.
+- **Red** — danger/failure semantics.
 
-### CLI dark palette
-- `CLI Canvas`: `#0B1220`.
-- `CLI Surface`: `#101A2C`.
-- `CLI Raised`: `#152238`.
-- `CLI Text`: `#E8ECFA`.
-- `CLI Muted`: `#91A0BD`.
-- `CLI Border`: `#24334D`.
+Color is never used as decoration or as the only carrier of meaning.
 
-## 2. Typography
-The branded target family is **Geist**, with **Geist Mono** for machine-readable evidence. Runtime font assets require explicit license/NOTICE admission before packaging; platform UI and monospace families are the fallback when the branded assets are absent.
+## 2. Theme
 
-The canonical type scale, tracking, mono rules, and Abridge-reference boundary are defined in `docs/brand/TYPOGRAPHY_SYSTEM.md`.
+Light mode is the primary/default design target. The application follows the operating-system color scheme through Slint where supported.
 
-## Brand authority documents
+Light surfaces use warm off-white canvas, quiet paper work surfaces, neutral ink, and subtle structural borders. Dark mode uses layered charcoal surfaces rather than pure black everywhere. The permanent icon rail and deliberate high-authority panels may use the black/charcoal brand range in either mode.
 
-- `docs/brand/BRAND_IDENTITY_SYSTEM.md`
-- `docs/brand/LOGO_SPEC.md`
-- `docs/brand/TYPOGRAPHY_SYSTEM.md`
-- `docs/brand/VOICE_AND_COPY.md`
-- `docs/brand/PRODUCT_UI_GRAMMAR.md`
+No gradients, neon glow, glassmorphism, purple-dashboard language, or decorative colored icon tiles.
 
-These documents are normative for Spec 068+ product work.
+## 3. Typography
 
-## 3. Spacing and geometry
-Base spacing: 4 px. Preferred steps: 4, 8, 12, 16, 24, 32, 48.
-Radii: 8 controls, 12 compact panels, 16 primary surfaces, 20 hero/assistant surfaces. Avoid making every element a card. Prefer grouping by whitespace and separators.
+- **Instrument Sans** — native product UI and wordmark treatment.
+- **Source Serif 4** — selected long-form clinical/writing surfaces where reading rhythm benefits from serif text.
+- **Platform monospace** — CLI, commands, hashes, model IDs, evidence IDs, and other machine-readable identifiers.
 
-## 4. Layout
-Desktop launch target: 1440x900. Functional minimum: 1024x700.
-- Global left rail/sidebar: 216-232 px.
-- Top command/search bar: 52-60 px.
-- Main content uses a 12-column mental grid.
-- Right contextual rail appears only when it adds immediate value.
-- Dense clinical views favor rows and sections over nested cards.
+The native Desktop package imports the admitted Instrument Sans and Source Serif 4 assets from `assets/brand/fonts/`. Geist and Helvetica are not MedScale identity fonts.
 
-## 5. Navigation
-Canonical Desktop navigation:
-Home, Patients, Insights, Models, Evidence, Workflows, Messages, Tasks, Documents, Audit Trail, Exports, Integrations, Settings.
+Detailed rules are in `docs/brand/TYPOGRAPHY_SYSTEM.md`.
 
-`Models` is the product-visible runtime/provenance surface. `Evidence` is the product-visible comparative proof ledger, including explicit OpenMed gaps. Neither may be hidden in Settings or developer documentation.
+## 4. Layout and navigation
 
-Global command palette: `Cmd/Ctrl+K`.
-Global search must accept patients/subjects, notes/documents, commands, and approved assistant queries.
-Keyboard navigation is first-class; every primary action must have a visible focus treatment.
+Desktop launch target: 1440×900. Functional minimum remains 1100×720 unless a separately qualified change is required.
 
-## 6. Core surfaces
-1. **Home / Command Center** — authority posture, model/runtime posture, evidence state, safe next actions; no fake business analytics.
-2. **Patient Workspace** — overview, timeline, care plan, labs, medications, documents, messages, source drill-down.
-3. **Population Insights** — evidence-aware cohorts/distributions without invented clinical ranking.
-4. **Model Center** — installed/admitted models, source, task, runtime, hardware, provenance, trust, benchmark, current/last-green state.
-5. **Evidence Center** — MedScale × OpenMed capability ledger using exact evidence states; unsupported superiority is forbidden.
-6. **Workflow Studio** — action library, typed workflow graph, inspector, validation, run history.
-7. **Documents / Audit / Exports / Integrations / Settings** — utility-first surfaces with strong provenance and privacy clarity.
-8. **CLI** — command palette quality in the terminal: discoverable commands, structured output, JSON mode, copy/paste-safe syntax, equivalent authority.
+The shell uses a dual-dock composition:
+1. a narrow black icon rail for stable product areas and global commands;
+2. a refined adaptive sidebar for named routes and local runtime posture;
+3. a continuous work canvas for the active clinical/operator task.
 
-## 7. Components
-Build a small reusable system: NavItem, TopBar, SearchField, CommandPalette, SectionHeader, Metric, StatusPill, DataTable, TimelineRow, EmptyState, ErrorState, AssistantPanel, PrivacyStatus, ActionButton, SplitPane, Inspector, Toast, Modal, Tooltip, Chart primitives.
+Canonical routes remain: Home, Patients, Documents, Insights, Models, Evidence, Workflows, Tasks, Messages, Audit Trail, Exports, Integrations, Settings, About.
 
-Do not create wrapper components that exist only to add another border/background. Components should encode behavior, semantics, tokens, or reuse.
+Models and Evidence remain first-class Intelligence routes. Keyboard navigation, explicit focus, and `Cmd/Ctrl+K` command access remain first-class.
 
-## 8. State language
-- Loading: quiet skeleton/progress, never ambiguous spinner-only for long work.
-- Empty: explain why empty and the next safe action.
-- Error: state what failed, whether anything changed, and recovery action.
-- Conflict: explicitly say no authority-changing action was silently applied.
-- Success: brief confirmation; do not flood the interface with green.
-- Offline/local: explicit, reassuring, not alarming.
+## 5. Workspace grammar
 
-## 9. AI interaction
-AI is contextual, not the entire product shell.
-- Assistant suggestions must be visibly suggestions.
-- Source/evidence links remain available.
-- Care-plan generation and similar consequential actions require explicit review/commit boundaries.
-- Never visually imply an AI response is clinical authority.
+The work is the interface. Prefer whitespace, alignment, sections, rows, and separators over card grids.
 
-## 10. Accessibility
-Every interactive element needs OS-exposed role, label, focus, and action semantics. Slint accessibility remains enabled.
-- Keyboard-only operation for all primary paths.
-- Minimum 44x32 effective interactive target in dense Desktop UI; 44x44 for primary touch-like controls.
-- Visible focus ring: 2 px Signal blue with sufficient offset/contrast.
-- Never encode risk/status by color alone.
-- Respect OS reduce-motion where feasible.
-- Final WCAG/assistive-technology qualification is evidence work, not a design claim.
+Priority order:
+1. current context/work;
+2. source and evidence state;
+3. intelligence/model context;
+4. reviewable next action;
+5. governance detail on demand.
 
-## 11. Motion
-Use motion sparingly to explain state changes.
-- 120-180 ms for hover/focus/selection.
-- 180-240 ms for panels and route transitions.
-- Ease-out / smooth cubic motion; no bounce or elastic easing.
-- Avoid decorative perpetual animation.
+Home is a clinical workspace, not a KPI dashboard. Patient and evidence surfaces are provenance-forward. AI output remains visibly inspectable and non-authoritative. No fake clinical metrics, fake patient authority, or unsupported AI claims.
+
+## 6. Components and geometry
+
+Controls use restrained rounding; primary panels use approximately 10 px, compact controls approximately 7–8 px. A rounded boundary must encode an actual interaction or semantic grouping, not merely decoration.
+
+Shared primitives should encode behavior, accessibility, semantics, or reuse. Avoid wrapper components that only add another background/border.
+
+Status chips are reserved for states that benefit from compact semantic labeling. Do not convert every piece of metadata into a pill.
+
+## 7. Icon grammar
+
+MedScale uses a small original monochrome navigation icon family under `crates/medscale-desktop/ui/assets/icons/`.
+
+Icons use consistent line weight, rounded joins/caps, a 24×24 view box, and no colored tile container. They support navigation recognition; text labels remain the semantic authority in the secondary dock and accessibility tree.
+
+## 8. Copy and truth
+
+Preferred language is precise, calm, evidence-linked, and explicit about uncertainty. `Evidence first. Action second.` remains an operating line, not a readiness claim.
+
+Never convert feature presence into release readiness, WCAG conformance, clinical authority, production-model authority, or comparative superiority. MESC is a separate project and is not a MedScale release/completion condition.
+
+## 9. CLI
+
+The CLI shares the MedScale voice without becoming decorative terminal UI. Human help/output may use restrained headings and spacing. Machine JSON contracts, field names, exit codes, stdout/stderr roles, and script-safe behavior remain stable.
+
+ANSI color is not required for identity. Platform monospace remains the terminal typography authority.
+
+## 10. Web reference boundary
+
+`docs/brand/web-reference/` is a non-production design contract/prototype only. It exists to show how the Spec 073 identity maps to a future web surface. It is not a web application, runtime, build target, release artifact, or capability claim.
+
+## 11. Accessibility and motion
+
+Every interactive control requires an exposed role/label/action and visible keyboard focus. Status must not rely on color alone. Final assistive-technology/WCAG qualification remains external evidence work.
+
+Motion, when used, must explain a state transition; no decorative perpetual animation.
 
 ## 12. Impeccable review gates
-For each major surface:
-1. `shape`: define user goal, hierarchy, default state, failure state, keyboard path.
-2. `critique`: review clarity, hierarchy, density, emotional tone, and generic-AI-design tells.
-3. `audit`: accessibility, responsive/min-size behavior, performance, text overflow.
-4. `polish`: align tokens, spacing, component consistency, copy.
-5. `harden`: error/loading/empty/conflict, long text, localization pressure, slow operations.
-6. `optimize`: startup, input latency, rendering, memory, unnecessary allocations/assets.
 
-Explicit anti-patterns: excessive gradients; purple everywhere; gray text on saturated color; nested cards; decorative icon tiles above every heading; unnecessary glassmorphism; giant marketing headings inside work surfaces; fake analytics; hidden destructive actions; animation without purpose.
+For each primary surface:
+1. **Shape** — one primary user goal and honest default/failure state.
+2. **Critique** — challenge hierarchy, density, generic-SaaS/AI tells, and competitor mimicry.
+3. **Audit** — inspect accessibility semantics, theme contrast, overflow, focus behavior, truth boundaries, and implementation integrity.
+4. **Distill** — remove elements that do not change understanding or action.
+5. **Typeset** — verify hierarchy, measure, rhythm, and reading comfort.
+6. **Polish** — align tokens, spacing, controls, and copy.
+7. **Harden** — test long text, empty/error/conflict states, keyboard paths, minimum size, and theme changes.
+8. **Optimize** — protect native startup, interaction latency, memory, and asset weight.
 
-## 13. Performance budget direction
-The final shell must be measured, not assumed. Product targets remain those in release methodology, including final UI interaction response <=100 ms on qualified hardware. UI implementation should avoid a browser engine and large asset/runtime dependencies.
+A green compiler or empty automated detector result does not establish visual acceptance. Rendered native review is mandatory for Spec 073 closure.
 
-## 14. Founder product-bar status
-The earlier 2026-09-15 multicolor visual direction is **SUPERSEDED_BY_SPEC_068** after explicit founder rejection. It is historical context only and must not be used as visual authority.
+## 13. Authority history
 
-Current product authority:
-- MedScale Signal identity and mark;
-- graphite/obsidian navigation shell with one signal-blue product accent;
-- visible Model Center and Evidence Center;
-- no fake operational/business analytics;
-- no chatbot-first product shell;
-- no visual imitation of Cohere, OpenMed, or another AI/healthcare product;
-- comparative superiority only when evidence is bound and inspectable.
-
-Future visual changes must preserve product truth and may raise the quality bar further; they must not restore the superseded palette merely for compatibility.
+- Pre-Spec-068 multicolor direction: `SUPERSEDED_BY_SPEC_068`.
+- Spec 068 Signal/Geist active visual identity: `SUPERSEDED_BY_SPEC_073`.
+- Current active identity: Spec 073 monochrome circular signature M with the MedScale Shelf, Instrument Sans / Source Serif 4, OS-adaptive light-first surfaces, Mist Blue/Sage/amber/red semantic product color, and dual-dock native shell.

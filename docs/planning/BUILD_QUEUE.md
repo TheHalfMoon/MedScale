@@ -88,7 +88,8 @@ See Trusted V1 delivery plan. Specs 018–067 are closed; Spec 012 remains optio
 | 070 | Model Center + Runtime UX | `CLOSED_CANONICAL` | Authority-backed session Pack inventory/admission and truthful runtime/operator state merged and post-main qualified. |
 | 071 | OpenMed Evidence Center | `CLOSED_CANONICAL` | Pinned OpenMed evidence, 39-row fail-closed claim ledger, and native comparative Evidence Center merged and post-main qualified. |
 | 072 | Product Requalification | `CLOSED_CANONICAL` | Final head `02e343ff...` passed run `35089753209`, PR #117 merged as `f97637e7...`, and post-main run `35091230970` passed all six required jobs. |
-| 073+ | Advanced deferred work | `DEFERRED_BY_CANONICAL_DESIGN` | Plugins/GraphRAG/replicas/imaging/CUDA/mobile-after-launch/etc.; require fresh promotion. |
+| 073 | Final UI Polish | `IN_PROGRESS` | Founder-promoted bounded cross-surface identity pass: native Desktop implementation, safe human-facing CLI identity, and documentation-only Web reference; no backend or authority expansion. |
+| 074+ | Advanced deferred work | `DEFERRED_BY_CANONICAL_DESIGN` | Plugins/GraphRAG/replicas/imaging/CUDA/mobile-after-launch/etc.; require fresh promotion. |
 
 ## Automatic progression
 
@@ -98,5 +99,5 @@ Do not stop merely because a PR merged, one milestone passed, or an external opt
 
 **Mobile remains deferred until Desktop+CLI launch.** No mobile application implementation is authorized by Specs 068-072.
 
-**Next eligible (honest):** Specs **068**-**072** are `CLOSED_CANONICAL`. No repository-owned implementation unit is promoted; `NEXT_PROMOTED_SPEC=NONE`. Repository implementation is complete pending external gates only. `RELEASE_READY`, `PRIVATE_DATA_READY`, and `MULTI_CLIENT_RELEASE_READY` remain false. MESC is a separate project/repository and is excluded from MedScale execution, completion, and release criteria; historical Specs 012/036 remain provenance only.
+**Next eligible (honest):** Specs **068**-**072** are `CLOSED_CANONICAL`; Spec **073** is `IN_PROGRESS` for the founder-promoted bounded cross-surface identity pass. `NEXT_PROMOTED_SPEC=073`. Repository implementation closure is temporarily reopened for this bounded UI-only unit. `RELEASE_READY`, `PRIVATE_DATA_READY`, and `MULTI_CLIENT_RELEASE_READY` remain false. MESC is a separate project/repository and is excluded from MedScale execution, completion, and release criteria; historical Specs 012/036 remain provenance only.
 

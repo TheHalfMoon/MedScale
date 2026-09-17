@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
-  <rect x="4" y="4" width="56" height="56" rx="15" fill="#0A0E14"/>
-  <path d="M16 45V18L32 35L48 18V45" stroke="#F4F7FA" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/>
-  <circle cx="32" cy="35" r="2.8" fill="#0A66FF"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none">
+  <title>MedScale app icon — signature M</title>
+  <circle cx="24" cy="24" r="22" fill="#0A0A0A"/>
+  <path id="medscale-signature-m" d="M13.2 31.5V18.8C13.2 16.25 16.35 15.15 17.95 17.15L21.7 22.0C22.95 23.6 23.65 24.5 24.95 24.5H28C28.65 24.5 29.05 23.9 29.45 22.9L31.25 17.45C32 15.05 34.8 16.05 34.8 18.65V31.5" stroke="#F4F4F1" stroke-width="4.35" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>

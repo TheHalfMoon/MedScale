@@ -1,5 +1,7 @@
 # Repository Implementation Closure
 
+> **Historical baseline:** This document records the canonical implementation closure through Spec 072. Founder-promoted Spec 073 has temporarily superseded this as live completion authority. Do not treat the status block below as current repository closure until Spec 073 closes canonically and this document is refreshed.
+
 ```text
 STATUS = REPOSITORY_IMPLEMENTATION_COMPLETE_PENDING_EXTERNAL_GATES
 FINAL_IMPLEMENTATION_MERGE = f97637e7e9435be8972cc908ced8354be0f7b24e

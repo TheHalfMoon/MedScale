@@ -1,64 +1,46 @@
 # MedScale Product UI Grammar
 
-**Status:** CANONICAL_DRAFT_SPEC_068
+**Status:** CANONICAL_SPEC_073
 
-## 1. The work is the interface
+## The work is the interface
 
-Primary screens begin with the clinician/operator task and its evidence, not with product metrics or decorative modules.
+Primary screens begin with the clinician/operator task and its evidence, not product metrics or decorative modules.
 
-Home is a clinical workspace. Patient is a longitudinal evidence workspace. Models is runtime/provenance inspection. Evidence is proof and comparative qualification.
+## Dual-dock shell
 
-## 2. Surface hierarchy
+The native shell has two navigation layers:
+1. a narrow black icon rail for stable areas/global commands;
+2. an adaptive named-route dock for precise navigation and local runtime posture.
 
-Use this default hierarchy:
-1. current context and task;
-2. primary work surface;
-3. linked evidence/source state;
-4. intelligence/model layer;
-5. reviewable action;
-6. governance detail.
+The custom MedScale icon family is monochrome and supportive. Text/accessibility labels remain semantic authority.
 
-If a page gives equal visual weight to all six layers, it is not shaped yet.
+## Surface hierarchy
 
-## 3. Containers
+Default priority:
+1. current context and work;
+2. source/evidence state;
+3. intelligence/model context;
+4. reviewable action;
+5. governance detail.
 
-Use cards only when a boundary matters. Prefer whitespace, alignment, and dividers for grouping.
+If every layer has equal visual weight, the surface is not shaped yet.
 
-Do not create:
-- card grids as the default page structure;
-- cards inside cards;
-- rounded-square icon tiles above headings;
-- decorative panels with no semantic boundary.
+## Containers
 
-Primary reading/editing surfaces should feel continuous and calm.
-## 4. Care-flow grammar
+Use a card only when a boundary matters. Prefer whitespace, alignment, rows, and separators. Avoid nested cards, rounded icon tiles, giant work-surface marketing headings, KPI grids, and status-chip soup.
 
-Use the sequence `Prepare → Understand → Act` when a clinical workflow spans context, intelligence, and consequence.
+## Care-flow grammar
 
-- **Prepare:** source freshness, longitudinal history, conflicts, coverage, visit context.
-- **Understand:** evidence-linked synthesis, model output, source inspection, uncertainty.
-- **Act:** explicit review, payload identity, durable state, reconciliation.
+Use `Prepare → Understand → Act` when a workflow genuinely spans context, intelligence, and consequence. The sequence is conceptual; it does not require a three-column dashboard layout.
 
-This is a workflow grammar, not a forced three-column layout. Adapt it to the task while preserving the order of authority.
+## AI/model grammar
 
-## 5. AI/model grammar
+AI/model output stays inspectable and non-authoritative. Keep source/runtime/evidence context near consequential output. Model source does not equal runtime authority, and model presence does not equal production admission.
 
-Never present an assistant response without nearby runtime/evidence affordances when the response could affect understanding or action.
+## Evidence grammar
 
-Model Center rows expose at minimum:
-- task;
-- model/repository identifier;
-- source;
-- runtime;
-- device;
-- trust/admission state;
-- benchmark state;
-- provenance or digest where available.
+Keep provenance readable in place. Prefer source snippets, timestamps, identifiers, and explicit evidence state over generic source footers. Comparative claims require bound evidence and explicit limitations.
 
-A model logo may identify source/vendor but may not visually dominate or imply that MedScale is part of that company.
+## Theme and color
 
-## 6. Evidence grammar
-
-Evidence is readable in place. Prefer linked source snippets, timestamps, provenance, and state labels over a generic `Sources` footer.
-
-Comparative evidence uses explicit state labels. Competitor branding is secondary to the capability and evidence itself.
+Light is the primary product target; dark follows the OS. Mist Blue is interaction/focus, Sage positive semantics, amber review/warning, red danger/failure. Never encode status by color alone.
