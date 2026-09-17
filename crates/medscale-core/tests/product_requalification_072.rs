@@ -217,7 +217,7 @@ fn release_residuals_remain_exactly_external_after_rebuild() {
     assert!(closure.contains("PROMOTED_REPOSITORY_OWNED_RESIDUALS = 0"));
     assert!(closure.contains("NEXT_PROMOTED_SPEC = NONE"));
     assert!(
-        closure.contains("FINAL_IMPLEMENTATION_MERGE = f97637e7e9435be8972cc908ced8354be0f7b24e")
+        closure.contains("FINAL_IMPLEMENTATION_MERGE = f9587c3ed66609b6e2a7c23bf2c45df6a67c8f2e")
     );
     assert!(
         !completion

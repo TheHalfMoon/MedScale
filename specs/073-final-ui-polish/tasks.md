@@ -6,5 +6,5 @@
 - [x] T4 Verify shared polish across all Desktop routes, add safe CLI identity + Web reference contract, and preserve accessibility/truth boundaries.
 - [x] T5 Capture rendered post-polish evidence and pass local qualification.
 - [x] T6 Complete exact-range review and resolve all material findings.
-- [ ] T7 Pass exact-head required CI, protected merge, and post-main verification.
-- [ ] T8 Close Spec 073 canonically and restore repository implementation closure.
+- [x] T7 Pass exact-head required CI, protected merge, and post-main verification.
+- [x] T8 Close Spec 073 canonically and restore repository implementation closure.
