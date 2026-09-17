@@ -21,12 +21,12 @@ This index is the entry point for the Research OS expansion proposal.
 8. [`RESEARCH_OS_SOURCE_LEDGER.md`](./RESEARCH_OS_SOURCE_LEDGER.md) — source universe and source-governance context.
 9. [`SOURCE_ADOPTION_MATRIX.md`](./SOURCE_ADOPTION_MATRIX.md) — donor/source roles and qualification posture.
 10. [`RESEARCH_OS_DONOR_RULE.md`](./RESEARCH_OS_DONOR_RULE.md) — minimum provenance/adoption rule.
-11. [`RESEARCH_OS_DECISION_RESOLUTION_REGISTER.md`](./RESEARCH_OS_DECISION_RESOLUTION_REGISTER.md) — default resolution for every currently open architecture question; evidence-selected choices are explicitly identified.
+11. [`RESEARCH_OS_DECISION_RESOLUTION_REGISTER.md`](./RESEARCH_OS_DECISION_RESOLUTION_REGISTER.md) — safe default resolution for architecture questions; evidence-selected choices are explicitly identified.
 
 ### C. Implementation contract
 
 12. [`RESEARCH_OS_MASTER_IMPLEMENTATION_CONTRACT.md`](./RESEARCH_OS_MASTER_IMPLEMENTATION_CONTRACT.md) — program-wide authority, identity, revision, state-machine, privacy, network, agent, Browse, audio, analytics, Hub, compute and schema rules.
-13. [`RESEARCH_OS_REPOSITORY_IMPLEMENTATION_MAP.md`](./RESEARCH_OS_REPOSITORY_IMPLEMENTATION_MAP.md) — mapping of the plan onto the current MedScale crates/modules/storage/network/Pack/CLI/Desktop boundaries.
+13. [`RESEARCH_OS_REPOSITORY_IMPLEMENTATION_MAP.md`](./RESEARCH_OS_REPOSITORY_IMPLEMENTATION_MAP.md) — mapping of the plan onto current MedScale crates/modules/storage/network/Pack/CLI/Desktop boundaries.
 14. [`RESEARCH_OS_SPEC_IMPLEMENTATION_CONTRACTS.md`](./RESEARCH_OS_SPEC_IMPLEMENTATION_CONTRACTS.md) — minimum implementation shape for candidate Specs 074-089.
 15. [`RESEARCH_OS_IMPLEMENTER_INSTRUCTIONS.md`](./RESEARCH_OS_IMPLEMENTER_INSTRUCTIONS.md) — mandatory instructions for Muse/Codex/Claude/Cursor/human implementers after canonical promotion.
 16. [`RESEARCH_OS_FUTURE_SPEC_TEMPLATE.md`](./RESEARCH_OS_FUTURE_SPEC_TEMPLATE.md) — mandatory content for any future promoted Research OS spec.
@@ -40,12 +40,13 @@ This index is the entry point for the Research OS expansion proposal.
 21. [`RESEARCH_OS_DEFINITION_OF_READY.md`](./RESEARCH_OS_DEFINITION_OF_READY.md) — when a future unit may be implemented.
 22. [`RESEARCH_OS_BUILD_RULES.md`](./RESEARCH_OS_BUILD_RULES.md) — build/execution discipline.
 23. [`RESEARCH_OS_EXECUTION_ROADMAP.md`](./RESEARCH_OS_EXECUTION_ROADMAP.md) — dependency-ordered candidate Specs 074-089, subject to live frontier reconciliation.
-24. [`RESEARCH_OS_COMPLETION_CRITERIA.md`](./RESEARCH_OS_COMPLETION_CRITERIA.md) — program-level completion semantics.
-25. [`RESEARCH_OS_REVIEW_CHECKLIST.md`](./RESEARCH_OS_REVIEW_CHECKLIST.md) — review checklist for this packet and later promoted work.
+24. [`RESEARCH_OS_COMPLETION_CRITERIA.md`](./RESEARCH_OS_COMPLETION_CRITERIA.md) — program-level planning completion semantics.
+25. [`RESEARCH_OS_GAP_CLOSURE_REVIEW.md`](./RESEARCH_OS_GAP_CLOSURE_REVIEW.md) — recorded cross-plane/stale-reference gap audit; closes the originally under-specified Governed Browse lane.
+26. [`RESEARCH_OS_REVIEW_CHECKLIST.md`](./RESEARCH_OS_REVIEW_CHECKLIST.md) — review checklist for this packet and later promoted work.
 
 ### E. Supporting planning context
 
-- [`RESEARCH_OS_OPEN_QUESTIONS.md`](./RESEARCH_OS_OPEN_QUESTIONS.md) is the original question inventory. **Implementers MUST NOT choose from it directly**; use the Decision Resolution Register.
+- [`RESEARCH_OS_OPEN_QUESTIONS.md`](./RESEARCH_OS_OPEN_QUESTIONS.md) is research inventory. **Implementers MUST NOT choose from it directly**; use the Decision Resolution Register.
 - [`RESEARCH_OS_LAB_ADOPTION_JOURNEYS.md`](./RESEARCH_OS_LAB_ADOPTION_JOURNEYS.md) captures adoption scenarios.
 - [`RESEARCH_OS_METRICS.md`](./RESEARCH_OS_METRICS.md) captures candidate product/technical measures.
 - [`RESEARCH_OS_NON_GOALS.md`](./RESEARCH_OS_NON_GOALS.md) and [`RESEARCH_OS_SCOPE_BOUNDARY.md`](./RESEARCH_OS_SCOPE_BOUNDARY.md) prevent expansion by implication.
@@ -59,7 +60,7 @@ Before promotion, canonical governance must:
 
 1. reverify the live repository frontier;
 2. reconcile numbering/dependencies with any specs promoted after this planning branch was created;
-3. challenge architecture against the current implementation and external evidence;
+3. challenge architecture against current implementation and external evidence;
 4. use the Decision Resolution Register rather than delegating unresolved architecture to the implementer;
 5. refine the next candidate unit using the Future Spec Template;
 6. bind exact repository paths/types after live inspection;
@@ -88,4 +89,4 @@ If live repository truth conflicts with this packet, live repository truth wins 
 
 > **One workspace. Many engines. One authority. User-owned data. Local by default. Evidence everywhere.**
 
-The expansion succeeds only if MedScale becomes more capable without weakening the properties that make it trustworthy: explicit authority, provenance, privacy boundaries, reproducibility, user-controlled infrastructure, and honest evidence.
+The expansion succeeds only if MedScale becomes more capable without weakening explicit authority, provenance, privacy boundaries, reproducibility, user-controlled infrastructure and honest evidence.
