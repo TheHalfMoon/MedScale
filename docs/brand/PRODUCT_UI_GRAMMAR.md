@@ -56,3 +56,9 @@ Primary actions use clear verb + object copy. Secondary/quiet actions should rec
 ## Planned surfaces
 
 Design references for future Research OS V2 features may exist before runtime implementation. Such surfaces must be labeled as reference/planned/demo and must not create implementation or release claims.
+
+## Brand-to-work transition
+
+MedScale intentionally moves from Brand mode to Work mode. Intro, onboarding, report covers, and selected empty states may use ScaleFold supergraphics and the full Spectrum. Dense research/clinical work returns to neutral surfaces and semantic solid colors.
+
+A screen should not stay in Brand mode merely to look distinctive. The signature is strongest when the product knows when to become quiet.

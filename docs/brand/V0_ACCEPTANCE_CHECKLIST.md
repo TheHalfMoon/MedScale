@@ -8,8 +8,11 @@ A V0 result is acceptable only if all applicable items below are true.
 
 - Uses the canonical ScaleFold M without alternate-logo exploration.
 - Uses canonical MedScale tokens rather than an invented palette.
+- Uses ScaleFold Language as a generative system, not merely a logo placement.
+- Includes supergraphics/pattern rhythm that still feels MedScale with the full logo hidden.
 - Keeps gradient as identity/focal treatment, not semantic state.
 - Preserves Instrument Sans, Source Serif 4, and monospace roles.
+- Any ScaleFold Display treatment is rare, legible, and derived from Instrument Sans rather than introducing a competing font.
 - Light and dark feel intentionally designed, not mechanically inverted.
 
 ## Product craft
@@ -53,6 +56,8 @@ Reject the result if it looks like:
 - a clone of JetBrains, Abridge, Cohere, Linear, Vercel, or another reference;
 - a neon AI control panel;
 - a hospital/EHR skin built from medical clichés;
-- a wall of gradient cards or colored icon tiles.
+- a wall of gradient cards or colored icon tiles;
+- Abridge-style waveform lettering or bridge/masonry mimicry;
+- repeated miniature M logos used as decoration.
 
 The final system must remain recognizably MedScale even when the logo is temporarily hidden.

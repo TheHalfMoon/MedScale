@@ -14,6 +14,14 @@ Left to right:
 
 Top context bar contains project/workspace context, search/command access, bounded runtime/privacy posture, and account/theme controls. Avoid a marketing-style product header inside the work canvas.
 
+## Brand / landing intro
+
+Purpose: establish MedScale recognition quickly, then hand attention to the product.
+
+Use the ScaleFold M, one strong supergraphic or pattern rule, concise editorial typography, and a short brand-to-work transition. Show both light and dark brand expressions. Demonstrate at least one composition where the full logo is absent but the ScaleFold language remains recognizable.
+
+Avoid generic gradient blobs, competitor waveform lettering, and feature-card walls.
+
 ## Home / Research Command Center
 
 Purpose: orient the user to active work, not show vanity KPIs.

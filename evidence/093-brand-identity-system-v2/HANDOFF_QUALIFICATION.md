@@ -37,3 +37,21 @@ Spec 074 is an active independent implementation lane. Latest observed remote Sp
 ## Remaining before canonical closure
 
 V0 must produce the reference UI, the result must be reviewed against the acceptance checklist, accepted visual decisions must be ported only into authorized production surfaces, rendered evidence must be captured, and normal exact-head CI/review/merge/post-main qualification must still pass.
+
+## 2026-09-18 ScaleFold language refinement
+
+Founder review of an Abridge identity-system reference prompted a bounded design-system refinement: the ScaleFold M is now explicitly treated as the seed of an original generative visual language rather than a standalone mark.
+
+Added/updated handoff authority covers:
+- Pillar / Fold / Step / Gap / Rhythm primitives;
+- ScaleFold supergraphics and pattern grammar;
+- ScaleFold Display as a treatment derived from Instrument Sans, not a new font;
+- original brand-to-work and mark-assembly motion grammar;
+- V0 acceptance criteria requiring recognizability without constant logo repetition;
+- explicit prohibition on copying Abridge waveform/masonry language or other competitor-specific identity devices.
+
+This refinement changes design language only. It does not alter MedScale product authority, runtime behavior, clinical semantics, privacy policy, model admission, network policy, or Spec 074 scope.
+
+Validation after the refinement:
+- `python3 scripts/generate-brand-tokens.py --check` — PASS.
+- `git diff --check` — PASS.

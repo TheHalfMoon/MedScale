@@ -48,3 +48,11 @@ Use platform monospace for hashes, commands, code, model identifiers, version pi
 ## Licensing
 
 Instrument Sans is carried with its OFL text. Source Serif 4 is carried with its repository license file. This design document does not replace NOTICE/SBOM/license qualification.
+
+## ScaleFold Display treatment
+
+ScaleFold Display is not a fourth font family. It is a rare compositional treatment built from Instrument Sans outlines and the geometry rules in `SCALEFOLD_LANGUAGE.md`.
+
+Allowed uses include launch phrases, event titles, report covers, and limited brand hero text. Measured diagonal cuts, steps, gaps, or asymmetric endings may be introduced only when legibility remains immediate.
+
+Never apply ScaleFold Display treatment to navigation, forms, tables, clinical/evidence content, normal headings, or the canonical MedScale wordmark.

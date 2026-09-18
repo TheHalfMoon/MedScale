@@ -11,6 +11,7 @@ Do not copy JetBrains, Abridge, Cohere, or any other brand. Their work is refere
 
 Use these repository files as authority:
 - `docs/brand/BRAND_IDENTITY_SYSTEM.md`
+- `docs/brand/SCALEFOLD_LANGUAGE.md`
 - `docs/brand/LOGO_SPEC.md`
 - `docs/brand/DESIGN_TOKENS.md`
 - `docs/brand/TYPOGRAPHY_SYSTEM.md`
@@ -33,6 +34,22 @@ The interface has two intensity modes that belong to one system:
 The transition matters. Brand moments can be vivid; the workspace must give attention back to the work.
 
 Light mode is a first-class design, not a washed-out dark mode. Dark mode is layered navy/graphite, not neon black. The logo gradient stays vivid in both.
+
+## ScaleFold generative language
+
+Do not treat the ScaleFold M as a logo pasted onto otherwise generic UI. Use `SCALEFOLD_LANGUAGE.md` as a generative visual grammar.
+
+Create original MedScale compositions from Pillar, Fold, Step, Gap, and Rhythm. Demonstrate:
+- at least three ScaleFold supergraphic compositions;
+- at least two pattern/rhythm treatments;
+- one restrained ScaleFold Display treatment for a hero or launch phrase;
+- one brand-to-work transition showing vivid identity receding into a calm workspace;
+- one motion concept where pillars/folds assemble into the mark;
+- one reduced-motion static equivalent.
+
+ScaleFold Display is a treatment, not a new font. Base it on Instrument Sans and use custom cuts/steps only in rare brand-scale text. Never alter normal product copy or the canonical MedScale wordmark.
+
+The broader language must remain recognizable when the full logo is hidden. Do not copy Abridge waveform typography, masonry/bridge forms, JetBrains marks, Cohere shapes, or any competitor-specific device.
 
 Use generous whitespace where comprehension benefits, but do not make research tooling artificially sparse. Dense screens should feel ordered rather than empty.
 
@@ -124,6 +141,7 @@ Primary target is desktop at 1440×900. Also demonstrate 1280 desktop and narrow
 
 Deliver:
 - a reusable token-backed component system;
+- a dedicated ScaleFold visual-language reference showing supergraphics, patterns, display treatment, and motion frames;
 - light and dark theme parity;
 - the required page set;
 - component variants and state examples;

@@ -33,6 +33,7 @@ Use Instrument Sans for UI/product and Source Serif 4 selectively for editorial/
 
 - `DESIGN.md`
 - `docs/brand/BRAND_IDENTITY_SYSTEM.md`
+- `docs/brand/SCALEFOLD_LANGUAGE.md`
 - `docs/brand/LOGO_SPEC.md`
 - `docs/brand/DESIGN_TOKENS.md`
 - `docs/brand/TYPOGRAPHY_SYSTEM.md`

@@ -35,6 +35,14 @@ The three forms intentionally support multiple truthful readings without becomin
 
 The geometry itself is the trademark cue. Do not add a medical cross, heartbeat, brain, shield, sparkle, or mascot to explain it.
 
+## ScaleFold Language
+
+The mark is the seed of a larger original visual grammar defined in `SCALEFOLD_LANGUAGE.md`. Pillar, Fold, Step, Gap, and Rhythm can generate supergraphics, patterns, display treatments, motion, section markers, report covers, and restrained structural cues.
+
+This is a recognition system, not logo repetition. Brand compositions should remain recognizably MedScale with the complete mark removed.
+
+ScaleFold Display is a treatment derived from the existing Instrument Sans family, not a new typeface. It is reserved for rare brand-scale words and launch/editorial moments. Product UI typography remains unchanged.
+
 ## MedScale Spectrum
 
 The signature spectrum is an independently defined transition from Azure through Cobalt/Iris/Violet to Magenta/Pink. It is intentionally energetic in the logo, intro, and bounded brand moments.

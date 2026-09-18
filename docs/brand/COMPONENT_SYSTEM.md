@@ -89,3 +89,14 @@ Density changes spacing and row height, not core typography families or semantic
 ## Shadows and elevation
 
 Prefer borders, surface tone, and overlap before shadow. Use soft low-opacity elevation only for floating layers such as menus, dialogs, command palette, and dragged/resized surfaces. Avoid persistent card-drop-shadow dashboards.
+
+## Brand-system patterns
+
+Reference/marketing implementations may add:
+- ScaleFoldSupergraphic;
+- ScaleFoldPattern;
+- BrandIntro;
+- BrandToWorkTransition;
+- DisplayLockup.
+
+These are brand patterns, not ordinary workspace primitives. They should not leak gradient or decorative geometry into every product component.

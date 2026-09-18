@@ -35,3 +35,9 @@ Do not make the product identity depend on:
 - stethoscope marks;
 - mascots;
 - vendor logos.
+
+## ScaleFold influence
+
+The icon family may borrow ScaleFold proportion and rhythm without embedding miniature M marks. Useful shared cues include measured diagonal transitions, controlled negative space, stable verticals, and restrained asymmetry.
+
+Do not force the Fold angle into icons where a conventional metaphor is clearer. Recognition must never reduce usability.

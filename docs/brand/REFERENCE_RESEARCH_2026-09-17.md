@@ -60,3 +60,17 @@ MedScale adopts its own combination:
 4. **Progressive density:** simple entry points reveal technical depth without flattening it.
 5. **Human technicality:** typography is confident and readable; long-form evidence may use serif rhythm while controls remain sans.
 6. **Color discipline:** gradient is identity; semantic color is state. They are never interchangeable.
+## 2026-09-18 Abridge identity-system observation
+
+Founder-supplied reference:
+- https://www.instagram.com/p/DCaLnuYv6_V/?img_index=6
+
+The accompanying Abridge identity explanation describes a system in which custom letterform construction becomes a broader visual language: letter fragments can become waveform-like graphics, supergraphics, motion, and environmental elements. The transferable lesson is not the waveform or masonry aesthetic itself. The lesson is that a memorable identity becomes stronger when one underlying construction rule can generate many coherent expressions.
+
+MedScale response:
+- promote the ScaleFold M from standalone mark to an original ScaleFold Language;
+- derive supergraphics, patterns, motion, display treatment, and subtle product structure from the same Pillar/Fold/Step/Gap/Rhythm grammar;
+- preserve Work mode restraint so the identity does not overpower research and clinical tasks;
+- explicitly prohibit Abridge-style waveform lettering, bridge/masonry forms, and competitor-specific constructions.
+
+This observation strengthens the distinctiveness requirement without granting any competitor asset or geometry authority.
