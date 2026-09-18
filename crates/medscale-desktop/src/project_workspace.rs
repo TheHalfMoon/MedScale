@@ -271,6 +271,17 @@ pub fn create_experiment(
 mod tests {
     use super::*;
 
+    fn test_session(name: &str) -> (CliSession, std::path::PathBuf) {
+        let dir = std::env::temp_dir().join(format!("medscale-074d-{name}-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let mut session = CliSession::connect("desktop-projects-test").expect("operator session");
+        session
+            .open_synthetic_vault(&dir.display().to_string())
+            .expect("synthetic vault");
+        (session, dir)
+    }
+
     #[test]
     fn status_messages_stay_typed() {
         assert_eq!(
@@ -340,5 +351,30 @@ mod tests {
         ] {
             assert_eq!(resolution_label(resolution), label);
         }
+    }
+
+    #[test]
+    fn workspace_flows_through_real_core_session() {
+        let (mut session, _dir) = test_session("flows");
+        // Empty start is an honest empty state, not an error.
+        assert!(refresh_projects(&mut session).expect("refresh").is_empty());
+        let created = create_project(&mut session, "Cohort".to_owned(), None).expect("create");
+        assert_eq!(created.name, "Cohort");
+        assert_eq!(created.status, "active");
+        let rows = refresh_projects(&mut session).expect("refresh");
+        assert_eq!(rows.len(), 1);
+        let experiment =
+            create_experiment(&mut session, &created.id, "Baseline".to_owned()).expect("exp");
+        assert_eq!(experiment.status, "draft");
+        let detail = project_detail(&mut session, &created.id).expect("detail");
+        assert_eq!(detail.name, "Cohort");
+        assert_eq!(detail.experiment_count, 1);
+        assert_eq!(detail.experiments.len(), 1);
+        assert_eq!(detail.refs.len(), 0);
+        assert_eq!(detail.edges.len(), 0);
+        let archived =
+            archive_project(&mut session, &created.id, created.revision).expect("archive");
+        assert_eq!(archived.status, "archived");
+        assert_eq!(archived.revision, created.revision + 1);
     }
 }
