@@ -37,6 +37,7 @@ Canonical engine-placement classes:
 | SQLCipher | encrypted metadata store | `VENDOR/FFI PROTOTYPE` | `P3`; 005 | one SQLite implementation per process; durability/key behavior must be proven |
 | keyring-core + selected stores | OS secret-store abstraction | `VENDOR` candidate | trusted key adapter; 005/009 | replaces old umbrella keyring-rs integration assumption; choose minimal per-platform stores |
 | Tauri | desktop shell | `PROTOTYPE CANDIDATE` | 006 | rejected if PHI cache/crash containment evidence cannot close; UI never opens DB directly |
+| `stablyai/orca` @ `de15227a1d321840ea35c6bb2d0cc01e3409e5f1` planning pin | agent IDE/workbench orchestration, parallel workspaces/worktrees, terminal splits, session UX, diff review/annotation, embedded browser and CLI automation | `COPY_SELECTIVE / ADAPT / REFERENCE` after exact-path qualification | candidate 077/078/080; spawned agent/browser execution remains capability-bounded/isolated rather than trusted by UI origin | MIT observed; founder records full-source reuse permission. Do not inherit Orca authority, Electron/cloud/mobile/SSH defaults, ambient shell/filesystem/network access, telemetry, git identity or persistence. See `RESEARCH_OS_V2_ORCA_DONOR_ADDENDUM.md` |
 | docling.rs | document parsing | `VENDOR/ABSORB` candidate | `P1` worker despite Rust; 010 | complex document inputs make language alone insufficient for trust |
 | Docling | document reference/fallback | `SIDECAR / CONFORMANCE COMPARATOR` | `P1`; 010 | no authority; no ambient network/FS |
 | PaddleOCR | OCR | `COMPARATOR / SIDECAR OR NATIVE MODEL` | `P1`; 010 | prefer bounded ONNX/native artifact if quality/rights justify; no auto-download |
@@ -86,3 +87,5 @@ Exactly one SQLite implementation may be linked into any process that opens the 
 ## 4. Explicit donor-delta log
 
 The V1/deep-research donor set is no longer allowed to silently lose entries. Every donor is retained with a disposition: medSpaCy re-added; keyring integration updated; Presidio stewardship transition recorded; sqlite-vec and mistral.rs demoted; Statig/OpenCR/iroh/Extism/OPA/OpenFGA/Qdrant/Trivy explicitly dispositioned.
+
+2026-09-17 V2 planning addition: `stablyai/orca` is now an explicit donor candidate for 077 MedAgent Workbench, 078 Model Fleet + Compare and 080 Governed Browse. Planning pin is `de15227a1d321840ea35c6bb2d0cc01e3409e5f1`; MIT is publicly declared upstream; founder states full-source reuse permission. This addition grants no implementation authority and does not modify Spec 074. Exact transferred paths must still be qualified component-by-component under `RESEARCH_OS_V2_ORCA_DONOR_ADDENDUM.md`.
