@@ -701,14 +701,21 @@ fn high_frequency_ops_return_receipts_without_audit_growth() {
 #[test]
 fn high_frequency_ops_leave_memory_snapshot_identical() {
     // Locks RequestBody::preserves_memory_snapshot: attach/detach/edge ops
-    // must not change one byte of the authority snapshot, which is what makes
-    // skipping the full-snapshot rewrite output-identical (and per-op cost
-    // constant instead of O(full history)).
+    // must not change one byte of the memory-derived authority snapshot,
+    // which is what makes skipping the full-snapshot rewrite output-identical
+    // (and per-op cost constant instead of O(full history)).
+    //
+    // `snapshot_bytes` serializes the DURABLE sqlite file, whose `edges` and
+    // `refs` sections legitimately grow: the revisioned sqlite rows ARE the
+    // durability receipts for these ops. So this lock compares every section
+    // EXCEPT `edges`/`refs` for exact equality (memory-derived authority
+    // state untouched, no audit growth), then pins the receipt rows exactly
+    // (one detached ref and one removed edge at revision 2).
     let h = setup("snapshot-stable");
     let project = h.create_project("study");
     let first = h.create_source(b"one");
     let second = h.create_source(b"two");
-    let before = h.snapshot_bytes();
+    let before_raw = h.snapshot_bytes();
     let reference = match h
         .call(
             Capability::ProjectArtifactAttach,
@@ -743,7 +750,7 @@ fn high_frequency_ops_leave_memory_snapshot_identical() {
     h.call(
         Capability::ProjectArtifactDetach,
         RequestBody::ProjectDetach {
-            ref_id: reference.header.id,
+            ref_id: reference.header.id.clone(),
             expected_revision: 1,
         },
     )
@@ -752,13 +759,69 @@ fn high_frequency_ops_leave_memory_snapshot_identical() {
     h.call(
         Capability::ProjectGraphMutate,
         RequestBody::GraphEdgeRemove {
-            edge_id: edge.header.id,
+            edge_id: edge.header.id.clone(),
             expected_revision: 1,
         },
     )
     .0
     .expect("remove");
-    assert_eq!(h.snapshot_bytes(), before);
+    let before: serde_json::Value =
+        serde_json::from_slice(&before_raw).expect("before snapshot is json");
+    let after: serde_json::Value =
+        serde_json::from_slice(&h.snapshot_bytes()).expect("after snapshot is json");
+    // Receipt proof: exactly the detached ref and the removed edge, at
+    // revision 2, carrying the ids from the op receipts.
+    let refs = after
+        .get("refs")
+        .and_then(|v| v.as_array())
+        .expect("refs section");
+    assert_eq!(refs.len(), 1, "{refs:?}");
+    assert_eq!(
+        refs[0].get("status").and_then(|v| v.as_str()),
+        Some("detached"),
+        "{refs:?}"
+    );
+    assert_eq!(
+        refs[0].get("revision").and_then(|v| v.as_u64()),
+        Some(2),
+        "{refs:?}"
+    );
+    assert_eq!(
+        refs[0].pointer("/header/id").and_then(|v| v.as_str()),
+        Some(reference.header.id.as_str()),
+        "{refs:?}"
+    );
+    let edges = after
+        .get("edges")
+        .and_then(|v| v.as_array())
+        .expect("edges section");
+    assert_eq!(edges.len(), 1, "{edges:?}");
+    assert_eq!(
+        edges[0].get("status").and_then(|v| v.as_str()),
+        Some("removed"),
+        "{edges:?}"
+    );
+    assert_eq!(
+        edges[0].get("revision").and_then(|v| v.as_u64()),
+        Some(2),
+        "{edges:?}"
+    );
+    assert_eq!(
+        edges[0].pointer("/header/id").and_then(|v| v.as_str()),
+        Some(edge.header.id.as_str()),
+        "{edges:?}"
+    );
+    // Authority proof: strip the receipt sections; everything else (memory-
+    // derived authority state: objects, projects, sources, experiments,
+    // counters) must be byte-identical through all four high-frequency ops.
+    let mut before_stripped = before;
+    let mut after_stripped = after;
+    for snapshot in [&mut before_stripped, &mut after_stripped] {
+        let obj = snapshot.as_object_mut().expect("snapshot object");
+        obj.remove("refs");
+        obj.remove("edges");
+    }
+    assert_eq!(after_stripped, before_stripped);
 }
 
 #[test]
