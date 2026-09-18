@@ -370,8 +370,8 @@ mod tests {
         assert_eq!(detail.name, "Cohort");
         assert_eq!(detail.experiment_count, 1);
         assert_eq!(detail.experiments.len(), 1);
-        assert_eq!(detail.refs.len(), 0);
-        assert_eq!(detail.edges.len(), 0);
+        assert!(detail.refs.is_empty());
+        assert!(detail.edges.is_empty());
         let archived =
             archive_project(&mut session, &created.id, created.revision).expect("archive");
         assert_eq!(archived.status, "archived");
