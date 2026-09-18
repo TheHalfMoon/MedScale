@@ -83,6 +83,12 @@ Audit proof: `audit_count()` reopens the vault meta DB and counts
 `object_class='audit'` rows (4 after lifecycle, 1 after stale attempt):
 audits persist through the existing snapshot sync, no second audit system.
 
+## Limitations
+
+- Pack digest/revision binding branches are code-reviewed but not
+  integration-covered (no pack install in the 074 suites); identity attach of
+  a missing pack is covered (Missing -> NotFound).
+
 ## Gates
 
 ```text
