@@ -497,6 +497,26 @@ pub enum RequestBody {
     },
 }
 
+impl RequestBody {
+    /// True for the high-frequency Spec 074 graph mutations that provably
+    /// leave the in-memory authority snapshot untouched (durable sqlite rows
+    /// plus revisioned receipts only; 074 ids come from the sqlite sequence).
+    /// The facade skips the frozen full-snapshot rewrite for these ops;
+    /// skipping is output-identical because the snapshot bytes cannot change.
+    /// Locked by the Core snapshot-stability test; any op that gains a memory
+    /// write must leave this set.
+    #[must_use]
+    pub fn preserves_memory_snapshot(&self) -> bool {
+        matches!(
+            self,
+            Self::ProjectAttach { .. }
+                | Self::ProjectDetach { .. }
+                | Self::GraphEdgeCreate { .. }
+                | Self::GraphEdgeRemove { .. }
+        )
+    }
+}
+
 /// Successful response body variants.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "ok", rename_all = "snake_case")]

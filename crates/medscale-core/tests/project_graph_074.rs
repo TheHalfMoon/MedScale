@@ -36,6 +36,7 @@ fn project_grants() -> Vec<Capability> {
         Capability::ProjectGraphRead,
         Capability::ProjectGraphMutate,
         Capability::CreateSourceRecord,
+        Capability::CreateProposal,
     ]
 }
 
@@ -171,6 +172,12 @@ impl Harness {
             .into_iter()
             .filter(|o| o.object_class == "audit")
             .count()
+    }
+
+    fn snapshot_bytes(&self) -> Vec<u8> {
+        let meta = medscale_storage::SqliteMetaStore::open_at(&self.dir.join("meta.sqlite3"))
+            .expect("reopen meta");
+        meta.snapshot_bytes().expect("snapshot")
     }
 }
 
@@ -556,6 +563,202 @@ fn attach_admits_current_and_rejects_the_rest() {
         .0
         .expect_err("pack missing");
     assert!(matches!(err, AuthorityError::NotFound), "{err:?}");
+}
+
+#[test]
+fn attach_rejects_kind_mismatch_as_corrupt() {
+    let h = setup("kindmismatch");
+    let project = h.create_project("study");
+    // Real proposal, but attached under the source kind: fail closed.
+    let proposal = match h
+        .call(
+            Capability::CreateProposal,
+            RequestBody::CreateProposal {
+                subject_ref: None,
+                claim_kind: "test".to_owned(),
+                payload: serde_json::json!({}),
+                evidence_refs: vec![],
+            },
+        )
+        .0
+        .expect("proposal")
+    {
+        medscale_contracts::envelopes::ResponseBody::Created { object_id } => object_id,
+        other => panic!("{other:?}"),
+    };
+    let mismatched = ArtifactDescriptor {
+        object_id: proposal,
+        kind: ArtifactKind::SourceRecord,
+        binding: ArtifactVersionBinding::IdentityOnly,
+    };
+    let err = h
+        .call(
+            Capability::ProjectArtifactAttach,
+            RequestBody::ProjectAttach {
+                project_id: project,
+                experiment_id: None,
+                artifact: mismatched,
+            },
+        )
+        .0
+        .expect_err("kind mismatch");
+    assert!(matches!(err, AuthorityError::Corrupt { .. }), "{err:?}");
+}
+
+#[test]
+fn attach_rejects_experiment_from_another_project() {
+    let h = setup("foreign-exp");
+    let project = h.create_project("study");
+    let other = h.create_project("other");
+    let source = h.create_source(b"hello");
+    let foreign = match h
+        .call(
+            Capability::ExperimentCreate,
+            RequestBody::ExperimentCreate {
+                project_id: other,
+                name: "foreign".to_owned(),
+                description: None,
+            },
+        )
+        .0
+        .expect("exp")
+    {
+        medscale_contracts::envelopes::ResponseBody::Experiment { experiment } => {
+            experiment.header.id
+        }
+        other => panic!("{other:?}"),
+    };
+    let err = h
+        .call(
+            Capability::ProjectArtifactAttach,
+            RequestBody::ProjectAttach {
+                project_id: project,
+                experiment_id: Some(foreign),
+                artifact: descriptor(source),
+            },
+        )
+        .0
+        .expect_err("foreign experiment");
+    assert!(
+        matches!(err, AuthorityError::InvalidArgument { .. }),
+        "{err:?}"
+    );
+}
+
+#[test]
+fn high_frequency_ops_return_receipts_without_audit_growth() {
+    // Frozen performance contract: attach/detach/edge ops persist revisioned
+    // receipts in sqlite and must NOT append per-op memory audit rows (which
+    // would make every op O(full history) through the snapshot sync).
+    let h = setup("receipts");
+    let project = h.create_project("study");
+    let source = h.create_source(b"hello");
+    let reference = match h
+        .call(
+            Capability::ProjectArtifactAttach,
+            RequestBody::ProjectAttach {
+                project_id: project.clone(),
+                experiment_id: None,
+                artifact: descriptor(source.clone()),
+            },
+        )
+        .0
+        .expect("attach")
+    {
+        medscale_contracts::envelopes::ResponseBody::ProjectRef { reference } => reference,
+        other => panic!("{other:?}"),
+    };
+    let err = h
+        .call(
+            Capability::ProjectGraphMutate,
+            RequestBody::GraphEdgeCreate {
+                project_id: project.clone(),
+                subject: GraphEndpoint::Artifact(descriptor(source)),
+                predicate: ProjectGraphPredicate::References,
+                object: GraphEndpoint::Artifact(descriptor(OpaqueId::new("src-y"))),
+            },
+        )
+        .0
+        .expect_err("missing endpoint");
+    // src-y does not exist: endpoint admission fails, still no audit.
+    assert!(
+        matches!(err, medscale_contracts::envelopes::AuthorityError::NotFound),
+        "{err:?}"
+    );
+    h.call(
+        Capability::ProjectArtifactDetach,
+        RequestBody::ProjectDetach {
+            ref_id: reference.header.id,
+            expected_revision: 1,
+        },
+    )
+    .0
+    .expect("detach");
+    // Only the project-create lifecycle audit exists.
+    assert_eq!(h.audit_count(), 1);
+}
+
+#[test]
+fn high_frequency_ops_leave_memory_snapshot_identical() {
+    // Locks RequestBody::preserves_memory_snapshot: attach/detach/edge ops
+    // must not change one byte of the authority snapshot, which is what makes
+    // skipping the full-snapshot rewrite output-identical (and per-op cost
+    // constant instead of O(full history)).
+    let h = setup("snapshot-stable");
+    let project = h.create_project("study");
+    let first = h.create_source(b"one");
+    let second = h.create_source(b"two");
+    let before = h.snapshot_bytes();
+    let reference = match h
+        .call(
+            Capability::ProjectArtifactAttach,
+            RequestBody::ProjectAttach {
+                project_id: project.clone(),
+                experiment_id: None,
+                artifact: descriptor(first.clone()),
+            },
+        )
+        .0
+        .expect("attach")
+    {
+        medscale_contracts::envelopes::ResponseBody::ProjectRef { reference } => reference,
+        other => panic!("{other:?}"),
+    };
+    let edge = match h
+        .call(
+            Capability::ProjectGraphMutate,
+            RequestBody::GraphEdgeCreate {
+                project_id: project.clone(),
+                subject: GraphEndpoint::Artifact(descriptor(first)),
+                predicate: ProjectGraphPredicate::References,
+                object: GraphEndpoint::Artifact(descriptor(second)),
+            },
+        )
+        .0
+        .expect("edge")
+    {
+        medscale_contracts::envelopes::ResponseBody::GraphEdge { edge } => edge,
+        other => panic!("{other:?}"),
+    };
+    h.call(
+        Capability::ProjectArtifactDetach,
+        RequestBody::ProjectDetach {
+            ref_id: reference.header.id,
+            expected_revision: 1,
+        },
+    )
+    .0
+    .expect("detach");
+    h.call(
+        Capability::ProjectGraphMutate,
+        RequestBody::GraphEdgeRemove {
+            edge_id: edge.header.id,
+            expected_revision: 1,
+        },
+    )
+    .0
+    .expect("remove");
+    assert_eq!(h.snapshot_bytes(), before);
 }
 
 #[test]

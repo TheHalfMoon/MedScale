@@ -539,6 +539,22 @@ fn backup_restore_carries_074_rows_with_revisions() {
 }
 
 #[test]
+fn project_id_sequence_is_durable_across_reopen() {
+    let root = temp_root("idseq");
+    {
+        let meta = open_meta(&root);
+        let a = meta.alloc_project_id("ref").unwrap();
+        let b = meta.alloc_project_id("ref").unwrap();
+        assert_eq!(a.as_str(), "ref-1");
+        assert_eq!(b.as_str(), "ref-2");
+        // Independent prefixes share nothing but the counter.
+        assert_eq!(meta.alloc_project_id("edge").unwrap().as_str(), "edge-3");
+    }
+    let meta = open_meta(&root);
+    assert_eq!(meta.alloc_project_id("ref").unwrap().as_str(), "ref-4");
+}
+
+#[test]
 fn unknown_future_status_fails_closed() {
     use rusqlite::Connection;
     let root = temp_root("future");

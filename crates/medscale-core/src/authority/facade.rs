@@ -189,9 +189,18 @@ impl CoreFacade {
     /// Dispatches a versioned authority request.
     pub fn dispatch(&self, req: AuthorityRequest) -> AuthorityResponse {
         let request_id = req.request_id.clone();
+        // Spec 074 high-frequency graph ops provably leave the in-memory
+        // snapshot untouched (see RequestBody::preserves_memory_snapshot);
+        // skipping the rewrite is output-identical and keeps per-op cost
+        // constant instead of O(full history).
+        let skip_snapshot = req.body.preserves_memory_snapshot();
         let result = self.dispatch_inner(req).and_then(|body| {
-            self.persist_open_vault()?;
-            Ok(body)
+            if skip_snapshot {
+                Ok(body)
+            } else {
+                self.persist_open_vault()?;
+                Ok(body)
+            }
         });
         AuthorityResponse {
             schema_version: AUTHORITY_SCHEMA_VERSION,

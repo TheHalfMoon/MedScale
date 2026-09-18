@@ -264,6 +264,32 @@ fn is_conflict(err: &rusqlite::Error) -> bool {
     )
 }
 
+impl SqliteMetaStore {
+    /// Allocates one `prefix-N` id from a durable sqlite-backed sequence.
+    ///
+    /// Spec 074 entity ids come from this counter (not the in-memory authority
+    /// sequence) so high-frequency graph ops never touch the memory store and
+    /// the frozen full-snapshot sync stays constant-size. Transactional:
+    /// crash-safe, no reuse after reopen.
+    pub fn alloc_project_id(&self, prefix: &str) -> Result<OpaqueId, MetaError> {
+        let tx = self.conn().unchecked_transaction()?;
+        let current: Option<String> = tx
+            .query_row(
+                "SELECT value FROM store_state WHERE key = 'project_id_seq'",
+                [],
+                |row| row.get(0),
+            )
+            .optional()?;
+        let next: u64 = current.as_deref().unwrap_or("0").parse().unwrap_or(0) + 1;
+        tx.execute(
+            "INSERT OR REPLACE INTO store_state(key, value) VALUES ('project_id_seq', ?1)",
+            params![next.to_string()],
+        )?;
+        tx.commit()?;
+        Ok(OpaqueId::new(format!("{prefix}-{next}")))
+    }
+}
+
 // ---------- header helper ----------
 
 fn header_for(

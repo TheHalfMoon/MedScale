@@ -28,6 +28,23 @@ use super::store::{InMemoryAuthorityStore, ScopeError, StoredObject};
 use crate::process::{LeaseRegistry, SessionRegistry};
 
 /// Authenticated authority view for one request.
+///
+/// Audit rule (frozen 074-C amendment, reason measured in
+/// `evidence/.../SCALE_MEASUREMENTS.md`): lifecycle mutations
+/// (project/experiment create/update/archive/restore) append an
+/// `ActionAuditRecord` to the existing trail. High-frequency graph mutations
+/// (attach/detach/edge create/remove) return durable receipts instead: the
+/// revisioned sqlite row IS the record, and a per-op memory audit row would
+/// make every op O(full history) through the frozen full-snapshot sync
+/// (measured +4 ms/op/history-row, i.e. ~5 h for the 1,000-ref fixture).
+/// No second audit system exists; no surface bypasses Core.
+///
+/// Scale rule (same amendment): 074 entity ids come from the durable sqlite
+/// `project_id_seq` counter, so high-frequency ops never touch the in-memory
+/// store; the facade skips the snapshot rewrite for exactly those ops
+/// (`RequestBody::preserves_memory_snapshot`, locked by the Core
+/// snapshot-stability test). Skipping is output-identical: the snapshot bytes
+/// cannot change when the memory store does not.
 pub struct ProjectGraph<'a> {
     pub store: &'a mut InMemoryAuthorityStore,
     pub meta: &'a SqliteMetaStore,
@@ -301,7 +318,7 @@ impl ProjectGraph<'_> {
     ) -> Result<Project, AuthorityError> {
         validate_metadata_fields(&name, description.as_deref())
             .map_err(|message| AuthorityError::InvalidArgument { message })?;
-        let id = self.store.alloc_id("proj");
+        let id = self.meta.alloc_project_id("proj").map_err(meta_err)?;
         let project = Project::new(
             ObjectHeader {
                 id: id.clone(),
@@ -424,7 +441,7 @@ impl ProjectGraph<'_> {
         }
         validate_metadata_fields(&name, description.as_deref())
             .map_err(|message| AuthorityError::InvalidArgument { message })?;
-        let id = self.store.alloc_id("exp");
+        let id = self.meta.alloc_project_id("exp").map_err(meta_err)?;
         let experiment = Experiment::new(
             ObjectHeader {
                 id: id.clone(),
@@ -543,7 +560,7 @@ impl ProjectGraph<'_> {
             }
         }
         self.admit_artifact(&artifact)?;
-        let id = self.store.alloc_id("ref");
+        let id = self.meta.alloc_project_id("ref").map_err(meta_err)?;
         let reference = ProjectArtifactRef::new(
             ObjectHeader {
                 id: id.clone(),
@@ -557,10 +574,8 @@ impl ProjectGraph<'_> {
         )
         .map_err(|message| AuthorityError::InvalidArgument { message })?;
         self.meta.attach_ref(&reference).map_err(meta_err)?;
-        self.audit(
-            "project.attach",
-            vec![id, project_id.clone(), reference.artifact.object_id.clone()],
-        )?;
+        // Receipt-grade durability (see audit rule above): the revisioned row
+        // is the record; no per-op memory audit row.
         Ok(reference)
     }
 
@@ -582,7 +597,7 @@ impl ProjectGraph<'_> {
             .meta
             .set_ref_status(ref_id, expected, RefStatus::Detached)
             .map_err(meta_err)?;
-        self.audit("project.detach", vec![ref_id.clone()])?;
+        // Receipt-grade durability (see audit rule above).
         Ok(detached)
     }
 
@@ -647,7 +662,7 @@ impl ProjectGraph<'_> {
         }
         self.admit_endpoint(project_id, &subject)?;
         self.admit_endpoint(project_id, &object)?;
-        let id = self.store.alloc_id("edge");
+        let id = self.meta.alloc_project_id("edge").map_err(meta_err)?;
         let edge = ProjectGraphEdge::new(
             ObjectHeader {
                 id: id.clone(),
@@ -662,7 +677,7 @@ impl ProjectGraph<'_> {
         )
         .map_err(|message| AuthorityError::InvalidArgument { message })?;
         self.meta.create_edge(&edge).map_err(meta_err)?;
-        self.audit("graph.edge.create", vec![id, project_id.clone()])?;
+        // Receipt-grade durability (see audit rule above).
         Ok(edge)
     }
 
@@ -684,7 +699,7 @@ impl ProjectGraph<'_> {
             .meta
             .set_edge_status(edge_id, expected, EdgeStatus::Removed)
             .map_err(meta_err)?;
-        self.audit("graph.edge.remove", vec![edge_id.clone()])?;
+        // Receipt-grade durability (see audit rule above).
         Ok(removed)
     }
 
