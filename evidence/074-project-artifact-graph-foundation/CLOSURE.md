@@ -40,6 +40,15 @@ Team collaboration, MedAgent, Fleet, Privacy Gate expansion, Browse,
 AudioFlow, Analytics, RAG, Hub, Compute, Research Packs, federation,
 real-PHI readiness, product release readiness, or Research OS completion.
 
+## Closure trail
+
+```text
+PR_122_MERGE=3d59255d0f37800cdda85dd4a7f12238356b02ad
+POST_MERGE_MAIN_CI=35309949710 (6/6)
+PR_126_QUEUE_MARK_MERGE=79e8475c5ac6da304c3c9d9fa60eadd6e0979511
+PR_126_POST_MERGE_MAIN_CI=35318563856 (6/6)
+```
+
 ## Open external residuals (not repository-owned work)
 
 - `LOCAL_WINDOWS_TOOLCHAIN_DESTRUCTION_2026_09_18` (`OPEN_WORKSTATION_ONLY`):
