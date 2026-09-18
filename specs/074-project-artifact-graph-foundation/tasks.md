@@ -132,9 +132,11 @@ Check a task only when its implementation, tests and required evidence are real 
 
 **Status 2026-09-18:** harness + both fixtures exist and are env-gated
 (`MEDSCALE_074_FULL_SCALE=1`; smoke shapes green in every CI run);
-lab-full correctness passed; reopen measured. Full-fixture TIMINGS bind from
-the perf-job run of the closure PR into `SCALE_MEASUREMENTS.md`; this box
-checks then. No budget claimed at any point.
+lab-full correctness passed; reopen measured (1.31 ms in CI). Full-fixture
+TIMINGS cannot fit bounded CI time (residual O(n) persist per source op is
+frozen pre-074 behavior; a CI perf-step attempt timed out with zero
+failures and was reverted). Full timings remain local-only evidence for
+after the workstation toolchain recovery. No budget claimed at any point.
 
 **Acceptance:** evidence exists and no correctness failure appears at declared fixture scale.
 

@@ -12,8 +12,9 @@ CORE_CLI_DESKTOP_PARITY=PASS (one Core authority path; CLI/Desktop render
   typed Core results; dependency-direction gate holds)
 SECURITY_ADVERSARIAL=PASS (T1..T12 mapped to tests in SECURITY_ADVERSARIAL.md)
 SCALE_EVIDENCE=evidence/074-project-artifact-graph-foundation/SCALE_MEASUREMENTS.md
-  (smoke shapes green in every CI run; lab-full correctness passed;
-  full-fixture timings automated in the perf job via MEDSCALE_074_FULL_SCALE=1)
+  (smoke shapes green in every CI run; lab-full correctness passed; reopen
+  measured; CI full-scale partials show zero failures before the clock;
+  full-fixture timings are local-only evidence pending toolchain recovery)
 SPEC_075_IMPLEMENTATION_AUTHORIZED=false (no promotion exists; candidates
   075+ remain planning-only)
 RESEARCH_OS_COMPLETE=false

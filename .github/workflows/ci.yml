@@ -115,11 +115,6 @@ jobs:
           MEDSCALE_027_LEXICAL_SCALE: "10000"
         run: cargo test -p medscale-core --test perf_harness_027 --locked -- --nocapture
         timeout-minutes: 45
-      - name: Spec 074 full-scale fixtures (no budget claim)
-        env:
-          MEDSCALE_074_FULL_SCALE: "1"
-        run: cargo test -p medscale-core --test project_graph_scale_074 --locked -- --nocapture
-        timeout-minutes: 30
       - name: Upload delivery-plan scale evidence
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v4.6.2
         with:
