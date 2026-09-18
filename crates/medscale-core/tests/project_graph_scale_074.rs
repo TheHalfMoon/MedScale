@@ -286,7 +286,7 @@ fn personal_scale_10_projects_1000_refs() {
                     t.elapsed().as_secs_f64() * 1000.0
                 );
             }
-            if refs % 100 == 0 {
+            if refs.is_multiple_of(100) {
                 eprintln!(
                     "SCALE074 personal_progress refs={refs} elapsed_s={:.1}",
                     started.elapsed().as_secs_f64()
@@ -407,7 +407,7 @@ fn lab_scale_100_projects() {
             refs += 1;
             h.edge(&project, &experiment, &object);
         }
-        if (i + 1) % 20 == 0 {
+        if (i + 1).is_multiple_of(20) {
             eprintln!(
                 "SCALE074 lab_progress projects={} elapsed_s={:.1}",
                 i + 1,
