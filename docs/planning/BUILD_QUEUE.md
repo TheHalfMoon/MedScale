@@ -5,7 +5,7 @@
 **Rule:** update this file whenever a unit enters or leaves a canonical state.
 
 **Autonomous stop status (historical V2 scoped closure):** superseded for Trusted V1 follow-on work.
-**Live follow-on status (2026-09-15):** Specs **016**–**067** are `CLOSED_CANONICAL`; Spec **012** and Spec **036** are historical MESC interoperability provenance only under `MESC_PROJECT_SEPARATION.md`; MESC is a separate project and neither spec is current MedScale execution authority. Trusted V1 and the separately promoted Desktop+CLI implementation phase are repository-complete pending external gates. Honesty: `PRIVATE_DATA_READY=false`; `RELEASE_READY=false`; `budgets_claimed_met=false`; sandbox `platform_qualified=false`.
+**Live follow-on status (2026-09-18):** Specs **016**–**067** and Spec **074** are `CLOSED_CANONICAL`; Spec **012** and Spec **036** are historical MESC interoperability provenance only under `MESC_PROJECT_SEPARATION.md`; MESC is a separate project and neither spec is current MedScale execution authority. Trusted V1, the separately promoted Desktop+CLI implementation phase, and the Project + Artifact Graph foundation are repository-complete pending external gates. Honesty: `PRIVATE_DATA_READY=false`; `RELEASE_READY=false`; `budgets_claimed_met=false`; sandbox `platform_qualified=false`.
 
 ## 2026-09-11 planning refinement
 
@@ -89,7 +89,8 @@ See Trusted V1 delivery plan. Specs 018–067 are closed; Spec 012 remains optio
 | 071 | OpenMed Evidence Center | `CLOSED_CANONICAL` | Pinned OpenMed evidence, 39-row fail-closed claim ledger, and native comparative Evidence Center merged and post-main qualified. |
 | 072 | Product Requalification | `CLOSED_CANONICAL` | Final head `02e343ff...` passed run `35089753209`, PR #117 merged as `f97637e7...`, and post-main run `35091230970` passed all six required jobs. |
 | 073 | Final UI Polish | `CLOSED_CANONICAL` | Final head `3ea26b29…` passed run `35174991802`, PR #119 merged as `f9587c3e…`, and post-merge main run `35175649969` passed all six required jobs. |
-| 074+ | Advanced deferred work | `DEFERRED_BY_CANONICAL_DESIGN` | Plugins/GraphRAG/replicas/imaging/CUDA/mobile-after-launch/etc.; require fresh promotion. |
+| 074 | Project + Artifact Graph Foundation | `CLOSED_CANONICAL` | Exact-head `660ca54…` passed run `35308381108`, PR #122 merged as `3d59255…`, and post-merge main run `35309949710` passed all six required jobs. See `evidence/074-project-artifact-graph-foundation/CLOSURE.md`. Spec 075 is NOT authorized. |
+| 075+ | Advanced deferred work | `DEFERRED_BY_CANONICAL_DESIGN` | Research OS candidates 075+ (collaboration, MedAgent, Fleet, Privacy Gate, Browse, AudioFlow, Analytics, Knowledge/Canvas, Hub, Compute, R workspace, extensions, packs, adapters, federation, qualification); require fresh promotion. |
 
 ## Automatic progression
 
@@ -99,5 +100,5 @@ Do not stop merely because a PR merged, one milestone passed, or an external opt
 
 **Mobile remains deferred until Desktop+CLI launch.** No mobile application implementation is authorized by Specs 068-072.
 
-**Next eligible (honest):** Specs **068**-**073** are `CLOSED_CANONICAL`. No repository-owned implementation unit is promoted; `NEXT_PROMOTED_SPEC=NONE`. Repository implementation closure is restored through Spec 073 pending external gates only. `RELEASE_READY`, `PRIVATE_DATA_READY`, and `MULTI_CLIENT_RELEASE_READY` remain false. MESC is a separate project/repository and is excluded from MedScale execution, completion, and release criteria; historical Specs 012/036 remain provenance only.
+**Next eligible (honest):** Specs **068**-**074** are `CLOSED_CANONICAL`. No repository-owned implementation unit is promoted; `NEXT_PROMOTED_SPEC=NONE`. Repository implementation closure is restored through Spec 074 pending external gates only. `RELEASE_READY`, `PRIVATE_DATA_READY`, and `MULTI_CLIENT_RELEASE_READY` remain false. MESC is a separate project/repository and is excluded from MedScale execution, completion, and release criteria; historical Specs 012/036 remain provenance only.
 

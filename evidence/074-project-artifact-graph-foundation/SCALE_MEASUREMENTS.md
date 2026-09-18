@@ -57,6 +57,41 @@ lab_db_bytes=<pending>
 reopen_ms=<pending> (measured 5.67 pre-fix at 50 refs / 188,416 bytes)
 ```
 
+## CI full-scale partials (post-fix code, run 35312537392, job 105497342591)
+
+Windows CI runner, debug profile, `MEDSCALE_074_FULL_SCALE=1`. Shapes
+confirmed full (`personal_shape=projects=10 refs_per_project=100 full=true`,
+`lab_shape=projects=100 full=true`). Step hit its 30-minute timeout before
+completion, so these are PARTIAL observations, never a pass claim:
+
+```text
+reopen_duration_after_scale: PASS (reopen_ms=1.31, 172,032 bytes, 1 project / 50 refs)
+personal_first_attach_ms=485.00 (empty vault; CI disk is far slower than dev iron)
+personal_progress refs=100 elapsed_s=498.1
+personal_progress refs=200 elapsed_s=1729.7
+lab_progress projects=20 elapsed_s=197.9
+lab_progress projects=40 elapsed_s=615.1
+lab_progress projects=60 elapsed_s=1266.6
+correctness failures before timeout: ZERO (no failing assert, no panic; the
+  step died on the clock, and every completed op verified)
+```
+
+Root cause of the residual curve: EVERY persisting op (project/experiment
+lifecycle, and each `CreateSourceRecord`) runs the frozen
+`sync_store_to_meta`, which rewrites ALL source blob files, upserts ALL
+source meta rows, re-serializes EVERY memory object, and replaces the whole
+authority snapshot. The scale fixtures are dominated by source creations
+(1,000 of 3,020 personal ops), so per-op cost still grows with total
+history. This is pre-existing frozen behavior (Specs 016/035), NOT 074
+scope: the 074 amendment covers only 074-owned high-frequency ops
+(attach/detach/edge create/remove), which no longer persist at all.
+
+Consequence: full-fixture TIMINGS cannot be produced inside bounded CI
+time. A CI perf-job full-scale step was tried on the closure branch and
+reverted the same day (red-marked the perf job on timeout with zero
+failures). Full timings remain local-only evidence for after the
+workstation toolchain recovery (external gate below). No budget is claimed.
+
 ## Pre-fix full-shape lab run (measured, debug, before the amendment)
 
 Source: `C:\Users\Shehr\AppData\Local\Temp\opencode\scale-run.log` (2026-09-18,
