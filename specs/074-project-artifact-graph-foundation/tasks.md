@@ -150,8 +150,15 @@ after the workstation toolchain recovery. No budget claimed at any point.
 - [x] Ensure PR body maps acceptance criteria to evidence.
 - [x] Merge normally only when exact-head required checks pass.
 - [x] Verify post-merge main CI.
-- [ ] Update canonical queue/status to `CLOSED_CANONICAL` only after post-main proof.
-- [ ] Recompute next eligible Research OS unit; do not implement it without promotion.
+- [x] Update canonical queue/status to `CLOSED_CANONICAL` only after post-main proof.
+- [x] Recompute next eligible Research OS unit; do not implement it without promotion.
+
+**Closure 2026-09-18:** queue/status updated by PR #126 (merged as
+`79e8475`); post-main run `35318563856` green 6/6. Recompute: no
+repository-owned unit is promoted (`NEXT_PROMOTED_SPEC=NONE`; Spec 075 has
+no promotion artifact). T074-11 record box remains the single open
+repository-owned residual and binds to the workstation toolchain recovery
+(external gate).
 
 **Terminal truth:**
 
