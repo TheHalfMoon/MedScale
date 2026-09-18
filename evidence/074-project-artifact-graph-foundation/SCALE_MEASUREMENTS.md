@@ -1,0 +1,72 @@
+# SCALE MEASUREMENTS — Spec 074 (074-F, T074-11)
+
+## Binding
+
+```text
+BASE_SHA=ee8daef3a2782bbdbcb3324766a5d6b95c09fa09
+BRANCH=spec/074-project-artifact-graph-foundation
+HARNESS=crates/medscale-core/tests/project_graph_scale_074.rs (Core facade paths,
+  synthetic vaults in temp dirs, Instant timings, --nocapture lines)
+HOST=Windows 11 x64, Rust 1.97.1 debug profile
+REAL_PHI_USED=false
+```
+
+Fixtures (spec minimums): Personal = 10 Projects x 100 refs + 100 edges each
+(1,000 refs, 1,000 edges); Lab = 100 Projects (>= 100 bar) x 2 refs/edges;
+reopen = 1 project x 50 refs. Routine `cargo test` runs a small smoke shape;
+full fixtures run with `MEDSCALE_074_FULL_SCALE=1` (repo `perf_harness_027`
+convention). Measurements are observations, never guarantees or budgets.
+
+## Historical curve that forced the architecture (pre-fix code, debug)
+
+Per-attach latency with per-op memory audit rows + full-snapshot rewrite
+(`probe_attach_cost_curve`, 30 sequential attaches, same vault):
+
+```text
+i=0:14.89 i=1:17.49 i=2:23.58 i=3:26.52 i=4:32.46 i=5:38.88 i=6:43.15
+i=7:42.27 i=8:49.68 i=9:51.55 i=10:56.50 i=11:63.61 i=12:66.25 i=13:70.57
+i=14:73.70 i=15:79.89 i=16:85.51 i=17:89.52 i=18:92.08 i=19:96.13 i=20:89.54
+i=21:101.86 i=22:114.16 i=23:107.02 i=24:109.10 i=25:113.94 i=26:122.98
+i=27:130.47 i=28:128.11 i=29:134.30  (ms)
+```
+
+Slope ~= +4 ms/op/history-row. Extrapolated personal fixture (3,020 ops):
+~5 hours; two 60-minute runs confirmed non-completion. First-attach on an
+empty vault measured 42-47 ms across runs (snapshot + blob fsync baseline,
+not graph cost). This curve is the explicit reason for the frozen 074-C
+amendment (lifecycle audits + durable receipts + sqlite id sequence +
+snapshot-skip for the four high-frequency ops).
+
+## Post-fix expectations (to be filled by the full run)
+
+With the amendment, high-frequency per-op cost is constant in graph size
+(one sqlite transaction + unchanged-memory snapshot skip); the snapshot term
+grows only with lifecycle/source history. Predicted personal fixture: single
+minutes, not hours. The full run fills this table:
+
+```text
+personal_mutations: ops=3020 total_ms=<pending> mean_ms_per_op=<pending>
+personal_first_attach_ms=<pending> personal_last_attach_ms=<pending>
+personal_list_ms=<pending> (10 projects)
+personal_context_ms=<pending> (100 refs + 100 edges page)
+personal_neighbors_ms=<pending> (100 edges)
+personal_db_bytes=<pending>
+lab_mutations: ops=800 total_ms=<pending>
+lab_list_ms=<pending> (100 projects)
+lab_db_bytes=<pending>
+reopen_ms=<pending> (measured 5.67 pre-fix at 50 refs / 188,416 bytes)
+```
+
+## Status
+
+```text
+SMOKE_COVERAGE=CI (fast shape asserts structure on every push)
+FULL_NUMBERS=PENDING (workstation MSVC toolchain removed overnight 2026-09-17/18:
+  cl.exe/link.exe/nmake.exe absent, Strawberry registry entry without files;
+  local native builds impossible; recorded as external blocker below)
+```
+
+Known limitation: `list_all_*` snapshot scans load full row sets into memory;
+observed sizes are reported above, never converted into budgets.
+Storage growth is dominated by the authority snapshot (lifecycle/source
+history), not by 074 rows (scalar columns + two small JSON enums per row).

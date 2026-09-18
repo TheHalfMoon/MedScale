@@ -120,7 +120,8 @@ impl CoreFacade {
         op: impl FnOnce(super::project_graph::ProjectGraph<'_>) -> Result<R, AuthorityError>,
     ) -> Result<R, AuthorityError> {
         self.require_lease(vault_id)?;
-        let mut store = self.store();
+        // Lock order vault -> store matches the existing multi-lock arms and
+        // keeps no new lock ordering in the lane.
         let vault_guard = self.vault();
         let enc_guard = self.encrypted();
         let meta = if let Some(enc) = enc_guard.as_ref() {
@@ -130,6 +131,7 @@ impl CoreFacade {
         } else {
             return Err(AuthorityError::VaultRequired);
         };
+        let mut store = self.store();
         let packs_guard = self.packs();
         let store_ref: &mut InMemoryAuthorityStore = &mut store;
         let packs_ref: &medscale_pack::PackStore = &packs_guard;

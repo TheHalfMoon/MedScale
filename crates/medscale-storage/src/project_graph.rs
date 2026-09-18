@@ -256,6 +256,22 @@ fn check_cursor(after: Option<&str>) -> Result<(), MetaError> {
     Ok(())
 }
 
+/// Reads a stored revision. Rejects negative/tampered values instead of
+/// wrapping them into huge counters.
+fn rev_from_db(revision: i64) -> Result<ProjectRevision, MetaError> {
+    ProjectRevision::try_from(revision)
+        .map_err(|_| MetaError::CorruptObjectBody("revision out of range".to_owned()))
+        .and_then(|rev| {
+            if rev < 1 {
+                Err(MetaError::CorruptObjectBody(
+                    "revision must be positive".to_owned(),
+                ))
+            } else {
+                Ok(rev)
+            }
+        })
+}
+
 fn is_conflict(err: &rusqlite::Error) -> bool {
     matches!(
         err,
@@ -520,14 +536,9 @@ fn map_project_row_inner(
     schema_version: i64,
 ) -> Result<Project, MetaError> {
     let status = parse_project_status(&status)?;
-    if revision < 1 {
-        return Err(MetaError::CorruptObjectBody(
-            "project revision must be positive".to_owned(),
-        ));
-    }
     let project = Project {
         header: header_for(&OpaqueId::new(id), &realm, &scope),
-        revision: revision as u64,
+        revision: rev_from_db(revision)?,
         name,
         description,
         status,
@@ -787,7 +798,7 @@ fn map_experiment_row_inner(
     Ok(Experiment {
         header: header_for(&OpaqueId::new(id), &realm, &scope),
         project_id: OpaqueId::new(project_id),
-        revision: revision as u64,
+        revision: rev_from_db(revision)?,
         name,
         description,
         status: parse_experiment_status(&status)?,
@@ -1029,7 +1040,7 @@ fn map_ref_row_inner(
             kind: kind_from_str(&kind)?,
             binding: binding_from_json(&binding_json)?,
         },
-        revision: revision as u64,
+        revision: rev_from_db(revision)?,
         status: parse_ref_status(&status)?,
     };
     reference
@@ -1334,7 +1345,7 @@ fn map_edge_row_inner(
         subject: endpoint_from_parts(&subject_kind, &subject_id, &subject_json)?,
         predicate,
         object: endpoint_from_parts(&object_kind, &object_id, &object_json)?,
-        revision: revision as u64,
+        revision: rev_from_db(revision)?,
         status: parse_edge_status(&status)?,
     })
 }

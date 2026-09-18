@@ -575,3 +575,36 @@ fn unknown_future_status_fails_closed() {
         Err(MetaError::UnsupportedSchema(_))
     ));
 }
+
+#[test]
+fn negative_revision_tampering_fails_closed() {
+    use rusqlite::Connection;
+    let root = temp_root("negrev");
+    let meta = open_meta(&root);
+    meta.insert_project(&project("proj-1")).unwrap();
+    meta.insert_experiment(&experiment("exp-1", "proj-1"))
+        .unwrap();
+    drop(meta);
+    {
+        let conn = Connection::open(root.join("meta.sqlite3")).unwrap();
+        conn.execute(
+            "UPDATE projects SET revision = -3 WHERE project_id = 'proj-1'",
+            [],
+        )
+        .unwrap();
+        conn.execute(
+            "UPDATE experiments SET revision = -1 WHERE experiment_id = 'exp-1'",
+            [],
+        )
+        .unwrap();
+    }
+    let meta = open_meta(&root);
+    assert!(matches!(
+        meta.get_project(&OpaqueId::new("proj-1")),
+        Err(MetaError::CorruptObjectBody(_))
+    ));
+    assert!(matches!(
+        meta.get_experiment(&OpaqueId::new("exp-1")),
+        Err(MetaError::CorruptObjectBody(_))
+    ));
+}

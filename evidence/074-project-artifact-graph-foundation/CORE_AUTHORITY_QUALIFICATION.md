@@ -17,9 +17,19 @@ Every 074 operation runs `CoreFacade::dispatch` ->
 `CoreFacade::pg` (lease, vault meta synthetic-or-encrypted, packs) ->
 `authority::project_graph::ProjectGraph` op ->
 storage compare-and-swap transaction ->
-`ActionAuditRecord` append to the existing trail ->
-typed `ResponseBody`. No surface writes storage; the facade match is
-exhaustive so unhandled ops cannot compile.
+audit-or-receipt (rule below) -> typed `ResponseBody`.
+No surface writes storage; the facade match is exhaustive so unhandled ops
+cannot compile.
+
+Audit rule (frozen 074-C amendment, measured reason in SCALE_MEASUREMENTS.md):
+lifecycle mutations (project/experiment create/update/archive/restore) append
+`ActionAuditRecord` rows to the existing trail. High-frequency graph mutations
+(attach/detach/edge create/remove) return durable receipts: 074 ids come from
+the transactional sqlite `project_id_seq` counter, the revisioned row is the
+record, and the facade skips the snapshot rewrite for exactly the four ops in
+`RequestBody::preserves_memory_snapshot` (output-identical: the memory store
+is untouched). Locked by `high_frequency_ops_return_receipts_without_audit_growth`
+and `high_frequency_ops_leave_memory_snapshot_identical`.
 
 New wire vocabulary (`envelopes`): 19 `RequestBody` variants, 10
 `ResponseBody` variants, 19 `capability_matches` pairs. Reads
