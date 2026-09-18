@@ -16,6 +16,7 @@ use slint::{ComponentHandle, ModelRc, VecModel};
 mod patient_workspace;
 mod population_insights;
 mod product_intelligence;
+mod project_workspace;
 mod utility_surfaces;
 mod workflow_studio;
 
@@ -74,6 +75,95 @@ fn admit_model_pack(
     session.packs_install_local(path)
 }
 
+/// Refreshes the Projects list from Core; honest empty/denied/unavailable states.
+fn refresh_project_list(ui: &AppWindow, session: &Rc<RefCell<CliSession>>) {
+    match project_workspace::refresh_projects(&mut session.borrow_mut()) {
+        Ok(rows) => {
+            if rows.is_empty() {
+                ui.set_project_status("No projects yet · create one above".into());
+            } else {
+                ui.set_project_status(
+                    format!(
+                        "{} project{} · Core-backed",
+                        rows.len(),
+                        if rows.len() == 1 { "" } else { "s" }
+                    )
+                    .into(),
+                );
+            }
+            ui.set_project_rows(ModelRc::new(VecModel::from_iter(rows.iter().map(|row| {
+                ProjectRowItem {
+                    id: row.id.clone().into(),
+                    name: row.name.clone().into(),
+                    status: row.status.clone().into(),
+                    revision: row.revision.to_string().into(),
+                    experiments: row.experiments.to_string().into(),
+                    refs: row.refs.to_string().into(),
+                    edges: row.edges.to_string().into(),
+                }
+            }))));
+        }
+        Err(err) => {
+            ui.set_project_rows(ModelRc::new(VecModel::from(Vec::new())));
+            ui.set_project_status(project_workspace::status_message(&err).into());
+        }
+    }
+}
+
+/// Opens one Project detail (overview, experiments, refs, relationships).
+fn open_project_detail(ui: &AppWindow, session: &Rc<RefCell<CliSession>>, project_id: &str) {
+    match project_workspace::project_detail(&mut session.borrow_mut(), project_id) {
+        Ok(detail) => {
+            ui.set_project_active_id(detail.project_id.clone().into());
+            ui.set_project_active_revision(detail.revision.to_string().into());
+            ui.set_project_detail_name(detail.name.clone().into());
+            ui.set_project_detail_meta(
+                format!(
+                    "{} · {} · status {} · revision {} · {} experiments · {} refs · {} edges",
+                    detail.project_id,
+                    detail.name,
+                    detail.status,
+                    detail.revision,
+                    detail.experiment_count,
+                    detail.active_ref_count,
+                    detail.active_edge_count
+                )
+                .into(),
+            );
+            ui.set_project_experiments(ModelRc::new(VecModel::from_iter(
+                detail.experiments.iter().map(|row| ExperimentRowItem {
+                    id: row.id.clone().into(),
+                    name: row.name.clone().into(),
+                    status: row.status.clone().into(),
+                    revision: row.revision.to_string().into(),
+                }),
+            )));
+            ui.set_project_refs(ModelRc::new(VecModel::from_iter(detail.refs.iter().map(
+                |row| RefRowItem {
+                    ref_id: row.ref_id.clone().into(),
+                    kind: row.kind.clone().into(),
+                    object_id: row.object_id.clone().into(),
+                    resolution: row.resolution.clone().into(),
+                },
+            ))));
+            ui.set_project_edges(ModelRc::new(VecModel::from_iter(detail.edges.iter().map(
+                |row| EdgeRowItem {
+                    edge_id: row.edge_id.clone().into(),
+                    subject: row.subject.clone().into(),
+                    predicate: row.predicate.clone().into(),
+                    object: row.object.clone().into(),
+                    revision: row.revision.to_string().into(),
+                },
+            ))));
+            ui.set_project_status(format!("Open: {}", detail.name).into());
+        }
+        Err(err) => {
+            ui.set_project_active_id("".into());
+            ui.set_project_status(project_workspace::status_message(&err).into());
+        }
+    }
+}
+
 fn validated_model_pack_path(raw: &str) -> Result<&str, &'static str> {
     let path = raw.trim();
     if path.is_empty() {
@@ -118,6 +208,7 @@ fn evidence_route_override() -> Option<&'static str> {
         "Home" => Some("Home"),
         "Patients" => Some("Patients"),
         "Documents" => Some("Documents"),
+        "Projects" => Some("Projects"),
         "Insights" => Some("Insights"),
         "Models" => Some("Models"),
         "Evidence" => Some("Evidence"),
@@ -367,17 +458,139 @@ fn main() -> ExitCode {
     };
     apply_product_intelligence(&ui, &product_intelligence);
 
+    // Spec 074 Projects workspace: operator session plus a local synthetic
+    // vault at the platform default root. Failures stay visible as status.
+    let project_session = match CliSession::connect("desktop-projects") {
+        Ok(mut session) => {
+            let root = CliSession::default_vault_root("desktop-projects");
+            match session.open_synthetic_vault(&root.display().to_string()) {
+                Ok(()) => {
+                    let session = Rc::new(RefCell::new(session));
+                    refresh_project_list(&ui, &session);
+                    Some(session)
+                }
+                Err(err) => {
+                    ui.set_project_status(format!("Projects unavailable: {err:?}").into());
+                    None
+                }
+            }
+        }
+        Err(err) => {
+            ui.set_project_status(format!("Projects unavailable: {err:?}").into());
+            None
+        }
+    };
+
     // Spec 061 keeps patient presentation read-only and routes consequential work to review surfaces.
     // Consequential operations are routed to their owning review surfaces; no action is committed here.
     let weak = ui.as_weak();
     let insights_for_actions = insights.clone();
     let workflow_for_actions = workflow.clone();
     let model_session_for_actions = model_session.clone();
+    let project_session_for_actions = project_session.clone();
     ui.on_ui_action(move |action| {
         let Some(ui) = weak.upgrade() else {
             return;
         };
         let action = action.as_str();
+        // Spec 074 project workspace actions (Core-backed, revision-guarded).
+        if action == "projects-refresh" {
+            if let Some(session) = &project_session_for_actions {
+                refresh_project_list(&ui, session);
+                let active = ui.get_project_active_id().to_string();
+                if !active.is_empty() {
+                    open_project_detail(&ui, session, &active);
+                }
+            } else {
+                ui.set_project_status("Projects unavailable: no Core session".into());
+            }
+            return;
+        }
+        if action == "projects-create" {
+            let Some(session) = &project_session_for_actions else {
+                ui.set_project_status("Projects unavailable: no Core session".into());
+                return;
+            };
+            let raw_name = ui.get_project_name_input().to_string();
+            let raw_desc = ui.get_project_desc_input().to_string();
+            let name = match project_workspace::validate_name(&raw_name) {
+                Ok(name) => name,
+                Err(message) => {
+                    ui.set_project_status(message.into());
+                    return;
+                }
+            };
+            let description = if raw_desc.trim().is_empty() {
+                None
+            } else {
+                Some(raw_desc.trim().to_owned())
+            };
+            match project_workspace::create_project(&mut session.borrow_mut(), name, description) {
+                Ok(row) => {
+                    ui.set_project_name_input("".into());
+                    ui.set_project_desc_input("".into());
+                    refresh_project_list(&ui, session);
+                    open_project_detail(&ui, session, &row.id);
+                }
+                Err(err) => ui.set_project_status(project_workspace::status_message(&err).into()),
+            }
+            return;
+        }
+        if let Some(project_id) = action.strip_prefix("projects-open:") {
+            if let Some(session) = &project_session_for_actions {
+                open_project_detail(&ui, session, project_id);
+            } else {
+                ui.set_project_status("Projects unavailable: no Core session".into());
+            }
+            return;
+        }
+        if action == "projects-archive" {
+            let Some(session) = &project_session_for_actions else {
+                ui.set_project_status("Projects unavailable: no Core session".into());
+                return;
+            };
+            let project_id = ui.get_project_active_id().to_string();
+            let revision = ui.get_project_active_revision().to_string().parse::<u64>();
+            let Ok(revision) = revision else {
+                ui.set_project_status("Invalid: open project has no revision".into());
+                return;
+            };
+            match project_workspace::archive_project(&mut session.borrow_mut(), &project_id, revision) {
+                Ok(_) => {
+                    refresh_project_list(&ui, session);
+                    open_project_detail(&ui, session, &project_id);
+                }
+                Err(err) => ui.set_project_status(project_workspace::status_message(&err).into()),
+            }
+            return;
+        }
+        if action == "projects-exp-create" {
+            let Some(session) = &project_session_for_actions else {
+                ui.set_project_status("Projects unavailable: no Core session".into());
+                return;
+            };
+            let project_id = ui.get_project_active_id().to_string();
+            if project_id.is_empty() {
+                ui.set_project_status("Invalid: open a project first".into());
+                return;
+            }
+            let raw_name = ui.get_project_experiment_input().to_string();
+            let name = match project_workspace::validate_name(&raw_name) {
+                Ok(name) => name,
+                Err(message) => {
+                    ui.set_project_status(message.into());
+                    return;
+                }
+            };
+            match project_workspace::create_experiment(&mut session.borrow_mut(), &project_id, name) {
+                Ok(_) => {
+                    ui.set_project_experiment_input("".into());
+                    open_project_detail(&ui, session, &project_id);
+                }
+                Err(err) => ui.set_project_status(project_workspace::status_message(&err).into()),
+            }
+            return;
+        }
         if action == "model-refresh" {
             if let Some(session) = &model_session_for_actions {
                 match refresh_model_center(&ui, session) {

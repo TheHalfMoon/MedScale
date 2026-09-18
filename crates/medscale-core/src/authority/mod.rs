@@ -9,6 +9,7 @@ mod handles;
 mod identity;
 mod ingest_ops;
 mod presentation;
+mod project_graph;
 mod promote;
 mod retrieval;
 mod source_ops;

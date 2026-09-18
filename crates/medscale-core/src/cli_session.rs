@@ -196,6 +196,15 @@ impl CliSession {
         Ok(())
     }
 
+    /// Default local vault root for a vault id (platform data directory).
+    ///
+    /// Desktop resolves its Projects vault location through Core so surfaces
+    /// never depend on storage layout directly.
+    #[must_use]
+    pub fn default_vault_root(vault_id: &str) -> std::path::PathBuf {
+        medscale_storage::default_vault_root(vault_id)
+    }
+
     pub fn ingest_fhir_file(&mut self, path: &str) -> Result<OpaqueId, AuthorityError> {
         let bytes = std::fs::read(path).map_err(|e| AuthorityError::InvalidArgument {
             message: e.to_string(),
@@ -386,5 +395,432 @@ impl CliSession {
             });
         };
         Ok(matrix)
+    }
+
+    // ----- Spec 074 project graph helpers (CLI + Desktop share these) -----
+
+    fn expect_project(
+        resp: ResponseBody,
+    ) -> Result<medscale_contracts::project_graph::Project, AuthorityError> {
+        let ResponseBody::Project { project } = resp else {
+            return Err(AuthorityError::InvalidArgument {
+                message: "expected project".to_owned(),
+            });
+        };
+        Ok(project)
+    }
+
+    fn expect_experiment(
+        resp: ResponseBody,
+    ) -> Result<medscale_contracts::project_graph::Experiment, AuthorityError> {
+        let ResponseBody::Experiment { experiment } = resp else {
+            return Err(AuthorityError::InvalidArgument {
+                message: "expected experiment".to_owned(),
+            });
+        };
+        Ok(experiment)
+    }
+
+    /// Creates a Project through Core authority.
+    pub fn project_create(
+        &mut self,
+        name: String,
+        description: Option<String>,
+    ) -> Result<medscale_contracts::project_graph::Project, AuthorityError> {
+        let resp = self.dispatch(
+            Capability::ProjectCreate,
+            RequestBody::ProjectCreate { name, description },
+        )?;
+        Self::expect_project(resp)
+    }
+
+    /// Reads one Project through Core authority.
+    pub fn project_get(
+        &mut self,
+        project_id: OpaqueId,
+    ) -> Result<medscale_contracts::project_graph::Project, AuthorityError> {
+        let resp = self.dispatch(
+            Capability::ProjectRead,
+            RequestBody::ProjectGet { project_id },
+        )?;
+        Self::expect_project(resp)
+    }
+
+    /// Lists Projects in the session scope with summaries.
+    pub fn project_list(
+        &mut self,
+        status: Option<medscale_contracts::project_graph::ProjectStatus>,
+        limit: Option<u32>,
+        cursor: Option<String>,
+    ) -> Result<
+        (
+            Vec<medscale_contracts::project_graph::ProjectSummary>,
+            Option<String>,
+        ),
+        AuthorityError,
+    > {
+        let resp = self.dispatch(
+            Capability::ProjectRead,
+            RequestBody::ProjectList {
+                status,
+                limit,
+                cursor,
+            },
+        )?;
+        let ResponseBody::ProjectList {
+            projects,
+            next_cursor,
+        } = resp
+        else {
+            return Err(AuthorityError::InvalidArgument {
+                message: "expected project list".to_owned(),
+            });
+        };
+        Ok((projects, next_cursor))
+    }
+
+    /// Updates Project metadata through Core authority.
+    pub fn project_update(
+        &mut self,
+        project_id: OpaqueId,
+        expected_revision: u64,
+        name: Option<String>,
+        description: Option<Option<String>>,
+    ) -> Result<medscale_contracts::project_graph::Project, AuthorityError> {
+        let resp = self.dispatch(
+            Capability::ProjectUpdate,
+            RequestBody::ProjectUpdate {
+                project_id,
+                expected_revision,
+                name,
+                description,
+            },
+        )?;
+        Self::expect_project(resp)
+    }
+
+    /// Archives a Project (references never cascade).
+    pub fn project_archive(
+        &mut self,
+        project_id: OpaqueId,
+        expected_revision: u64,
+    ) -> Result<medscale_contracts::project_graph::Project, AuthorityError> {
+        let resp = self.dispatch(
+            Capability::ProjectArchive,
+            RequestBody::ProjectArchive {
+                project_id,
+                expected_revision,
+            },
+        )?;
+        Self::expect_project(resp)
+    }
+
+    /// Restores an archived Project.
+    pub fn project_restore(
+        &mut self,
+        project_id: OpaqueId,
+        expected_revision: u64,
+    ) -> Result<medscale_contracts::project_graph::Project, AuthorityError> {
+        let resp = self.dispatch(
+            Capability::ProjectArchive,
+            RequestBody::ProjectRestore {
+                project_id,
+                expected_revision,
+            },
+        )?;
+        Self::expect_project(resp)
+    }
+
+    /// Reads the Project summary through Core authority.
+    pub fn project_summary(
+        &mut self,
+        project_id: OpaqueId,
+    ) -> Result<medscale_contracts::project_graph::ProjectSummary, AuthorityError> {
+        let resp = self.dispatch(
+            Capability::ProjectRead,
+            RequestBody::ProjectSummaryQuery { project_id },
+        )?;
+        let ResponseBody::ProjectSummary { summary } = resp else {
+            return Err(AuthorityError::InvalidArgument {
+                message: "expected project summary".to_owned(),
+            });
+        };
+        Ok(summary)
+    }
+
+    /// Resolves the bounded Project context through Core authority.
+    pub fn project_context(
+        &mut self,
+        project_id: OpaqueId,
+        experiment_id: Option<OpaqueId>,
+        refs_limit: Option<u32>,
+        graph_limit: Option<u32>,
+    ) -> Result<medscale_contracts::project_graph::ProjectContext, AuthorityError> {
+        let resp = self.dispatch(
+            Capability::ProjectRead,
+            RequestBody::ProjectContextResolve {
+                project_id,
+                experiment_id,
+                refs_limit,
+                graph_limit,
+            },
+        )?;
+        let ResponseBody::ProjectContext { context } = resp else {
+            return Err(AuthorityError::InvalidArgument {
+                message: "expected project context".to_owned(),
+            });
+        };
+        Ok(context)
+    }
+
+    /// Creates an Experiment through Core authority.
+    pub fn experiment_create(
+        &mut self,
+        project_id: OpaqueId,
+        name: String,
+        description: Option<String>,
+    ) -> Result<medscale_contracts::project_graph::Experiment, AuthorityError> {
+        let resp = self.dispatch(
+            Capability::ExperimentCreate,
+            RequestBody::ExperimentCreate {
+                project_id,
+                name,
+                description,
+            },
+        )?;
+        Self::expect_experiment(resp)
+    }
+
+    /// Reads one Experiment through Core authority.
+    pub fn experiment_get(
+        &mut self,
+        experiment_id: OpaqueId,
+    ) -> Result<medscale_contracts::project_graph::Experiment, AuthorityError> {
+        let resp = self.dispatch(
+            Capability::ExperimentRead,
+            RequestBody::ExperimentGet { experiment_id },
+        )?;
+        Self::expect_experiment(resp)
+    }
+
+    /// Lists Experiments of one Project.
+    pub fn experiment_list(
+        &mut self,
+        project_id: OpaqueId,
+        limit: Option<u32>,
+        cursor: Option<String>,
+    ) -> Result<
+        (
+            Vec<medscale_contracts::project_graph::ExperimentSummary>,
+            Option<String>,
+        ),
+        AuthorityError,
+    > {
+        let resp = self.dispatch(
+            Capability::ExperimentRead,
+            RequestBody::ExperimentList {
+                project_id,
+                limit,
+                cursor,
+            },
+        )?;
+        let ResponseBody::ExperimentList {
+            experiments,
+            next_cursor,
+        } = resp
+        else {
+            return Err(AuthorityError::InvalidArgument {
+                message: "expected experiment list".to_owned(),
+            });
+        };
+        Ok((experiments, next_cursor))
+    }
+
+    /// Updates Experiment metadata through Core authority.
+    pub fn experiment_update(
+        &mut self,
+        experiment_id: OpaqueId,
+        expected_revision: u64,
+        name: Option<String>,
+        description: Option<Option<String>>,
+    ) -> Result<medscale_contracts::project_graph::Experiment, AuthorityError> {
+        let resp = self.dispatch(
+            Capability::ExperimentUpdate,
+            RequestBody::ExperimentUpdate {
+                experiment_id,
+                expected_revision,
+                name,
+                description,
+            },
+        )?;
+        Self::expect_experiment(resp)
+    }
+
+    /// Archives an Experiment (referenced artifacts untouched).
+    pub fn experiment_archive(
+        &mut self,
+        experiment_id: OpaqueId,
+        expected_revision: u64,
+    ) -> Result<medscale_contracts::project_graph::Experiment, AuthorityError> {
+        let resp = self.dispatch(
+            Capability::ExperimentArchive,
+            RequestBody::ExperimentArchive {
+                experiment_id,
+                expected_revision,
+            },
+        )?;
+        Self::expect_experiment(resp)
+    }
+
+    /// Attaches an artifact reference through Core authority.
+    pub fn project_attach(
+        &mut self,
+        project_id: OpaqueId,
+        experiment_id: Option<OpaqueId>,
+        artifact: medscale_contracts::project_graph::ArtifactDescriptor,
+    ) -> Result<medscale_contracts::project_graph::ProjectArtifactRef, AuthorityError> {
+        let resp = self.dispatch(
+            Capability::ProjectArtifactAttach,
+            RequestBody::ProjectAttach {
+                project_id,
+                experiment_id,
+                artifact,
+            },
+        )?;
+        let ResponseBody::ProjectRef { reference } = resp else {
+            return Err(AuthorityError::InvalidArgument {
+                message: "expected project ref".to_owned(),
+            });
+        };
+        Ok(reference)
+    }
+
+    /// Detaches an artifact reference (tombstone; canonical untouched).
+    pub fn project_detach(
+        &mut self,
+        ref_id: OpaqueId,
+        expected_revision: u64,
+    ) -> Result<medscale_contracts::project_graph::ProjectArtifactRef, AuthorityError> {
+        let resp = self.dispatch(
+            Capability::ProjectArtifactDetach,
+            RequestBody::ProjectDetach {
+                ref_id,
+                expected_revision,
+            },
+        )?;
+        let ResponseBody::ProjectRef { reference } = resp else {
+            return Err(AuthorityError::InvalidArgument {
+                message: "expected project ref".to_owned(),
+            });
+        };
+        Ok(reference)
+    }
+
+    /// Lists resolved artifact references through Core authority.
+    pub fn project_list_refs(
+        &mut self,
+        project_id: OpaqueId,
+        experiment_id: Option<OpaqueId>,
+        active_only: bool,
+        limit: Option<u32>,
+        cursor: Option<String>,
+    ) -> Result<
+        (
+            Vec<medscale_contracts::project_graph::ResolvedArtifactRef>,
+            Option<String>,
+        ),
+        AuthorityError,
+    > {
+        let resp = self.dispatch(
+            Capability::ProjectRead,
+            RequestBody::ProjectListRefs {
+                project_id,
+                experiment_id,
+                active_only,
+                limit,
+                cursor,
+            },
+        )?;
+        let ResponseBody::ProjectRefList { refs, next_cursor } = resp else {
+            return Err(AuthorityError::InvalidArgument {
+                message: "expected project ref list".to_owned(),
+            });
+        };
+        Ok((refs, next_cursor))
+    }
+
+    /// Creates a typed graph edge through Core authority.
+    pub fn graph_edge_create(
+        &mut self,
+        project_id: OpaqueId,
+        subject: medscale_contracts::project_graph::GraphEndpoint,
+        predicate: medscale_contracts::project_graph::ProjectGraphPredicate,
+        object: medscale_contracts::project_graph::GraphEndpoint,
+    ) -> Result<medscale_contracts::project_graph::ProjectGraphEdge, AuthorityError> {
+        let resp = self.dispatch(
+            Capability::ProjectGraphMutate,
+            RequestBody::GraphEdgeCreate {
+                project_id,
+                subject,
+                predicate,
+                object,
+            },
+        )?;
+        let ResponseBody::GraphEdge { edge } = resp else {
+            return Err(AuthorityError::InvalidArgument {
+                message: "expected graph edge".to_owned(),
+            });
+        };
+        Ok(edge)
+    }
+
+    /// Removes a graph edge (endpoints untouched).
+    pub fn graph_edge_remove(
+        &mut self,
+        edge_id: OpaqueId,
+        expected_revision: u64,
+    ) -> Result<medscale_contracts::project_graph::ProjectGraphEdge, AuthorityError> {
+        let resp = self.dispatch(
+            Capability::ProjectGraphMutate,
+            RequestBody::GraphEdgeRemove {
+                edge_id,
+                expected_revision,
+            },
+        )?;
+        let ResponseBody::GraphEdge { edge } = resp else {
+            return Err(AuthorityError::InvalidArgument {
+                message: "expected graph edge".to_owned(),
+            });
+        };
+        Ok(edge)
+    }
+
+    /// Runs a bounded neighbor query through Core authority.
+    pub fn graph_neighbors(
+        &mut self,
+        project_id: OpaqueId,
+        start: medscale_contracts::project_graph::GraphEndpoint,
+        predicates: Option<Vec<medscale_contracts::project_graph::ProjectGraphPredicate>>,
+        direction: Option<medscale_contracts::project_graph::GraphDirection>,
+        limit: Option<u32>,
+        cursor: Option<String>,
+    ) -> Result<medscale_contracts::project_graph::GraphNeighborPage, AuthorityError> {
+        let resp = self.dispatch(
+            Capability::ProjectGraphRead,
+            RequestBody::GraphNeighbors {
+                project_id,
+                start,
+                predicates,
+                direction,
+                limit,
+                cursor,
+            },
+        )?;
+        let ResponseBody::GraphNeighbors { page } = resp else {
+            return Err(AuthorityError::InvalidArgument {
+                message: "expected graph neighbors".to_owned(),
+            });
+        };
+        Ok(page)
     }
 }

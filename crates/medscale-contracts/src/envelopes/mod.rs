@@ -19,6 +19,11 @@ use crate::packs::{
     PackPromotionState,
 };
 use crate::presentation::{DrillDownResult, SubjectBriefV1, SubjectCoverageV1, SubjectTimelineV1};
+use crate::project_graph::{
+    ArtifactDescriptor, Experiment, ExperimentSummary, GraphDirection, GraphEndpoint,
+    GraphNeighborPage, Project, ProjectArtifactRef, ProjectContext, ProjectGraphEdge,
+    ProjectGraphPredicate, ProjectStatus, ProjectSummary, ResolvedArtifactRef,
+};
 use crate::workflow::DisclosureRecord;
 
 /// Capability required to execute a facade operation.
@@ -78,6 +83,18 @@ pub enum Capability {
     RejectProposal,
     AppendDisclosure,
     ListDisclosures,
+    ProjectCreate,
+    ProjectRead,
+    ProjectUpdate,
+    ProjectArchive,
+    ExperimentCreate,
+    ExperimentRead,
+    ExperimentUpdate,
+    ExperimentArchive,
+    ProjectArtifactAttach,
+    ProjectArtifactDetach,
+    ProjectGraphRead,
+    ProjectGraphMutate,
 }
 
 impl Capability {
@@ -107,6 +124,9 @@ impl Capability {
                 | Self::ReadCanonicalVisibility
                 | Self::VerifyBlob
                 | Self::GetFhirSupportMatrix
+                | Self::ProjectRead
+                | Self::ExperimentRead
+                | Self::ProjectGraphRead
         )
     }
 
@@ -170,6 +190,18 @@ impl Capability {
             Self::AppendDisclosure,
             Self::ListDisclosures,
             Self::RevokeSession,
+            Self::ProjectCreate,
+            Self::ProjectRead,
+            Self::ProjectUpdate,
+            Self::ProjectArchive,
+            Self::ExperimentCreate,
+            Self::ExperimentRead,
+            Self::ExperimentUpdate,
+            Self::ExperimentArchive,
+            Self::ProjectArtifactAttach,
+            Self::ProjectArtifactDetach,
+            Self::ProjectGraphRead,
+            Self::ProjectGraphMutate,
         ]
     }
 }
@@ -369,6 +401,120 @@ pub enum RequestBody {
         note: Option<String>,
     },
     ListDisclosures,
+    // Spec 074: every mutation flows through Core authority paths. Surfaces
+    // never write project storage directly.
+    ProjectCreate {
+        name: String,
+        description: Option<String>,
+    },
+    ProjectGet {
+        project_id: OpaqueId,
+    },
+    ProjectList {
+        status: Option<ProjectStatus>,
+        limit: Option<u32>,
+        cursor: Option<String>,
+    },
+    ProjectUpdate {
+        project_id: OpaqueId,
+        expected_revision: u64,
+        name: Option<String>,
+        description: Option<Option<String>>,
+    },
+    ProjectArchive {
+        project_id: OpaqueId,
+        expected_revision: u64,
+    },
+    ProjectRestore {
+        project_id: OpaqueId,
+        expected_revision: u64,
+    },
+    ExperimentCreate {
+        project_id: OpaqueId,
+        name: String,
+        description: Option<String>,
+    },
+    ExperimentGet {
+        experiment_id: OpaqueId,
+    },
+    ExperimentList {
+        project_id: OpaqueId,
+        limit: Option<u32>,
+        cursor: Option<String>,
+    },
+    ExperimentUpdate {
+        experiment_id: OpaqueId,
+        expected_revision: u64,
+        name: Option<String>,
+        description: Option<Option<String>>,
+    },
+    ExperimentArchive {
+        experiment_id: OpaqueId,
+        expected_revision: u64,
+    },
+    ProjectAttach {
+        project_id: OpaqueId,
+        experiment_id: Option<OpaqueId>,
+        artifact: ArtifactDescriptor,
+    },
+    ProjectDetach {
+        ref_id: OpaqueId,
+        expected_revision: u64,
+    },
+    ProjectListRefs {
+        project_id: OpaqueId,
+        experiment_id: Option<OpaqueId>,
+        active_only: bool,
+        limit: Option<u32>,
+        cursor: Option<String>,
+    },
+    GraphEdgeCreate {
+        project_id: OpaqueId,
+        subject: GraphEndpoint,
+        predicate: ProjectGraphPredicate,
+        object: GraphEndpoint,
+    },
+    GraphEdgeRemove {
+        edge_id: OpaqueId,
+        expected_revision: u64,
+    },
+    GraphNeighbors {
+        project_id: OpaqueId,
+        start: GraphEndpoint,
+        predicates: Option<Vec<ProjectGraphPredicate>>,
+        direction: Option<GraphDirection>,
+        limit: Option<u32>,
+        cursor: Option<String>,
+    },
+    ProjectContextResolve {
+        project_id: OpaqueId,
+        experiment_id: Option<OpaqueId>,
+        refs_limit: Option<u32>,
+        graph_limit: Option<u32>,
+    },
+    ProjectSummaryQuery {
+        project_id: OpaqueId,
+    },
+}
+
+impl RequestBody {
+    /// True for the high-frequency Spec 074 graph mutations that provably
+    /// leave the in-memory authority snapshot untouched (durable sqlite rows
+    /// plus revisioned receipts only; 074 ids come from the sqlite sequence).
+    /// The facade skips the frozen full-snapshot rewrite for these ops;
+    /// skipping is output-identical because the snapshot bytes cannot change.
+    /// Locked by the Core snapshot-stability test; any op that gains a memory
+    /// write must leave this set.
+    #[must_use]
+    pub fn preserves_memory_snapshot(&self) -> bool {
+        matches!(
+            self,
+            Self::ProjectAttach { .. }
+                | Self::ProjectDetach { .. }
+                | Self::GraphEdgeCreate { .. }
+                | Self::GraphEdgeRemove { .. }
+        )
+    }
 }
 
 /// Successful response body variants.
@@ -506,6 +652,40 @@ pub enum ResponseBody {
     MescVerify {
         report: MescVerifyReport,
     },
+    // Spec 074 typed results (revisioned, scope-checked, no raw payloads).
+    Project {
+        project: Project,
+    },
+    ProjectList {
+        projects: Vec<ProjectSummary>,
+        next_cursor: Option<String>,
+    },
+    Experiment {
+        experiment: Experiment,
+    },
+    ExperimentList {
+        experiments: Vec<ExperimentSummary>,
+        next_cursor: Option<String>,
+    },
+    ProjectRef {
+        reference: ProjectArtifactRef,
+    },
+    ProjectRefList {
+        refs: Vec<ResolvedArtifactRef>,
+        next_cursor: Option<String>,
+    },
+    GraphEdge {
+        edge: ProjectGraphEdge,
+    },
+    GraphNeighbors {
+        page: GraphNeighborPage,
+    },
+    ProjectContext {
+        context: ProjectContext,
+    },
+    ProjectSummary {
+        summary: ProjectSummary,
+    },
 }
 
 /// Authority error vocabulary (fail closed).
@@ -552,6 +732,31 @@ pub enum AuthorityError {
     SessionExpired,
     SessionRevoked,
     SessionDenied,
+    /// Optimistic-concurrency conflict: stale `expected_revision` or duplicate.
+    /// No write was performed.
+    Conflict {
+        message: String,
+    },
+    /// A pinned attachment binding no longer matches its canonical target.
+    StaleReference {
+        message: String,
+    },
+    /// Durable Project Graph bytes failed integrity validation.
+    Corrupt {
+        message: String,
+    },
+    /// Unsupported durable schema or unknown future authority value (fail closed).
+    UnsupportedSchema {
+        message: String,
+    },
+    /// Dependency or target temporarily unresolvable.
+    Unavailable {
+        message: String,
+    },
+    /// Unexpected internal failure (never a substitute for a typed variant).
+    Internal {
+        message: String,
+    },
 }
 
 /// Versioned authority request.

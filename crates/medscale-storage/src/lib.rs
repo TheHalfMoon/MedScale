@@ -7,6 +7,7 @@ mod encrypted_vault;
 mod gc;
 mod migrate;
 mod privacy_probes;
+mod project_graph;
 mod sealed_blob;
 mod sqlite_meta;
 mod vault;

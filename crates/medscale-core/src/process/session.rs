@@ -9,8 +9,7 @@ use medscale_contracts::objects::{OpaqueId, VaultId};
 #[derive(Debug, Clone)]
 struct ClientSession {
     vault_id: VaultId,
-    /// Lease holder that opened the session (FR-001; retained for audit identity).
-    #[allow(dead_code)]
+    /// Lease holder that opened the session (FR-001; audit identity for 074).
     holder_id: OpaqueId,
     granted: Vec<Capability>,
     expires_at_tick: u64,
@@ -102,11 +101,24 @@ impl SessionRegistry {
         Ok(())
     }
 
+    /// Returns the lease holder bound to a live session, if present.
+    ///
+    /// Spec 074 audit identity: the holder is the authenticated actor for Core
+    /// mutations. Revoked/expired/unknown sessions yield `None`.
+    #[must_use]
+    pub fn holder_of(&self, session_id: &OpaqueId) -> Option<OpaqueId> {
+        let state = self.lock();
+        let session = state.sessions.get(session_id.as_str())?;
+        if session.revoked || state.clock >= session.expires_at_tick {
+            return None;
+        }
+        Some(session.holder_id.clone())
+    }
+
     /// Advances the monotonic clock by one tick (tests).
     pub fn tick(&self) {
         self.advance_ticks(1);
     }
-
     /// Advances the monotonic clock by `n` ticks (tests).
     pub fn advance_ticks(&self, n: u64) {
         let mut state = self.lock();

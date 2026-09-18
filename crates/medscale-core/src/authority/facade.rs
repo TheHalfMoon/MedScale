@@ -108,6 +108,46 @@ impl CoreFacade {
             .unwrap_or_else(std::sync::PoisonError::into_inner)
     }
 
+    /// Runs one Spec 074 project-graph operation with lease enforcement and
+    /// vault-meta access (synthetic or encrypted). Surfaces never touch
+    /// storage: this is the only path from request to project rows.
+    fn pg<R>(
+        &self,
+        vault_id: &medscale_contracts::objects::VaultId,
+        realm: medscale_contracts::objects::RealmId,
+        scope: medscale_contracts::objects::AuthorityScopeId,
+        session_id: Option<medscale_contracts::objects::OpaqueId>,
+        op: impl FnOnce(super::project_graph::ProjectGraph<'_>) -> Result<R, AuthorityError>,
+    ) -> Result<R, AuthorityError> {
+        self.require_lease(vault_id)?;
+        // Lock order vault -> store matches the existing multi-lock arms and
+        // keeps no new lock ordering in the lane.
+        let vault_guard = self.vault();
+        let enc_guard = self.encrypted();
+        let meta = if let Some(enc) = enc_guard.as_ref() {
+            &enc.meta
+        } else if let Some(vault) = vault_guard.as_ref() {
+            &vault.meta
+        } else {
+            return Err(AuthorityError::VaultRequired);
+        };
+        let mut store = self.store();
+        let packs_guard = self.packs();
+        let store_ref: &mut InMemoryAuthorityStore = &mut store;
+        let packs_ref: &medscale_pack::PackStore = &packs_guard;
+        op(super::project_graph::ProjectGraph {
+            store: store_ref,
+            meta,
+            packs: packs_ref,
+            sessions: &self.sessions,
+            leases: &self.leases,
+            vault_id,
+            realm,
+            scope,
+            session_id,
+        })
+    }
+
     fn allowlist(&self) -> std::sync::MutexGuard<'_, Vec<EgressAllowlistEntry>> {
         self.allowlist
             .lock()
@@ -151,9 +191,18 @@ impl CoreFacade {
     /// Dispatches a versioned authority request.
     pub fn dispatch(&self, req: AuthorityRequest) -> AuthorityResponse {
         let request_id = req.request_id.clone();
+        // Spec 074 high-frequency graph ops provably leave the in-memory
+        // snapshot untouched (see RequestBody::preserves_memory_snapshot);
+        // skipping the rewrite is output-identical and keeps per-op cost
+        // constant instead of O(full history).
+        let skip_snapshot = req.body.preserves_memory_snapshot();
         let result = self.dispatch_inner(req).and_then(|body| {
-            self.persist_open_vault()?;
-            Ok(body)
+            if skip_snapshot {
+                Ok(body)
+            } else {
+                self.persist_open_vault()?;
+                Ok(body)
+            }
         });
         AuthorityResponse {
             schema_version: AUTHORITY_SCHEMA_VERSION,
@@ -1366,6 +1415,271 @@ impl CoreFacade {
                 let records = store.list_disclosures(&req.realm_id, &req.authority_scope_id);
                 Ok(ResponseBody::DisclosureList { records })
             }
+            // Spec 074 project graph: every arm runs through `pg` (lease +
+            // session gate already enforced above + meta + audit). No arm
+            // touches storage except through `ProjectGraph` methods.
+            RequestBody::ProjectCreate { name, description } => {
+                let project = self.pg(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut pg| pg.create_project(name, description),
+                )?;
+                Ok(ResponseBody::Project { project })
+            }
+            RequestBody::ProjectGet { project_id } => {
+                let project = self.pg(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |pg| pg.scoped_project_pub(&project_id),
+                )?;
+                Ok(ResponseBody::Project { project })
+            }
+            RequestBody::ProjectList {
+                status,
+                limit,
+                cursor,
+            } => {
+                let (projects, next_cursor) = self.pg(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |pg| pg.list_projects(status, limit, cursor),
+                )?;
+                Ok(ResponseBody::ProjectList {
+                    projects,
+                    next_cursor,
+                })
+            }
+            RequestBody::ProjectUpdate {
+                project_id,
+                expected_revision,
+                name,
+                description,
+            } => {
+                let project = self.pg(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut pg| pg.update_project(&project_id, expected_revision, name, description),
+                )?;
+                Ok(ResponseBody::Project { project })
+            }
+            RequestBody::ProjectArchive {
+                project_id,
+                expected_revision,
+            } => {
+                let project = self.pg(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut pg| pg.archive_project(&project_id, expected_revision),
+                )?;
+                Ok(ResponseBody::Project { project })
+            }
+            RequestBody::ProjectRestore {
+                project_id,
+                expected_revision,
+            } => {
+                let project = self.pg(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut pg| pg.restore_project(&project_id, expected_revision),
+                )?;
+                Ok(ResponseBody::Project { project })
+            }
+            RequestBody::ExperimentCreate {
+                project_id,
+                name,
+                description,
+            } => {
+                let experiment = self.pg(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut pg| pg.create_experiment(&project_id, name, description),
+                )?;
+                Ok(ResponseBody::Experiment { experiment })
+            }
+            RequestBody::ExperimentGet { experiment_id } => {
+                let experiment = self.pg(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |pg| pg.scoped_experiment_pub(&experiment_id),
+                )?;
+                Ok(ResponseBody::Experiment { experiment })
+            }
+            RequestBody::ExperimentList {
+                project_id,
+                limit,
+                cursor,
+            } => {
+                let (experiments, next_cursor) = self.pg(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |pg| pg.list_experiments(&project_id, limit, cursor),
+                )?;
+                Ok(ResponseBody::ExperimentList {
+                    experiments,
+                    next_cursor,
+                })
+            }
+            RequestBody::ExperimentUpdate {
+                experiment_id,
+                expected_revision,
+                name,
+                description,
+            } => {
+                let experiment = self.pg(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut pg| {
+                        pg.update_experiment(&experiment_id, expected_revision, name, description)
+                    },
+                )?;
+                Ok(ResponseBody::Experiment { experiment })
+            }
+            RequestBody::ExperimentArchive {
+                experiment_id,
+                expected_revision,
+            } => {
+                let experiment = self.pg(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut pg| pg.archive_experiment(&experiment_id, expected_revision),
+                )?;
+                Ok(ResponseBody::Experiment { experiment })
+            }
+            RequestBody::ProjectAttach {
+                project_id,
+                experiment_id,
+                artifact,
+            } => {
+                let reference = self.pg(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut pg| pg.attach(&project_id, experiment_id, artifact),
+                )?;
+                Ok(ResponseBody::ProjectRef { reference })
+            }
+            RequestBody::ProjectDetach {
+                ref_id,
+                expected_revision,
+            } => {
+                let reference = self.pg(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut pg| pg.detach(&ref_id, expected_revision),
+                )?;
+                Ok(ResponseBody::ProjectRef { reference })
+            }
+            RequestBody::ProjectListRefs {
+                project_id,
+                experiment_id,
+                active_only,
+                limit,
+                cursor,
+            } => {
+                let (refs, next_cursor) = self.pg(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |pg| pg.list_refs(&project_id, experiment_id, active_only, limit, cursor),
+                )?;
+                Ok(ResponseBody::ProjectRefList { refs, next_cursor })
+            }
+            RequestBody::GraphEdgeCreate {
+                project_id,
+                subject,
+                predicate,
+                object,
+            } => {
+                let edge = self.pg(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut pg| pg.create_edge(&project_id, subject, predicate, object),
+                )?;
+                Ok(ResponseBody::GraphEdge { edge })
+            }
+            RequestBody::GraphEdgeRemove {
+                edge_id,
+                expected_revision,
+            } => {
+                let edge = self.pg(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut pg| pg.remove_edge(&edge_id, expected_revision),
+                )?;
+                Ok(ResponseBody::GraphEdge { edge })
+            }
+            RequestBody::GraphNeighbors {
+                project_id,
+                start,
+                predicates,
+                direction,
+                limit,
+                cursor,
+            } => {
+                let page = self.pg(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |pg| pg.neighbors(&project_id, start, predicates, direction, limit, cursor),
+                )?;
+                Ok(ResponseBody::GraphNeighbors { page })
+            }
+            RequestBody::ProjectContextResolve {
+                project_id,
+                experiment_id,
+                refs_limit,
+                graph_limit,
+            } => {
+                let context = self.pg(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |pg| pg.context(&project_id, experiment_id, refs_limit, graph_limit),
+                )?;
+                Ok(ResponseBody::ProjectContext { context })
+            }
+            RequestBody::ProjectSummaryQuery { project_id } => {
+                let summary = self.pg(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |pg| pg.project_summary(&project_id),
+                )?;
+                Ok(ResponseBody::ProjectSummary { summary })
+            }
         }
     }
 }
@@ -1533,6 +1847,67 @@ fn capability_matches(cap: &Capability, body: &RequestBody) -> bool {
                 RequestBody::AppendDisclosure { .. }
             )
             | (Capability::ListDisclosures, RequestBody::ListDisclosures)
+            | (Capability::ProjectCreate, RequestBody::ProjectCreate { .. })
+            | (Capability::ProjectRead, RequestBody::ProjectGet { .. })
+            | (Capability::ProjectRead, RequestBody::ProjectList { .. })
+            | (Capability::ProjectUpdate, RequestBody::ProjectUpdate { .. })
+            | (
+                Capability::ProjectArchive,
+                RequestBody::ProjectArchive { .. }
+            )
+            | (
+                Capability::ProjectArchive,
+                RequestBody::ProjectRestore { .. }
+            )
+            | (
+                Capability::ExperimentCreate,
+                RequestBody::ExperimentCreate { .. }
+            )
+            | (
+                Capability::ExperimentRead,
+                RequestBody::ExperimentGet { .. }
+            )
+            | (
+                Capability::ExperimentRead,
+                RequestBody::ExperimentList { .. }
+            )
+            | (
+                Capability::ExperimentUpdate,
+                RequestBody::ExperimentUpdate { .. }
+            )
+            | (
+                Capability::ExperimentArchive,
+                RequestBody::ExperimentArchive { .. }
+            )
+            | (
+                Capability::ProjectArtifactAttach,
+                RequestBody::ProjectAttach { .. }
+            )
+            | (
+                Capability::ProjectArtifactDetach,
+                RequestBody::ProjectDetach { .. }
+            )
+            | (Capability::ProjectRead, RequestBody::ProjectListRefs { .. })
+            | (
+                Capability::ProjectGraphMutate,
+                RequestBody::GraphEdgeCreate { .. }
+            )
+            | (
+                Capability::ProjectGraphMutate,
+                RequestBody::GraphEdgeRemove { .. }
+            )
+            | (
+                Capability::ProjectGraphRead,
+                RequestBody::GraphNeighbors { .. }
+            )
+            | (
+                Capability::ProjectRead,
+                RequestBody::ProjectContextResolve { .. }
+            )
+            | (
+                Capability::ProjectRead,
+                RequestBody::ProjectSummaryQuery { .. }
+            )
     )
 }
 

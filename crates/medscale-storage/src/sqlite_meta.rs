@@ -20,6 +20,10 @@ pub enum MetaError {
     Io(#[from] std::io::Error),
     #[error("not found")]
     NotFound,
+    #[error("revision conflict: {0}")]
+    Conflict(String),
+    #[error("unsupported durable value: {0}")]
+    UnsupportedSchema(String),
     #[error("corrupt object body: {0}")]
     CorruptObjectBody(String),
     #[error("migration incomplete at version {0}")]
@@ -71,6 +75,11 @@ impl SqliteMetaStore {
         let store = Self { conn };
         store.migrate()?;
         Ok(store)
+    }
+
+    /// Crate-internal connection access for the Spec 074 row module.
+    pub(crate) fn conn(&self) -> &Connection {
+        &self.conn
     }
 
     /// Open EncryptedVault work DB with SQLCipher key derived from VaultDek (Spec 023).
@@ -200,6 +209,12 @@ impl SqliteMetaStore {
                 ",
             )?;
             self.finish_migration(2)?;
+        }
+        let journal = self.migration_journal()?;
+        if journal.finished_version < 3 {
+            self.begin_migration(3)?;
+            self.conn.execute_batch(crate::project_graph::V3_DDL)?;
+            self.finish_migration(3)?;
         }
         Ok(())
     }
@@ -380,10 +395,17 @@ impl SqliteMetaStore {
             })
             .collect();
         let payload = serde_json::json!({
-            "schema_version": 2,
+            "schema_version": 3,
             "next_seq": self.get_next_seq()?,
             "sources": source_payload,
             "objects": object_payload,
+            // Spec 074: full row scans ride the same snapshot so synthetic
+            // backup/restore preserves Projects without a second mechanism.
+            // Bounded callers only; scale evidence records observed sizes.
+            "projects": self.list_all_projects()?,
+            "experiments": self.list_all_experiments()?,
+            "refs": self.list_all_refs()?,
+            "edges": self.list_all_edges()?,
         });
         Ok(serde_json::to_vec(&payload).unwrap_or_default())
     }
