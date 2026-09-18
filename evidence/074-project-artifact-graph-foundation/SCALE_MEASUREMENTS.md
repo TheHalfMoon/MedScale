@@ -57,6 +57,24 @@ lab_db_bytes=<pending>
 reopen_ms=<pending> (measured 5.67 pre-fix at 50 refs / 188,416 bytes)
 ```
 
+## Pre-fix full-shape lab run (measured, debug, before the amendment)
+
+Source: `C:\Users\Shehr\AppData\Local\Temp\opencode\scale-run.log` (2026-09-18,
+run completed before the toolchain event; code WITH per-op memory audits):
+
+```text
+lab_mutations: ops=800 total_ms=328157.4 mean_ms_per_op=410.197
+lab_list_ms=844.12 projects=100
+lab_db_bytes=491520
+reopen_db_bytes=172032
+reopen_ms=3.71 projects=1 refs=50
+```
+
+Personal full shape did not complete in that run (toolchain event
+intervened); its projection under the old code is ~5 h (curve above), which
+is the explicit reason for the amendment. Post-fix full numbers remain
+pending (toolchain gate).
+
 ## Status
 
 ```text
