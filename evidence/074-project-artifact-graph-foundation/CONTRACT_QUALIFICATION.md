@@ -81,8 +81,10 @@ cargo clippy --workspace --all-targets --locked -- -D warnings => PASS (exit 0, 
 
 No existing match was exhaustive over `Capability`/`AuthorityError`/`RequestBody`
 (all use wildcards or match on other types); facade dispatch untouched because no
-`RequestBody`/`ResponseBody` variants were added in 074-A. Typed Core envelope
-bodies + `capability_matches` pairs are owned by 074-C per the freeze record.
+`RequestBody`/`ResponseBody` variants were added in 074-A. The 19 typed Core
+envelope bodies + 19 `capability_matches` pairs landed in 074-C
+(`core/authority/project_graph.rs` + facade arms) using exactly the frozen
+vocabulary; no parallel capabilities or second error taxonomy were invented.
 
 ## Exact-head CI binding
 

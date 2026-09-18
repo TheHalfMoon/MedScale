@@ -15,6 +15,8 @@ REAL_PHI_USED=false
 ```text
 CURRENT_STORAGE_VERSION=2, 074_STORAGE_VERSION=3 (additive, same encrypted meta DB)
 TABLES=projects, experiments, project_artifact_refs, project_graph_edges
+SNAPSHOT_SCHEMA=3 (additive 074 arrays; restore accepts 2 legacy + 3 exact replay)
+ID_SEQUENCE=store_state project_id_seq via alloc_project_id (transactional, durable)
 ```
 
 ## Qualification (cargo test -p medscale-storage)
