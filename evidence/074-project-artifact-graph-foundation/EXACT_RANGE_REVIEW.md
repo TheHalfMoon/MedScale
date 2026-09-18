@@ -4,8 +4,13 @@
 
 ```text
 RANGE_BASE=a80c33307afc4577790282652e5b20911beb4bbe (canonical pre-074 base)
-RANGE_HEAD=bb792f7e07814f34bf08216a195d0a781d2f8802 (this review)
+RANGE_HEAD=83719f8c3d78dbd2b820236a86b0913dd3c885a (this review; exact-head CI green)
 MERGE_BASE_WITH_MAIN=ee8daef3a2782bbdbcb3324766a5d6b95c09fa09 (V2 amendment, merged in)
+REVIEW_METHOD=alibaba/open-code-review delegation (ocr v1.12.5:
+  deterministic range file selection over origin/main..HEAD, 19 reviewable
+  Rust files, system ruleset) executed by the implementation agent; no other
+  review tool used. Findings applied: vault-first lock order, checked revision
+  conversions with tamper tests, is_multiple_of lint.
 ```
 
 ## Verdicts
