@@ -75,10 +75,22 @@ Public Abridge materials currently describe:
 - proposed actionable outputs such as medical orders for clinician review;
 - clinician, nursing and revenue-cycle product experiences;
 - clinical decision support and Care Signals;
+- pre-visit and pre-round summaries;
+- conversational nursing flowsheet drafts and care-team context;
+- inpatient CDI and pre-bill diagnosis/DRG discrepancy review;
+- HCC/risk-gap and MEAT-style documentation support;
+- clinical-trial matching direction;
+- payer-provider prior-authorization workflow direction;
 - enterprise governance, analytics and reporting.
 
-Primary reference:
-- https://www.abridge.com/product
+Primary references:
+- https://www.abridge.com/
+- https://www.abridge.com/platform/clinicians
+- https://www.abridge.com/platform/nursing
+- https://www.abridge.com/platform/revenue-cycle
+- https://www.abridge.com/keynote
+- https://www.abridge.com/press-release/pre-bill-review-for-cdi-and-coding-teams
+- https://www.abridge.com/press-release/abridge-availity-collaboration-announcement
 
 MedScale target: reproduce the workflow value locally where technically and legally possible, while providing stronger local provenance, configurable retention, offline operation, and open model/runtime choice.
 
@@ -95,13 +107,18 @@ Current public and peer-reviewed references describe:
 - continuing education dashboard/credits;
 - patient-facing TakeHome educational material;
 - mobile and web access;
-- evolving ambient visit/documentation and secure communication capabilities.
+- Visits-style patient-context documentation and document management;
+- deep/extended evidence consultation workflows;
+- privacy-oriented clinician-patient communication/Dialer category capability;
+- evolving coding, discharge/order-set and administrative assistance reported in current product reviews.
 
 Primary references:
 - https://www.nature.com/articles/s41746-026-03077-4
 - https://www.nature.com/articles/s44401-026-00142-8
 - https://takehome.openevidence.com/
 - https://apps.apple.com/us/app/openevidence/id6612007783
+- https://www.newswise.com/articles/openevidence-launches-evidencegrade-empowering-physicians-to-see-the-strength-of-cited-evidence-beneath-each-ai-answer
+- https://www.newswise.com/articles/openevidence-wide-releases-ai-integrated-doctor-dialer-for-privacy-centric-doctor-patient-telemedicine-calls-messaging-and-voicemail-in-one-unified-clinical-platform-with-live-clinical-decision-ai-deeply-integrated
 
 MedScale target: build an evidence engine whose citation existence, claim support, evidence quality, contradiction state, recency, jurisdiction, and patient applicability can be inspected separately instead of collapsing them into one confidence score.
 
@@ -115,10 +132,13 @@ OpenMed currently provides a strong local medical-model capability floor includi
 - multilingual medical models;
 - Apple MLX and Python-oriented paths;
 - model catalog/runtime patterns;
-- medical vision-language and specialist model families.
+- medical vision-language and specialist model families;
+- multimodal/structured healthcare inputs including document, image, DICOM, HL7 v2, CDA/C-CDA and FHIR-oriented utilities;
+- policy-aware de-identification, signed audit/reporting concepts and explicit air-gapped local execution.
 
-Primary reference:
+Primary references:
 - https://github.com/maziyarpanahi/openmed
+- https://openmed.life/docs/
 
 MedScale target: use OpenMed as a qualified donor/model ecosystem rather than making it clinical authority.
 
@@ -344,7 +364,12 @@ The OpenEvidence-class experience should include:
 - uncertainty and missing-evidence explanation;
 - local voice mode;
 - patient education / TakeHome-like output after clinician review;
-- saved evidence collections and Research Packs.
+- saved evidence collections and Research Packs;
+- transparent Deep Consult mode with an inspectable research plan, search/retrieval trail, source set, contradictions, unresolved gaps and immutable evidence snapshot;
+- clinical-trial candidate search with explicit criterion mapping and unresolved eligibility;
+- evidence-aware encounter documentation without conflating external literature with patient-specific facts.
+
+Source acquisition and rights rules are defined in `MEDICAL_EVIDENCE_SOURCE_STRATEGY_2026-09-19.md`. Evidence quality must be evaluated using `EVIDENCE_ENGINE_EVALUATION_PROTOCOL_2026-09-19.md`.
 
 CME/MOC credit issuance is not a software-only capability and must remain an external accreditation/partnership gate.
 
@@ -433,9 +458,9 @@ Do not create unnecessary top-level specs if the current 075–092 candidate seq
 | 085 MedScale Compute | isolated local jobs and heavier analysis/model workers |
 | 086 R Workspace | R/Posit external-tool integration and reproducibility |
 | 087 Community Extensions | sandboxed extension ecosystem |
-| 088 AudioFlow Advanced | specialty scribe templates, code-switching, nursing/documentation flows |
-| 089 Research Packs | local evidence corpora, guidelines, reusable research/evidence packs |
-| 090 Institutional Adapters | EHR/SMART/FHIR/vendor adapters, enterprise identity/governance |
+| 088 AudioFlow Advanced | specialty scribe templates, code-switching, pre-round context, nursing/documentation flows, CDI/coding/risk-gap proposals, prior-auth drafts, discharge/order-set proposals |
+| 089 Research Packs | local evidence corpora, guidelines, terminology, trial-registry/evidence snapshots, reusable research/evidence packs |
+| 090 Institutional Adapters | EHR/SMART/FHIR/vendor adapters, payer/prior-auth effects, optional secure communication channels, enterprise identity/governance |
 | 091 Federation | optional encrypted institution/site collaboration after local core proves safe |
 | 092 Whole-Platform Qualification | cross-surface privacy, accuracy, safety, performance and release evidence |
 
