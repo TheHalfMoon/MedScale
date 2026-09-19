@@ -1,6 +1,7 @@
 //! Shared `MedScale` contracts (Specs 001–004).
 
 pub mod actions;
+pub mod data_sources;
 pub mod doctor;
 pub mod documents;
 pub mod envelopes;

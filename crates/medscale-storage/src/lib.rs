@@ -3,6 +3,7 @@
 mod backup;
 mod blob;
 mod claim;
+mod data_sources;
 mod encrypted_vault;
 mod gc;
 mod migrate;
@@ -16,6 +17,11 @@ mod writer_lock;
 pub use backup::{backup_vault, restore_vault};
 pub use blob::FsBlobStore;
 pub use claim::{ClaimError, assert_claim_path};
+pub use data_sources::{
+    EXTERNAL_TABLES_MAX, ExternalCell, ExternalTable, RECEIPT_KIND_IMPORT, RECEIPT_KIND_REFRESH,
+    RECEIPT_KIND_TRANSFORMATION, SnapshotRecord, TransformationRecord, list_external_sqlite_tables,
+    read_external_sqlite_table, validate_external_identifier,
+};
 pub use encrypted_vault::{EncryptedVault, EncryptedVaultError, default_vault_root};
 pub use gc::{GcStats, run_gc};
 pub use migrate::MigrationJournal;

@@ -144,6 +144,24 @@ export struct EdgeRowItem {
     revision: string,
 }
 
+export struct DataSourceRowItem {
+    id: string,
+    name: string,
+    kind: string,
+    health: string,
+    revision: string,
+}
+
+export struct SnapshotRowItem {
+    id: string,
+    rows: string,
+    digest: string,
+}
+
+export struct WorkbenchRowItem {
+    text: string,
+}
+
 export component AppWindow inherits Window {
     title: "MedScale";
     preferred-width: 1440px;
@@ -225,6 +243,20 @@ export component AppWindow inherits Window {
     in property <[RefRowItem]> project-refs;
     in property <[EdgeRowItem]> project-edges;
     in-out property <string> project-experiment-input: "";
+    in-out property <string> data-status: "Data not loaded";
+    in property <[DataSourceRowItem]> data-sources;
+    in property <[SnapshotRowItem]> data-snapshots;
+    in-out property <string> data-active-source: "";
+    in-out property <string> data-active-snapshot: "";
+    in property <string> data-schema-line: "";
+    in property <[WorkbenchRowItem]> data-rows;
+    in property <string> data-detail: "";
+    in property <string> data-next-cursor: "";
+    in-out property <string> data-columns-input: "";
+    in-out property <string> data-filter-col: "";
+    in-out property <string> data-filter-op: "equals";
+    in-out property <string> data-filter-value: "";
+    in-out property <string> data-sort-input: "";
     callback ui-action(string);
 
     forward-focus: global-keys;
@@ -339,6 +371,7 @@ export component AppWindow inherits Window {
                     NavItem { label: "Patients"; selected: root.active-route == "Patients"; activated => { root.active-route = "Patients"; } }
                     NavItem { label: "Documents"; selected: root.active-route == "Documents"; activated => { root.active-route = "Documents"; } }
                     NavItem { label: "Projects"; selected: root.active-route == "Projects"; activated => { root.active-route = "Projects"; } }
+                    NavItem { label: "Data"; selected: root.active-route == "Data"; activated => { root.active-route = "Data"; } }
 
                     Rectangle { height: 4px; background: transparent; }
                     Text { text: "INTELLIGENCE"; color: Theme.ink-quiet; font-size: 11px; letter-spacing: 1.05px; }
@@ -457,7 +490,7 @@ export component AppWindow inherits Window {
                             VerticalLayout {
                                 spacing: 2px;
                                 Text { text: root.active-route == "Home" ? "Clinical Workspace" : root.active-route == "Patients" ? root.patient-name : root.active-route; color: Theme.ink; font-size: 28px; font-weight: 720; letter-spacing: -0.4px; }
-                                Text { text: root.active-route == "Home" ? "Trusted local clinical intelligence · evidence before authority" : root.active-route == "Patients" ? "Trusted longitudinal workspace · Synthetic demo" : root.active-route == "Insights" ? "Evidence-aware population view · Synthetic demo" : root.active-route == "Models" ? "Local model fabric · provenance, runtime and benchmark state" : root.active-route == "Evidence" ? "Pinned OpenMed evidence · measured claims only · limitations explicit" : root.active-route == "Workflows" ? "Review-first controlled-action studio · Synthetic demo" : root.active-route == "Tasks" ? "Derived outbox review queue · No second task authority" : root.active-route == "Messages" ? "Local review previews · No external transport claim" : root.active-route == "Documents" ? "Bounded document intake posture · Custody is not understanding" : root.active-route == "Projects" ? "Project and artifact organization · Core-backed references, never payload copies" : root.active-route == "Audit Trail" ? "Synthetic disclosure history · Core Host remains canonical" : root.active-route == "Exports" ? "Loss-aware FHIR support · No full conformance claim" : root.active-route == "Settings" ? "Doctor truth and evidence-gated readiness" : root.active-route == "Integrations" ? "Brokered integration posture · Default deny" : root.active-route == "About" ? "Native product and attribution details" : "Unrecognized route"; color: Theme.ink-subtle; font-size: 13px; }
+                                Text { text: root.active-route == "Home" ? "Trusted local clinical intelligence · evidence before authority" : root.active-route == "Patients" ? "Trusted longitudinal workspace · Synthetic demo" : root.active-route == "Insights" ? "Evidence-aware population view · Synthetic demo" : root.active-route == "Models" ? "Local model fabric · provenance, runtime and benchmark state" : root.active-route == "Evidence" ? "Pinned OpenMed evidence · measured claims only · limitations explicit" : root.active-route == "Workflows" ? "Review-first controlled-action studio · Synthetic demo" : root.active-route == "Tasks" ? "Derived outbox review queue · No second task authority" : root.active-route == "Messages" ? "Local review previews · No external transport claim" : root.active-route == "Documents" ? "Bounded document intake posture · Custody is not understanding" : root.active-route == "Projects" ? "Project and artifact organization · Core-backed references, never payload copies" : root.active-route == "Data" ? "Governed datasets · immutable snapshots, saved views and deterministic transforms" : root.active-route == "Audit Trail" ? "Synthetic disclosure history · Core Host remains canonical" : root.active-route == "Exports" ? "Loss-aware FHIR support · No full conformance claim" : root.active-route == "Settings" ? "Doctor truth and evidence-gated readiness" : root.active-route == "Integrations" ? "Brokered integration posture · Default deny" : root.active-route == "About" ? "Native product and attribution details" : "Unrecognized route"; color: Theme.ink-subtle; font-size: 13px; }
                             }
                             Rectangle { horizontal-stretch: 1; background: transparent; }
                             if root.active-route == "Home": Text {
@@ -622,6 +655,136 @@ export component AppWindow inherits Window {
                                         spacing: 12px;
                                         Text { horizontal-stretch: 1; text: item.subject + "  " + item.predicate + "  " + item.object; color: Theme.ink-subtle; font-size: 11px; wrap: word-wrap; }
                                         Text { width: 70px; text: "rev " + item.revision; color: Theme.ink-quiet; font-size: 11px; horizontal-alignment: right; }
+                                    }
+                                }
+                            }
+                        }
+
+                        if root.active-route == "Data": VerticalLayout {
+                            spacing: 14px;
+                            HonestyPanel { title: "Dataset authority boundary"; body: "Snapshots are immutable and content-addressed · views are projections, never copies · transforms create new snapshots with lineage"; accent: Theme.success; }
+
+                            Rectangle {
+                                min-height: 64px;
+                                border-radius: Theme.radius-compact;
+                                border-width: 1px;
+                                border-color: Theme.border;
+                                background: Theme.surface;
+                                accessible-role: groupbox;
+                                accessible-label: "Data sources. " + root.data-status;
+                                HorizontalLayout {
+                                    padding-left: 10px;
+                                    padding-right: 10px;
+                                    spacing: 12px;
+                                    VerticalLayout { horizontal-stretch: 1; alignment: center; spacing: 2px;
+                                        Text { text: "Data sources follow the active project"; color: Theme.ink; font-size: 12px; font-weight: 680; }
+                                        Text { text: root.data-status; color: Theme.ink-quiet; font-size: 11px; wrap: word-wrap; }
+                                    }
+                                    ToolbarAction { label: "Refresh"; activated => { root.ui-action("data-refresh"); } }
+                                    ToolbarAction { label: "Import"; activated => { root.ui-action("data-import"); } }
+                                    ToolbarAction { label: "Re-check"; activated => { root.ui-action("data-refresh-source"); } }
+                                    ToolbarAction { label: "Ack schema"; activated => { root.ui-action("data-refresh-source-force"); } }
+                                }
+                            }
+
+                            Text { text: "Sources"; color: Theme.ink; font-size: 14px; font-weight: 680; }
+                            for item in root.data-sources: Rectangle {
+                                min-height: 52px;
+                                border-width: 1px;
+                                border-color: Theme.border;
+                                background: Theme.surface;
+                                accessible-role: groupbox;
+                                accessible-label: item.name + ", " + item.kind + ", " + item.health;
+                                HorizontalLayout {
+                                    padding-left: 10px;
+                                    padding-right: 10px;
+                                    spacing: 12px;
+                                    VerticalLayout { width: 260px; alignment: center; spacing: 2px;
+                                        Text { text: item.name; color: Theme.ink; font-size: 12px; font-weight: 680; wrap: word-wrap; }
+                                        Text { text: item.id + " · rev " + item.revision; color: Theme.ink-quiet; font-size: 11px; }
+                                    }
+                                    Text { width: 130px; text: item.kind; color: Theme.ink-subtle; font-size: 11px; }
+                                    StatusPill { label: item.health; accent: item.health == "healthy" ? Theme.success : item.health == "stale" || item.health == "schema_changed" ? Theme.warning : Theme.danger; }
+                                    QuickAction { width: 110px; title: "Open"; subtitle: "Snapshots"; glyph: ""; accent: Theme.signal; activated => { root.ui-action("data-open:" + item.id); } }
+                                }
+                            }
+
+                            if root.data-active-source != "": VerticalLayout {
+                                spacing: 12px;
+                                Text { text: "Snapshots"; color: Theme.ink; font-size: 14px; font-weight: 680; }
+                                for item in root.data-snapshots: Rectangle {
+                                    min-height: 52px;
+                                    border-width: 1px;
+                                    border-color: Theme.border;
+                                    background: Theme.surface;
+                                    accessible-role: text;
+                                    accessible-label: "Snapshot " + item.id + ", " + item.rows + " rows";
+                                    HorizontalLayout {
+                                        padding-left: 10px;
+                                        padding-right: 10px;
+                                        spacing: 12px;
+                                        Text { width: 120px; text: item.id; color: Theme.ink; font-size: 11px; font-weight: 650; }
+                                        Text { width: 90px; text: item.rows + " rows"; color: Theme.ink-subtle; font-size: 11px; }
+                                        Text { horizontal-stretch: 1; text: item.digest; color: Theme.ink-quiet; font-size: 11px; wrap: word-wrap; }
+                                        QuickAction { width: 110px; title: "Inspect"; subtitle: "Rows"; glyph: ""; accent: Theme.signal; activated => { root.ui-action("data-snapshot:" + item.id); } }
+                                    }
+                                }
+
+                                if root.data-active-snapshot != "": VerticalLayout {
+                                    spacing: 8px;
+                                    Text { text: "Workbench"; color: Theme.ink; font-size: 14px; font-weight: 680; }
+                                    Text { text: root.data-schema-line; color: Theme.signal-strong; font-size: 11px; font-weight: 650; wrap: word-wrap; }
+                                    Text { text: root.data-detail; color: Theme.ink-quiet; font-size: 11px; wrap: word-wrap; }
+                                    for item in root.data-rows: Rectangle {
+                                        min-height: 40px;
+                                        border-width: 1px;
+                                        border-color: Theme.border;
+                                        background: Theme.surface;
+                                        accessible-role: text;
+                                        accessible-label: item.text;
+                                        HorizontalLayout {
+                                            padding-left: 10px;
+                                            padding-right: 10px;
+                                            Text { horizontal-stretch: 1; text: item.text; color: Theme.ink-subtle; font-size: 11px; wrap: word-wrap; }
+                                        }
+                                    }
+                                    HorizontalLayout {
+                                        spacing: 8px;
+                                        AdaptiveLineEdit {
+                                            horizontal-stretch: 1;
+                                            text <=> root.data-columns-input;
+                                            placeholder: "Select columns (comma separated, optional)";
+                                            accessible-name: "Transform select columns";
+                                        }
+                                        AdaptiveLineEdit {
+                                            width: 130px;
+                                            text <=> root.data-filter-col;
+                                            placeholder: "Filter column";
+                                            accessible-name: "Transform filter column";
+                                        }
+                                        AdaptiveLineEdit {
+                                            width: 110px;
+                                            text <=> root.data-filter-op;
+                                            placeholder: "equals";
+                                            accessible-name: "Transform filter op";
+                                        }
+                                        AdaptiveLineEdit {
+                                            width: 130px;
+                                            text <=> root.data-filter-value;
+                                            placeholder: "Filter value";
+                                            accessible-name: "Transform filter value";
+                                        }
+                                        AdaptiveLineEdit {
+                                            width: 130px;
+                                            text <=> root.data-sort-input;
+                                            placeholder: "Sort column[:desc]";
+                                            accessible-name: "Transform sort";
+                                        }
+                                    }
+                                    HorizontalLayout {
+                                        spacing: 8px;
+                                        ToolbarAction { label: "Save grid view"; activated => { root.ui-action("data-view-grid"); } }
+                                        ToolbarAction { label: "Apply transform"; activated => { root.ui-action("data-transform-apply"); } }
                                     }
                                 }
                             }

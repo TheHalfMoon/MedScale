@@ -54,7 +54,7 @@ pub fn backup_vault(vault: &SyntheticVault, dest: &Path) -> Result<BackupManifes
     }
 
     let manifest = BackupManifest {
-        schema_version: 3,
+        schema_version: 4,
         vault_id: vault.vault_id.clone(),
         created_at: "1970-01-01T00:00:00Z".to_owned(),
         metadata_snapshot_digest: snapshot_digest,
@@ -106,7 +106,9 @@ pub fn restore_vault(src: &Path, dest_vault_root: &Path) -> Result<(u64, u64), S
     let snapshot_schema = snapshot_value
         .get("schema_version")
         .and_then(|v| v.as_u64());
-    if snapshot_schema == Some(3) {
+    if snapshot_schema == Some(4) {
+        restore_v4(&vault, &snapshot_value, &mut sources)?;
+    } else if snapshot_schema == Some(3) {
         restore_v3(&vault, &snapshot_value, &mut sources)?;
     } else if snapshot_schema == Some(2) {
         restore_v2(&vault, &snapshot_value, &mut sources)?;
@@ -238,6 +240,115 @@ fn restore_v3(
             vault
                 .meta
                 .restore_edge_row(&edge)
+                .map_err(|e| e.to_string())?;
+        }
+    }
+    Ok(())
+}
+
+fn restore_v4(
+    vault: &SyntheticVault,
+    snapshot: &serde_json::Value,
+    sources: &mut u64,
+) -> Result<(), String> {
+    restore_v3(vault, snapshot, sources)?;
+    // Spec 075 rows replay exactly (ids/revisions/digests preserved); every
+    // row is re-validated so a tampered snapshot fails closed instead of
+    // persisting. Snapshots restore before releases so release scope
+    // inheritance resolves.
+    if let Some(entries) = snapshot.get("data_sources").and_then(|v| v.as_array()) {
+        for value in entries {
+            let manifest: medscale_contracts::data_sources::DataSourceManifest =
+                serde_json::from_value(value.clone()).map_err(|e| e.to_string())?;
+            medscale_contracts::data_sources::validate_display_name(&manifest.display_name)
+                .map_err(|e| e.to_string())?;
+            manifest.locator.validate().map_err(|e| e.to_string())?;
+            if manifest.capabilities.is_empty() {
+                return Err("tampered source capabilities".to_owned());
+            }
+            if manifest.revision < 1 {
+                return Err("tampered source revision".to_owned());
+            }
+            vault
+                .meta
+                .restore_data_source_row(&manifest)
+                .map_err(|e| e.to_string())?;
+        }
+    }
+    if let Some(entries) = snapshot.get("data_snapshots").and_then(|v| v.as_array()) {
+        let parts = snapshot
+            .get("data_snapshot_parts")
+            .and_then(|v| v.as_array())
+            .cloned()
+            .unwrap_or_default();
+        for value in entries {
+            let record: crate::data_sources::SnapshotRecord =
+                serde_json::from_value(value.clone()).map_err(|e| e.to_string())?;
+            record.snapshot.validate().map_err(|e| e.to_string())?;
+            record.schema.validate().map_err(|e| e.to_string())?;
+            let id = record.snapshot.header.id.as_str().to_owned();
+            let mut owned_parts = Vec::new();
+            for part_value in &parts {
+                let part: medscale_contracts::data_sources::SnapshotPart =
+                    serde_json::from_value(part_value.clone()).map_err(|e| e.to_string())?;
+                part.validate().map_err(|e| e.to_string())?;
+                if part.snapshot_id.as_str() == id {
+                    owned_parts.push(part);
+                }
+            }
+            vault
+                .meta
+                .restore_snapshot_full(&record, &owned_parts)
+                .map_err(|e| e.to_string())?;
+        }
+    }
+    if let Some(entries) = snapshot.get("data_receipts").and_then(|v| v.as_array()) {
+        for value in entries {
+            let (kind, snap, receipt): (String, String, serde_json::Value) =
+                serde_json::from_value(value.clone()).map_err(|e| e.to_string())?;
+            vault
+                .meta
+                .restore_receipt_row(&kind, &snap, &receipt)
+                .map_err(|e| e.to_string())?;
+        }
+    }
+    if let Some(entries) = snapshot.get("data_saved_views").and_then(|v| v.as_array()) {
+        for value in entries {
+            let (view, project): (
+                medscale_contracts::data_sources::SavedDataView,
+                medscale_contracts::objects::OpaqueId,
+            ) = serde_json::from_value(value.clone()).map_err(|e| e.to_string())?;
+            if view.revision < 1 {
+                return Err("tampered view revision".to_owned());
+            }
+            vault
+                .meta
+                .restore_saved_view_row(&view, &project)
+                .map_err(|e| e.to_string())?;
+        }
+    }
+    if let Some(entries) = snapshot
+        .get("data_transformations")
+        .and_then(|v| v.as_array())
+    {
+        for value in entries {
+            let record: crate::data_sources::TransformationRecord =
+                serde_json::from_value(value.clone()).map_err(|e| e.to_string())?;
+            record.receipt.validate().map_err(|e| e.to_string())?;
+            vault
+                .meta
+                .restore_transformation_row(&record)
+                .map_err(|e| e.to_string())?;
+        }
+    }
+    if let Some(entries) = snapshot.get("dataset_releases").and_then(|v| v.as_array()) {
+        for value in entries {
+            let release: medscale_contracts::data_sources::ReleaseManifest =
+                serde_json::from_value(value.clone()).map_err(|e| e.to_string())?;
+            release.card.validate().map_err(|e| e.to_string())?;
+            vault
+                .meta
+                .restore_dataset_release_row(&release)
                 .map_err(|e| e.to_string())?;
         }
     }

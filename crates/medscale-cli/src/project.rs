@@ -48,6 +48,7 @@ fn project_fail(err: &AuthorityError, json: bool) -> anyhow::Error {
         AuthorityError::DigestMismatch => ("corrupt", debug),
         AuthorityError::UnsupportedSchema { message } => ("unsupported_schema", message.clone()),
         AuthorityError::Unavailable { message } => ("unavailable", message.clone()),
+        AuthorityError::Cancelled { message } => ("cancelled", message.clone()),
         AuthorityError::LeaseRequired
         | AuthorityError::VaultRequired
         | AuthorityError::LeaseHeld { .. }
