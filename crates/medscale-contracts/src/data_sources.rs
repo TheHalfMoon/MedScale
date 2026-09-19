@@ -20,6 +20,7 @@
 //! Conflict         -> Conflict { message } (stale expected_revision, duplicate)
 //! Stale            -> StaleReference { message } (source moved/changed under a pinned binding)
 //! Partial          -> snapshot/view status, not an error (see SnapshotStatus)
+//! Missing          -> NotFound (dangling locator: file/table gone)
 //! Corrupt          -> Corrupt { message }
 //! Unsupported      -> UnsupportedSchema { message }
 //! Unavailable      -> Unavailable { message } (source down, egress disabled, timeout)

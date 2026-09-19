@@ -134,6 +134,7 @@ fn acquire_err(fail: AcquireFail) -> AuthorityError {
         AcquireFail::Unavailable(reason) => AuthorityError::Unavailable { message: reason },
         AcquireFail::Denied(_) => AuthorityError::Unauthorized,
         AcquireFail::Unsupported(reason) => AuthorityError::UnsupportedSchema { message: reason },
+        AcquireFail::Missing(_) => AuthorityError::NotFound,
     }
 }
 
@@ -441,7 +442,7 @@ impl DataSources<'_> {
             SourceLocator::LocalPath { path, format } => {
                 let resolved = self.resolve_local_path(path).map_err(|err| match err {
                     AuthorityError::NotFound => {
-                        AcquireFail::Unavailable("local source file is gone".to_owned())
+                        AcquireFail::Missing("local source file is gone".to_owned())
                     }
                     AuthorityError::Unauthorized => {
                         AcquireFail::Denied("local source file is denied".to_owned())
@@ -453,7 +454,7 @@ impl DataSources<'_> {
                 })?;
                 let bytes = std::fs::read(&resolved).map_err(|e| match e.kind() {
                     std::io::ErrorKind::NotFound => {
-                        AcquireFail::Unavailable("local source file is gone".to_owned())
+                        AcquireFail::Missing("local source file is gone".to_owned())
                     }
                     std::io::ErrorKind::PermissionDenied => {
                         AcquireFail::Denied("local source file is denied".to_owned())
@@ -494,7 +495,7 @@ impl DataSources<'_> {
                 }
                 let resolved = self.resolve_local_path(database).map_err(|err| match err {
                     AuthorityError::NotFound => {
-                        AcquireFail::Unavailable("database file is gone".to_owned())
+                        AcquireFail::Missing("database file is gone".to_owned())
                     }
                     AuthorityError::Unauthorized => {
                         AcquireFail::Denied("database file is denied".to_owned())
@@ -511,7 +512,7 @@ impl DataSources<'_> {
                 )
                 .map_err(|err| match err {
                     MetaError::NotFound => {
-                        AcquireFail::Unavailable("database object is gone".to_owned())
+                        AcquireFail::Missing("database object is gone".to_owned())
                     }
                     MetaError::UnsupportedSchema(reason) => AcquireFail::Unsupported(reason),
                     other => AcquireFail::Unavailable(other.to_string()),
@@ -740,7 +741,9 @@ impl DataSources<'_> {
     /// a concurrent mutation wins over the hook, never the reverse).
     fn import_health_hook(&self, source: &DataSourceManifest, fail: &AcquireFail) {
         let health = match fail {
-            AcquireFail::Unavailable(_) => Some(SourceHealth::Unavailable),
+            AcquireFail::Unavailable(_) | AcquireFail::Missing(_) => {
+                Some(SourceHealth::Unavailable)
+            }
             AcquireFail::Denied(_) => Some(SourceHealth::Denied),
             _ => None,
         };
@@ -772,15 +775,12 @@ impl DataSources<'_> {
             Ok(value) => value,
             Err(fail) => {
                 let (class, health) = match &fail {
-                    AcquireFail::Unavailable(reason) => {
-                        if reason.contains("gone") {
-                            (RefreshChangeClass::SourceGone, SourceHealth::Unavailable)
-                        } else {
-                            (
-                                RefreshChangeClass::SourceUnavailable,
-                                SourceHealth::Unavailable,
-                            )
-                        }
+                    AcquireFail::Missing(_) => {
+                        (RefreshChangeClass::SourceGone, SourceHealth::Unavailable)
+                    }
+                    AcquireFail::Unavailable(_) => {
+                        (RefreshChangeClass::SourceUnavailable, SourceHealth::Unavailable)
+                    }
                     }
                     AcquireFail::Denied(_) => {
                         (RefreshChangeClass::SourceDenied, SourceHealth::Denied)

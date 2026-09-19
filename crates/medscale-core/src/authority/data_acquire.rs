@@ -32,6 +32,7 @@ pub enum AcquireFail {
     Unavailable(String),
     Denied(String),
     Unsupported(String),
+    Missing(String),
 }
 
 impl AcquireFail {
@@ -43,7 +44,8 @@ impl AcquireFail {
             | Self::Quarantined(reason)
             | Self::Unavailable(reason)
             | Self::Denied(reason)
-            | Self::Unsupported(reason) => reason,
+            | Self::Unsupported(reason)
+            | Self::Missing(reason) => reason,
         }
     }
 }
