@@ -57,32 +57,32 @@
 
 ### 3. Donors and sources
 
-7. `FOUNDER_GITHUB_DONOR_SYNTHESIS_2026-09-19.md`
+10. `FOUNDER_GITHUB_DONOR_SYNTHESIS_2026-09-19.md`
    - useful public sibling-project patterns;
    - private-repository disclosure boundary;
    - anti-monolith rule.
 
-8. `RESEARCH_OS_V2_SOURCE_QUALIFICATION_LEDGER_2026-09-19.md`
+11. `RESEARCH_OS_V2_SOURCE_QUALIFICATION_LEDGER_2026-09-19.md`
    - exact research pins;
    - license posture;
    - candidate adoption mode;
    - transfer gates.
 
-9. `MEDICAL_EVIDENCE_SOURCE_STRATEGY_2026-09-19.md`
+12. `MEDICAL_EVIDENCE_SOURCE_STRATEGY_2026-09-19.md`
    - open/licensed/institution/user evidence classes;
    - PubMed/PMC/Crossref/OpenAlex/ClinicalTrials.gov strategy;
    - guideline, retraction and evidence-Pack rights model.
 
 ### 4. Evaluation protocols
 
-10. `LOCAL_MEDICAL_SCRIBE_EVALUATION_PROTOCOL_2026-09-19.md`
+13. `LOCAL_MEDICAL_SCRIBE_EVALUATION_PROTOCOL_2026-09-19.md`
    - medical-critical ASR metrics;
    - diarization;
    - note factuality/omission taxonomy;
    - Linked Evidence;
    - privacy/offline/resource/human review campaigns.
 
-11. `EVIDENCE_ENGINE_EVALUATION_PROTOCOL_2026-09-19.md`
+14. `EVIDENCE_ENGINE_EVALUATION_PROTOCOL_2026-09-19.md`
    - retrieval;
    - citation identity;
    - claim support;
@@ -92,15 +92,15 @@
 
 ### 5. Traceability and gap challenge
 
-12. `RESEARCH_OS_V2_REQUIREMENTS_TRACEABILITY_2026-09-19.md`
-   - 115 product/platform requirements;
+15. `RESEARCH_OS_V2_REQUIREMENTS_TRACEABILITY_2026-09-19.md`
+   - 140 product/platform requirements;
    - competitor/founder rationale;
    - owning specs;
    - required proof;
    - zero unassigned requirements at planning time.
 
-13. `RESEARCH_OS_V2_CLINICAL_GAP_CLOSURE_2026-09-19.md`
-   - 115 challenged gaps/failure risks;
+16. `RESEARCH_OS_V2_CLINICAL_GAP_CLOSURE_2026-09-19.md`
+   - 140 challenged gaps/failure risks;
    - owning spec;
    - closure evidence;
    - external/non-software gates;
@@ -108,7 +108,7 @@
 
 ### 6. First promotion packet
 
-14. `SPEC_075_PROMOTION_CANDIDATE_2026-09-19.md`
+17. `SPEC_075_PROMOTION_CANDIDATE_2026-09-19.md`
    - exact current-repository anchors for the first post-074 unit;
    - bounded T075-00 through T075-10 task graph;
    - source/dependency posture;
@@ -117,7 +117,7 @@
 
 ### 7. Implementation handoff
 
-15. `MUSE_CLINICAL_RESEARCH_OS_IMPLEMENTATION_HANDOFF.md`
+18. `MUSE_CLINICAL_RESEARCH_OS_IMPLEMENTATION_HANDOFF.md`
    - agent execution instructions after canonical acceptance/promotion;
    - live-truth rebuild;
    - dependency order;
