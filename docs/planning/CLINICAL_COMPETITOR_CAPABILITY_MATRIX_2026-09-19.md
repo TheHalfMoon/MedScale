@@ -8,12 +8,12 @@
 
 | Capability | Abridge | OpenEvidence | OpenMed | Suki / Dragon / Freed signal | MedScale target |
 |---|---|---|---|---|---|
-| Ambient clinical capture | Core | Emerging visit/documentation surface | No | Core scribe category | Local-first capture with visible consent/state |
+| Ambient clinical capture | Core | Visits-style transcription/documentation surface | No | Core scribe category | Local-first capture with visible consent/state |
 | Live transcription | Core workflow | Voice Q&A, not primary scribe historically | Local model ecosystem can support pieces | Core scribe category | Local streaming ASR + refined second pass |
 | Speaker diarization | Ambient workflow requirement | Not central | Model ecosystem dependent | Common scribe need | Local diarization with reviewable roles |
 | Structured note draft | Core | Visit/documentation surface evolving | Models/components, not complete workflow | Core | Specialty-aware local drafts |
 | Multi-specialty | Yes | Evidence across specialties | Broad medical model catalog | Yes | Pack/template-based specialty support |
-| Multilingual | Yes | Broad evidence UI/content | 21+ language claims in OpenMed | Suki/others support multilingual features | Arabic + English + code-switching as first qualification target |
+| Multilingual | Yes | Broad evidence UI/content | 36 supported PII language codes; clinical NER varies by selected model | Suki/others support multilingual features | Arabic + English + code-switching as first qualification target |
 | Transcript-linked evidence | Linked Evidence | Citations to external literature | Provenance varies by model | Not consistently category-wide | Linked Evidence Everywhere: audio + transcript + FHIR + docs + literature |
 | Prior patient context | Contextual Reasoning Engine | Clinical Q&A context can be supplied | N/A | Suki pre-visit summaries/chart Q&A | Local bounded longitudinal context |
 | Clinician preference/style | Yes | User history/personalization possible | N/A | Freed learns formatting; Suki templates | Local template/style profile, never authority |
@@ -46,14 +46,14 @@
 | Local/offline model execution | No, cloud enterprise architecture | No | Core strength | Mostly hosted | Core MedScale differentiator |
 | Local PHI de-identification | No product premise | Not product premise | Core strength | Hosted compliance models | Privacy Gate + qualified local de-ID packs |
 | Model catalog/fleet | Proprietary | Proprietary | Broad open model ecosystem | Proprietary | Open local model fleet + compare + exact provenance |
-| Vision/multimodal medical models | Product-specific | Multimedia content | Medical VLM model families | Varies | Admitted local VLM/document/image tools |
+| Vision/multimodal medical models | Product-specific | Multimedia evidence content | Medical VLM families plus image/DICOM/structured-data utilities | Varies | Admitted local VLM/document/image tools |
 | Datasets/workbench | No | No | Model datasets, not user workbench | No | First-class local Data Workbench |
 | Reproducible analytics | Admin analytics, not research plane | No | Benchmarks | No | Analytics Gate with snapshot/run receipts |
 | Research canvas | No | Saved evidence/search, not full canvas | No | No | Docs + canvas + tables + graph + citations |
 | Clinical/patient graph | Internal context, not exposed as open graph | No | No | No | Provenance-rich derived Clinical Graph |
 | Team/project workspace | Enterprise deployment, not research OS | Account-oriented | No | Enterprise admin | Projects, team review, artifacts, shared research |
 | Governed browser/research | No | Medical search product | No | No | Source-capture browser with network/provenance receipts |
-| PDF/document intelligence | Context inputs vary | Literature content | Components | Varies | Local document/OCR pipeline with Signthos-style isolation |
+| PDF/document intelligence | Context inputs vary | Patient documents + literature content | Multimodal/structured inputs include PDF/DOCX/OCR-related paths | Varies | Local document/OCR pipeline with Signthos-style isolation |
 | Self-host / air-gap | Not public core model | Not public core model | Strong local story | Generally hosted | Explicit target |
 | Open source / inspectable runtime | No | No | Yes | No | MedScale-owned open contracts + auditable local components |
 | Data ownership | Enterprise governed cloud | Hosted service | Local-first | Hosted | User/institution-owned local vault and exports |
@@ -91,10 +91,11 @@ The evidence base is still evolving; product usefulness does not remove the need
 
 ## OpenMed observations
 
-OpenMed's public repository positions it as local-first healthcare AI with on-device clinical NER and PII/PHI de-identification, broad medical model availability, multilingual support, Apple MLX/Python paths and no-cloud configurations.
+OpenMed's public repository positions it as local-first healthcare AI with on-device clinical NER and PII/PHI de-identification, broad medical model availability, multilingual support, Apple MLX/Python paths and no-cloud configurations. Current 2.5 documentation also describes 36 supported PII language codes, policy-aware de-identification with audit/release evidence, and multimodal/structured inputs spanning document/image formats plus DICOM, HL7 v2, CDA/C-CDA and FHIR-oriented workflows.
 
 Reference:
 - https://github.com/maziyarpanahi/openmed
+- https://openmed.life/docs/
 
 MedScale should absorb qualified models/contracts selectively. OpenMed never becomes MedScale clinical authority.
 
