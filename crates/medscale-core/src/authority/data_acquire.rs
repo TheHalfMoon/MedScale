@@ -616,7 +616,7 @@ fn column_index(fields: &[SchemaField], column: &str) -> Option<usize> {
     fields.iter().position(|f| f.name == column)
 }
 
-fn row_matches(row: &[Vec<CellValue>], fields: &[SchemaField], filters: &[FilterExpr]) -> bool {
+fn row_matches(row: &[CellValue], fields: &[SchemaField], filters: &[FilterExpr]) -> bool {
     filters.iter().all(|filter| {
         let Some(index) = column_index(fields, &filter.column) else {
             return false;

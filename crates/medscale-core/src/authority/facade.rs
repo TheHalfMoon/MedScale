@@ -1820,7 +1820,7 @@ impl CoreFacade {
                     |mut ds| ds.import_source(&source_id),
                 )?;
                 Ok(ResponseBody::SnapshotImported {
-                    snapshot: Box::new(snapshot),
+                    snapshot: Box::new(snapshot.snapshot),
                     receipt,
                 })
             }

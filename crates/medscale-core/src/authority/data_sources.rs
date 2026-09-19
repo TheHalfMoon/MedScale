@@ -449,7 +449,7 @@ impl DataSources<'_> {
                     AuthorityError::PathOutsideClaim => {
                         AcquireFail::Denied("local source path escapes the vault".to_owned())
                     }
-                    other => AcquireFail::Unavailable(other.to_string()),
+                    other => AcquireFail::Unavailable(format!("{other:?}")),
                 })?;
                 let bytes = std::fs::read(&resolved).map_err(|e| match e.kind() {
                     std::io::ErrorKind::NotFound => {
@@ -502,7 +502,7 @@ impl DataSources<'_> {
                     AuthorityError::PathOutsideClaim => {
                         AcquireFail::Denied("database path escapes the vault".to_owned())
                     }
-                    other => AcquireFail::Unavailable(other.to_string()),
+                    other => AcquireFail::Unavailable(format!("{other:?}")),
                 })?;
                 let external = medscale_storage::read_external_sqlite_table(
                     &resolved,
@@ -684,7 +684,6 @@ impl DataSources<'_> {
             self.import_health_hook(&source, &fail);
             acquire_err(fail)
         })?;
-        let schema_fingerprint = fingerprint_schema(&table.fields);
         let (_, content_digest, _) = materialize_parts(&table.fields, &table.rows);
         if let Some(existing) = self
             .meta()
@@ -1242,10 +1241,10 @@ impl DataSources<'_> {
         // never leaked.
         let mut out = Vec::new();
         for summary in all {
-            if let Ok(release) = self.meta().get_dataset_release(&summary.release_id) {
-                if self.scoped_snapshot(&release.card.snapshot_id).is_ok() {
-                    out.push(summary);
-                }
+            if let Ok(release) = self.meta().get_dataset_release(&summary.release_id)
+                && self.scoped_snapshot(&release.card.snapshot_id).is_ok()
+            {
+                out.push(summary);
             }
         }
         Ok((out, None))
