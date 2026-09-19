@@ -62,9 +62,16 @@
    - candidate adoption mode;
    - transfer gates.
 
-### 4. Gap challenge
+### 4. Traceability and gap challenge
 
-8. `RESEARCH_OS_V2_CLINICAL_GAP_CLOSURE_2026-09-19.md`
+8. `RESEARCH_OS_V2_REQUIREMENTS_TRACEABILITY_2026-09-19.md`
+   - 100 product/platform requirements;
+   - competitor/founder rationale;
+   - owning specs;
+   - required proof;
+   - zero unassigned requirements at planning time.
+
+9. `RESEARCH_OS_V2_CLINICAL_GAP_CLOSURE_2026-09-19.md`
    - 100 challenged gaps/failure risks;
    - owning spec;
    - closure evidence;
@@ -73,7 +80,7 @@
 
 ### 5. Implementation handoff
 
-9. `MUSE_CLINICAL_RESEARCH_OS_IMPLEMENTATION_HANDOFF.md`
+10. `MUSE_CLINICAL_RESEARCH_OS_IMPLEMENTATION_HANDOFF.md`
    - agent execution instructions after canonical acceptance/promotion;
    - live-truth rebuild;
    - dependency order;
