@@ -55,6 +55,26 @@
    - cohort/data/analytics lineage;
    - donor-specific licensing boundaries.
 
+7. `RESEARCH_WORKFLOW_SYSTEMATIC_REVIEW_PLAN_2026-09-19.md`
+   - protocol/preregistration and amendments;
+   - reproducible literature search;
+   - screening/adjudication;
+   - extraction and risk-of-bias;
+   - meta-analysis, living review and manuscript workflow.
+
+8. `CLINICAL_TOOLS_DECISION_SUPPORT_PLAN_2026-09-19.md`
+   - deterministic calculators and pathways;
+   - source/version/unit semantics;
+   - ClinicalTool Packs;
+   - model-prefill and external-effect boundaries.
+
+9. `DATASET_ANNOTATION_MODEL_RESEARCH_PLAN_2026-09-19.md`
+   - dataset cards/releases;
+   - annotation/review/adjudication;
+   - active learning;
+   - split-leakage controls;
+   - bounded model training/evaluation research.
+
 ### 3. Donors and sources
 
 10. `FOUNDER_GITHUB_DONOR_SYNTHESIS_2026-09-19.md`
