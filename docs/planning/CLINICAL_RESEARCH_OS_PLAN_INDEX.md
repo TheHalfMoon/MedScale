@@ -31,7 +31,13 @@
    - vertical milestones;
    - promotion protocol.
 
-4. `LOCAL_MEDICAL_SCRIBE_PLAN.md`
+4. `RESEARCH_OS_V2_EXACT_REPOSITORY_IMPLEMENTATION_MAP_2026-09-19.md`
+   - maps every candidate spec to the current nine-crate Rust workspace;
+   - binds existing Core/storage/network/Pack/Desktop anchors;
+   - defines default module/file/test ownership;
+   - constrains new-crate creation.
+
+5. `LOCAL_MEDICAL_SCRIBE_PLAN.md`
    - offline capture;
    - two-pass ASR;
    - diarization;
@@ -42,7 +48,7 @@
    - clinician review;
    - coding/order/nursing/patient-instruction boundaries.
 
-5. `CLINICAL_GRAPH_DATA_WORKBENCH_PLAN.md`
+6. `CLINICAL_GRAPH_DATA_WORKBENCH_PLAN.md`
    - Graphify-inspired clinical graph;
    - AFFiNE-inspired workspace views;
    - Airtable-class MedScale Data Workbench;
@@ -51,32 +57,32 @@
 
 ### 3. Donors and sources
 
-6. `FOUNDER_GITHUB_DONOR_SYNTHESIS_2026-09-19.md`
+7. `FOUNDER_GITHUB_DONOR_SYNTHESIS_2026-09-19.md`
    - useful public sibling-project patterns;
    - private-repository disclosure boundary;
    - anti-monolith rule.
 
-7. `RESEARCH_OS_V2_SOURCE_QUALIFICATION_LEDGER_2026-09-19.md`
+8. `RESEARCH_OS_V2_SOURCE_QUALIFICATION_LEDGER_2026-09-19.md`
    - exact research pins;
    - license posture;
    - candidate adoption mode;
    - transfer gates.
 
-8. `MEDICAL_EVIDENCE_SOURCE_STRATEGY_2026-09-19.md`
+9. `MEDICAL_EVIDENCE_SOURCE_STRATEGY_2026-09-19.md`
    - open/licensed/institution/user evidence classes;
    - PubMed/PMC/Crossref/OpenAlex/ClinicalTrials.gov strategy;
    - guideline, retraction and evidence-Pack rights model.
 
 ### 4. Evaluation protocols
 
-9. `LOCAL_MEDICAL_SCRIBE_EVALUATION_PROTOCOL_2026-09-19.md`
+10. `LOCAL_MEDICAL_SCRIBE_EVALUATION_PROTOCOL_2026-09-19.md`
    - medical-critical ASR metrics;
    - diarization;
    - note factuality/omission taxonomy;
    - Linked Evidence;
    - privacy/offline/resource/human review campaigns.
 
-10. `EVIDENCE_ENGINE_EVALUATION_PROTOCOL_2026-09-19.md`
+11. `EVIDENCE_ENGINE_EVALUATION_PROTOCOL_2026-09-19.md`
    - retrieval;
    - citation identity;
    - claim support;
@@ -86,14 +92,14 @@
 
 ### 5. Traceability and gap challenge
 
-11. `RESEARCH_OS_V2_REQUIREMENTS_TRACEABILITY_2026-09-19.md`
+12. `RESEARCH_OS_V2_REQUIREMENTS_TRACEABILITY_2026-09-19.md`
    - 115 product/platform requirements;
    - competitor/founder rationale;
    - owning specs;
    - required proof;
    - zero unassigned requirements at planning time.
 
-12. `RESEARCH_OS_V2_CLINICAL_GAP_CLOSURE_2026-09-19.md`
+13. `RESEARCH_OS_V2_CLINICAL_GAP_CLOSURE_2026-09-19.md`
    - 115 challenged gaps/failure risks;
    - owning spec;
    - closure evidence;
@@ -102,7 +108,7 @@
 
 ### 6. Implementation handoff
 
-13. `MUSE_CLINICAL_RESEARCH_OS_IMPLEMENTATION_HANDOFF.md`
+14. `MUSE_CLINICAL_RESEARCH_OS_IMPLEMENTATION_HANDOFF.md`
    - agent execution instructions after canonical acceptance/promotion;
    - live-truth rebuild;
    - dependency order;
