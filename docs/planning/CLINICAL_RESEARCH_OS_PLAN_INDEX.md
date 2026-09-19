@@ -62,25 +62,47 @@
    - candidate adoption mode;
    - transfer gates.
 
-### 4. Traceability and gap challenge
+8. `MEDICAL_EVIDENCE_SOURCE_STRATEGY_2026-09-19.md`
+   - open/licensed/institution/user evidence classes;
+   - PubMed/PMC/Crossref/OpenAlex/ClinicalTrials.gov strategy;
+   - guideline, retraction and evidence-Pack rights model.
 
-8. `RESEARCH_OS_V2_REQUIREMENTS_TRACEABILITY_2026-09-19.md`
-   - 100 product/platform requirements;
+### 4. Evaluation protocols
+
+9. `LOCAL_MEDICAL_SCRIBE_EVALUATION_PROTOCOL_2026-09-19.md`
+   - medical-critical ASR metrics;
+   - diarization;
+   - note factuality/omission taxonomy;
+   - Linked Evidence;
+   - privacy/offline/resource/human review campaigns.
+
+10. `EVIDENCE_ENGINE_EVALUATION_PROTOCOL_2026-09-19.md`
+   - retrieval;
+   - citation identity;
+   - claim support;
+   - evidence appraisal;
+   - applicability/contradiction/retraction;
+   - deep synthesis and trial-matching evaluation.
+
+### 5. Traceability and gap challenge
+
+11. `RESEARCH_OS_V2_REQUIREMENTS_TRACEABILITY_2026-09-19.md`
+   - 115 product/platform requirements;
    - competitor/founder rationale;
    - owning specs;
    - required proof;
    - zero unassigned requirements at planning time.
 
-9. `RESEARCH_OS_V2_CLINICAL_GAP_CLOSURE_2026-09-19.md`
-   - 100 challenged gaps/failure risks;
+12. `RESEARCH_OS_V2_CLINICAL_GAP_CLOSURE_2026-09-19.md`
+   - 115 challenged gaps/failure risks;
    - owning spec;
    - closure evidence;
    - external/non-software gates;
    - no-gap promotion checklist.
 
-### 5. Implementation handoff
+### 6. Implementation handoff
 
-10. `MUSE_CLINICAL_RESEARCH_OS_IMPLEMENTATION_HANDOFF.md`
+13. `MUSE_CLINICAL_RESEARCH_OS_IMPLEMENTATION_HANDOFF.md`
    - agent execution instructions after canonical acceptance/promotion;
    - live-truth rebuild;
    - dependency order;
