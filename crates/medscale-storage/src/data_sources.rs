@@ -729,7 +729,7 @@ fn map_snapshot_row_inner(
     })
 }
 
-/// Storage-level snapshot part rows travel as contract `SnapshotPart` values.
+// Storage-level snapshot part rows travel as contract `SnapshotPart` values.
 
 impl SqliteMetaStore {
     /// Inserts one snapshot with its parts atomically. Duplicate snapshot or
@@ -1158,23 +1158,6 @@ fn map_saved_view_row(row: &rusqlite::Row<'_>) -> Result<SavedDataView, MetaErro
         row.get(8).map_err(MetaError::Sqlite)?,
         row.get(9).map_err(MetaError::Sqlite)?,
     )
-}
-
-fn map_saved_view_row_result(
-    row: &rusqlite::Row<'_>,
-) -> rusqlite::Result<Result<SavedDataView, MetaError>> {
-    Ok(map_saved_view_row_inner(
-        row.get::<_, String>(0)?,
-        row.get::<_, String>(1)?,
-        row.get::<_, String>(2)?,
-        row.get::<_, String>(3)?,
-        row.get::<_, String>(4)?,
-        row.get::<_, String>(5)?,
-        row.get::<_, String>(6)?,
-        row.get::<_, String>(7)?,
-        row.get::<_, i64>(8)?,
-        row.get::<_, i64>(9)?,
-    ))
 }
 
 #[allow(clippy::too_many_arguments)]
