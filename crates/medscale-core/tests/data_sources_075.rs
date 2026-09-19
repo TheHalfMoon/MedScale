@@ -109,6 +109,12 @@ fn base_req(capability: Capability, body: RequestBody) -> AuthorityRequest {
 
 struct CallOk(medscale_contracts::envelopes::ResponseBody);
 
+impl std::fmt::Debug for CallOk {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "CallOk({:?})", self.0)
+    }
+}
+
 impl Harness {
     fn call(&self, capability: Capability, body: RequestBody) -> Result<CallOk, AuthorityError> {
         let mut request = base_req(capability, body);
