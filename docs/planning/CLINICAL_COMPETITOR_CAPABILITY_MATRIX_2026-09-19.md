@@ -21,6 +21,16 @@
 | Order/action proposals | Yes, clinician review | Not primary | No | Suki order staging | Controlled proposals + approval + durable outbox |
 | Coding suggestions | Yes/revenue-cycle alignment | Not primary | Model components possible | Suki/Freed coding | Licensed/rules-aware coding proposals with evidence |
 | Revenue-cycle review | First-class | No | No | Some scribe products add coding | Documentation-to-code discrepancy review |
+| Inpatient CDI before discharge | First-class | No | No | Varies | Conversation-grounded CDI candidates before signature/discharge, review required |
+| Pre-bill diagnosis/DRG review | Announced/current revenue-cycle capability | No | No | Varies | Evidence-backed diagnosis/DRG discrepancy review before submission |
+| E&M level support | Revenue-cycle workflow | OpenEvidence/other assistants have coding workflows | No | Suki/Freed category signal | Rules/licensing-aware E&M proposal with rationale; no billing authority |
+| HCC / risk-gap surfacing | Care Signals / revenue cycle | Not primary | No | Some assistants | Source-linked risk-gap/HCC candidates with visible provenance and review |
+| MEAT criteria support | Care Signals documentation workflow | Not primary | No | Varies | Explicit criteria/rationale support; never automatic coding authority |
+| Prior authorization | Abridge/Availity real-time direction | Drafting/workflow capabilities reported in current OpenEvidence ecosystem | No | Suki/category workflows | Draft, evidence assembly, submit/reconcile through explicit institutional adapter |
+| Pre-round / inpatient summary | Public 2026 platform direction | Visits/rounding support | No | Suki pre-visit category | Local patient-context pre-round summary with freshness/conflict state |
+| Clinical trial matching | Public 2026 platform direction | Deep research can inform | No | Varies | Local/controlled trial candidate matching with criterion-by-criterion evidence |
+| Secure patient communication | Not primary core | Dialer/calls/messaging/voicemail/fax product surface reported | No | Front-desk/communication category | Optional institution adapter; no default cloud dependency; channel-specific privacy |
+| Deep evidence synthesis | CDS | DeepConsult-style complex synthesis | No | CDS assistants vary | Transparent long-running Evidence Consult with plan, source set, gaps and immutable evidence snapshot |
 | Nursing documentation | First-class | No | No | Limited category coverage | AudioFlow Advanced nursing flowsheet/assessment drafts |
 | Care gaps/signals | Care Signals | Evidence Q&A can inform | No | Some assistants | Evidence-linked, explicitly non-authoritative signals |
 | Clinical evidence Q&A | CDS capability | Core | Model floor, not full product | Freed adds CDS | Local evidence copilot with rights-aware retrieval |
@@ -54,18 +64,28 @@
 
 Public Abridge product material describes one platform with clinician, nursing and revenue-cycle experiences plus CDS and Care Signals. Its core workflow includes EHR-integrated clinical notes, multiple care settings, multilingual support, prior-encounter and guideline context, clinician preferences, problem prediction/grouping, actionable outputs such as orders for clinician review, and Linked Evidence across source inputs.
 
-Reference:
-- https://www.abridge.com/product
+Current 2026 public material also expands the floor to pre-visit and pre-round summaries, clinical trial matching, inpatient CDI, real-time revenue-cycle intelligence, HCC/risk-gap workflows, evidence-backed pre-bill diagnosis/DRG discrepancy review, conversational nursing flowsheet drafts, and a payer-provider direction for real-time prior authorization.
+
+References:
+- https://www.abridge.com/
+- https://www.abridge.com/platform/clinicians
+- https://www.abridge.com/platform/nursing
+- https://www.abridge.com/platform/revenue-cycle
+- https://www.abridge.com/keynote
+- https://www.abridge.com/press-release/pre-bill-review-for-cdi-and-coding-teams
+- https://www.abridge.com/press-release/abridge-availity-collaboration-announcement
 
 ## OpenEvidence observations
 
-Peer-reviewed literature describes OpenEvidence as retrieval-augmented clinical question answering grounded in curated biomedical sources with explicit citations. Current product surfaces also include EvidenceGrade, voice interaction, licensed publisher/guideline content, education/CME-MOC features, patient TakeHome materials, and expanding visit/documentation functions.
+Peer-reviewed literature describes OpenEvidence as retrieval-augmented clinical question answering grounded in curated biomedical sources with explicit citations. Current product surfaces also include EvidenceGrade, voice interaction, licensed publisher/guideline content, education/CME-MOC features, patient TakeHome materials, and Visits-style clinical documentation/patient-document context. Secondary current product reviews also describe DeepConsult-style extended synthesis, privacy-oriented clinician-patient communications, and administrative/coding workflow expansion; these are research signals that must be reverified against primary product truth before implementation parity claims.
 
 References:
 - https://www.nature.com/articles/s41746-026-03077-4
 - https://www.nature.com/articles/s44401-026-00142-8
 - https://takehome.openevidence.com/
 - https://apps.apple.com/us/app/openevidence/id6612007783
+- https://www.newswise.com/articles/openevidence-launches-evidencegrade-empowering-physicians-to-see-the-strength-of-cited-evidence-beneath-each-ai-answer
+- https://www.newswise.com/articles/openevidence-wide-releases-ai-integrated-doctor-dialer-for-privacy-centric-doctor-patient-telemedicine-calls-messaging-and-voicemail-in-one-unified-clinical-platform-with-live-clinical-decision-ai-deeply-integrated
 
 The evidence base is still evolving; product usefulness does not remove the need for prospective validation and clinician judgment.
 
