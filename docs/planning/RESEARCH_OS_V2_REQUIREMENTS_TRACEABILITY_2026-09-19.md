@@ -113,11 +113,26 @@
 | CRQ-098 | Federation | multi-site later | 091-P | data-stays-site + statistical validity |
 | CRQ-099 | Arabic/RTL product UX | localization | 083/088/092-P | RTL + long-string + language tests |
 | CRQ-100 | Whole-platform release qualification | completion truth | 092-P | integrated authority/privacy/security/perf/recovery evidence |
+| CRQ-101 | Pre-round / inpatient context summary | Abridge 2026 platform direction + inpatient workflow | 088-P, 083-I | source-linked summary, freshness/conflict and omission benchmark |
+| CRQ-102 | Clinical-trial candidate matching | Abridge 2026 platform direction + research integration | 083/089-P, 080-I | criterion-by-criterion mapping, unknown handling, registry freshness |
+| CRQ-103 | Prior-authorization draft/evidence assembly | Abridge/Availity + current clinical-assistant category | 088-P, 090-I | source-grounded request packet, policy/rules version, clinician review |
+| CRQ-104 | Prior-authorization submit/status/reconcile | payer-provider workflow | 090-P | explicit EffectIntent, idempotency, denial/appeal/status and UNKNOWN reconciliation |
+| CRQ-105 | Inpatient CDI before discharge | Abridge revenue-cycle floor | 088-P, 090-I | documentation-gap/discrepancy fixtures with source evidence and review |
+| CRQ-106 | Pre-bill diagnosis/DRG discrepancy review | Abridge Sep 2026 capability | 088-P, 090-I | final-coded-vs-documentation comparison, evidence behind discrepancy |
+| CRQ-107 | E&M level proposal and rationale | current scribe/coding category | 088-P, 089-I | licensed/versioned rules, rationale, clinician/coder review, no billing-authority claim |
+| CRQ-108 | HCC / risk-gap candidate surfacing | Abridge Care Signals / RCM | 083-P, 088-I, 090-I | payer/EHR/registry source provenance, rationale, review state |
+| CRQ-109 | MEAT criteria documentation support | Abridge Care Signals workflow | 088-P, 089-I | explicit criteria version/rationale and source-linked evidence |
+| CRQ-110 | Conversational nursing flowsheet rows | Abridge nursing | 088-P | spoken-source-to-draft-row linkage, nurse verification before chart effect |
+| CRQ-111 | Cross-shift/unit nursing context | Abridge nursing/care coordination | 088-P, 083-I | source/freshness/role-scoped context and handoff evaluation |
+| CRQ-112 | Deep evidence consultation | OpenEvidence DeepConsult-style research workflow | 077-P, 080-I, 083-I | inspectable research plan, source set, subquestion synthesis, gaps and snapshot |
+| CRQ-113 | Secure clinician-patient communication | OpenEvidence Dialer/current communication category | 090-P, 079-I | channel-specific identity/privacy, consent, delivery/UNKNOWN receipts; local core unaffected |
+| CRQ-114 | Discharge planning / order-set suggestion workflow | OpenEvidence/clinical-assistant category | 088-P, 090-I | source/evidence-linked proposals, explicit review and controlled effects |
+| CRQ-115 | Evidence-aware encounter documentation | OpenEvidence Visits + Abridge CDS convergence | 077/081-P, 080/083-I | note assessment/plan can show evidence without conflating patient fact and general literature |
 
 ## Coverage assertion
 
 ```text
-TRACEABLE_REQUIREMENTS = 100
+TRACEABLE_REQUIREMENTS = 115
 UNASSIGNED_REQUIREMENTS = 0
 IMPLEMENTED_BY_THIS_DOCUMENT = 0
 IMPLEMENTATION_AUTHORITY_GRANTED = 0
