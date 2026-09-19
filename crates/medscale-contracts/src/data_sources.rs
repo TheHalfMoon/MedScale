@@ -595,6 +595,8 @@ impl SourceRevisionBinding {
 }
 
 /// Typed dataset cell. Missing values are `Null`, never zero/empty coercion.
+/// `Eq` is deliberately absent (`Float` has no total equality); use explicit
+/// comparison helpers in query paths.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "t", content = "v", rename_all = "snake_case")]
 pub enum CellValue {
@@ -1391,7 +1393,7 @@ pub struct DatasetReleaseSummary {
 }
 
 /// Bounded row page with an opaque cursor carrying the last row offset.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct SnapshotRowPage {
     pub rows: Vec<Vec<CellValue>>,
