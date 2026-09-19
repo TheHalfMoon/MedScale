@@ -507,6 +507,22 @@ Clinical-trial matching maps patient/source evidence to explicit registry criter
 
 Calls, messages, voicemail, fax and similar channels may support clinical operations, but they do not become a mandatory MedScale cloud/telephony layer. Each channel has explicit identity, consent, data-minimization, retention and delivery-effect semantics.
 
+## ADR-CR-025 — Research intent and amendments are durable artifacts
+
+Protocols, inclusion/exclusion criteria, search strategies, analysis plans and amendments are versioned Project artifacts. Post-hoc changes remain visible rather than rewriting preregistered intent.
+
+## ADR-CR-026 — Clinical tools are deterministic/versioned when possible
+
+Risk calculators, unit/dose calculations, guideline pathways and checklists use explicit inputs, units, formula/rule version, source references and test vectors. Model assistance may suggest or prefill inputs but does not replace deterministic execution or source validation.
+
+## ADR-CR-027 — Annotation provenance distinguishes human and model labels
+
+Dataset labels record schema version, source item, annotator identity/type, revision and review/adjudication state. Model-generated labels are proposals, never silently human ground truth.
+
+## ADR-CR-028 — Training output is never automatically admitted
+
+Any fine-tuned/trained model produced by Compute begins as a candidate artifact/ModelPack. It must pass normal rights, provenance, safety, quality, resource and Pack admission gates before it can appear as an admitted clinical/research runtime.
+
 ---
 
 # 6. User-visible product surfaces
@@ -519,6 +535,7 @@ Calls, messages, voicemail, fax and similar channels may support clinical operat
 - Encounter Workspace
 - Local Scribe
 - Clinical Evidence Copilot
+- Clinical Tools / Calculators / Pathways
 - Problems / Medications / Results / Documents
 - Clinical Graph
 - Orders / Tasks / Action Proposals
@@ -547,7 +564,11 @@ Calls, messages, voicemail, fax and similar channels may support clinical operat
 - Models / Model Compare
 - MedAgent
 - Research Packs
+- Systematic Review / Screening
+- Study Extraction / Risk of Bias
 - Manuscript / Reports
+- Dataset Annotation / Adjudication
+- Model Research / Evaluation
 - Team / Review
 
 ## Platform
@@ -651,14 +672,23 @@ One governed source/snapshot contract for every later data consumer, plus the fi
 - large-table pagination/virtualization;
 - resource budgets.
 
-### 075-09 Qualification
+### 075-09 Dataset release / annotation-schema foundation
+- versioned Dataset Card;
+- immutable dataset release manifest;
+- split/group metadata;
+- annotation schema identity/version;
+- annotation task references remain collaboration-owned rather than inventing a second task system;
+- privacy/rights state remains explicit.
+
+### 075-10 Qualification
 - local/offline file path;
 - DB snapshot path;
 - HF/Kaggle exact-revision path;
 - secret leakage tests;
 - malformed data tests;
 - migration/reopen;
-- provenance.
+- provenance;
+- dataset-release/version lineage.
 
 ## Closure gate
 
@@ -690,8 +720,11 @@ Local searchable timeline; tamper-evident checkpoints; source refs.
 ### 076-05 Offline/restart
 Single-device collaboration semantics work without Hub; durable restart and conflict simulation.
 
-### 076-06 Qualification
-Agent participation cannot imply authority; canonical artifacts cannot be mutated through collaboration events.
+### 076-06 Research review / annotation adjudication
+Reuse collaboration contracts for dual screening, annotation review, conflict queues, adjudication and reviewer provenance. Do not create a separate reviewer/assignment authority for systematic reviews or datasets.
+
+### 076-07 Qualification
+Agent participation cannot imply authority; canonical artifacts cannot be mutated through collaboration events; blinded/independent review state and adjudication provenance survive restart.
 
 ---
 
@@ -729,8 +762,11 @@ Conversation + outcome pane + evidence inspector; interrupt/steer; provenance vi
 ### 077-08 Failure/safety
 Insufficient evidence; conflicting evidence; model unavailable; tool denied; context stale.
 
-### 077-09 Qualification
-Real local run, exact model/runtime receipt, no hidden network or vault enumeration.
+### 077-09 Clinical tool invocation
+Discover and invoke admitted deterministic ClinicalTool manifests through explicit typed inputs. Model may propose a relevant tool or prefill sourced values; missing/ambiguous inputs cannot be guessed silently.
+
+### 077-10 Qualification
+Real local run, exact model/runtime/tool receipts, no hidden network or vault enumeration.
 
 ---
 
@@ -901,8 +937,11 @@ NL query/method/formula proposal only; deterministic validator/executor.
 ### 082-07 Reproducibility
 Restart/replay; source refresh does not alter old run; deterministic seed where applicable.
 
-### 082-08 Qualification
-Independent fixtures for statistical correctness; large-data budgets; cancellation/timeout.
+### 082-08 Research synthesis analytics
+Support structured systematic-review data, inter-rater agreement, effect-size/meta-analysis workflows and model-evaluation statistics through exact DataSnapshot/AnalysisRun bindings. Advanced methods may use R/Compute when native support is not justified.
+
+### 082-09 Qualification
+Independent fixtures for statistical correctness; systematic-review/meta-analysis oracle cases; split/leakage checks where model research uses the Analytics plane; large-data budgets; cancellation/timeout.
 
 ---
 
@@ -943,8 +982,11 @@ Summary, timeline, encounters, scribe, problems, meds, results, documents, evide
 ### 083-09 AFFiNE donor qualification
 Exact files/components only if needed and license-compatible; otherwise native reimplementation.
 
-### 083-10 Qualification
-Graph rebuild consistency; no cross-project leaks; no silent identity merge; workspace views preserve object identity.
+### 083-10 Systematic review + manuscript workflow
+Versioned protocol, search receipts, screening states, inclusion/exclusion reasons, study extraction, risk-of-bias artifacts, evidence synthesis links, PRISMA-style event-derived flow and manuscript/report artifact composition.
+
+### 083-11 Qualification
+Graph rebuild consistency; no cross-project leaks; no silent identity merge; workspace views preserve object identity; protocol/screening/extraction/manuscript references remain revision-consistent.
 
 ---
 
@@ -1004,8 +1046,11 @@ Digest/schema/classification/policy validation before artifact creation.
 ### 085-06 Remote self-host worker
 Only after local proof; authenticated/staged; no vault mount.
 
-### 085-07 Qualification
-Filesystem escape, egress denial, timeout/OOM/crash/late result, reproducibility.
+### 085-07 Model research jobs
+Permit bounded evaluation and, only when rights/privacy/resource policy allows, training/fine-tuning jobs over staged exact dataset releases. Job output is candidate artifact only and cannot self-admit into Model Fleet.
+
+### 085-08 Qualification
+Filesystem escape, egress denial, timeout/OOM/crash/late result, reproducibility, data-split access controls, training-output candidate/admission separation.
 
 ---
 
@@ -1123,7 +1168,10 @@ Multi-hour sessions, crash/restart, capture-device changes, low-power degradatio
 - clinical template Pack;
 - benchmark/evaluation Pack;
 - research-method Pack;
-- dataset schema/validation Pack.
+- systematic-review method/template Pack;
+- ClinicalTool Pack;
+- dataset schema/validation Pack;
+- dataset/evaluation benchmark Pack.
 
 ## Slices
 
@@ -1261,8 +1309,8 @@ Execute the governed protocol in `LOCAL_MEDICAL_SCRIBE_EVALUATION_PROTOCOL_2026-
 ### 092-E Evidence quality
 Execute `EVIDENCE_ENGINE_EVALUATION_PROTOCOL_2026-09-19.md`: citation identity, claim support, retrieval, evidence quality, contradiction, applicability, guideline/jurisdiction conflict, retraction/correction, rights and deep-synthesis fixtures.
 
-### 092-F Analytics
-Snapshot reproducibility, statistical correctness, R/Compute publication and provenance.
+### 092-F Analytics + research reproducibility
+Snapshot reproducibility, statistical correctness, R/Compute publication and provenance, systematic-review replay, protocol amendment history, screening/extraction consistency, meta-analysis oracle cases and manuscript artifact freshness.
 
 ### 092-G Graph/workspace
 Projection rebuild, temporal queries, identity/conflict safety, cross-view ID consistency.
@@ -1286,7 +1334,10 @@ Keyboard/focus, screen reader semantics where platform supports, reduced motion,
 Signed/checksummed artifacts, SBOM/NOTICE, Pack update/revocation, app upgrade/rollback.
 
 ### 092-N Human validation
-Clinician and researcher usability/safety study protocol using authorized non-production/synthetic or appropriately approved data.
+Clinician and researcher usability/safety study protocol using authorized non-production/synthetic or appropriately approved data. Research workflow validation includes screening/adjudication, extraction, analysis and report traceability.
+
+### 092-N2 Clinical tools / model research
+Deterministic clinical-tool test vectors, medication/reference coverage honesty, dataset split/leakage checks, annotation provenance and training-output-to-Pack admission separation.
 
 ### 092-O Release truth
 Reconcile every release/privacy/multi-client gate. No release claim from partial success.
