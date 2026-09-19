@@ -863,7 +863,7 @@ impl DataSources<'_> {
                 .as_ref()
                 .map(|r| r.snapshot.header.id.clone())
                 .unwrap_or_else(|| OpaqueId::new("none")),
-            new_snapshot_id: OpaqueId::new("pending"),
+            new_snapshot_id: None,
             change_class,
             outcome: AcquireOutcome::Complete,
             warnings: table.warnings.clone(),
