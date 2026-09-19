@@ -803,3 +803,49 @@ fn remote_import_without_allowlist_denies_before_socket() {
         .expect_err("remote without allowlist must fail");
     assert!(matches!(err, AuthorityError::Unauthorized), "{err:?}");
 }
+
+#[test]
+fn large_table_import_pages_correctly() {
+    // Scale fixture: 20,000 deterministic rows. Correctness (counts, paging
+    // stability, part digests) is asserted; timings are recorded in
+    // SCALE_MEASUREMENTS.md from CI logs without budget claims.
+    let h = setup("csv-scale");
+    let project = h.project();
+    let mut bytes = b"city,dose\n".to_vec();
+    for index in 0..20_000_u32 {
+        bytes.extend_from_slice(format!("town-{index},{}\n", index % 1000).as_bytes());
+    }
+    h.write_fixture("big.csv", &bytes);
+    let source = h.csv_source(&project, "big", "big.csv");
+    let (snapshot, receipt) = h.import(&source);
+    assert_eq!(snapshot.row_count, 20_000);
+    assert_eq!(receipt.rows_materialized, 20_000);
+    // Stable paging across the whole snapshot.
+    let mut seen = 0_u64;
+    let mut cursor = None;
+    loop {
+        let page = match h
+            .call(
+                Capability::SnapshotRead,
+                RequestBody::SnapshotRows {
+                    snapshot_id: snapshot.header.id.clone(),
+                    limit: Some(1_000),
+                    cursor,
+                    filters: vec![],
+                    sort: vec![],
+                },
+            )
+            .expect("page")
+            .0
+        {
+            medscale_contracts::envelopes::ResponseBody::SnapshotRows { page } => page,
+            other => panic!("{other:?}"),
+        };
+        seen += page.rows.len() as u64;
+        cursor = page.next_cursor;
+        if cursor.is_none() {
+            break;
+        }
+    }
+    assert_eq!(seen, 20_000);
+}
