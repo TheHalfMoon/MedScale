@@ -3,6 +3,7 @@
 mod backup;
 mod blob;
 mod claim;
+mod data_sources;
 mod encrypted_vault;
 mod gc;
 mod migrate;
@@ -16,6 +17,7 @@ mod writer_lock;
 pub use backup::{backup_vault, restore_vault};
 pub use blob::FsBlobStore;
 pub use claim::{ClaimError, assert_claim_path};
+pub use data_sources::{SnapshotRecord, TransformationRecord};
 pub use encrypted_vault::{EncryptedVault, EncryptedVaultError, default_vault_root};
 pub use gc::{GcStats, run_gc};
 pub use migrate::MigrationJournal;
