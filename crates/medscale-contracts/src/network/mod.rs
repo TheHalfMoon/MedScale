@@ -15,6 +15,7 @@ pub enum EgressPurpose {
     ProfileOracleFixture,
     IntegrityCheck,
     ConformanceEvidenceAttach,
+    DatasetMirrorRead,
 }
 
 /// Data class declared on the request (MVP vocabulary).

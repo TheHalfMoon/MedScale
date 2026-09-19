@@ -2,6 +2,8 @@
 
 mod amend;
 mod corpus;
+mod data_acquire;
+mod data_sources;
 mod document_ops;
 mod durable;
 mod facade;

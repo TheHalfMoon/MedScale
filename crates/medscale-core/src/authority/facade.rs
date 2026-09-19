@@ -148,6 +148,48 @@ impl CoreFacade {
         })
     }
 
+    /// Runs one Spec 075 data-source operation with lease enforcement and
+    /// vault-meta/blob access (synthetic or encrypted). Surfaces never touch
+    /// storage, drivers, or transports: this is the only path from request
+    /// to data-source rows. Remote acquisition is brokered through the
+    /// fixture transport; live hosts stay external-gate refused.
+    fn ds<R>(
+        &self,
+        vault_id: &medscale_contracts::objects::VaultId,
+        realm: medscale_contracts::objects::RealmId,
+        scope: medscale_contracts::objects::AuthorityScopeId,
+        session_id: Option<medscale_contracts::objects::OpaqueId>,
+        op: impl FnOnce(super::data_sources::DataSources<'_>) -> Result<R, AuthorityError>,
+    ) -> Result<R, AuthorityError> {
+        self.require_lease(vault_id)?;
+        // Lock order vault -> store matches the existing multi-lock arms and
+        // keeps no new lock ordering in the lane.
+        let vault_guard = self.vault();
+        let enc_guard = self.encrypted();
+        let backend = if let Some(enc) = enc_guard.as_ref() {
+            super::data_sources::SnapshotBlobBackend::Encrypted(enc)
+        } else if let Some(vault) = vault_guard.as_ref() {
+            super::data_sources::SnapshotBlobBackend::Synthetic(vault)
+        } else {
+            return Err(AuthorityError::VaultRequired);
+        };
+        let mut store = self.store();
+        let allow_guard = self.allowlist();
+        let transport = FixtureTransport;
+        op(super::data_sources::DataSources {
+            store: &mut store,
+            backend,
+            allowlist: &allow_guard,
+            transport: &transport,
+            sessions: &self.sessions,
+            leases: &self.leases,
+            vault_id,
+            realm,
+            scope,
+            session_id,
+        })
+    }
+
     fn allowlist(&self) -> std::sync::MutexGuard<'_, Vec<EgressAllowlistEntry>> {
         self.allowlist
             .lock()
@@ -1680,6 +1722,290 @@ impl CoreFacade {
                 )?;
                 Ok(ResponseBody::ProjectSummary { summary })
             }
+            // Spec 075 data source fabric: every arm runs through `ds`
+            // (lease + session gate already enforced above + meta + blobs).
+            // No arm touches storage, drivers, or transports except through
+            // `DataSources` methods.
+            RequestBody::DataSourceCreate {
+                project_id,
+                display_name,
+                locator,
+                credential_ref,
+            } => {
+                let source = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut ds| ds.create_source(project_id, display_name, locator, credential_ref),
+                )?;
+                Ok(ResponseBody::DataSource { source })
+            }
+            RequestBody::DataSourceGet { source_id } => {
+                let source = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |ds| ds.get_source(&source_id),
+                )?;
+                Ok(ResponseBody::DataSource { source })
+            }
+            RequestBody::DataSourceList {
+                project_id,
+                limit,
+                cursor,
+            } => {
+                let (sources, next_cursor) = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |ds| ds.list_sources(&project_id, limit, &cursor),
+                )?;
+                Ok(ResponseBody::DataSourceList {
+                    sources,
+                    next_cursor,
+                })
+            }
+            RequestBody::DataSourceUpdate {
+                source_id,
+                expected_revision,
+                display_name,
+                credential_ref,
+            } => {
+                let source = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut ds| {
+                        ds.update_source(
+                            &source_id,
+                            expected_revision,
+                            display_name,
+                            credential_ref,
+                        )
+                    },
+                )?;
+                Ok(ResponseBody::DataSource { source })
+            }
+            RequestBody::DataSourceArchive {
+                source_id,
+                expected_revision,
+            } => {
+                let source = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut ds| ds.archive_source(&source_id, expected_revision),
+                )?;
+                Ok(ResponseBody::DataSource { source })
+            }
+            RequestBody::SnapshotImport { source_id } => {
+                let (snapshot, receipt) = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut ds| ds.import_source(&source_id),
+                )?;
+                Ok(ResponseBody::SnapshotImported { snapshot, receipt })
+            }
+            RequestBody::SnapshotPreview {
+                source_id,
+                max_rows,
+            } => {
+                let (schema, rows) = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |ds| ds.preview_source(&source_id, max_rows),
+                )?;
+                Ok(ResponseBody::SnapshotPreview { schema, rows })
+            }
+            RequestBody::SnapshotGet { snapshot_id } => {
+                let record = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |ds| ds.get_snapshot(&snapshot_id),
+                )?;
+                Ok(ResponseBody::Snapshot {
+                    snapshot: record.snapshot,
+                })
+            }
+            RequestBody::SnapshotList {
+                source_id,
+                limit,
+                cursor,
+            } => {
+                let (snapshots, next_cursor) = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |ds| ds.list_snapshots(&source_id, limit, &cursor),
+                )?;
+                Ok(ResponseBody::SnapshotList {
+                    snapshots,
+                    next_cursor,
+                })
+            }
+            RequestBody::SnapshotRows {
+                snapshot_id,
+                limit,
+                cursor,
+                filters,
+                sort,
+            } => {
+                let page = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |ds| ds.snapshot_rows(&snapshot_id, limit, &cursor, &filters, &sort),
+                )?;
+                Ok(ResponseBody::SnapshotRows { page })
+            }
+            RequestBody::SnapshotRefresh {
+                source_id,
+                allow_schema_change,
+            } => {
+                let (receipt, record) = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut ds| ds.refresh_source(&source_id, allow_schema_change),
+                )?;
+                Ok(ResponseBody::SnapshotRefreshed {
+                    receipt,
+                    snapshot: record.map(|record| record.snapshot),
+                })
+            }
+            RequestBody::SavedViewCreate {
+                snapshot_id,
+                view_kind,
+                state,
+            } => {
+                let view = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut ds| ds.create_view(snapshot_id, view_kind, state),
+                )?;
+                Ok(ResponseBody::SavedView { view })
+            }
+            RequestBody::SavedViewGet { view_id } => {
+                let view = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |ds| ds.get_view(&view_id),
+                )?;
+                Ok(ResponseBody::SavedView { view })
+            }
+            RequestBody::SavedViewList {
+                snapshot_id,
+                limit,
+                cursor,
+            } => {
+                let (views, next_cursor) = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |ds| ds.list_views(&snapshot_id, limit, &cursor),
+                )?;
+                Ok(ResponseBody::SavedViewList { views, next_cursor })
+            }
+            RequestBody::SavedViewUpdate {
+                view_id,
+                expected_revision,
+                state,
+            } => {
+                let view = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut ds| ds.update_view(&view_id, expected_revision, state),
+                )?;
+                Ok(ResponseBody::SavedView { view })
+            }
+            RequestBody::TransformExecute {
+                input_snapshot_ids,
+                ops,
+            } => {
+                let (snapshot, receipt) = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut ds| ds.execute_transformation(input_snapshot_ids, ops),
+                )?;
+                Ok(ResponseBody::Transformed {
+                    snapshot: snapshot.snapshot,
+                    receipt,
+                })
+            }
+            RequestBody::DatasetReleaseCreate {
+                snapshot_id,
+                version,
+                split_group,
+                annotation_schema_ref,
+                rights_state,
+            } => {
+                let release = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut ds| {
+                        ds.create_release(
+                            snapshot_id,
+                            version,
+                            split_group,
+                            annotation_schema_ref,
+                            rights_state,
+                        )
+                    },
+                )?;
+                Ok(ResponseBody::DatasetRelease { release })
+            }
+            RequestBody::DatasetReleaseGet { release_id } => {
+                let release = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |ds| ds.get_release(&release_id),
+                )?;
+                Ok(ResponseBody::DatasetRelease { release })
+            }
+            RequestBody::DatasetReleaseList {
+                project_id,
+                limit,
+                cursor,
+            } => {
+                let (releases, next_cursor) = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |ds| ds.list_releases(&project_id, limit, &cursor),
+                )?;
+                Ok(ResponseBody::DatasetReleaseList {
+                    releases,
+                    next_cursor,
+                })
+            }
         }
     }
 }
@@ -1907,6 +2233,67 @@ fn capability_matches(cap: &Capability, body: &RequestBody) -> bool {
             | (
                 Capability::ProjectRead,
                 RequestBody::ProjectSummaryQuery { .. }
+            )
+            | (
+                Capability::DataSourceCreate,
+                RequestBody::DataSourceCreate { .. }
+            )
+            | (
+                Capability::DataSourceRead,
+                RequestBody::DataSourceGet { .. }
+            )
+            | (
+                Capability::DataSourceRead,
+                RequestBody::DataSourceList { .. }
+            )
+            | (
+                Capability::DataSourceUpdate,
+                RequestBody::DataSourceUpdate { .. }
+            )
+            | (
+                Capability::DataSourceArchive,
+                RequestBody::DataSourceArchive { .. }
+            )
+            | (
+                Capability::SnapshotImport,
+                RequestBody::SnapshotImport { .. }
+            )
+            | (
+                Capability::SnapshotPreview,
+                RequestBody::SnapshotPreview { .. }
+            )
+            | (Capability::SnapshotRead, RequestBody::SnapshotGet { .. })
+            | (Capability::SnapshotRead, RequestBody::SnapshotList { .. })
+            | (Capability::SnapshotRead, RequestBody::SnapshotRows { .. })
+            | (
+                Capability::SnapshotRefresh,
+                RequestBody::SnapshotRefresh { .. }
+            )
+            | (
+                Capability::SavedViewCreate,
+                RequestBody::SavedViewCreate { .. }
+            )
+            | (Capability::SavedViewRead, RequestBody::SavedViewGet { .. })
+            | (Capability::SavedViewRead, RequestBody::SavedViewList { .. })
+            | (
+                Capability::SavedViewUpdate,
+                RequestBody::SavedViewUpdate { .. }
+            )
+            | (
+                Capability::TransformExecute,
+                RequestBody::TransformExecute { .. }
+            )
+            | (
+                Capability::DatasetReleaseCreate,
+                RequestBody::DatasetReleaseCreate { .. }
+            )
+            | (
+                Capability::DatasetReleaseRead,
+                RequestBody::DatasetReleaseGet { .. }
+            )
+            | (
+                Capability::DatasetReleaseRead,
+                RequestBody::DatasetReleaseList { .. }
             )
     )
 }

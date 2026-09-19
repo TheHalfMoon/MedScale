@@ -914,6 +914,23 @@ impl SqliteMetaStore {
         }
     }
 
+    /// Finds a snapshot by exact content digest (idempotent re-import).
+    pub fn find_snapshot_by_digest(
+        &self,
+        source_id: &OpaqueId,
+        digest: &DigestSha256,
+    ) -> Result<Option<SnapshotRecord>, MetaError> {
+        let mut stmt = self.conn().prepare(
+            "SELECT snapshot_id, source_id, parent_snapshot_id, project_id, realm_id, authority_scope_id, source_revision_json, schema_json, schema_fingerprint_hex, row_count, content_digest_hex, status, schema_version
+             FROM data_snapshots WHERE source_id = ?1 AND content_digest_hex = ?2",
+        )?;
+        let mut rows = stmt.query(params![source_id.as_str(), digest_hex(digest)])?;
+        match rows.next()? {
+            None => Ok(None),
+            Some(row) => Ok(Some(map_snapshot_row(row)?)),
+        }
+    }
+
     /// Full snapshot scan for snapshot export (bounded callers only).
     pub fn list_all_snapshots(&self) -> Result<Vec<SnapshotRecord>, MetaError> {
         let mut stmt = self.conn().prepare(
@@ -1763,5 +1780,168 @@ fn map_release_row_parts(
         release_id: OpaqueId::new(id.to_owned()),
         card,
         snapshot_digest: parse_digest_hex(digest_hex_str, "snapshot")?,
+    })
+}
+
+// ---------- external SQLite read adapter ----------
+
+/// Maximum tables returned by bounded external discovery.
+pub const EXTERNAL_TABLES_MAX: usize = 256;
+
+/// Maximum identifier length for external table names.
+pub const EXTERNAL_IDENTIFIER_MAX_CHARS: usize = 128;
+
+/// One cell read from an external SQLite table. BLOB values are refused at
+/// read time (explicit `UnsupportedSchema`), never silently decoded.
+#[derive(Debug, Clone, PartialEq)]
+pub enum ExternalCell {
+    Null,
+    Integer(i64),
+    Real(f64),
+    Text(String),
+}
+
+/// One table read from an external SQLite file: column names in ordinal order
+/// plus nullability from `PRAGMA table_info`, and bounded value rows.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ExternalTable {
+    pub columns: Vec<String>,
+    pub not_null: Vec<bool>,
+    pub rows: Vec<Vec<ExternalCell>>,
+}
+
+/// Validates an external table identifier against a closed charset. No free
+/// SQL passes this boundary; the identifier is still quoted at use.
+pub fn validate_external_identifier(table: &str) -> Result<(), MetaError> {
+    if table.is_empty() || table.chars().count() > EXTERNAL_IDENTIFIER_MAX_CHARS {
+        return Err(MetaError::UnsupportedSchema(
+            "external table name out of bound".to_owned(),
+        ));
+    }
+    let mut chars = table.chars();
+    let first = chars.next().unwrap_or('0');
+    if !(first.is_ascii_alphabetic() || first == '_') {
+        return Err(MetaError::UnsupportedSchema(
+            "external table name must start with a letter or underscore".to_owned(),
+        ));
+    }
+    if !table.chars().all(|c| c.is_ascii_alphanumeric() || c == '_') {
+        return Err(MetaError::UnsupportedSchema(
+            "external table name uses unsupported characters".to_owned(),
+        ));
+    }
+    if table.to_ascii_lowercase().starts_with("sqlite_") {
+        return Err(MetaError::UnsupportedSchema(
+            "sqlite internal tables are not readable sources".to_owned(),
+        ));
+    }
+    Ok(())
+}
+
+fn open_external_readonly(db_path: &std::path::Path) -> Result<rusqlite::Connection, MetaError> {
+    if !db_path.is_file() {
+        return Err(MetaError::NotFound);
+    }
+    let conn =
+        rusqlite::Connection::open_with_flags(db_path, rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY)?;
+    // Defense in depth: read-only open plus query-only pragma.
+    conn.execute_batch("PRAGMA query_only = ON;")?;
+    Ok(conn)
+}
+
+/// Bounded external schema discovery: user tables in name order, charset
+/// filtered, capped. Internal `sqlite_%` tables are never listed.
+pub fn list_external_sqlite_tables(db_path: &std::path::Path) -> Result<Vec<String>, MetaError> {
+    let conn = open_external_readonly(db_path)?;
+    let mut stmt =
+        conn.prepare("SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name LIMIT ?1")?;
+    let mapped = stmt.query_map(params![EXTERNAL_TABLES_MAX as i64 + 1], |row| {
+        row.get::<_, String>(0)
+    })?;
+    let mut out = Vec::new();
+    for row in mapped {
+        let name = row.map_err(to_meta)?;
+        if validate_external_identifier(&name).is_ok() {
+            out.push(name);
+        }
+        if out.len() > EXTERNAL_TABLES_MAX {
+            break;
+        }
+    }
+    Ok(out)
+}
+
+/// Reads one external table read-only with an explicit row bound. BLOB cells
+/// fail the whole read as `UnsupportedSchema`; no partial binary decoding.
+pub fn read_external_sqlite_table(
+    db_path: &std::path::Path,
+    table: &str,
+    max_rows: u64,
+) -> Result<ExternalTable, MetaError> {
+    validate_external_identifier(table)?;
+    let conn = open_external_readonly(db_path)?;
+    let known: Vec<String> = list_external_sqlite_tables(db_path)?;
+    if !known.iter().any(|t| t == table) {
+        return Err(MetaError::NotFound);
+    }
+    let quoted = format!("\"{}\"", table.replace('"', "\"\""));
+    let info: Vec<(String, bool)> = {
+        let mut stmt = conn.prepare(&format!("PRAGMA table_info({quoted})"))?;
+        let mapped = stmt.query_map([], |row| {
+            Ok((row.get::<_, String>(1)?, row.get::<_, i64>(3)?))
+        })?;
+        let mut cols = Vec::new();
+        for row in mapped {
+            let (name, notnull) = row.map_err(to_meta)?;
+            cols.push((name, notnull != 0));
+        }
+        cols
+    };
+    if info.is_empty() || info.len() > medscale_contracts::data_sources::SCHEMA_FIELDS_MAX {
+        return Err(MetaError::UnsupportedSchema(
+            "external table has no usable columns".to_owned(),
+        ));
+    }
+    let bound = max_rows
+        .clamp(1, medscale_contracts::data_sources::SNAPSHOT_ROWS_MAX)
+        .to_string();
+    let mut stmt = conn.prepare(&format!("SELECT * FROM {quoted} LIMIT {bound}"))?;
+    let width = stmt.column_count();
+    let mut rows = stmt.query([])?;
+    let mut out_rows = Vec::new();
+    while let Some(row) = rows.next()? {
+        let mut out_row = Vec::with_capacity(width);
+        for index in 0..width {
+            let value: rusqlite::types::Value = row.get(index)?;
+            out_row.push(match value {
+                rusqlite::types::Value::Null => ExternalCell::Null,
+                rusqlite::types::Value::Integer(v) => ExternalCell::Integer(v),
+                rusqlite::types::Value::Real(v) => ExternalCell::Real(v),
+                rusqlite::types::Value::Text(v) => {
+                    if v.len() > medscale_contracts::data_sources::CELL_TEXT_MAX_BYTES {
+                        return Err(MetaError::UnsupportedSchema(
+                            "external text cell exceeds bound".to_owned(),
+                        ));
+                    }
+                    if v.contains('\0') {
+                        return Err(MetaError::UnsupportedSchema(
+                            "external text cell contains NUL".to_owned(),
+                        ));
+                    }
+                    ExternalCell::Text(v)
+                }
+                rusqlite::types::Value::Blob(_) => {
+                    return Err(MetaError::UnsupportedSchema(
+                        "external BLOB columns are not readable sources".to_owned(),
+                    ));
+                }
+            });
+        }
+        out_rows.push(out_row);
+    }
+    Ok(ExternalTable {
+        columns: info.iter().map(|(name, _)| name.clone()).collect(),
+        not_null: info.into_iter().map(|(_, nn)| nn).collect(),
+        rows: out_rows,
     })
 }

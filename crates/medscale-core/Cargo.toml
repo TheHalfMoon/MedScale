@@ -20,5 +20,11 @@ serde_json = { workspace = true }
 sha2 = { workspace = true }
 thiserror = { workspace = true }
 
+# Spec 075 tests only: reuse the workspace-qualified rusqlite to build
+# external-SQLite fixtures. No product dependency edge is added (core still
+# reaches SQLite exclusively through medscale-storage).
+[dev-dependencies]
+rusqlite = { workspace = true }
+
 [lints]
 workspace = true
