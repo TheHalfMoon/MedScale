@@ -128,11 +128,36 @@
 | CRQ-113 | Secure clinician-patient communication | OpenEvidence Dialer/current communication category | 090-P, 079-I | channel-specific identity/privacy, consent, delivery/UNKNOWN receipts; local core unaffected |
 | CRQ-114 | Discharge planning / order-set suggestion workflow | OpenEvidence/clinical-assistant category | 088-P, 090-I | source/evidence-linked proposals, explicit review and controlled effects |
 | CRQ-115 | Evidence-aware encounter documentation | OpenEvidence Visits + Abridge CDS convergence | 077/081-P, 080/083-I | note assessment/plan can show evidence without conflating patient fact and general literature |
+| CRQ-116 | Versioned research protocol / preregistration artifact | research integrity | 083-P | amendment history, prespecified vs post-hoc state |
+| CRQ-117 | Citation library import/export | researcher workflow / Zotero interoperability | 083-P | BibTeX/RIS/CSL/DOI round-trip identity |
+| CRQ-118 | Reproducible literature search strategy | systematic review | 080-P, 083-I | exact query/source/date/count receipt |
+| CRQ-119 | Title/abstract/full-text screening | systematic review | 083-P, 076-I | inclusion/exclusion reasons + source identity |
+| CRQ-120 | Dual independent screening + adjudication | systematic review quality | 076-P, 083-I | blinded decisions, conflict queue, adjudicator audit |
+| CRQ-121 | PRISMA-style review flow | systematic review reporting | 083-P | counts derived from real screening events |
+| CRQ-122 | Structured study data extraction | systematic review | 083-P, 075-I | cell/span provenance + reviewer state |
+| CRQ-123 | Risk-of-bias / quality appraisal workflow | evidence synthesis | 083-P, 089-I | versioned framework, source-linked answers, reviewer audit |
+| CRQ-124 | Meta-analysis and evidence synthesis | research analytics | 082-P, 086-I | exact extracted data + method/runtime + oracle fixtures |
+| CRQ-125 | Living systematic review refresh | evidence maintenance | 080/083/089-P | new search/corpus/screening/synthesis delta without rewriting prior version |
+| CRQ-126 | Reproducible manuscript/report workspace | researcher workflow | 083-P | citation/figure/table artifact bindings + export manifest |
+| CRQ-127 | Deterministic clinical calculators | CDS completeness | 089-P, 077-I | versioned formula/tool, unit handling, published test vectors |
+| CRQ-128 | Guideline pathways / checklists | CDS completeness | 089-P, 083-I | guideline/version/jurisdiction + traceable rule path |
+| CRQ-129 | Medication/interaction/dosing reference Packs | clinical decision support | 089-P, 090-I | explicit data rights/version/coverage + source-linked result |
+| CRQ-130 | Clinical-tool input provenance | safety | 083-P, 089-I | every prefilled input has source/time/authority; missing is not zero |
+| CRQ-131 | Dataset card / governance metadata | research datasets | 075-P | source/rights/schema/privacy/bias/splits/checksums |
+| CRQ-132 | Versioned annotation schemas/tasks | dataset curation | 075-P, 076-I | exact dataset item/schema/reviewer/revision |
+| CRQ-133 | Annotation review/adjudication + agreement | dataset quality | 076-P, 082-I | independent labels, conflicts, adjudication, agreement metric |
+| CRQ-134 | Model-assisted annotation / active learning | medical AI research | 078-P, 075/076-I | model identity, suggestion-vs-human separation, held-out protection |
+| CRQ-135 | Dataset release/versioning | reproducibility | 075-P, 079-I | immutable release manifest, lineage, privacy/rights state |
+| CRQ-136 | Patient/site-aware train/eval split integrity | medical ML safety | 082-P, 085-I | leakage checks, group/temporal split manifest |
+| CRQ-137 | Reproducible model experiment artifact | medical AI research | 074/085-P, 078-I | data/code/config/env/seed/hardware/output identities |
+| CRQ-138 | Fine-tuning/training job as bounded research capability | lab workflow | 085-P, 079/089-I | rights/privacy/resource-gated job; no ambient vault/network |
+| CRQ-139 | Held-out model evaluation and subgroup/calibration analysis | model science | 078/082-P, 089-I | frozen benchmark, contamination checks, subgroup/calibration/safety metrics |
+| CRQ-140 | Training output -> candidate ModelPack -> independent admission | authority separation | 078-P, 085/089-I | no trained output becomes admitted without normal Pack qualification |
 
 ## Coverage assertion
 
 ```text
-TRACEABLE_REQUIREMENTS = 115
+TRACEABLE_REQUIREMENTS = 140
 UNASSIGNED_REQUIREMENTS = 0
 IMPLEMENTED_BY_THIS_DOCUMENT = 0
 IMPLEMENTATION_AUTHORITY_GRANTED = 0
