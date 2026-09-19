@@ -13,6 +13,7 @@ use std::time::Duration;
 
 use slint::{ComponentHandle, ModelRc, VecModel};
 
+mod data_workbench;
 mod patient_workspace;
 mod population_insights;
 mod product_intelligence;
@@ -107,6 +108,89 @@ fn refresh_project_list(ui: &AppWindow, session: &Rc<RefCell<CliSession>>) {
             ui.set_project_rows(ModelRc::new(VecModel::from(Vec::new())));
             ui.set_project_status(project_workspace::status_message(&err).into());
         }
+    }
+}
+
+/// Refreshes the Data Source list for the active Project from Core.
+fn refresh_data_sources(ui: &AppWindow, session: &Rc<RefCell<CliSession>>) {
+    let project_id = ui.get_project_active_id().to_string();
+    if project_id.is_empty() {
+        ui.set_data_status("Open a project to inspect its data sources".into());
+        ui.set_data_sources(ModelRc::new(VecModel::from(Vec::new())));
+        return;
+    }
+    match data_workbench::refresh_sources(&mut session.borrow_mut(), &project_id) {
+        Ok(rows) => {
+            if rows.is_empty() {
+                ui.set_data_status("No data sources yet in this project".into());
+            } else {
+                ui.set_data_status(
+                    format!(
+                        "{} source{} · Core-backed",
+                        rows.len(),
+                        if rows.len() == 1 { "" } else { "s" }
+                    )
+                    .into(),
+                );
+            }
+            ui.set_data_sources(ModelRc::new(VecModel::from_iter(rows.iter().map(|row| {
+                DataSourceRowItem {
+                    id: row.id.clone().into(),
+                    name: row.name.clone().into(),
+                    kind: row.kind.clone().into(),
+                    health: row.health.clone().into(),
+                    revision: row.revision.to_string().into(),
+                }
+            }))));
+        }
+        Err(err) => {
+            ui.set_data_sources(ModelRc::new(VecModel::from(Vec::new())));
+            ui.set_data_status(data_workbench::status_message(&err).into());
+        }
+    }
+}
+
+/// Opens one data source: snapshots plus the latest workbench page.
+fn open_data_source(ui: &AppWindow, session: &Rc<RefCell<CliSession>>, source_id: &str) {
+    match data_workbench::source_snapshots(&mut session.borrow_mut(), source_id) {
+        Ok(snapshots) => {
+            ui.set_data_active_source(source_id.into());
+            ui.set_data_snapshots(ModelRc::new(VecModel::from_iter(snapshots.iter().map(
+                |row| SnapshotRowItem {
+                    id: row.id.clone().into(),
+                    rows: row.rows.to_string().into(),
+                    digest: row.digest.clone().into(),
+                },
+            ))));
+            if let Some(latest) = snapshots.first() {
+                let id = latest.id.clone();
+                open_data_snapshot(ui, session, &id);
+            } else {
+                ui.set_data_status(
+                    "Source has no snapshots yet · import to materialize one".into(),
+                );
+            }
+        }
+        Err(err) => ui.set_data_status(data_workbench::status_message(&err).into()),
+    }
+}
+
+/// Opens one snapshot workbench page (typed schema plus rendered rows).
+fn open_data_snapshot(ui: &AppWindow, session: &Rc<RefCell<CliSession>>, snapshot_id: &str) {
+    match data_workbench::workbench_page(&mut session.borrow_mut(), snapshot_id) {
+        Ok(page) => {
+            ui.set_data_active_snapshot(page.snapshot_id.clone().into());
+            ui.set_data_schema_line(page.schema_line.clone().into());
+            ui.set_data_detail(page.detail.clone().into());
+            ui.set_data_rows(ModelRc::new(VecModel::from_iter(page.rows.iter().map(
+                |text| WorkbenchRowItem {
+                    text: text.clone().into(),
+                },
+            ))));
+            ui.set_data_next_cursor(page.next_cursor.unwrap_or_default().into());
+            ui.set_data_status(format!("Open: {}", page.snapshot_id).into());
+        }
+        Err(err) => ui.set_data_status(data_workbench::status_message(&err).into()),
     }
 }
 
@@ -591,8 +675,145 @@ fn main() -> ExitCode {
             }
             return;
         }
-        if action == "model-refresh" {
-            if let Some(session) = &model_session_for_actions {
+        // Spec 075 data workbench actions (Core-backed snapshots and views).
+        if action == "data-refresh" {
+            if let Some(session) = &project_session_for_actions {
+                refresh_data_sources(&ui, session);
+                let active = ui.get_data_active_source().to_string();
+                if !active.is_empty() {
+                    open_data_source(&ui, session, &active);
+                }
+            } else {
+                ui.set_data_status("Data unavailable: no Core session".into());
+            }
+            return;
+        }
+        if let Some(source_id) = action.strip_prefix("data-open:") {
+            if let Some(session) = &project_session_for_actions {
+                open_data_source(&ui, session, source_id);
+            } else {
+                ui.set_data_status("Data unavailable: no Core session".into());
+            }
+            return;
+        }
+        if let Some(snapshot_id) = action.strip_prefix("data-snapshot:") {
+            if let Some(session) = &project_session_for_actions {
+                open_data_snapshot(&ui, session, snapshot_id);
+            } else {
+                ui.set_data_status("Data unavailable: no Core session".into());
+            }
+            return;
+        }
+        if action == "data-import" {
+            let Some(session) = &project_session_for_actions else {
+                ui.set_data_status("Data unavailable: no Core session".into());
+                return;
+            };
+            let source_id = ui.get_data_active_source().to_string();
+            if source_id.is_empty() {
+                ui.set_data_status("Invalid: open a data source first".into());
+                return;
+            }
+            match data_workbench::import_snapshot(&mut session.borrow_mut(), &source_id) {
+                Ok(row) => {
+                    refresh_data_sources(&ui, session);
+                    open_data_source(&ui, session, &source_id);
+                    ui.set_data_status(format!("Imported snapshot {}", row.id).into());
+                }
+                Err(err) => ui.set_data_status(data_workbench::status_message(&err).into()),
+            }
+            return;
+        }
+        if action == "data-refresh-source" || action == "data-refresh-source-force" {
+            let Some(session) = &project_session_for_actions else {
+                ui.set_data_status("Data unavailable: no Core session".into());
+                return;
+            };
+            let source_id = ui.get_data_active_source().to_string();
+            if source_id.is_empty() {
+                ui.set_data_status("Invalid: open a data source first".into());
+                return;
+            }
+            let allow = action == "data-refresh-source-force";
+            match data_workbench::refresh_source(&mut session.borrow_mut(), &source_id, allow) {
+                Ok(summary) => {
+                    refresh_data_sources(&ui, session);
+                    open_data_source(&ui, session, &source_id);
+                    ui.set_data_status(summary.into());
+                }
+                Err(err) => ui.set_data_status(data_workbench::status_message(&err).into()),
+            }
+            return;
+        }
+        if action == "data-view-grid" {
+            let Some(session) = &project_session_for_actions else {
+                ui.set_data_status("Data unavailable: no Core session".into());
+                return;
+            };
+            let snapshot_id = ui.get_data_active_snapshot().to_string();
+            if snapshot_id.is_empty() {
+                ui.set_data_status("Invalid: open a snapshot first".into());
+                return;
+            }
+            match data_workbench::create_grid_view(&mut session.borrow_mut(), &snapshot_id) {
+                Ok(view_id) => {
+                    ui.set_data_status(format!("Saved grid view {view_id}").into());
+                }
+                Err(err) => ui.set_data_status(data_workbench::status_message(&err).into()),
+            }
+            return;
+        }
+        if action == "data-transform-apply" {
+            let Some(session) = &project_session_for_actions else {
+                ui.set_data_status("Data unavailable: no Core session".into());
+                return;
+            };
+            let snapshot_id = ui.get_data_active_snapshot().to_string();
+            if snapshot_id.is_empty() {
+                ui.set_data_status("Invalid: open a snapshot first".into());
+                return;
+            }
+            let columns_raw = ui.get_data_columns_input().to_string();
+            let columns = if columns_raw.trim().is_empty() {
+                None
+            } else {
+                Some(
+                    columns_raw
+                        .split(',')
+                        .map(str::trim)
+                        .filter(|s| !s.is_empty())
+                        .map(str::to_owned)
+                        .collect::<Vec<_>>(),
+                )
+            };
+            let filter = match data_workbench::parse_filter_input(
+                &ui.get_data_filter_col().to_string(),
+                &ui.get_data_filter_op().to_string(),
+                &ui.get_data_filter_value().to_string(),
+            ) {
+                Ok(filter) => filter,
+                Err(message) => {
+                    ui.set_data_status(message.into());
+                    return;
+                }
+            };
+            let sort = data_workbench::parse_sort_input(&ui.get_data_sort_input().to_string());
+            match data_workbench::apply_workbench_transform(
+                &mut session.borrow_mut(),
+                &snapshot_id,
+                columns,
+                filter,
+                sort,
+            ) {
+                Ok(summary) => {
+                    open_data_source(&ui, session, &ui.get_data_active_source().to_string());
+                    ui.set_data_status(summary.into());
+                }
+                Err(err) => ui.set_data_status(data_workbench::status_message(&err).into()),
+            }
+            return;
+        }
+        if action == "model-refresh" {            if let Some(session) = &model_session_for_actions {
                 match refresh_model_center(&ui, session) {
                     Ok(()) => ui.set_model_operator_status("Core inventory refreshed".into()),
                     Err(err) => ui.set_model_operator_status(

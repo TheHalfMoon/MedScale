@@ -85,6 +85,7 @@ pub fn status_message(err: &AuthorityError) -> &'static str {
             "Corrupt: integrity check failed"
         }
         AuthorityError::UnsupportedSchema { .. } => "Unsupported: unknown schema value",
+        AuthorityError::Cancelled { .. } => "Cancelled: no write was performed",
         AuthorityError::Unavailable { .. }
         | AuthorityError::LeaseRequired
         | AuthorityError::VaultRequired
