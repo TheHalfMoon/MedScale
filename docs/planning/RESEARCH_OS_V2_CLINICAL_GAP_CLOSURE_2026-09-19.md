@@ -7,7 +7,7 @@
 
 The previous expansion direction was strong but not implementation-complete by itself. This review identified cross-cutting gaps that could otherwise appear late as expensive architecture changes.
 
-The implementation-ready master plan now assigns every identified architecture/product gap to an owning Spec 075–092 or records it as an explicit external/future gate. The register currently contains 115 challenged gaps/failure risks.
+The implementation-ready master plan now assigns every identified architecture/product gap to an owning Spec 075–092 or records it as an explicit external/future gate. The register currently contains 140 challenged gaps/failure risks.
 
 **Important:** `NO_KNOWN_PLANNING_GAP` does not mean the product is proven safe, complete or release-ready. New evidence may reveal new gaps during implementation.
 
@@ -132,6 +132,31 @@ The implementation-ready master plan now assigns every identified architecture/p
 | G113 | Discharge/order-set suggestions may blur evidence synthesis and action authority | proposals explicitly separate evidence, patient applicability and action; approval required | 077 / 088 / 090 | unsafe-proposal/approval/effect tests |
 | G114 | Evidence inserted into encounter notes could make general literature look like patient-specific fact | patient source facts and external evidence use distinct claim/evidence classes and visual semantics | 077 / 081 / 083 | patient-vs-literature provenance/UI tests |
 | G115 | Payer/CDI features could distort the product toward reimbursement rather than care/research | product governance keeps clinical truth, evidence quality and patient benefit independent of revenue optimization; metrics do not reward unsupported coding | 088 / 090 / 092 | adversarial governance/use-case review |
+| G116 | Research protocol can be rewritten after results and hide post-hoc decisions | versioned protocol plus explicit amendment/pre-specified/post-hoc state | 083 | protocol amendment/replay fixtures |
+| G117 | Citation imports can duplicate/misidentify papers | DOI/PMID/metadata reconciliation with ambiguous duplicate state | 080 / 083 | duplicate/metadata-conflict fixtures |
+| G118 | Literature search cannot be reproduced | persist exact source/query/filter/date/result snapshot | 080 / 083 | search receipt replay/refresh delta |
+| G119 | AI screening could silently exclude relevant studies | AI only ranks/proposes; human screening policy and exclusion reason remain explicit | 076 / 083 | high-recall/false-exclusion adversarial benchmark |
+| G120 | Reviewers can influence each other in supposedly independent screening | optional blinded review state + immutable independent decisions before reveal | 076 | dual-review/blinding tests |
+| G121 | PRISMA-style counts can drift from real review state | generate counts from event/artifact history, not editable numbers | 076 / 083 | screening-event count consistency |
+| G122 | AI data extraction may fabricate study values | each extracted field links source span and review state; unresolved remains unresolved | 077 / 083 | extraction/source-support benchmark |
+| G123 | Risk-of-bias framework/version can be applied incorrectly | framework Pack declares version/domain; incompatible study types fail explicit applicability checks | 083 / 089 | framework/study mismatch fixtures |
+| G124 | Meta-analysis can hide assumptions or use wrong effect model | method/assumptions explicit, independent numerical oracle, sensitivity results | 082 / 086 | statistics oracle and edge-case tests |
+| G125 | Living review refresh can silently change a published conclusion | new review version/delta only; prior corpus/synthesis immutable | 080 / 083 / 089 | source-update/review-version tests |
+| G126 | Manuscript text can detach from figures/tables/citations | manuscript references exact artifact revisions and flags stale dependencies | 083 | artifact-update/stale-reference tests |
+| G127 | Clinical calculator can use missing value as zero/default | required/optional inputs explicit; missing/ambiguous fails or requests review | 077 / 089 | missing/unit/boundary tests |
+| G128 | Guideline pathway may be outdated or wrong jurisdiction | version/jurisdiction/source and superseded status visible | 083 / 089 | old/new/jurisdiction fixtures |
+| G129 | Drug interaction/dosing coverage can be incomplete due to source rights | coverage and source/version explicit; no “complete” claim from partial Pack | 089 / 090 | coverage/rights/version evidence |
+| G130 | Model-prefilled clinical-tool input could be wrong | input source/value/unit/time shown; user confirmation where required | 077 / 083 / 089 | wrong-prefill/ambiguous-source tests |
+| G131 | Dataset card could be treated as legal/privacy clearance | rights/privacy fields are evidence/state, not automatic approval | 075 / 079 | denied-use and missing-rights fixtures |
+| G132 | Annotation schema changes can invalidate existing labels silently | schema versions, migration mapping and incompatible-state handling | 075 / 076 | schema-evolution tests |
+| G133 | Model-generated labels can be confused with human ground truth | annotator identity/type and review/adjudication state mandatory | 076 / 078 | provenance/UI/API tests |
+| G134 | Active learning can contaminate held-out evaluation data | split/role policy prevents training/selection access to protected evaluation set | 075 / 078 / 085 | contamination/permission tests |
+| G135 | Medical ML split can leak same patient/site/episode across train/test | group-aware and temporal split constraints + leakage detector | 075 / 082 | patient/site/episode leakage fixtures |
+| G136 | Training may violate model/dataset license or intended-use terms | training job admission requires model/data rights and purpose metadata | 079 / 085 / 089 | rights-denial/admission tests |
+| G137 | Training on sensitive data can bypass Privacy Gate through Compute | staged classified inputs + Compute capability policy + no ambient vault/network | 079 / 085 | sensitive-input egress/FS escape tests |
+| G138 | Training output could be promoted directly to clinical use | output is Candidate ModelPack only; independent admission/evaluation required | 078 / 085 / 089 | candidate-vs-admitted state tests |
+| G139 | Evaluation can overfit or leak the benchmark into tuning | frozen held-out Pack, access audit, contamination checks, versioned evaluation | 078 / 089 / 092 | hidden/held-out governance evidence |
+| G140 | Dataset/model research can drift into an unbounded MLOps platform | keep training/annotation as project research capabilities behind existing Project/Data/Compute/Pack contracts; no alternate registry/orchestrator authority | 075 / 078 / 085 / 089 | architecture/dependency review |
 
 ---
 
