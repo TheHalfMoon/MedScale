@@ -5,6 +5,12 @@ use serde_json::Value;
 
 use crate::AUTHORITY_SCHEMA_VERSION;
 use crate::actions::{CreateExternalActionIntentRequest, NphiesInvokeRequest, OutboxEntry};
+use crate::data_sources::{
+    DataSourceManifest, DataSourceSummary, DataViewKind, DatasetReleaseSummary, FilterExpr,
+    RefreshReceipt, ReleaseManifest, SavedDataView, SavedViewSummary, SnapshotRowPage,
+    SnapshotSummary, SortKey, SourceLocator, SourceSchema, TransformOp, TransformationReceipt,
+    ViewState,
+};
 use crate::documents::{
     AsrStubRequest, DocumentIntakeRequest, DocumentIntakeResult, MediaStubResult, OcrStubRequest,
 };
@@ -95,6 +101,20 @@ pub enum Capability {
     ProjectArtifactDetach,
     ProjectGraphRead,
     ProjectGraphMutate,
+    DataSourceCreate,
+    DataSourceRead,
+    DataSourceUpdate,
+    DataSourceArchive,
+    SnapshotImport,
+    SnapshotPreview,
+    SnapshotRead,
+    SnapshotRefresh,
+    SavedViewCreate,
+    SavedViewRead,
+    SavedViewUpdate,
+    TransformExecute,
+    DatasetReleaseCreate,
+    DatasetReleaseRead,
 }
 
 impl Capability {
@@ -127,6 +147,11 @@ impl Capability {
                 | Self::ProjectRead
                 | Self::ExperimentRead
                 | Self::ProjectGraphRead
+                | Self::DataSourceRead
+                | Self::SnapshotPreview
+                | Self::SnapshotRead
+                | Self::SavedViewRead
+                | Self::DatasetReleaseRead
         )
     }
 
@@ -202,6 +227,20 @@ impl Capability {
             Self::ProjectArtifactDetach,
             Self::ProjectGraphRead,
             Self::ProjectGraphMutate,
+            Self::DataSourceCreate,
+            Self::DataSourceRead,
+            Self::DataSourceUpdate,
+            Self::DataSourceArchive,
+            Self::SnapshotImport,
+            Self::SnapshotPreview,
+            Self::SnapshotRead,
+            Self::SnapshotRefresh,
+            Self::SavedViewCreate,
+            Self::SavedViewRead,
+            Self::SavedViewUpdate,
+            Self::TransformExecute,
+            Self::DatasetReleaseCreate,
+            Self::DatasetReleaseRead,
         ]
     }
 }
@@ -495,6 +534,94 @@ pub enum RequestBody {
     ProjectSummaryQuery {
         project_id: OpaqueId,
     },
+    // Spec 075: every mutation flows through Core authority paths. Surfaces
+    // never write data-source storage directly.
+    DataSourceCreate {
+        project_id: OpaqueId,
+        display_name: String,
+        locator: SourceLocator,
+        credential_ref: Option<OpaqueId>,
+    },
+    DataSourceGet {
+        source_id: OpaqueId,
+    },
+    DataSourceList {
+        project_id: OpaqueId,
+        limit: Option<u32>,
+        cursor: Option<String>,
+    },
+    DataSourceUpdate {
+        source_id: OpaqueId,
+        expected_revision: u64,
+        display_name: Option<String>,
+        credential_ref: Option<Option<OpaqueId>>,
+    },
+    DataSourceArchive {
+        source_id: OpaqueId,
+        expected_revision: u64,
+    },
+    SnapshotImport {
+        source_id: OpaqueId,
+    },
+    SnapshotPreview {
+        source_id: OpaqueId,
+        max_rows: Option<u32>,
+    },
+    SnapshotGet {
+        snapshot_id: OpaqueId,
+    },
+    SnapshotList {
+        source_id: OpaqueId,
+        limit: Option<u32>,
+        cursor: Option<String>,
+    },
+    SnapshotRows {
+        snapshot_id: OpaqueId,
+        limit: Option<u32>,
+        cursor: Option<String>,
+        filters: Vec<FilterExpr>,
+        sort: Vec<SortKey>,
+    },
+    SnapshotRefresh {
+        source_id: OpaqueId,
+    },
+    SavedViewCreate {
+        snapshot_id: OpaqueId,
+        view_kind: DataViewKind,
+        state: ViewState,
+    },
+    SavedViewGet {
+        view_id: OpaqueId,
+    },
+    SavedViewList {
+        snapshot_id: OpaqueId,
+        limit: Option<u32>,
+        cursor: Option<String>,
+    },
+    SavedViewUpdate {
+        view_id: OpaqueId,
+        expected_revision: u64,
+        state: ViewState,
+    },
+    TransformExecute {
+        input_snapshot_ids: Vec<OpaqueId>,
+        ops: Vec<TransformOp>,
+    },
+    DatasetReleaseCreate {
+        snapshot_id: OpaqueId,
+        version: String,
+        split_group: Option<String>,
+        annotation_schema_ref: Option<String>,
+        rights_state: crate::data_sources::RightsState,
+    },
+    DatasetReleaseGet {
+        release_id: OpaqueId,
+    },
+    DatasetReleaseList {
+        project_id: OpaqueId,
+        limit: Option<u32>,
+        cursor: Option<String>,
+    },
 }
 
 impl RequestBody {
@@ -686,6 +813,54 @@ pub enum ResponseBody {
     ProjectSummary {
         summary: ProjectSummary,
     },
+    // Spec 075 typed results (immutable snapshots, scope-checked, no secrets).
+    DataSource {
+        source: DataSourceManifest,
+    },
+    DataSourceList {
+        sources: Vec<DataSourceSummary>,
+        next_cursor: Option<String>,
+    },
+    SnapshotImported {
+        snapshot: crate::data_sources::DataSnapshot,
+        receipt: crate::data_sources::ImportReceipt,
+    },
+    SnapshotPreview {
+        schema: SourceSchema,
+        rows: Vec<Vec<crate::data_sources::CellValue>>,
+    },
+    Snapshot {
+        snapshot: crate::data_sources::DataSnapshot,
+    },
+    SnapshotList {
+        snapshots: Vec<SnapshotSummary>,
+        next_cursor: Option<String>,
+    },
+    SnapshotRows {
+        page: SnapshotRowPage,
+    },
+    SnapshotRefreshed {
+        receipt: RefreshReceipt,
+        snapshot: Option<crate::data_sources::DataSnapshot>,
+    },
+    SavedView {
+        view: SavedDataView,
+    },
+    SavedViewList {
+        views: Vec<SavedViewSummary>,
+        next_cursor: Option<String>,
+    },
+    Transformed {
+        snapshot: crate::data_sources::DataSnapshot,
+        receipt: TransformationReceipt,
+    },
+    DatasetRelease {
+        release: ReleaseManifest,
+    },
+    DatasetReleaseList {
+        releases: Vec<DatasetReleaseSummary>,
+        next_cursor: Option<String>,
+    },
 }
 
 /// Authority error vocabulary (fail closed).
@@ -751,6 +926,11 @@ pub enum AuthorityError {
     },
     /// Dependency or target temporarily unresolvable.
     Unavailable {
+        message: String,
+    },
+    /// Caller-requested cancellation completed before commit. No write was
+    /// performed. Never a substitute for timeout/unavailable mapping.
+    Cancelled {
         message: String,
     },
     /// Unexpected internal failure (never a substitute for a typed variant).
