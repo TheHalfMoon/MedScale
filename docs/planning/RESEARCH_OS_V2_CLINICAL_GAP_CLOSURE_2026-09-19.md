@@ -7,7 +7,7 @@
 
 The previous expansion direction was strong but not implementation-complete by itself. This review identified cross-cutting gaps that could otherwise appear late as expensive architecture changes.
 
-The implementation-ready master plan now assigns every identified architecture/product gap to an owning Spec 075–092 or records it as an explicit external/future gate.
+The implementation-ready master plan now assigns every identified architecture/product gap to an owning Spec 075–092 or records it as an explicit external/future gate. The register currently contains 115 challenged gaps/failure risks.
 
 **Important:** `NO_KNOWN_PLANNING_GAP` does not mean the product is proven safe, complete or release-ready. New evidence may reveal new gaps during implementation.
 
@@ -117,6 +117,21 @@ The implementation-ready master plan now assigns every identified architecture/p
 | G098 | “Consensus” across models can create false confidence | model agreement is an observable fact only; no correctness promotion | 078 | adversarial correlated-error cases |
 | G099 | Patient/research role mixing can widen access | explicit role/project/patient-context grants and minimal context manifests | 077 / 079 / 084 / 090 | role-boundary tests |
 | G100 | Project closure/archival can leave live credentials/jobs | revoke sessions/jobs/connector access; archive artifacts with explicit retention | 074 integration / 075 / 085 / 090 | archive/reopen tests |
+| G101 | Prior authorization could become an opaque payer automation that submits unsupported medical necessity | draft/evidence packet remains reviewable; rule/payer/version and source evidence explicit; submission only through approved EffectIntent | 088 / 090 | unsupported-necessity, expired-rule, denial and review fixtures |
+| G102 | Prior-auth retry after uncertain response could duplicate a payer request | durable idempotency + UNKNOWN state + status/reconciliation before retry | 090 | lost-response/duplicate/reconcile tests |
+| G103 | HCC/risk-gap logic could incentivize unsupported diagnosis documentation | candidate signal only; payer/EHR/registry source shown; MEAT/documentation evidence required; clinician review | 083 / 088 / 090 | unsupported-HCC/adversarial incentive fixtures |
+| G104 | E&M calculation could be mistaken for billing compliance | licensed/versioned rules, rationale and explicit proposal state; coder/clinician review | 088 / 089 / 090 | boundary/rule-version fixtures |
+| G105 | Pre-bill CDI/DRG review could treat coding output as clinical truth | compare coded claim to documentation evidence without rewriting clinical source facts | 088 / 090 | coded-vs-source mismatch and correction tests |
+| G106 | Nursing flowsheet generation could silently create structured chart facts | conversational rows remain drafts linked to transcript/source until nurse verification | 088 / 090 | draft/review/writeback state tests |
+| G107 | Cross-shift nursing context could leak information beyond role/need | role/project/encounter-scoped ContextManifest and freshness boundaries | 079 / 084 / 088 | role-scope and stale-handoff tests |
+| G108 | Pre-round summaries could omit high-risk changes | critical-fact coverage and change detection reported; omissions remain measurable | 083 / 088 / 092 | longitudinal change/critical-omission benchmark |
+| G109 | Trial matching could claim eligibility from incomplete patient data | criterion-by-criterion map with UNKNOWN/UNAVAILABLE; candidate match only | 080 / 083 / 089 | false-eligibility and missing-criterion fixtures |
+| G110 | Trial registry status/location can go stale | exact registry snapshot/retrieval time and refresh semantics | 080 / 089 | closed/recruitment-change fixtures |
+| G111 | Deep evidence consult can hide its search path and cherry-pick sources | expose plan, queries, source set, excluded/weak evidence, contradictions and immutable snapshot | 077 / 080 / 083 | reproducible deep-consult benchmark |
+| G112 | Secure patient communication can expand MedScale into an uncontrolled messaging/telephony system | channel adapters are optional institutional capabilities; local core stays independent; identity/consent/retention/effect receipts required | 079 / 090 | wrong-recipient, revoked-consent, delivery-UNKNOWN tests |
+| G113 | Discharge/order-set suggestions may blur evidence synthesis and action authority | proposals explicitly separate evidence, patient applicability and action; approval required | 077 / 088 / 090 | unsafe-proposal/approval/effect tests |
+| G114 | Evidence inserted into encounter notes could make general literature look like patient-specific fact | patient source facts and external evidence use distinct claim/evidence classes and visual semantics | 077 / 081 / 083 | patient-vs-literature provenance/UI tests |
+| G115 | Payer/CDI features could distort the product toward reimbursement rather than care/research | product governance keeps clinical truth, evidence quality and patient benefit independent of revenue optimization; metrics do not reward unsupported coding | 088 / 090 / 092 | adversarial governance/use-case review |
 
 ---
 
