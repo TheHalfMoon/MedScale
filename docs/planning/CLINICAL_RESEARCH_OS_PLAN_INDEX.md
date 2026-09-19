@@ -1,0 +1,137 @@
+# MedScale Clinical + Research Intelligence OS — Plan Index
+
+**Date:** 2026-09-19  
+**Status:** `PLANNING_CANDIDATE_ONLY`  
+**Entry point:** use this file to review the implementation-ready Clinical + Research Intelligence expansion.
+
+## Read order
+
+### 1. Product direction
+
+1. `RESEARCH_OS_V2_CLINICAL_INTELLIGENCE_EXPANSION.md`
+   - product thesis;
+   - Abridge/OpenEvidence/OpenMed capability floor;
+   - Linked Evidence Everywhere;
+   - Clinical Graph;
+   - Data Workbench;
+   - Research OS 075–092 mapping.
+
+2. `CLINICAL_COMPETITOR_CAPABILITY_MATRIX_2026-09-19.md`
+   - dated competitor/category capability matrix;
+   - measurable future parity/surpass criteria.
+
+### 2. Architecture and implementation
+
+3. `RESEARCH_OS_V2_IMPLEMENTATION_READY_MASTER_PLAN.md`
+   - system invariants;
+   - architecture planes;
+   - cross-program contracts;
+   - architecture decisions;
+   - complete 075–092 implementation decomposition;
+   - vertical milestones;
+   - promotion protocol.
+
+4. `LOCAL_MEDICAL_SCRIBE_PLAN.md`
+   - offline capture;
+   - two-pass ASR;
+   - diarization;
+   - clinical extraction;
+   - context assembly;
+   - note drafting;
+   - Linked Evidence;
+   - clinician review;
+   - coding/order/nursing/patient-instruction boundaries.
+
+5. `CLINICAL_GRAPH_DATA_WORKBENCH_PLAN.md`
+   - Graphify-inspired clinical graph;
+   - AFFiNE-inspired workspace views;
+   - Airtable-class MedScale Data Workbench;
+   - cohort/data/analytics lineage;
+   - donor-specific licensing boundaries.
+
+### 3. Donors and sources
+
+6. `FOUNDER_GITHUB_DONOR_SYNTHESIS_2026-09-19.md`
+   - useful public sibling-project patterns;
+   - private-repository disclosure boundary;
+   - anti-monolith rule.
+
+7. `RESEARCH_OS_V2_SOURCE_QUALIFICATION_LEDGER_2026-09-19.md`
+   - exact research pins;
+   - license posture;
+   - candidate adoption mode;
+   - transfer gates.
+
+### 4. Gap challenge
+
+8. `RESEARCH_OS_V2_CLINICAL_GAP_CLOSURE_2026-09-19.md`
+   - 100 challenged gaps/failure risks;
+   - owning spec;
+   - closure evidence;
+   - external/non-software gates;
+   - no-gap promotion checklist.
+
+### 5. Implementation handoff
+
+9. `MUSE_CLINICAL_RESEARCH_OS_IMPLEMENTATION_HANDOFF.md`
+   - agent execution instructions after canonical acceptance/promotion;
+   - live-truth rebuild;
+   - dependency order;
+   - evidence requirements;
+   - stop conditions.
+
+---
+
+# Existing Research OS authority to read with this expansion
+
+This packet does not replace existing canonical Research OS V2 planning. It refines and deepens it.
+
+Read together with:
+
+- `RESEARCH_OS_PROGRAM_AMENDMENT_001_DATA_EXTENSIONS.md`;
+- `RESEARCH_OS_EXECUTION_ROADMAP.md`;
+- `RESEARCH_OS_V2_DECISION_REGISTER.md`;
+- `RESEARCH_OS_MASTER_IMPLEMENTATION_CONTRACT.md`;
+- `RESEARCH_OS_V2_IMPLEMENTATION_CONTRACT_ADDENDUM.md`;
+- `RESEARCH_OS_V2_SPEC_IMPLEMENTATION_CONTRACTS.md`;
+- `RESEARCH_OS_ACCEPTANCE_FRAMEWORK.md`;
+- `RESEARCH_OS_DEFINITION_OF_READY.md`;
+- `RESEARCH_OS_V2_VERIFICATION_ADDENDUM.md`;
+- `SOURCE_ADOPTION_MATRIX.md`;
+- `OSS_CODE_ABSORPTION_MATRIX_V2.md`;
+- `V0_UI_INTEGRATION_CONTRACT.md`.
+
+If this packet conflicts with a currently promoted spec or live canonical repository authority, the live promoted authority wins until a normal reconciliation/promotion changes it.
+
+---
+
+# Relationship to parallel Draft PRs
+
+At preparation time:
+
+- the Orca donor plan is maintained in a separate Draft PR;
+- the Identity V2 / V0 UI handoff is maintained in a separate Draft PR;
+- this packet does not modify their branches or implementation authority.
+
+Shared Research OS index/source-matrix reconciliation should happen in normal merge order after the planning branches are accepted rather than by copying stale versions across branches.
+
+---
+
+# Planning completion test
+
+This packet may be considered ready for founder/canonical planning acceptance when reviewers can trace:
+
+```text
+Product capability
+ -> owning Research OS spec
+ -> implementation slice
+ -> authority/privacy boundary
+ -> donor/source decision
+ -> failure/recovery behavior
+ -> qualification evidence
+ -> release claim boundary
+```
+
+for every major capability in scope.
+
+Implementation still requires normal per-spec promotion.
