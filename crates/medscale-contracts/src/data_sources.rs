@@ -474,10 +474,10 @@ impl SchemaField {
         if self.name.contains('\0') {
             return Err("schema field name must not contain NUL".to_owned());
         }
-        if let Some(unit) = &self.declared_unit {
-            if unit.chars().count() > SCHEMA_FIELD_NAME_MAX_CHARS || unit.contains('\0') {
-                return Err("declared unit exceeds bound".to_owned());
-            }
+        if let Some(unit) = &self.declared_unit
+            && (unit.chars().count() > SCHEMA_FIELD_NAME_MAX_CHARS || unit.contains('\0'))
+        {
+            return Err("declared unit exceeds bound".to_owned());
         }
         Ok(())
     }
@@ -571,11 +571,12 @@ impl SourceRevisionBinding {
             Self::Database {
                 observed_revision, ..
             } => {
-                if let Some(rev) = observed_revision {
-                    if rev.is_empty() || rev.len() > SOURCE_LOCATOR_MAX_BYTES || rev.contains('\0')
-                    {
-                        return Err("observed revision exceeds bound".to_owned());
-                    }
+                if let Some(rev) = observed_revision
+                    && (rev.is_empty()
+                        || rev.len() > SOURCE_LOCATOR_MAX_BYTES
+                        || rev.contains('\0'))
+                {
+                    return Err("observed revision exceeds bound".to_owned());
                 }
                 Ok(())
             }
@@ -667,10 +668,10 @@ pub enum SnapshotStatus {
 impl SnapshotStatus {
     /// Validates the partial reason bound.
     pub fn validate(&self) -> Result<(), String> {
-        if let Self::Partial { reason } = self {
-            if reason.trim().is_empty() || reason.chars().count() > ACQUIRE_WARNING_MAX_CHARS {
-                return Err("partial reason is empty or exceeds bound".to_owned());
-            }
+        if let Self::Partial { reason } = self
+            && (reason.trim().is_empty() || reason.chars().count() > ACQUIRE_WARNING_MAX_CHARS)
+        {
+            return Err("partial reason is empty or exceeds bound".to_owned());
         }
         Ok(())
     }
@@ -1078,6 +1079,7 @@ pub struct DataSourceManifest {
 
 impl DataSourceManifest {
     /// Creates a revision-1 active manifest after validating metadata.
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         header: ObjectHeader,
         project_id: OpaqueId,
@@ -1207,10 +1209,10 @@ impl ViewState {
         if !self.filters.is_empty() {
             validate_filters(&self.filters, schema)?;
         }
-        if let Some(group) = &self.group_by {
-            if !schema.iter().any(|f| f.name == *group) {
-                return Err("view groups by an unknown column".to_owned());
-            }
+        if let Some(group) = &self.group_by
+            && !schema.iter().any(|f| f.name == *group)
+        {
+            return Err("view groups by an unknown column".to_owned());
         }
         if let Some(columns) = &self.visible_columns {
             if columns.is_empty() || columns.len() > VIEW_VISIBLE_COLUMNS_MAX {
@@ -1322,14 +1324,15 @@ impl DatasetCard {
         {
             return Err("release version is empty or exceeds bound".to_owned());
         }
-        for optional in [&self.split_group, &self.annotation_schema_ref] {
-            if let Some(value) = optional {
-                if value.trim().is_empty()
-                    || value.chars().count() > RELEASE_VERSION_MAX_CHARS
-                    || value.contains('\0')
-                {
-                    return Err("release metadata field is empty or exceeds bound".to_owned());
-                }
+        for value in [&self.split_group, &self.annotation_schema_ref]
+            .into_iter()
+            .flatten()
+        {
+            if value.trim().is_empty()
+                || value.chars().count() > RELEASE_VERSION_MAX_CHARS
+                || value.contains('\0')
+            {
+                return Err("release metadata field is empty or exceeds bound".to_owned());
             }
         }
         Ok(())
@@ -1416,10 +1419,10 @@ pub fn effective_list_limit(limit: Option<u32>) -> u32 {
 
 /// Validates an opaque cursor bound.
 pub fn validate_cursor(cursor: &Option<String>) -> Result<(), String> {
-    if let Some(value) = cursor {
-        if value.len() > SOURCE_CURSOR_MAX_BYTES {
-            return Err("cursor exceeds bound".to_owned());
-        }
+    if let Some(value) = cursor
+        && value.len() > SOURCE_CURSOR_MAX_BYTES
+    {
+        return Err("cursor exceeds bound".to_owned());
     }
     Ok(())
 }

@@ -232,13 +232,14 @@ fn infer_column_type(cells: &[String]) -> FieldType {
 /// Converts column storage to typed row storage.
 fn columns_to_rows(columns: &[Vec<String>], fields: &[SchemaField]) -> Vec<Vec<CellValue>> {
     let height = columns.first().map_or(0, Vec::len);
-    let mut rows = Vec::with_capacity(height);
-    for index in 0..height {
-        let mut row = Vec::with_capacity(columns.len());
-        for (col, field) in columns.iter().zip(fields.iter()) {
-            row.push(coerce_text(&col[index], field.field_type));
+    let mut rows: Vec<Vec<CellValue>> = Vec::with_capacity(height);
+    for _ in 0..height {
+        rows.push(Vec::with_capacity(columns.len()));
+    }
+    for (col, field) in columns.iter().zip(fields.iter()) {
+        for (row_index, cell) in col.iter().enumerate() {
+            rows[row_index].push(coerce_text(cell, field.field_type));
         }
-        rows.push(row);
     }
     rows
 }
@@ -402,13 +403,11 @@ pub fn parse_json_bytes(bytes: &[u8], lines: bool) -> Result<ParsedTable, Acquir
         });
     }
     // Widen cells that do not fit the merged column type to Text.
-    let mut rows = Vec::with_capacity(objects.len());
-    for row_index in 0..objects.len() {
-        let mut row = Vec::with_capacity(names.len());
-        for (col, field) in columns.iter().zip(fields.iter()) {
-            row.push(widen_cell(&col[row_index], field.field_type));
+    let mut rows: Vec<Vec<CellValue>> = vec![Vec::with_capacity(names.len()); objects.len()];
+    for (col_index, field) in fields.iter().enumerate() {
+        for (row_index, cell) in columns[col_index].iter().enumerate() {
+            rows[row_index].push(widen_cell(cell, field.field_type));
         }
-        rows.push(row);
     }
     Ok(ParsedTable {
         fields,
@@ -531,13 +530,12 @@ pub fn map_external_table(table: &ExternalTable) -> Result<ParsedTable, AcquireF
             declared_unit: None,
         });
     }
-    let mut rows = Vec::with_capacity(table.rows.len());
-    for row_index in 0..table.rows.len() {
-        let mut row = Vec::with_capacity(width);
-        for (col, field) in columns.iter().zip(fields.iter()) {
-            row.push(widen_cell(&col[row_index], field.field_type));
+    let height = table.rows.len();
+    let mut rows: Vec<Vec<CellValue>> = vec![Vec::with_capacity(width); height];
+    for (col_index, field) in fields.iter().enumerate() {
+        for (row_index, cell) in columns[col_index].iter().enumerate() {
+            rows[row_index].push(widen_cell(cell, field.field_type));
         }
-        rows.push(row);
     }
     Ok(ParsedTable {
         fields,
@@ -694,9 +692,11 @@ fn compare_int(got: i64, want: i64, op: FilterOp) -> bool {
 }
 
 fn compare_float(got: f64, want: f64, op: FilterOp) -> bool {
+    // Total bitwise equality: deterministic across processes, no NaN
+    // tolerance implied (datasets carry measured values, not estimates).
     match op {
-        FilterOp::Equals => got == want,
-        FilterOp::NotEquals => got != want,
+        FilterOp::Equals => got.to_bits() == want.to_bits(),
+        FilterOp::NotEquals => got.to_bits() != want.to_bits(),
         FilterOp::Contains => false,
         FilterOp::GreaterThan => got > want,
         FilterOp::LessThan => got < want,

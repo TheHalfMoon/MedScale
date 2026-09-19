@@ -1739,7 +1739,9 @@ impl CoreFacade {
                     req.session_id,
                     |mut ds| ds.create_source(project_id, display_name, locator, credential_ref),
                 )?;
-                Ok(ResponseBody::DataSource { source })
+                Ok(ResponseBody::DataSource {
+                    source: Box::new(source),
+                })
             }
             RequestBody::DataSourceGet { source_id } => {
                 let source = self.ds(
@@ -1749,7 +1751,9 @@ impl CoreFacade {
                     req.session_id,
                     |ds| ds.get_source(&source_id),
                 )?;
-                Ok(ResponseBody::DataSource { source })
+                Ok(ResponseBody::DataSource {
+                    source: Box::new(source),
+                })
             }
             RequestBody::DataSourceList {
                 project_id,
@@ -1788,7 +1792,9 @@ impl CoreFacade {
                         )
                     },
                 )?;
-                Ok(ResponseBody::DataSource { source })
+                Ok(ResponseBody::DataSource {
+                    source: Box::new(source),
+                })
             }
             RequestBody::DataSourceArchive {
                 source_id,
@@ -1801,7 +1807,9 @@ impl CoreFacade {
                     req.session_id,
                     |mut ds| ds.archive_source(&source_id, expected_revision),
                 )?;
-                Ok(ResponseBody::DataSource { source })
+                Ok(ResponseBody::DataSource {
+                    source: Box::new(source),
+                })
             }
             RequestBody::SnapshotImport { source_id } => {
                 let (snapshot, receipt) = self.ds(
@@ -1811,7 +1819,10 @@ impl CoreFacade {
                     req.session_id,
                     |mut ds| ds.import_source(&source_id),
                 )?;
-                Ok(ResponseBody::SnapshotImported { snapshot, receipt })
+                Ok(ResponseBody::SnapshotImported {
+                    snapshot: Box::new(snapshot),
+                    receipt,
+                })
             }
             RequestBody::SnapshotPreview {
                 source_id,
@@ -1835,7 +1846,7 @@ impl CoreFacade {
                     |ds| ds.get_snapshot(&snapshot_id),
                 )?;
                 Ok(ResponseBody::Snapshot {
-                    snapshot: record.snapshot,
+                    snapshot: Box::new(record.snapshot),
                 })
             }
             RequestBody::SnapshotList {
@@ -1884,7 +1895,7 @@ impl CoreFacade {
                 )?;
                 Ok(ResponseBody::SnapshotRefreshed {
                     receipt,
-                    snapshot: record.map(|record| record.snapshot),
+                    snapshot: record.map(|record| Box::new(record.snapshot)),
                 })
             }
             RequestBody::SavedViewCreate {
@@ -1899,7 +1910,9 @@ impl CoreFacade {
                     req.session_id,
                     |mut ds| ds.create_view(snapshot_id, view_kind, state),
                 )?;
-                Ok(ResponseBody::SavedView { view })
+                Ok(ResponseBody::SavedView {
+                    view: Box::new(view),
+                })
             }
             RequestBody::SavedViewGet { view_id } => {
                 let view = self.ds(
@@ -1909,7 +1922,9 @@ impl CoreFacade {
                     req.session_id,
                     |ds| ds.get_view(&view_id),
                 )?;
-                Ok(ResponseBody::SavedView { view })
+                Ok(ResponseBody::SavedView {
+                    view: Box::new(view),
+                })
             }
             RequestBody::SavedViewList {
                 snapshot_id,
@@ -1937,7 +1952,9 @@ impl CoreFacade {
                     req.session_id,
                     |mut ds| ds.update_view(&view_id, expected_revision, state),
                 )?;
-                Ok(ResponseBody::SavedView { view })
+                Ok(ResponseBody::SavedView {
+                    view: Box::new(view),
+                })
             }
             RequestBody::TransformExecute {
                 input_snapshot_ids,
@@ -1951,7 +1968,7 @@ impl CoreFacade {
                     |mut ds| ds.execute_transformation(input_snapshot_ids, ops),
                 )?;
                 Ok(ResponseBody::Transformed {
-                    snapshot: snapshot.snapshot,
+                    snapshot: Box::new(snapshot.snapshot),
                     receipt,
                 })
             }
@@ -1977,7 +1994,9 @@ impl CoreFacade {
                         )
                     },
                 )?;
-                Ok(ResponseBody::DatasetRelease { release })
+                Ok(ResponseBody::DatasetRelease {
+                    release: Box::new(release),
+                })
             }
             RequestBody::DatasetReleaseGet { release_id } => {
                 let release = self.ds(
@@ -1987,7 +2006,9 @@ impl CoreFacade {
                     req.session_id,
                     |ds| ds.get_release(&release_id),
                 )?;
-                Ok(ResponseBody::DatasetRelease { release })
+                Ok(ResponseBody::DatasetRelease {
+                    release: Box::new(release),
+                })
             }
             RequestBody::DatasetReleaseList {
                 project_id,

@@ -819,15 +819,17 @@ pub enum ResponseBody {
         summary: ProjectSummary,
     },
     // Spec 075 typed results (immutable snapshots, scope-checked, no secrets).
+    // Large payloads are boxed: `large_enum_variant` keeps every variant
+    // small while the payloads themselves stay owned typed values.
     DataSource {
-        source: DataSourceManifest,
+        source: Box<DataSourceManifest>,
     },
     DataSourceList {
         sources: Vec<DataSourceSummary>,
         next_cursor: Option<String>,
     },
     SnapshotImported {
-        snapshot: crate::data_sources::DataSnapshot,
+        snapshot: Box<crate::data_sources::DataSnapshot>,
         receipt: crate::data_sources::ImportReceipt,
     },
     SnapshotPreview {
@@ -835,7 +837,7 @@ pub enum ResponseBody {
         rows: Vec<Vec<crate::data_sources::CellValue>>,
     },
     Snapshot {
-        snapshot: crate::data_sources::DataSnapshot,
+        snapshot: Box<crate::data_sources::DataSnapshot>,
     },
     SnapshotList {
         snapshots: Vec<SnapshotSummary>,
@@ -846,21 +848,21 @@ pub enum ResponseBody {
     },
     SnapshotRefreshed {
         receipt: RefreshReceipt,
-        snapshot: Option<crate::data_sources::DataSnapshot>,
+        snapshot: Option<Box<crate::data_sources::DataSnapshot>>,
     },
     SavedView {
-        view: SavedDataView,
+        view: Box<SavedDataView>,
     },
     SavedViewList {
         views: Vec<SavedViewSummary>,
         next_cursor: Option<String>,
     },
     Transformed {
-        snapshot: crate::data_sources::DataSnapshot,
+        snapshot: Box<crate::data_sources::DataSnapshot>,
         receipt: TransformationReceipt,
     },
     DatasetRelease {
-        release: ReleaseManifest,
+        release: Box<ReleaseManifest>,
     },
     DatasetReleaseList {
         releases: Vec<DatasetReleaseSummary>,

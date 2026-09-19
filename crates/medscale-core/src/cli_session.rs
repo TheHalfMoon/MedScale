@@ -945,7 +945,7 @@ impl CliSession {
                 message: "expected imported snapshot".to_owned(),
             });
         };
-        Ok((snapshot, receipt))
+        Ok((*snapshot, receipt))
     }
 
     /// Previews source schema plus leading rows without persisting.
@@ -989,7 +989,7 @@ impl CliSession {
                 message: "expected snapshot".to_owned(),
             });
         };
-        Ok(snapshot)
+        Ok(*snapshot)
     }
 
     /// Lists snapshots for one source through Core authority.
@@ -1076,7 +1076,7 @@ impl CliSession {
                 message: "expected refresh receipt".to_owned(),
             });
         };
-        Ok((receipt, snapshot))
+        Ok((receipt, snapshot.map(|boxed| *boxed)))
     }
 
     /// Creates one saved view through Core authority.
@@ -1180,7 +1180,7 @@ impl CliSession {
                 message: "expected transformed snapshot".to_owned(),
             });
         };
-        Ok((snapshot, receipt))
+        Ok((*snapshot, receipt))
     }
 
     /// Creates one dataset release through Core authority.
@@ -1207,7 +1207,7 @@ impl CliSession {
                 message: "expected dataset release".to_owned(),
             });
         };
-        Ok(release)
+        Ok(*release)
     }
 
     /// Reads one dataset release through Core authority.
@@ -1224,7 +1224,7 @@ impl CliSession {
                 message: "expected dataset release".to_owned(),
             });
         };
-        Ok(release)
+        Ok(*release)
     }
 
     /// Lists dataset releases for one project through Core authority.
@@ -1268,7 +1268,7 @@ impl CliSession {
                 message: "expected data source".to_owned(),
             });
         };
-        Ok(source)
+        Ok(*source)
     }
 
     fn expect_saved_view(
@@ -1279,6 +1279,6 @@ impl CliSession {
                 message: "expected saved view".to_owned(),
             });
         };
-        Ok(view)
+        Ok(*view)
     }
 }

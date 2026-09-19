@@ -128,12 +128,12 @@ CREATE INDEX IF NOT EXISTS idx_releases_snapshot
 const CURSOR_MAX_BYTES: usize = 256;
 
 fn check_cursor(after: Option<&str>) -> Result<(), MetaError> {
-    if let Some(value) = after {
-        if value.len() > CURSOR_MAX_BYTES {
-            return Err(MetaError::UnsupportedSchema(
-                "cursor exceeds bound".to_owned(),
-            ));
-        }
+    if let Some(value) = after
+        && value.len() > CURSOR_MAX_BYTES
+    {
+        return Err(MetaError::UnsupportedSchema(
+            "cursor exceeds bound".to_owned(),
+        ));
     }
     Ok(())
 }
