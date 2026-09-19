@@ -391,5 +391,45 @@ Any later change to those frozen items requires an explicit reason, test impact 
 ## 16. Freeze record (T075-01, FROZEN_FOR_075)
 
 ```text
-CONTRACT_FREEZE = <PENDING until T075-01 closes>
+CONTRACT_FREEZE = FROZEN_FOR_075
+LIVE_BASE_SHA = ae0441918296c2d1510a71061249c7e55e65d760
+CONTRACT_FILES = crates/medscale-contracts/src/data_sources.rs,
+                 crates/medscale-contracts/src/lib.rs,
+                 crates/medscale-contracts/src/envelopes/mod.rs,
+                 crates/medscale-contracts/src/network/mod.rs (DatasetMirrorRead purpose only)
+REVISION_MODEL = medscale_contracts::project_graph::ProjectRevision (u64 alias)
+                 + check_revision/initial_revision; no new revision type.
+KIND_VOCABULARY = local_tabular_file, database_read, remote_dataset
+FORMAT_SET = csv, tsv, json_lines, json (qualified foundation);
+             parquet, arrow_ipc, xlsx are vocabulary-only and report
+             Unsupported until separately qualified slices pass.
+ENGINE_SET = external_sqlite (qualified); postgres, mysql, sql_server report
+             Unsupported until separately qualified slices pass.
+PROVIDER_SET = hugging_face, kaggle (brokered, fixture-qualified foundation;
+               live hosts remain ExternalGateRequired like Spec 013/015).
+TRANSFORM_OPS = select, drop, rename, cast (strict/non-strict), filter, sort.
+                No computed expressions, no join in the frozen set.
+VIEW_KINDS = grid, form, gallery, kanban, calendar, summary (all projections).
+RELEASE_RETAINED = YES: DatasetCard + ReleaseManifest (schema identity only;
+                   full annotation workflow stays out).
+ERROR_TYPE = medscale_contracts::envelopes::AuthorityError, extended additively
+             with Cancelled { message }; Invalid->InvalidArgument,
+             NotFound->NotFound, Denied->Unauthorized|SessionDenied|WrongScope,
+             Stale->StaleReference, Unsupported->UnsupportedSchema,
+             Unavailable->Unavailable, Cancelled->Cancelled.
+CREDENTIAL_RULE = opaque OpaqueId reference only; database credential refs are
+                  rejected in 075 (no password path); plaintext never persists.
 ```
+
+Sequencing note: typed Core request/response envelope bodies and their
+`capability_matches` pairs land in 075-C with the authority paths so the
+facade dispatch match stays exhaustive. The 14 new `Capability` variants, the
+18 new `RequestBody` variants, the 14 new `ResponseBody` variants, and the 1
+new `AuthorityError` variant above are the frozen vocabulary 075-C must use;
+075-C may not invent parallel capabilities or a second error taxonomy.
+`SnapshotRefresh` carries `allow_schema_change` as the explicit schema-change
+acknowledgment. No `DataSourceId`/`SnapshotId` newtypes: identity is
+`header.id: OpaqueId`. No durable timestamps in 075 contracts: ordering
+travels through the existing audit trail; `MedicalTime` keeps clinical
+semantics. Credential plaintext never enters manifests, receipts, snapshots,
+logs, backups, or error strings.

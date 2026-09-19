@@ -787,7 +787,7 @@ impl DataSources<'_> {
                         (RefreshChangeClass::SourceDenied, SourceHealth::Denied)
                     }
                     _ => {
-                        source = self.set_health(&source, SourceHealth::Stale)?;
+                        let _ = self.set_health(&source, SourceHealth::Stale)?;
                         return Err(acquire_err(fail));
                     }
                 };
@@ -1098,11 +1098,6 @@ impl DataSources<'_> {
                 message: "transform produced no columns".to_owned(),
             });
         }
-        let out_schema = SourceSchema {
-            source_id: input.snapshot.source_id.clone(),
-            schema_fingerprint: fingerprint_schema(&fields),
-            fields: fields.clone(),
-        };
         let table = ParsedTable {
             fields,
             rows,
@@ -1150,7 +1145,6 @@ impl DataSources<'_> {
         self.meta()
             .insert_transformation(&stored_record)
             .map_err(meta_err)?;
-        let _ = out_schema;
         Ok((record, receipt))
     }
 

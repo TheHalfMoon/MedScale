@@ -233,5 +233,28 @@ ROLLBACK_METHOD = <verified method>
 ## 16. Freeze record (T075-02, FROZEN_FOR_075)
 
 ```text
-MIGRATION_CONTRACT = <PENDING until T075-02 closes>
+MIGRATION_CONTRACT = FROZEN_FOR_075
+CURRENT_STORAGE_VERSION = 3
+075_STORAGE_VERSION = 4
+MIGRATION_CODE_PATH = crates/medscale-storage/src/sqlite_meta.rs (migrate),
+                      crates/medscale-storage/src/data_sources.rs (V4_DDL + rows)
+BACKUP_CODE_PATH = crates/medscale-storage/src/backup.rs (restore_v4 / restore_v3),
+                   crates/medscale-storage/src/encrypted_vault.rs (sealed backup/restore)
+SOURCE_TABLES = data_sources, data_snapshots, data_snapshot_parts,
+                data_receipts, data_saved_views, data_transformations,
+                dataset_releases
+INDEXES = idx_data_sources_project, idx_data_sources_scope_status,
+          idx_snapshots_source,
+          idx_snapshots_source_digest (unique backstop),
+          idx_saved_views_snapshot,
+          idx_transformations_first_input,
+          idx_releases_project, idx_releases_snapshot
+SNAPSHOT_BYTE_STORE = existing FsBlobStore (synthetic vaults) and
+                      SealedBlobStore via EncryptedVault::put_blob/get_blob
+                      (encrypted vaults), keyed by content_digest. No new blob
+                      lifecycle. Parts are row-range metadata with per-part
+                      digests over canonical encodings; bytes are not duplicated.
+ROLLBACK_METHOD = restore verified pre-migration backup (no destructive
+                  down-migration; interrupted journal fails closed with
+                  MigrationIncomplete)
 ```
