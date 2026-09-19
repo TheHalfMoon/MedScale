@@ -491,6 +491,22 @@ Mobile should prioritize capture, review, evidence lookup, patient instructions 
 
 Hub, institutional adapters and federation are optional expansions. Personal single-device local use remains a valid architecture target.
 
+## ADR-CR-021 — Revenue intelligence cannot rewrite clinical truth
+
+HCC, CDI, DRG, E&M, coding and payer-gap outputs are reviewable derived proposals. Financial/reimbursement optimization never changes source clinical facts or elevates a diagnosis without clinical documentation/evidence.
+
+## ADR-CR-022 — Prior authorization is a controlled effect
+
+MedScale may draft and assemble evidence locally. Payer submission, status polling, appeal and downstream routing are institution-adapter effects with explicit identity, policy/rule version, idempotency and UNKNOWN/reconciliation semantics.
+
+## ADR-CR-023 — Trial matching is a candidate search, not eligibility authority
+
+Clinical-trial matching maps patient/source evidence to explicit registry criteria and surfaces unresolved criteria. A match is a candidate for clinician/research-coordinator review, never an automatic eligibility or enrollment decision.
+
+## ADR-CR-024 — Communications are optional adapters
+
+Calls, messages, voicemail, fax and similar channels may support clinical operations, but they do not become a mandatory MedScale cloud/telephony layer. Each channel has explicit identity, consent, data-minimization, retention and delivery-effect semantics.
+
 ---
 
 # 6. User-visible product surfaces
@@ -508,7 +524,13 @@ Hub, institutional adapters and federation are optional expansions. Personal sin
 - Orders / Tasks / Action Proposals
 - Patient Instructions
 - Coding / Documentation Review
+- CDI / Pre-Bill Review
+- Prior Authorization
+- Care / Risk Signals
 - Nursing Workspace
+- Pre-Round / Inpatient Summary
+- Clinical Trial Candidates
+- Secure Communications (optional institution adapter)
 - Audit / Evidence Inspector
 
 ## Research
@@ -1057,13 +1079,33 @@ Assessment/flowsheet/handoff draft proposals linked to transcript/source evidenc
 ### 088-07 Patient instructions
 Clinician-reviewed plain-language after-visit materials, multilingual where qualified.
 
-### 088-08 Revenue-cycle review
-Documentation/coding discrepancy candidates, no reimbursement/compliance claim without evidence.
+### 088-08 Revenue-cycle intelligence
+Documentation/coding discrepancy candidates with exact source evidence. Cover, when licensed and qualified:
+- inpatient CDI before discharge;
+- final coded diagnosis / DRG discrepancy review;
+- outpatient diagnosis/HCC risk-gap candidates;
+- MEAT-style documentation support;
+- E&M level proposals/rationale;
+- pre-bill review.
 
-### 088-09 Multilingual clinical qualification
+No reimbursement, coding-compliance or payer-acceptance claim follows from a suggestion.
+
+### 088-09 Pre-round / inpatient context
+Source-linked pre-round summaries, new/changed results, medications, problems, unresolved conflicts and care-team activity. Critical omission and freshness are measurable states.
+
+### 088-10 Clinical-trial candidate matching
+Use local Evidence/Research Packs or Governed Browse registry sources to map explicit patient context to trial criteria. Every criterion is `MATCHED`, `NOT_MATCHED`, `UNKNOWN` or `UNAVAILABLE`; final eligibility remains external/human authority.
+
+### 088-11 Prior-authorization drafting
+Generate clinician-reviewable medical-necessity/prior-auth drafts from exact patient evidence, planned treatment and versioned payer/policy context where available. No network submission in this slice.
+
+### 088-12 Discharge / order-set proposals
+Evidence- and patient-context-linked discharge-planning and order-set candidates remain reviewable ActionProposals. External effects belong to 090.
+
+### 088-13 Multilingual clinical qualification
 Arabic, English, code switching and additional language Packs through measured admission.
 
-### 088-10 Long-session/recovery
+### 088-14 Long-session/recovery
 Multi-hour sessions, crash/restart, capture-device changes, low-power degradation.
 
 ---
@@ -1125,6 +1167,22 @@ Multi-hour sessions, crash/restart, capture-device changes, low-power degradatio
 - idempotency;
 - unknown/reconcile state.
 
+### Payer / authorization effects
+- prior-authorization submission only after approved draft/review;
+- status polling;
+- denial/appeal workflow as explicit states;
+- payer/rules/profile identity and version where available;
+- idempotent retries and lost-response reconciliation;
+- no automatic claim that medical necessity was accepted.
+
+### Communication effects
+Optional, separately qualified adapters for institution-approved calls/messages/voicemail/fax/email or equivalent channels:
+- verified sender/patient/delegate identity;
+- channel-specific consent and data minimization;
+- delivery status / UNKNOWN state;
+- no patient content in ordinary logs;
+- no requirement for a MedScale-hosted communications cloud.
+
 ### Institutional data
 - warehouses/databases/object stores;
 - source-specific capability and data-class policy.
@@ -1133,6 +1191,8 @@ Multi-hour sessions, crash/restart, capture-device changes, low-power degradatio
 
 - draft note -> clinician-approved artifact -> adapter payload;
 - action proposal -> clinician approval -> EffectIntent;
+- prior-auth draft -> approved request -> submit/status/denial/appeal/reconcile;
+- approved patient communication -> channel adapter -> delivery/UNKNOWN/reconcile;
 - delivery acknowledgement;
 - timeout/unknown;
 - reconciliation;
@@ -1196,10 +1256,10 @@ No hidden egress; local-mode packet/network proof; secret/PHI log scans; deletio
 Scribe, patient review, local evidence, Data Workbench and analytics remain useful without network.
 
 ### 092-D Scribe quality
-Medical ASR + diarization + note-grounding + clinician review benchmark.
+Execute the governed protocol in `LOCAL_MEDICAL_SCRIBE_EVALUATION_PROTOCOL_2026-09-19.md`: medical ASR + diarization + note-grounding + Linked Evidence + critical omissions + clinician review workload + offline/privacy/resource campaigns.
 
 ### 092-E Evidence quality
-Citation existence, claim support, contradiction, retrieval, applicability and retraction fixtures.
+Execute `EVIDENCE_ENGINE_EVALUATION_PROTOCOL_2026-09-19.md`: citation identity, claim support, retrieval, evidence quality, contradiction, applicability, guideline/jurisdiction conflict, retraction/correction, rights and deep-synthesis fixtures.
 
 ### 092-F Analytics
 Snapshot reproducibility, statistical correctness, R/Compute publication and provenance.
@@ -1208,7 +1268,7 @@ Snapshot reproducibility, statistical correctness, R/Compute publication and pro
 Projection rebuild, temporal queries, identity/conflict safety, cross-view ID consistency.
 
 ### 092-H Interoperability
-FHIR/SMART and any promoted institutional adapters with exact-version conformance evidence.
+FHIR/SMART and any promoted institutional adapters with exact-version conformance evidence, including any promoted payer/prior-auth and communication adapters.
 
 ### 092-I Security
 Browser prompt injection, malicious documents, extension escape, compute escape, credential exfiltration, SSRF, path traversal and hostile model outputs.
