@@ -203,7 +203,7 @@ impl Harness {
             .0
         {
             medscale_contracts::envelopes::ResponseBody::SnapshotImported { snapshot, receipt } => {
-                (snapshot, receipt)
+                (*snapshot, receipt)
             }
             other => panic!("{other:?}"),
         }

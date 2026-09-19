@@ -28,13 +28,6 @@ pub struct SnapshotRowVm {
     pub digest: String,
 }
 
-/// One schema field row (name plus declared type).
-#[derive(Debug, Clone, Default)]
-pub struct SchemaFieldVm {
-    pub name: String,
-    pub type_text: String,
-}
-
 /// Bounded workbench page: schema header, rendered rows, detail line.
 #[derive(Debug, Clone, Default)]
 pub struct WorkbenchPageVm {

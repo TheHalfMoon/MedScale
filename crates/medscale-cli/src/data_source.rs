@@ -232,9 +232,9 @@ fn parse_transform_op(flag: &str, json: bool) -> anyhow::Result<TransformOp> {
             Ok(TransformOp::DropColumns { columns })
         }
         "rename" => {
-            let (Some(from), Some(to)) = rest.split_once(':') else {
-                return Err(invalid("rename requires from:to".to_owned(), json));
-            };
+            let (from, to) = rest
+                .split_once(':')
+                .ok_or_else(|| invalid("rename requires from:to".to_owned(), json))?;
             Ok(TransformOp::RenameColumn {
                 from: from.to_owned(),
                 to: to.to_owned(),

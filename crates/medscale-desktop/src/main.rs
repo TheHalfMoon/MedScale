@@ -787,9 +787,9 @@ fn main() -> ExitCode {
                 )
             };
             let filter = match data_workbench::parse_filter_input(
-                &ui.get_data_filter_col().to_string(),
-                &ui.get_data_filter_op().to_string(),
-                &ui.get_data_filter_value().to_string(),
+                &ui.get_data_filter_col(),
+                &ui.get_data_filter_op(),
+                &ui.get_data_filter_value(),
             ) {
                 Ok(filter) => filter,
                 Err(message) => {
@@ -797,7 +797,7 @@ fn main() -> ExitCode {
                     return;
                 }
             };
-            let sort = data_workbench::parse_sort_input(&ui.get_data_sort_input().to_string());
+            let sort = data_workbench::parse_sort_input(&ui.get_data_sort_input());
             match data_workbench::apply_workbench_transform(
                 &mut session.borrow_mut(),
                 &snapshot_id,
@@ -806,7 +806,7 @@ fn main() -> ExitCode {
                 sort,
             ) {
                 Ok(summary) => {
-                    open_data_source(&ui, session, &ui.get_data_active_source().to_string());
+                    open_data_source(&ui, session, &ui.get_data_active_source());
                     ui.set_data_status(summary.into());
                 }
                 Err(err) => ui.set_data_status(data_workbench::status_message(&err).into()),
