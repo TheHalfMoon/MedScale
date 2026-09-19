@@ -7,7 +7,7 @@
 
 use std::path::PathBuf;
 
-use clap::Subcommand;
+use clap::{Args, Subcommand};
 use medscale_contracts::data_sources::{
     DataSourceManifest, DataViewKind, DatabaseEngine, FilterExpr, FilterOp, LocalFileFormat,
     RemoteDatasetProvider, RightsState, SortKey, SourceLocator, TransformOp, ViewState,
@@ -310,44 +310,47 @@ fn build_view_state(
     })
 }
 
+#[derive(Debug, Args)]
+pub struct DataSourceCreateArgs {
+    #[arg(long)]
+    vault_id: String,
+    #[arg(long)]
+    vault_root: PathBuf,
+    #[arg(long)]
+    project_id: String,
+    #[arg(long)]
+    name: String,
+    /// local | database | remote.
+    #[arg(long)]
+    kind: String,
+    #[arg(long)]
+    format: Option<String>,
+    #[arg(long)]
+    path: Option<String>,
+    #[arg(long)]
+    engine: Option<String>,
+    #[arg(long)]
+    database: Option<String>,
+    #[arg(long)]
+    object: Option<String>,
+    #[arg(long)]
+    provider: Option<String>,
+    #[arg(long)]
+    repo: Option<String>,
+    #[arg(long)]
+    revision: Option<String>,
+    #[arg(long)]
+    files: Option<String>,
+    #[arg(long)]
+    credential_ref: Option<String>,
+    #[arg(long)]
+    json: bool,
+}
+
 #[derive(Debug, Subcommand)]
 pub enum DataSourceCmd {
     /// Create a data source in a Project.
-    Create {
-        #[arg(long)]
-        vault_id: String,
-        #[arg(long)]
-        vault_root: PathBuf,
-        #[arg(long)]
-        project_id: String,
-        #[arg(long)]
-        name: String,
-        /// local | database | remote.
-        #[arg(long)]
-        kind: String,
-        #[arg(long)]
-        format: Option<String>,
-        #[arg(long)]
-        path: Option<String>,
-        #[arg(long)]
-        engine: Option<String>,
-        #[arg(long)]
-        database: Option<String>,
-        #[arg(long)]
-        object: Option<String>,
-        #[arg(long)]
-        provider: Option<String>,
-        #[arg(long)]
-        repo: Option<String>,
-        #[arg(long)]
-        revision: Option<String>,
-        #[arg(long)]
-        files: Option<String>,
-        #[arg(long)]
-        credential_ref: Option<String>,
-        #[arg(long)]
-        json: bool,
-    },
+    Create(Box<DataSourceCreateArgs>),
     /// List data sources for a Project.
     List {
         #[arg(long)]
@@ -492,33 +495,62 @@ pub enum SnapshotCmd {
     },
 }
 
+#[derive(Debug, Args)]
+pub struct DataViewCreateArgs {
+    #[arg(long)]
+    vault_id: String,
+    #[arg(long)]
+    vault_root: PathBuf,
+    #[arg(long)]
+    snapshot_id: String,
+    #[arg(long)]
+    kind: String,
+    /// Repeatable column[:desc].
+    #[arg(long)]
+    sort: Vec<String>,
+    /// Repeatable column:op:value.
+    #[arg(long)]
+    filter: Vec<String>,
+    #[arg(long)]
+    group_by: Option<String>,
+    #[arg(long)]
+    columns: Option<String>,
+    #[arg(long)]
+    page_size: Option<u32>,
+    #[arg(long)]
+    json: bool,
+}
+
+#[derive(Debug, Args)]
+pub struct DataViewUpdateArgs {
+    #[arg(long)]
+    vault_id: String,
+    #[arg(long)]
+    vault_root: PathBuf,
+    #[arg(long)]
+    view_id: String,
+    #[arg(long)]
+    expected_revision: u64,
+    /// Repeatable column[:desc].
+    #[arg(long)]
+    sort: Vec<String>,
+    /// Repeatable column:op:value.
+    #[arg(long)]
+    filter: Vec<String>,
+    #[arg(long)]
+    group_by: Option<String>,
+    #[arg(long)]
+    columns: Option<String>,
+    #[arg(long)]
+    page_size: Option<u32>,
+    #[arg(long)]
+    json: bool,
+}
+
 #[derive(Debug, Subcommand)]
 pub enum DataViewCmd {
     /// Create a saved view over a snapshot.
-    Create {
-        #[arg(long)]
-        vault_id: String,
-        #[arg(long)]
-        vault_root: PathBuf,
-        #[arg(long)]
-        snapshot_id: String,
-        #[arg(long)]
-        kind: String,
-        /// Repeatable column[:desc].
-        #[arg(long)]
-        sort: Vec<String>,
-        /// Repeatable column:op:value.
-        #[arg(long)]
-        filter: Vec<String>,
-        #[arg(long)]
-        group_by: Option<String>,
-        #[arg(long)]
-        columns: Option<String>,
-        #[arg(long)]
-        page_size: Option<u32>,
-        #[arg(long)]
-        json: bool,
-    },
+    Create(Box<DataViewCreateArgs>),
     /// List saved views for a snapshot.
     List {
         #[arg(long)]
@@ -546,30 +578,7 @@ pub enum DataViewCmd {
         json: bool,
     },
     /// Update one saved view state (revision-guarded).
-    Update {
-        #[arg(long)]
-        vault_id: String,
-        #[arg(long)]
-        vault_root: PathBuf,
-        #[arg(long)]
-        view_id: String,
-        #[arg(long)]
-        expected_revision: u64,
-        /// Repeatable column[:desc].
-        #[arg(long)]
-        sort: Vec<String>,
-        /// Repeatable column:op:value.
-        #[arg(long)]
-        filter: Vec<String>,
-        #[arg(long)]
-        group_by: Option<String>,
-        #[arg(long)]
-        columns: Option<String>,
-        #[arg(long)]
-        page_size: Option<u32>,
-        #[arg(long)]
-        json: bool,
-    },
+    Update(Box<DataViewUpdateArgs>),
 }
 
 #[derive(Debug, Subcommand)]
@@ -665,38 +674,48 @@ fn print_cell_human(cell: &medscale_contracts::data_sources::CellValue) -> Strin
 /// Runs one `medscale datasource ...` invocation through Core.
 pub fn run_data_source(action: DataSourceCmd) -> anyhow::Result<()> {
     match action {
-        DataSourceCmd::Create {
-            vault_id,
-            vault_root,
-            project_id,
-            name,
-            kind,
-            format,
-            path,
-            engine,
-            database,
-            object,
-            provider,
-            repo,
-            revision,
-            files,
-            credential_ref,
-            json,
-        } => {
-            let locator = build_locator(
-                &kind, format, path, engine, database, object, provider, repo, revision, files,
+        DataSourceCmd::Create(args) => {
+            let DataSourceCreateArgs {
+                vault_id,
+                vault_root,
+                project_id,
+                name,
+                kind,
+                format,
+                path,
+                engine,
+                database,
+                object,
+                provider,
+                repo,
+                revision,
+                files,
+                credential_ref,
                 json,
+            } = args.as_ref();
+            let locator = build_locator(
+                kind,
+                format.clone(),
+                path.clone(),
+                engine.clone(),
+                database.clone(),
+                object.clone(),
+                provider.clone(),
+                repo.clone(),
+                revision.clone(),
+                files.clone(),
+                *json,
             )?;
-            let mut session = open_data_session(&vault_id, &vault_root, json)?;
+            let mut session = open_data_session(vault_id, vault_root, *json)?;
             let source = session
                 .data_source_create(
                     OpaqueId::new(project_id),
-                    name,
+                    name.clone(),
                     locator,
-                    credential_ref.map(OpaqueId::new),
+                    credential_ref.clone().map(OpaqueId::new),
                 )
-                .map_err(|err| data_fail(&err, json))?;
-            if json {
+                .map_err(|err| data_fail(&err, *json))?;
+            if *json {
                 print_json_or_debug(&source, true)?;
             } else {
                 print_source_human(&source);
@@ -988,25 +1007,33 @@ pub fn run_snapshot(action: SnapshotCmd) -> anyhow::Result<()> {
 /// Runs one `medscale dataview ...` invocation through Core.
 pub fn run_data_view(action: DataViewCmd) -> anyhow::Result<()> {
     match action {
-        DataViewCmd::Create {
-            vault_id,
-            vault_root,
-            snapshot_id,
-            kind,
-            sort,
-            filter,
-            group_by,
-            columns,
-            page_size,
-            json,
-        } => {
-            let view_kind = parse_view_kind(&kind).map_err(|message| invalid(message, json))?;
-            let state = build_view_state(&sort, &filter, group_by, columns, page_size, json)?;
-            let mut session = open_data_session(&vault_id, &vault_root, json)?;
+        DataViewCmd::Create(args) => {
+            let DataViewCreateArgs {
+                vault_id,
+                vault_root,
+                snapshot_id,
+                kind,
+                sort,
+                filter,
+                group_by,
+                columns,
+                page_size,
+                json,
+            } = args.as_ref();
+            let view_kind = parse_view_kind(kind).map_err(|message| invalid(message, *json))?;
+            let state = build_view_state(
+                sort,
+                filter,
+                group_by.clone(),
+                columns.clone(),
+                *page_size,
+                *json,
+            )?;
+            let mut session = open_data_session(vault_id, vault_root, *json)?;
             let view = session
                 .saved_view_create(OpaqueId::new(snapshot_id), view_kind, state)
-                .map_err(|err| data_fail(&err, json))?;
-            if json {
+                .map_err(|err| data_fail(&err, *json))?;
+            if *json {
                 print_json_or_debug(&view, true)?;
             } else {
                 println!("view_id: {}", view.header.id.as_str());
@@ -1068,24 +1095,32 @@ pub fn run_data_view(action: DataViewCmd) -> anyhow::Result<()> {
             }
             Ok(())
         }
-        DataViewCmd::Update {
-            vault_id,
-            vault_root,
-            view_id,
-            expected_revision,
-            sort,
-            filter,
-            group_by,
-            columns,
-            page_size,
-            json,
-        } => {
-            let state = build_view_state(&sort, &filter, group_by, columns, page_size, json)?;
-            let mut session = open_data_session(&vault_id, &vault_root, json)?;
+        DataViewCmd::Update(args) => {
+            let DataViewUpdateArgs {
+                vault_id,
+                vault_root,
+                view_id,
+                expected_revision,
+                sort,
+                filter,
+                group_by,
+                columns,
+                page_size,
+                json,
+            } = args.as_ref();
+            let state = build_view_state(
+                sort,
+                filter,
+                group_by.clone(),
+                columns.clone(),
+                *page_size,
+                *json,
+            )?;
+            let mut session = open_data_session(vault_id, vault_root, *json)?;
             let view = session
-                .saved_view_update(OpaqueId::new(view_id), expected_revision, state)
-                .map_err(|err| data_fail(&err, json))?;
-            if json {
+                .saved_view_update(OpaqueId::new(view_id), *expected_revision, state)
+                .map_err(|err| data_fail(&err, *json))?;
+            if *json {
                 print_json_or_debug(&view, true)?;
             } else {
                 println!("view_id: {}", view.header.id.as_str());
