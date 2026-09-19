@@ -758,6 +758,9 @@ fn type_rank(cell: &CellValue) -> u8 {
     }
 }
 
+/// Deterministic transform output: new fields, new rows, counted cast failures.
+pub type TransformOutput = (Vec<SchemaField>, Vec<Vec<CellValue>>, u64);
+
 // ---------- deterministic transforms ----------
 
 /// Executes frozen transform ops. Returns new fields, rows, and the counted
@@ -767,7 +770,7 @@ pub fn execute_transform(
     fields: &[SchemaField],
     rows: &[Vec<CellValue>],
     ops: &[TransformOp],
-) -> Result<(Vec<SchemaField>, Vec<Vec<CellValue>>, u64), String> {
+) -> Result<TransformOutput, String> {
     let mut cur_fields = fields.to_vec();
     let mut cur_rows = rows.to_vec();
     let mut cast_failures = 0_u64;

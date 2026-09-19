@@ -26,11 +26,11 @@ use medscale_contracts::data_sources::{
     DataSourceManifest, DataSourceSummary, DataTransformation, DataViewKind, DatabaseEngine,
     DatasetCard, DatasetReleaseSummary, FilterExpr, ImportReceipt, LocalFileFormat,
     RefreshChangeClass, RefreshReceipt, ReleaseManifest, RemoteDatasetProvider, RightsState,
-    SavedDataView, SavedViewStatus, SavedViewSummary, SnapshotLineage, SnapshotRowPage,
-    SnapshotStatus, SnapshotSummary, SortKey, SourceHealth, SourceLocator, SourceRevisionBinding,
-    SourceSchema, SourceStatus, TransformOp, TransformationReceipt, ViewState,
-    effective_list_limit, effective_rows_limit, fingerprint_schema, parse_row_cursor,
-    render_row_cursor, validate_cursor, validate_display_name,
+    SavedDataView, SavedViewStatus, SavedViewSummary, SnapshotRowPage, SnapshotStatus,
+    SnapshotSummary, SortKey, SourceHealth, SourceLocator, SourceRevisionBinding, SourceSchema,
+    SourceStatus, TransformOp, TransformationReceipt, ViewState, effective_list_limit,
+    effective_rows_limit, fingerprint_schema, parse_row_cursor, render_row_cursor, validate_cursor,
+    validate_display_name,
 };
 use medscale_contracts::envelopes::AuthorityError;
 use medscale_contracts::network::EgressAllowlistEntry;
@@ -1248,34 +1248,5 @@ impl DataSources<'_> {
             }
         }
         Ok((out, None))
-    }
-
-    /// Returns the lineage union describing how a snapshot was acquired.
-    pub fn lineage_for(&self, snapshot_id: &OpaqueId) -> Result<SnapshotLineage, AuthorityError> {
-        let record = self.scoped_snapshot(snapshot_id)?;
-        let id = &record.snapshot.header.id;
-        if let Ok(value) = self.meta().get_receipt(RECEIPT_KIND_TRANSFORMATION, id) {
-            let receipt: TransformationReceipt =
-                serde_json::from_value(value).map_err(|_| AuthorityError::Corrupt {
-                    message: "stored transformation receipt is invalid".to_owned(),
-                })?;
-            return Ok(SnapshotLineage::Transformation { receipt });
-        }
-        if let Ok(value) = self.meta().get_receipt(RECEIPT_KIND_REFRESH, id) {
-            let receipt: medscale_contracts::data_sources::RefreshReceipt =
-                serde_json::from_value(value).map_err(|_| AuthorityError::Corrupt {
-                    message: "stored refresh receipt is invalid".to_owned(),
-                })?;
-            return Ok(SnapshotLineage::Refresh { receipt });
-        }
-        let value = self
-            .meta()
-            .get_receipt(RECEIPT_KIND_IMPORT, id)
-            .map_err(meta_err)?;
-        let receipt: medscale_contracts::data_sources::ImportReceipt =
-            serde_json::from_value(value).map_err(|_| AuthorityError::Corrupt {
-                message: "stored import receipt is invalid".to_owned(),
-            })?;
-        Ok(SnapshotLineage::Import { receipt })
     }
 }
