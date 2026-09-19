@@ -778,10 +778,10 @@ impl DataSources<'_> {
                     AcquireFail::Missing(_) => {
                         (RefreshChangeClass::SourceGone, SourceHealth::Unavailable)
                     }
-                    AcquireFail::Unavailable(_) => {
-                        (RefreshChangeClass::SourceUnavailable, SourceHealth::Unavailable)
-                    }
-                    }
+                    AcquireFail::Unavailable(_) => (
+                        RefreshChangeClass::SourceUnavailable,
+                        SourceHealth::Unavailable,
+                    ),
                     AcquireFail::Denied(_) => {
                         (RefreshChangeClass::SourceDenied, SourceHealth::Denied)
                     }
