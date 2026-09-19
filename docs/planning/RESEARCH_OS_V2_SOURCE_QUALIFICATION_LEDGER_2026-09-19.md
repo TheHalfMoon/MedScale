@@ -15,6 +15,9 @@
 | nocodb/nocodb | `develop@28ecd7c239181111dd2f37778d48ed7996624e5a` | Sustainable Use License, updated 2026-01-29; internal/non-commercial restrictions | `REFERENCE_ONLY` unless separately licensed/authorized | Airtable-style feature research, schema/view UX |
 | teableio/teable | `develop@5ef2238883cad7c3980084de9a9031135fb9734f` | core apps AGPL-3.0 plus additional brand terms; packages directory MIT | `REFERENCE_ONLY` for core app; exact MIT-package study only | spreadsheet-database UX and implementation comparisons |
 | maziyarpanahi/openmed | `master@c741089ee55a96013a3d1876bf7ef03713fbe43b` | Apache-2.0 repository; individual model/data rights remain separate | `REFERENCE / DEPEND / ADAPT / COPY_SELECTIVE` per qualified subsystem | local clinical NER, de-identification, model ecosystem, multilingual/on-device patterns |
+| zotero/zotero | `main@b6f0f6c0ba1963fcbce8617e4fe1deec7eaff028` | AGPL-3.0; Zotero trademark separate | `REFERENCE / EXTERNAL_TOOL / interoperability` by default | citation-library UX, BibTeX/RIS/CSL interoperability, reference-management patterns |
+| asreview/asreview | `main@79d568212b2b0a78f9fd7be3c5117dfb890489f9` | Apache-2.0 | `REFERENCE / ADAPT / COPY_SELECTIVE after path review` | AI-assisted systematic-review screening, active-learning research workflow |
+| HumanSignal/label-studio | `develop@5901679519666a2539cc6897664486a5e7e53211` | Apache-2.0 at repository root; exact path/dependency review still required | `REFERENCE / ADAPT / COPY_SELECTIVE after qualification` | annotation task UX, review/adjudication and model-assisted labeling patterns |
 
 ## 2. Graphify adoption rules
 
@@ -200,3 +203,18 @@ exit_strategy
 ```
 
 No code transfer is complete until this record and owning-spec evidence exist.
+
+
+## 11. Research workflow donor notes
+
+### Zotero
+
+Zotero is valuable as an interoperability and reference-management product reference, but its observed application source is AGPL-3.0. Default posture is therefore external-tool/interoperability and clean MedScale-owned implementations using open citation formats. Do not copy Zotero application code into Apache-2.0 MedScale without explicit legal compatibility review.
+
+### ASReview
+
+ASReview is an Apache-2.0 research donor candidate for active-learning/systematic-review screening concepts. MedScale should still keep reviewer decisions, inclusion/exclusion state and evidence in its own artifact/collaboration contracts.
+
+### Label Studio
+
+Label Studio is an Apache-2.0 donor candidate for annotation/review interface patterns. It must not become a parallel dataset/project/user authority plane. Any direct component transfer requires exact-path dependency/security/provenance qualification.
