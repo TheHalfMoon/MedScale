@@ -106,9 +106,18 @@
    - external/non-software gates;
    - no-gap promotion checklist.
 
-### 6. Implementation handoff
+### 6. First promotion packet
 
-14. `MUSE_CLINICAL_RESEARCH_OS_IMPLEMENTATION_HANDOFF.md`
+14. `SPEC_075_PROMOTION_CANDIDATE_2026-09-19.md`
+   - exact current-repository anchors for the first post-074 unit;
+   - bounded T075-00 through T075-10 task graph;
+   - source/dependency posture;
+   - closure criteria;
+   - explicitly remains not authorized until canonical promotion.
+
+### 7. Implementation handoff
+
+15. `MUSE_CLINICAL_RESEARCH_OS_IMPLEMENTATION_HANDOFF.md`
    - agent execution instructions after canonical acceptance/promotion;
    - live-truth rebuild;
    - dependency order;
