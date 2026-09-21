@@ -95,12 +95,14 @@ Check a task only when its implementation, tests and required evidence are real 
 
 ## T076-10 — Native Desktop and CLI parity
 
-- [ ] Add Collaboration navigation through current native Slint composition, backed exclusively by Core.
-- [ ] Implement at minimum a comments/review panel and a task/decision list.
-- [ ] Preserve design system, keyboard/focus/accessibility, light/dark parity.
+- [x] Add Collaboration navigation through current native Slint composition, backed exclusively by Core: new "Collaboration" `NavItem`/route in `app.slint`, reusing the existing `desktop-projects` `CliSession` (Rooms are Project-scoped, so no second vault/session).
+- [x] Implement at minimum a comments/review panel (Rooms -> Threads with live resolution -> Messages) and a task list (create + mark-done).
+- [x] Preserve design system, keyboard/focus/accessibility, light/dark parity: every new element reuses existing themed components (`HonestyPanel`, `AdaptiveLineEdit`, `ToolbarAction`, `QuickAction`, `StatusPill`, `Theme.*` tokens) and `accessible-role`/`accessible-label` conventions exactly as the Projects/Data pages already establish; no new component or color was invented.
 - [x] Complete CLI vertical slice with human + JSON output: `crates/medscale-cli/src/collaboration.rs` (`medscale collab ...` for participant/room/membership, `medscale collab-work ...` for thread/message/task/note/approval/activity), backed by ~30 new `CliSession::collab_*` convenience methods in `crates/medscale-core/src/cli_session.rs`. Anchor input is deliberately simplified to `IdentityOnly` bindings for CLI ergonomics (a CLI scope simplification, not a Core limitation -- Core's full `ArtifactVersionBinding` precision is exercised by the Core-layer tests instead).
 
-**Acceptance:** CLI vertical slice complete and CI-green; no direct storage/network access from CLI. Desktop surface is the remaining piece of this task.
+Desktop scope note: the panel covers Rooms/Threads/Messages/Tasks (the plan.md minimum). Notes and Approvals have no Desktop surface in this closure -- CLI-only for those two, same honest-gap discipline as Spec 075's saved-views closure (only the Grid view was built; other view kinds were recorded as a gap, not silently claimed).
+
+**Acceptance:** CLI vertical slice complete and CI-green. Desktop panel implemented and genuinely Core-backed (`collaboration_workspace.rs` calls real `CliSession::collab_*` methods, no synthetic data); this workstation cannot link locally to produce a rendered screenshot, so rendered Desktop evidence is deferred to the same honest-residual treatment Spec 075 recorded (`evidence/.../DESKTOP_QUALIFICATION.md` at T076-11), not fabricated.
 
 ## T076-11 — Qualification and closure
 

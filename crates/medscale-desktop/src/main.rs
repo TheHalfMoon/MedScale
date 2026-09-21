@@ -13,6 +13,7 @@ use std::time::Duration;
 
 use slint::{ComponentHandle, ModelRc, VecModel};
 
+mod collaboration_workspace;
 mod data_workbench;
 mod patient_workspace;
 mod population_insights;
@@ -259,6 +260,105 @@ fn open_project_detail(ui: &AppWindow, session: &Rc<RefCell<CliSession>>, projec
         Err(err) => {
             ui.set_project_active_id("".into());
             ui.set_project_status(project_workspace::status_message(&err).into());
+        }
+    }
+}
+
+/// Refreshes the Rooms list for the active Project from Core.
+fn refresh_collab_rooms(ui: &AppWindow, session: &Rc<RefCell<CliSession>>) {
+    let project_id = ui.get_project_active_id().to_string();
+    if project_id.is_empty() {
+        ui.set_collab_status("Open a project to inspect its rooms".into());
+        ui.set_collab_rooms(ModelRc::new(VecModel::from(Vec::new())));
+        return;
+    }
+    match collaboration_workspace::refresh_rooms(&mut session.borrow_mut(), &project_id) {
+        Ok(rows) => {
+            ui.set_collab_status(
+                format!(
+                    "{} room{} · Core-backed",
+                    rows.len(),
+                    if rows.len() == 1 { "" } else { "s" }
+                )
+                .into(),
+            );
+            ui.set_collab_rooms(ModelRc::new(VecModel::from_iter(rows.iter().map(|row| {
+                RoomRowItem {
+                    id: row.id.clone().into(),
+                    name: row.name.clone().into(),
+                    revision: row.revision.to_string().into(),
+                }
+            }))));
+        }
+        Err(err) => {
+            ui.set_collab_rooms(ModelRc::new(VecModel::from(Vec::new())));
+            ui.set_collab_status(collaboration_workspace::status_message(&err).into());
+        }
+    }
+}
+
+/// Opens one Room: loads its threads and tasks.
+fn open_collab_room(ui: &AppWindow, session: &Rc<RefCell<CliSession>>, room_id: &str) {
+    ui.set_collab_active_room_id(room_id.into());
+    ui.set_collab_active_thread_id("".into());
+    ui.set_collab_messages(ModelRc::new(VecModel::from(Vec::new())));
+    refresh_collab_threads(ui, session, room_id);
+    refresh_collab_tasks(ui, session, room_id);
+}
+
+fn refresh_collab_threads(ui: &AppWindow, session: &Rc<RefCell<CliSession>>, room_id: &str) {
+    match collaboration_workspace::refresh_threads(&mut session.borrow_mut(), room_id) {
+        Ok(rows) => {
+            ui.set_collab_threads(ModelRc::new(VecModel::from_iter(rows.iter().map(|row| {
+                ThreadRowItem {
+                    id: row.id.clone().into(),
+                    status: row.status.clone().into(),
+                    resolution: row.resolution.clone().into(),
+                    artifact_id: row.artifact_id.clone().into(),
+                }
+            }))));
+        }
+        Err(err) => {
+            ui.set_collab_threads(ModelRc::new(VecModel::from(Vec::new())));
+            ui.set_collab_status(collaboration_workspace::status_message(&err).into());
+        }
+    }
+}
+
+fn refresh_collab_tasks(ui: &AppWindow, session: &Rc<RefCell<CliSession>>, room_id: &str) {
+    match collaboration_workspace::refresh_tasks(&mut session.borrow_mut(), room_id) {
+        Ok(rows) => {
+            ui.set_collab_tasks(ModelRc::new(VecModel::from_iter(rows.iter().map(|row| {
+                TaskRowItem {
+                    id: row.id.clone().into(),
+                    title: row.title.clone().into(),
+                    status: row.status.clone().into(),
+                    revision: row.revision.to_string().into(),
+                }
+            }))));
+        }
+        Err(err) => {
+            ui.set_collab_tasks(ModelRc::new(VecModel::from(Vec::new())));
+            ui.set_collab_status(collaboration_workspace::status_message(&err).into());
+        }
+    }
+}
+
+fn select_collab_thread(ui: &AppWindow, session: &Rc<RefCell<CliSession>>, thread_id: &str) {
+    ui.set_collab_active_thread_id(thread_id.into());
+    match collaboration_workspace::refresh_messages(&mut session.borrow_mut(), thread_id) {
+        Ok(rows) => {
+            ui.set_collab_messages(ModelRc::new(VecModel::from_iter(rows.iter().map(|row| {
+                MessageRowItem {
+                    author: row.author.clone().into(),
+                    body: row.body.clone().into(),
+                    seq: row.seq.to_string().into(),
+                }
+            }))));
+        }
+        Err(err) => {
+            ui.set_collab_messages(ModelRc::new(VecModel::from(Vec::new())));
+            ui.set_collab_status(collaboration_workspace::status_message(&err).into());
         }
     }
 }
@@ -825,6 +925,155 @@ fn main() -> ExitCode {
                     ui.set_data_status(summary.into());
                 }
                 Err(err) => ui.set_data_status(data_workbench::status_message(&err).into()),
+            }
+            return;
+        }
+        // Spec 076 collaboration substrate actions (Core-backed, membership-gated).
+        if action == "collab-rooms-refresh" {
+            if let Some(session) = &project_session_for_actions {
+                refresh_collab_rooms(&ui, session);
+            } else {
+                ui.set_collab_status("Rooms unavailable: no Core session".into());
+            }
+            return;
+        }
+        if action == "collab-room-create" {
+            let Some(session) = &project_session_for_actions else {
+                ui.set_collab_status("Rooms unavailable: no Core session".into());
+                return;
+            };
+            let project_id = ui.get_project_active_id().to_string();
+            if project_id.is_empty() {
+                ui.set_collab_status("Invalid: open a project first".into());
+                return;
+            }
+            let name = ui.get_collab_room_name_input().to_string();
+            if name.trim().is_empty() {
+                ui.set_collab_status("Invalid: room name is empty".into());
+                return;
+            }
+            match collaboration_workspace::create_room(&mut session.borrow_mut(), &project_id, name)
+            {
+                Ok(_) => {
+                    ui.set_collab_room_name_input("".into());
+                    refresh_collab_rooms(&ui, session);
+                }
+                Err(err) => {
+                    ui.set_collab_status(collaboration_workspace::status_message(&err).into());
+                }
+            }
+            return;
+        }
+        if let Some(room_id) = action.strip_prefix("collab-room-open:") {
+            if let Some(session) = &project_session_for_actions {
+                open_collab_room(&ui, session, room_id);
+            } else {
+                ui.set_collab_status("Rooms unavailable: no Core session".into());
+            }
+            return;
+        }
+        if action == "collab-thread-open" {
+            let Some(session) = &project_session_for_actions else {
+                ui.set_collab_status("Threads unavailable: no Core session".into());
+                return;
+            };
+            let room_id = ui.get_collab_active_room_id().to_string();
+            let artifact_id = ui.get_collab_thread_artifact_input().to_string();
+            if room_id.is_empty() || artifact_id.trim().is_empty() {
+                ui.set_collab_status("Invalid: open a room and enter an artifact id".into());
+                return;
+            }
+            match collaboration_workspace::open_thread(
+                &mut session.borrow_mut(),
+                &room_id,
+                artifact_id.trim(),
+            ) {
+                Ok(_) => {
+                    ui.set_collab_thread_artifact_input("".into());
+                    refresh_collab_threads(&ui, session, &room_id);
+                }
+                Err(err) => {
+                    ui.set_collab_status(collaboration_workspace::status_message(&err).into());
+                }
+            }
+            return;
+        }
+        if let Some(thread_id) = action.strip_prefix("collab-thread-select:") {
+            if let Some(session) = &project_session_for_actions {
+                select_collab_thread(&ui, session, thread_id);
+            } else {
+                ui.set_collab_status("Threads unavailable: no Core session".into());
+            }
+            return;
+        }
+        if action == "collab-message-post" {
+            let Some(session) = &project_session_for_actions else {
+                ui.set_collab_status("Messages unavailable: no Core session".into());
+                return;
+            };
+            let thread_id = ui.get_collab_active_thread_id().to_string();
+            let body = ui.get_collab_message_input().to_string();
+            if thread_id.is_empty() || body.trim().is_empty() {
+                ui.set_collab_status("Invalid: open a thread and enter a message".into());
+                return;
+            }
+            match collaboration_workspace::post_message(&mut session.borrow_mut(), &thread_id, body)
+            {
+                Ok(()) => {
+                    ui.set_collab_message_input("".into());
+                    select_collab_thread(&ui, session, &thread_id);
+                }
+                Err(err) => {
+                    ui.set_collab_status(collaboration_workspace::status_message(&err).into());
+                }
+            }
+            return;
+        }
+        if action == "collab-task-create" {
+            let Some(session) = &project_session_for_actions else {
+                ui.set_collab_status("Tasks unavailable: no Core session".into());
+                return;
+            };
+            let room_id = ui.get_collab_active_room_id().to_string();
+            let title = ui.get_collab_task_title_input().to_string();
+            if room_id.is_empty() || title.trim().is_empty() {
+                ui.set_collab_status("Invalid: open a room and enter a task title".into());
+                return;
+            }
+            match collaboration_workspace::create_task(&mut session.borrow_mut(), &room_id, title) {
+                Ok(_) => {
+                    ui.set_collab_task_title_input("".into());
+                    refresh_collab_tasks(&ui, session, &room_id);
+                }
+                Err(err) => {
+                    ui.set_collab_status(collaboration_workspace::status_message(&err).into());
+                }
+            }
+            return;
+        }
+        if let Some(rest) = action.strip_prefix("collab-task-complete:") {
+            let Some(session) = &project_session_for_actions else {
+                ui.set_collab_status("Tasks unavailable: no Core session".into());
+                return;
+            };
+            let Some((task_id, revision_str)) = rest.rsplit_once(':') else {
+                ui.set_collab_status("Invalid: malformed task action".into());
+                return;
+            };
+            let Ok(expected_revision) = revision_str.parse::<u64>() else {
+                ui.set_collab_status("Invalid: task has no revision".into());
+                return;
+            };
+            let room_id = ui.get_collab_active_room_id().to_string();
+            match collaboration_workspace::complete_task(
+                &mut session.borrow_mut(),
+                task_id,
+                expected_revision,
+            ) {
+                Ok(_) => refresh_collab_tasks(&ui, session, &room_id),
+                Err(err) => {
+                    ui.set_collab_status(collaboration_workspace::status_message(&err).into());
+                }
             }
             return;
         }
