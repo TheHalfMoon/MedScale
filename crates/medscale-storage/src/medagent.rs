@@ -834,6 +834,7 @@ impl SqliteMetaStore {
     /// Inserts an `Executed` tool invocation and its `ToolReceipt` in one
     /// transaction: an executed invocation never exists without its
     /// receipt.
+    #[allow(clippy::too_many_arguments)]
     pub fn insert_executed_tool_invocation_with_receipt(
         &self,
         invocation_header: ObjectHeader,
