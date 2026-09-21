@@ -85,7 +85,7 @@ fn schema_v3_migrates_empty_store_additively() {
     let root = temp_root("empty");
     let meta = open_meta(&root);
     let journal = meta.migration_journal().unwrap();
-    assert_eq!(journal.finished_version, 3);
+    assert_eq!(journal.finished_version, 4);
     assert!(!journal.interrupted());
     // Pre-074 state still queryable after migration.
     assert!(meta.list_sources().unwrap().is_empty());
@@ -131,7 +131,7 @@ fn schema_v3_migrates_populated_v2_store_without_identity_loss() {
     }
     let meta = SqliteMetaStore::open_at(&db_path).unwrap();
     let journal = meta.migration_journal().unwrap();
-    assert_eq!(journal.finished_version, 3);
+    assert_eq!(journal.finished_version, 4);
     // Pre-074 identities survive the migration untouched.
     let source = meta.get_source(&OpaqueId::new("src-keep")).unwrap();
     assert_eq!(source.media_type, "text/plain");
@@ -155,7 +155,7 @@ fn interrupted_migration_fails_closed_on_reopen() {
     let root = temp_root("interrupt");
     {
         let meta = open_meta(&root);
-        assert_eq!(meta.migration_journal().unwrap().finished_version, 3);
+        assert_eq!(meta.migration_journal().unwrap().finished_version, 4);
         meta.begin_migration(4).unwrap();
         // Drop without finish: simulated crash mid-migration.
     }
