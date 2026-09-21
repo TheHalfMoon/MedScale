@@ -262,6 +262,68 @@ pub fn complete_task(
 mod tests {
     use super::*;
 
+    fn test_session(name: &str) -> CliSession {
+        let dir = std::env::temp_dir().join(format!("medscale-076d-{name}"));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let mut session = CliSession::connect("desktop-collab-test").expect("operator session");
+        session
+            .open_synthetic_vault(&dir.display().to_string())
+            .expect("open vault");
+        session
+    }
+
+    /// Mirrors Spec 075's `workbench_flows_through_real_core_session`: every
+    /// view-model function in this module is exercised against a real
+    /// `CliSession` (Core), never synthetic/fake data, so the Desktop
+    /// collaboration panel's data path is proven even though this
+    /// workstation cannot render the Slint UI locally or in CI.
+    #[test]
+    fn collab_workspace_flows_through_real_core_session() {
+        let mut session = test_session("flows");
+        let project = session
+            .project_create("study".to_owned(), None)
+            .expect("project");
+        let project_id = project.header.id.as_str().to_owned();
+
+        let room =
+            create_room(&mut session, &project_id, "trial design".to_owned()).expect("create room");
+        assert_eq!(room.name, "trial design");
+        let rooms = refresh_rooms(&mut session, &project_id).expect("refresh rooms");
+        assert_eq!(rooms.len(), 1);
+        assert_eq!(rooms[0].id, room.id);
+
+        // No CliSession convenience method creates a SourceRecord (only the
+        // raw Capability::CreateSourceRecord facade path does, which
+        // CliSession does not expose publicly), so this proves the honest
+        // fail-closed side of live resolution: an unregistered artifact id
+        // resolves Missing, never a fabricated Current.
+        let thread = open_thread(&mut session, &room.id, "source-unknown").expect("open thread");
+        assert_eq!(thread.resolution, "missing");
+        let threads = refresh_threads(&mut session, &room.id).expect("refresh threads");
+        assert_eq!(threads.len(), 1);
+        assert_eq!(threads[0].artifact_id, "source-unknown");
+
+        post_message(&mut session, &thread.id, "first message".to_owned()).expect("post message");
+        let messages = refresh_messages(&mut session, &thread.id).expect("refresh messages");
+        assert_eq!(messages.len(), 1);
+        assert_eq!(messages[0].body, "first message");
+
+        let task = create_task(&mut session, &room.id, "collect baseline labs".to_owned())
+            .expect("create task");
+        assert_eq!(task.status, "Open");
+        let tasks = refresh_tasks(&mut session, &room.id).expect("refresh tasks");
+        assert_eq!(tasks.len(), 1);
+        let done = complete_task(&mut session, &task.id, task.revision).expect("complete task");
+        assert_eq!(done.status, "Done");
+
+        // Statuses stay explicit for every error class (never a payload leak).
+        assert_eq!(
+            status_message(&AuthorityError::NotFound),
+            "Missing: not found in this vault"
+        );
+    }
+
     #[test]
     fn status_message_never_empty() {
         assert!(!status_message(&AuthorityError::NotFound).is_empty());
