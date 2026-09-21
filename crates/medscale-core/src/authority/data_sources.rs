@@ -26,11 +26,11 @@ use medscale_contracts::data_sources::{
     DataSourceManifest, DataSourceSummary, DataTransformation, DataViewKind, DatabaseEngine,
     DatasetCard, DatasetReleaseSummary, FilterExpr, ImportReceipt, LocalFileFormat,
     RefreshChangeClass, RefreshReceipt, ReleaseManifest, RemoteDatasetProvider, RightsState,
-    SavedDataView, SavedViewStatus, SavedViewSummary, SnapshotRowPage, SnapshotStatus,
-    SnapshotSummary, SortKey, SourceHealth, SourceLocator, SourceRevisionBinding, SourceSchema,
-    SourceStatus, TransformOp, TransformationReceipt, ViewState, effective_list_limit,
-    effective_rows_limit, fingerprint_schema, parse_row_cursor, render_row_cursor, validate_cursor,
-    validate_display_name,
+    SNAPSHOT_BYTES_MAX, SavedDataView, SavedViewStatus, SavedViewSummary, SnapshotRowPage,
+    SnapshotStatus, SnapshotSummary, SortKey, SourceHealth, SourceLocator, SourceRevisionBinding,
+    SourceSchema, SourceStatus, TransformOp, TransformationReceipt, ViewState,
+    effective_list_limit, effective_rows_limit, fingerprint_schema, parse_row_cursor,
+    render_row_cursor, validate_cursor, validate_display_name,
 };
 use medscale_contracts::envelopes::AuthorityError;
 use medscale_contracts::network::EgressAllowlistEntry;
@@ -237,7 +237,24 @@ impl DataSources<'_> {
 
     /// Resolves a vault-root-relative local path. Absolute paths, parent
     /// escapes, and symlinks leaving the vault fail as `PathOutsideClaim`.
+    /// The vault's own internal storage (metadata store, blob stores, writer
+    /// lock) is also refused: it lives inside the same vault root as
+    /// user-placed source files, so without this check a `Database` or
+    /// `LocalPath` source could name it and read authority state across
+    /// every scope in the vault with no scoping applied.
     fn resolve_local_path(&self, locator_path: &str) -> Result<PathBuf, AuthorityError> {
+        const RESERVED_VAULT_PATHS: &[&str] = &[
+            "meta.sqlite3",
+            "meta.sqlite3-wal",
+            "meta.sqlite3-shm",
+            "meta.sqlite3-journal",
+            "meta.work.sqlite3",
+            "meta.work.sqlite3-wal",
+            "meta.work.sqlite3-shm",
+            "writer.lock.sqlite3",
+            "blobs",
+            "sealed_blobs",
+        ];
         let relative = Path::new(locator_path);
         if relative.is_absolute()
             || relative.components().any(|c| {
@@ -246,6 +263,16 @@ impl DataSources<'_> {
                     std::path::Component::ParentDir | std::path::Component::Prefix(_)
                 )
             })
+        {
+            return Err(AuthorityError::PathOutsideClaim);
+        }
+        let first_component = match relative.components().next() {
+            Some(std::path::Component::Normal(name)) => name.to_str().unwrap_or(""),
+            _ => "",
+        };
+        if RESERVED_VAULT_PATHS
+            .iter()
+            .any(|reserved| first_component.eq_ignore_ascii_case(reserved))
         {
             return Err(AuthorityError::PathOutsideClaim);
         }
@@ -452,6 +479,23 @@ impl DataSources<'_> {
                     }
                     other => AcquireFail::Unavailable(format!("{other:?}")),
                 })?;
+                let declared_len =
+                    std::fs::metadata(&resolved)
+                        .map(|m| m.len())
+                        .map_err(|e| match e.kind() {
+                            std::io::ErrorKind::NotFound => {
+                                AcquireFail::Missing("local source file is gone".to_owned())
+                            }
+                            std::io::ErrorKind::PermissionDenied => {
+                                AcquireFail::Denied("local source file is denied".to_owned())
+                            }
+                            _ => AcquireFail::Unavailable(e.to_string()),
+                        })?;
+                if declared_len > SNAPSHOT_BYTES_MAX {
+                    return Err(AcquireFail::Rejected(
+                        "input exceeds snapshot byte bound".to_owned(),
+                    ));
+                }
                 let bytes = std::fs::read(&resolved).map_err(|e| match e.kind() {
                     std::io::ErrorKind::NotFound => {
                         AcquireFail::Missing("local source file is gone".to_owned())
@@ -740,12 +784,18 @@ impl DataSources<'_> {
     /// Best-effort health hook for failed acquisitions (revision-guarded;
     /// a concurrent mutation wins over the hook, never the reverse).
     fn import_health_hook(&self, source: &DataSourceManifest, fail: &AcquireFail) {
+        // Mirrors refresh_source's classification: quarantined/rejected/
+        // unsupported content leaves the source reachable but its last
+        // known-good state suspect, so it is marked Stale rather than left
+        // silently Healthy after a failed import.
         let health = match fail {
             AcquireFail::Unavailable(_) | AcquireFail::Missing(_) => {
                 Some(SourceHealth::Unavailable)
             }
             AcquireFail::Denied(_) => Some(SourceHealth::Denied),
-            _ => None,
+            AcquireFail::Quarantined(_)
+            | AcquireFail::Rejected(_)
+            | AcquireFail::Unsupported(_) => Some(SourceHealth::Stale),
         };
         if let Some(health) = health {
             let _ = self
@@ -1233,12 +1283,14 @@ impl DataSources<'_> {
             return Err(AuthorityError::WrongScope);
         }
         validate_cursor(cursor).map_err(|message| AuthorityError::InvalidArgument { message })?;
-        let (all, _) = self
+        let (all, next_cursor) = self
             .meta()
             .list_dataset_releases(project_id, effective_list_limit(limit), cursor.as_deref())
             .map_err(meta_err)?;
         // Scope follows each release snapshot; cross-scope rows are filtered,
-        // never leaked.
+        // never leaked. The underlying page cursor is still returned as-is
+        // so a caller can keep paging instead of a filtered-short page being
+        // mistaken for the end of the list.
         let mut out = Vec::new();
         for summary in all {
             if let Ok(release) = self.meta().get_dataset_release(&summary.release_id)
@@ -1247,6 +1299,6 @@ impl DataSources<'_> {
                 out.push(summary);
             }
         }
-        Ok((out, None))
+        Ok((out, next_cursor))
     }
 }

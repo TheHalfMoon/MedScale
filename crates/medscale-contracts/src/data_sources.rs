@@ -370,6 +370,28 @@ impl SourceLocator {
             }
             Ok(())
         }
+        // Remote identifiers are never filesystem paths at this layer, but
+        // fetched files are later staged to local paths derived from them;
+        // reject traversal/absolute shapes here so that staging step never
+        // has to trust an unvalidated segment.
+        fn bounded_no_traversal(value: &str, what: &str) -> Result<(), String> {
+            bounded(value, what)?;
+            let path = std::path::Path::new(value);
+            // has_root() (not is_absolute()) also catches a rootless
+            // "/etc/passwd"-style path on Windows, which is_absolute()
+            // alone would miss there.
+            if path.has_root()
+                || path.components().any(|c| {
+                    matches!(
+                        c,
+                        std::path::Component::ParentDir | std::path::Component::Prefix(_)
+                    )
+                })
+            {
+                return Err(format!("{what} must not escape its dataset scope"));
+            }
+            Ok(())
+        }
         match self {
             Self::LocalPath { path, .. } => bounded(path, "local path"),
             Self::Database {
@@ -390,7 +412,7 @@ impl SourceLocator {
                     return Err("dataset files must be non-empty and bounded".to_owned());
                 }
                 for file in files {
-                    bounded(file, "dataset file")?;
+                    bounded_no_traversal(file, "dataset file")?;
                 }
                 Ok(())
             }

@@ -162,7 +162,9 @@ fn open_data_source(ui: &AppWindow, session: &Rc<RefCell<CliSession>>, source_id
                     digest: row.digest.clone().into(),
                 },
             ))));
-            if let Some(latest) = snapshots.first() {
+            // list_snapshots pages oldest snapshot_id first; the most recent
+            // fetched snapshot is the last element, not the first.
+            if let Some(latest) = snapshots.last() {
                 let id = latest.id.clone();
                 open_data_snapshot(ui, session, &id);
             } else {
@@ -198,6 +200,19 @@ fn open_data_snapshot(ui: &AppWindow, session: &Rc<RefCell<CliSession>>, snapsho
 fn open_project_detail(ui: &AppWindow, session: &Rc<RefCell<CliSession>>, project_id: &str) {
     match project_workspace::project_detail(&mut session.borrow_mut(), project_id) {
         Ok(detail) => {
+            // A switched project must not leave the previous project's data
+            // workbench selection active: otherwise a subsequent data action
+            // reads the stale source/snapshot id and mutates the wrong
+            // project's data while the UI shows this one.
+            ui.set_data_active_source("".into());
+            ui.set_data_active_snapshot("".into());
+            ui.set_data_sources(ModelRc::new(VecModel::from(Vec::new())));
+            ui.set_data_snapshots(ModelRc::new(VecModel::from(Vec::new())));
+            ui.set_data_rows(ModelRc::new(VecModel::from(Vec::new())));
+            ui.set_data_schema_line("".into());
+            ui.set_data_detail("".into());
+            ui.set_data_next_cursor("".into());
+            ui.set_data_status("Data not loaded".into());
             ui.set_project_active_id(detail.project_id.clone().into());
             ui.set_project_active_revision(detail.revision.to_string().into());
             ui.set_project_detail_name(detail.name.clone().into());

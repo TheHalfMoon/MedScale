@@ -368,6 +368,74 @@ fn backup_restore_roundtrips_fabric_rows() {
 }
 
 #[test]
+fn corrupt_id_sequence_fails_closed_instead_of_resetting() {
+    let root = temp_root("id-seq-corrupt");
+    let meta = open_meta(&root);
+    let first = meta
+        .alloc_data_fabric_id("data_source_id_seq", "dsrc")
+        .unwrap();
+    assert_eq!(first.as_str(), "dsrc-1");
+    drop(meta);
+    {
+        // Simulate a corrupted store_state row (disk fault / tamper), not
+        // reachable through the public API.
+        let conn = rusqlite::Connection::open(root.join("meta.sqlite3")).unwrap();
+        conn.execute(
+            "UPDATE store_state SET value = 'not-a-number' WHERE key = 'data_source_id_seq'",
+            [],
+        )
+        .unwrap();
+    }
+    let meta = open_meta(&root);
+    let err = meta
+        .alloc_data_fabric_id("data_source_id_seq", "dsrc")
+        .unwrap_err();
+    assert!(
+        matches!(err, MetaError::CorruptObjectBody(_)),
+        "corrupted id sequence must fail closed instead of silently resetting to a \
+         colliding id (e.g. dsrc-1 again), got {err:?}"
+    );
+}
+
+#[test]
+fn restore_rejects_database_source_with_credential_ref() {
+    use medscale_storage::SyntheticVault;
+    let root = temp_root("restore-cred");
+    let vault_root = root.join("vault");
+    let vault = SyntheticVault::open("vault-1", &vault_root).unwrap();
+    // A row that Core's create_source/update_source would never admit
+    // (Database locator + a stored credential_ref), inserted directly at
+    // the storage layer to simulate a crafted/tampered backup rather than
+    // one produced through the normal authority path.
+    let illegal = DataSourceManifest::new(
+        header("dsrc-bad"),
+        OpaqueId::new("proj-1"),
+        DataSourceKind::DatabaseRead,
+        "illegal-db-source".to_owned(),
+        "external_sqlite".to_owned(),
+        SourceLocator::Database {
+            engine: medscale_contracts::data_sources::DatabaseEngine::ExternalSqlite,
+            database: "lab.sqlite3".to_owned(),
+            object: "towns".to_owned(),
+        },
+        Some(OpaqueId::new("cred-should-not-exist")),
+        vec![medscale_contracts::data_sources::DataSourceCapability::DiscoverSchema],
+    )
+    .unwrap();
+    vault.meta.insert_data_source(&illegal).unwrap();
+
+    let dest = root.join("backup");
+    backup_vault(&vault, &dest).unwrap();
+
+    let restore_root = root.join("restored");
+    let err = restore_vault(&dest, &restore_root).unwrap_err();
+    assert!(
+        err.contains("credential"),
+        "restore must fail closed on a stored database credential, got: {err}"
+    );
+}
+
+#[test]
 fn tampered_snapshot_status_fails_closed() {
     let root = temp_root("tamper-status");
     let meta = open_meta(&root);

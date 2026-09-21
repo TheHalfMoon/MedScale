@@ -8,7 +8,7 @@ use std::fs;
 
 use medscale_contracts::data_sources::{
     DataSourceKind, DataViewKind, FilterExpr, FilterOp, LocalFileFormat, RefreshChangeClass,
-    RightsState, SortKey, SourceLocator, TransformOp, ViewState,
+    RightsState, SNAPSHOT_BYTES_MAX, SortKey, SourceLocator, TransformOp, ViewState,
 };
 use medscale_contracts::envelopes::{AuthorityError, AuthorityRequest, Capability, RequestBody};
 use medscale_contracts::objects::{AuthorityScopeId, OpaqueId, RealmId, VaultId};
@@ -447,6 +447,65 @@ fn malformed_bytes_quarantine_and_missing_file_is_unavailable() {
 }
 
 #[test]
+fn quarantined_import_marks_source_health_stale_not_silently_healthy() {
+    let h = setup("csv-quarantine-health");
+    let project = h.project();
+    h.write_fixture("bad.csv", b"\xff\xfe\x00bad");
+    let source = h.csv_source(&project, "bad", "bad.csv");
+    h.call(
+        Capability::SnapshotImport,
+        RequestBody::SnapshotImport {
+            source_id: source.clone(),
+        },
+    )
+    .expect_err("invalid bytes must fail");
+    let manifest = match h
+        .call(
+            Capability::DataSourceRead,
+            RequestBody::DataSourceGet {
+                source_id: source.clone(),
+            },
+        )
+        .expect("get source")
+        .0
+    {
+        medscale_contracts::envelopes::ResponseBody::DataSource { source } => source,
+        other => panic!("{other:?}"),
+    };
+    assert_eq!(
+        manifest.health,
+        medscale_contracts::data_sources::SourceHealth::Stale,
+        "a source whose last import was quarantined must not read back as healthy"
+    );
+}
+
+#[test]
+fn oversized_local_file_is_rejected_before_full_read() {
+    let h = setup("csv-oversized");
+    let project = h.project();
+    // A sparse file: its logical length is checked (and must be rejected)
+    // via metadata before the full byte content is ever read into memory,
+    // without this test needing to write real bytes.
+    let path = h.dir.join("huge.csv");
+    let file = fs::File::create(&path).unwrap();
+    file.set_len(SNAPSHOT_BYTES_MAX + 1).unwrap();
+    drop(file);
+    let source = h.csv_source(&project, "huge", "huge.csv");
+    let err = h
+        .call(
+            Capability::SnapshotImport,
+            RequestBody::SnapshotImport {
+                source_id: source.clone(),
+            },
+        )
+        .expect_err("oversized input must fail");
+    assert!(
+        matches!(err, AuthorityError::InvalidArgument { .. }),
+        "{err:?}"
+    );
+}
+
+#[test]
 fn unqualified_formats_and_engines_fail_closed() {
     let h = setup("csv-unqualified");
     let project = h.project();
@@ -681,6 +740,73 @@ fn transform_view_release_lineage() {
 }
 
 #[test]
+fn release_list_pagination_cursor_is_not_silently_discarded() {
+    let h = setup("release-pagination");
+    let project = h.project();
+    h.write_fixture("table.csv", CSV_BASIC);
+    let source = h.csv_source(&project, "towns", "table.csv");
+    let (snap_a, _) = h.import(&source);
+    h.write_fixture("table.csv", b"city,dose\nspringfield,7\n");
+    let (snap_b, _) = h.import(&source);
+    assert_ne!(snap_a.header.id, snap_b.header.id);
+    for (snapshot, version) in [(&snap_a, "v1"), (&snap_b, "v2")] {
+        h.call(
+            Capability::DatasetReleaseCreate,
+            RequestBody::DatasetReleaseCreate {
+                snapshot_id: snapshot.header.id.clone(),
+                version: version.to_owned(),
+                split_group: None,
+                annotation_schema_ref: None,
+                rights_state: RightsState::SyntheticFixture,
+            },
+        )
+        .expect("release");
+    }
+    let (first_page, next_cursor) = match h
+        .call(
+            Capability::DatasetReleaseRead,
+            RequestBody::DatasetReleaseList {
+                project_id: project.clone(),
+                limit: Some(1),
+                cursor: None,
+            },
+        )
+        .expect("list")
+        .0
+    {
+        medscale_contracts::envelopes::ResponseBody::DatasetReleaseList {
+            releases,
+            next_cursor,
+        } => (releases, next_cursor),
+        other => panic!("{other:?}"),
+    };
+    assert_eq!(first_page.len(), 1);
+    assert!(
+        next_cursor.is_some(),
+        "a full first page must carry a real continuation cursor, not silently claim completeness"
+    );
+    let second_page = match h
+        .call(
+            Capability::DatasetReleaseRead,
+            RequestBody::DatasetReleaseList {
+                project_id: project.clone(),
+                limit: Some(1),
+                cursor: next_cursor,
+            },
+        )
+        .expect("list page 2")
+        .0
+    {
+        medscale_contracts::envelopes::ResponseBody::DatasetReleaseList { releases, .. } => {
+            releases
+        }
+        other => panic!("{other:?}"),
+    };
+    assert_eq!(second_page.len(), 1);
+    assert_ne!(first_page[0].release_id, second_page[0].release_id);
+}
+
+#[test]
 fn external_sqlite_read_adapter_is_qualified() {
     let h = setup("sqlite-adapter");
     let project = h.project();
@@ -765,6 +891,77 @@ fn external_sqlite_read_adapter_is_qualified() {
         .expect_err("missing table must fail");
     assert!(matches!(err, AuthorityError::Unavailable { .. }), "{err:?}");
     let _ = ghost;
+}
+
+#[test]
+fn database_source_cannot_name_the_vaults_own_metadata_store() {
+    let h = setup("sqlite-reserved");
+    let project = h.project();
+    // The vault's own meta.sqlite3 sits directly under the vault root next
+    // to any user-placed local files; without a reserved-path check a
+    // "Database" source could name it and read every project's
+    // data_sources/data_snapshots/dataset_releases rows with no scoping.
+    let source = match h
+        .call(
+            Capability::DataSourceCreate,
+            RequestBody::DataSourceCreate {
+                project_id: project.clone(),
+                display_name: "meta-probe".to_owned(),
+                locator: SourceLocator::Database {
+                    engine: medscale_contracts::data_sources::DatabaseEngine::ExternalSqlite,
+                    database: "meta.sqlite3".to_owned(),
+                    object: "data_sources".to_owned(),
+                },
+                credential_ref: None,
+            },
+        )
+        .expect("source")
+        .0
+    {
+        medscale_contracts::envelopes::ResponseBody::DataSource { source } => source.header.id,
+        other => panic!("{other:?}"),
+    };
+    let err = h
+        .call(
+            Capability::SnapshotImport,
+            RequestBody::SnapshotImport {
+                source_id: source.clone(),
+            },
+        )
+        .expect_err("reading the vault's own metadata store must be refused");
+    // resolve_local_path's PathOutsideClaim is remapped to Denied and then
+    // to Unauthorized on the way out of acquire_parsed (same as any other
+    // vault-escape attempt through the Database locator).
+    assert!(matches!(err, AuthorityError::Unauthorized), "{err:?}");
+    // The blob store is equally reserved.
+    let blobs_source = match h
+        .call(
+            Capability::DataSourceCreate,
+            RequestBody::DataSourceCreate {
+                project_id: project.clone(),
+                display_name: "blobs-probe".to_owned(),
+                locator: SourceLocator::LocalPath {
+                    path: "blobs/anything.csv".to_owned(),
+                    format: LocalFileFormat::Csv,
+                },
+                credential_ref: None,
+            },
+        )
+        .expect("source")
+        .0
+    {
+        medscale_contracts::envelopes::ResponseBody::DataSource { source } => source.header.id,
+        other => panic!("{other:?}"),
+    };
+    let err = h
+        .call(
+            Capability::SnapshotImport,
+            RequestBody::SnapshotImport {
+                source_id: blobs_source,
+            },
+        )
+        .expect_err("reading the vault's own blob store must be refused");
+    assert!(matches!(err, AuthorityError::Unauthorized), "{err:?}");
 }
 
 #[test]

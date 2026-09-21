@@ -277,7 +277,14 @@ impl SqliteMetaStore {
                 |row| row.get(0),
             )
             .optional()?;
-        let next: u64 = current.as_deref().unwrap_or("0").parse().unwrap_or(0) + 1;
+        let next: u64 = match current.as_deref() {
+            None => 1,
+            Some(raw) => {
+                raw.parse::<u64>().map_err(|_| {
+                    MetaError::CorruptObjectBody(format!("id sequence {seq_key} is not numeric"))
+                })? + 1
+            }
+        };
         tx.execute(
             "INSERT OR REPLACE INTO store_state(key, value) VALUES (?1, ?2)",
             params![seq_key, next.to_string()],
@@ -853,7 +860,9 @@ impl SqliteMetaStore {
         Ok(out)
     }
 
-    /// Lists snapshots for one source, newest (rowid) first, with `after` cursor.
+    /// Lists snapshots for one source, oldest `snapshot_id` first (stable
+    /// keyset pagination), with `after` cursor. Callers that need the most
+    /// recent snapshot must take the last element of a page, not the first.
     pub fn list_snapshots(
         &self,
         source_id: &OpaqueId,

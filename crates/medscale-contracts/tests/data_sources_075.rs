@@ -193,6 +193,29 @@ fn locator_validation_rejects_nul_and_empty_files() {
 }
 
 #[test]
+fn remote_dataset_file_names_reject_traversal_and_absolute_paths() {
+    for bad_file in ["../secret", "a/../../escape", "/etc/passwd", "sub/../x"] {
+        let locator = SourceLocator::RemoteDataset {
+            provider: RemoteDatasetProvider::HuggingFace,
+            repo: "org/ds".to_owned(),
+            revision: "v1".to_owned(),
+            files: vec![bad_file.to_owned()],
+        };
+        assert!(
+            locator.validate().is_err(),
+            "expected rejection for {bad_file:?}"
+        );
+    }
+    let ok = SourceLocator::RemoteDataset {
+        provider: RemoteDatasetProvider::HuggingFace,
+        repo: "org/ds".to_owned(),
+        revision: "v1".to_owned(),
+        files: vec!["nested/data.csv".to_owned()],
+    };
+    assert!(ok.validate().is_ok());
+}
+
+#[test]
 fn schema_fingerprint_is_deterministic_and_validated() {
     let fields = vec![text_field("city"), text_field("dose")];
     let fp = fingerprint_schema(&fields);

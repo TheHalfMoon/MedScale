@@ -263,6 +263,16 @@ fn restore_v4(
             medscale_contracts::data_sources::validate_display_name(&manifest.display_name)
                 .map_err(|e| e.to_string())?;
             manifest.locator.validate().map_err(|e| e.to_string())?;
+            if matches!(
+                manifest.locator,
+                medscale_contracts::data_sources::SourceLocator::Database { .. }
+            ) && manifest.credential_ref.is_some()
+            {
+                return Err(
+                    "tampered source: database credential references are not admitted in 075"
+                        .to_owned(),
+                );
+            }
             if manifest.capabilities.is_empty() {
                 return Err("tampered source capabilities".to_owned());
             }
