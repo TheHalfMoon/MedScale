@@ -44,3 +44,13 @@ limitations + unresolved failures
 A screenshot is not sufficient evidence for clinical quality, privacy, security, reproducibility, or release readiness. Screenshots here prove only rendered UI state.
 
 No real PHI in any fixture. No licensed dataset content. No production credentials.
+
+## Honest gaps at closure
+
+`DATA_WORKBENCH_LIGHT.png` / `DATA_WORKBENCH_DARK.png` and `logs/` were
+never produced for this spec: this workstation's toolchain cannot link
+locally, and `.github/workflows/ci.yml` has no rendering/transcript-capture
+step. See `DESKTOP_QUALIFICATION.md` and `CLI_QUALIFICATION.md` for how
+each surface was qualified instead (compiled + passing in-module/CLI-facing
+tests on real CI, not a fabricated render or transcript). Tracked as an
+open residual in `CLOSURE.md`.

@@ -27,5 +27,10 @@ dispatch with Strict sessions) plus inline unit tests in `data_acquire.rs`:
   is denied before authority.
 
 ```text
-RESULT = PENDING (exact-head CI on PR #129 branch spec/075-data-source-fabric)
+RESULT = PASS: exact-head CI run 35580861670 (head 9f84a6e) green 6/6; PR #129
+merged as 89a88cf; post-merge main run 35582548200 green 6/6. Includes the
+exact-range-review fixes and regressions in
+`crates/medscale-core/src/authority/data_sources.rs` (reserved vault-path
+refusal, pre-read size bound, import-health Stale classification,
+`list_releases` real cursor) - see EXACT_RANGE_REVIEW.md.
 ```

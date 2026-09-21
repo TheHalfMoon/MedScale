@@ -34,5 +34,7 @@ they never silently fetch and never block local work.
 - Full workspace tests run on CI runners without any dataset-host allowlist.
 
 ```text
-NO_NETWORK_LOCAL_PATH = PENDING (CI run 35416747817 on head a11b08e)
+NO_NETWORK_LOCAL_PATH = PASS: exact-head CI run 35580861670 (head 9f84a6e)
+green 6/6; PR #129 merged as 89a88cf; post-merge main run 35582548200
+green 6/6.
 ```

@@ -28,5 +28,10 @@ test output plus command transcripts at close. No log is fabricated: if a
 live CLI run cannot be captured, this file says so explicitly.
 
 ```text
-RESULT = PENDING (exact-head CI on PR #129 branch spec/075-data-source-fabric)
+RESULT = PASS: exact-head CI run 35580861670 (head 9f84a6e) green 6/6; PR #129
+merged as 89a88cf; post-merge main run 35582548200 green 6/6. The CLI
+vertical-slice log below is still not a live local `cargo run` transcript
+(this workstation's toolchain remains unable to link) - it is derived from
+the passing CI test output as originally recorded, not a fabricated live
+session.
 ```

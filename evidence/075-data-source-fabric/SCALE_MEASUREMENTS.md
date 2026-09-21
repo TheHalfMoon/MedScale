@@ -13,15 +13,23 @@ Timings below are local-only observations from CI logs. They are capacity
 evidence, not budget claims: `budgets_claimed_met=false` is unchanged.
 
 ```text
-SCALE_RUN = PENDING (CI run 35416747817 on head a11b08e)
+SCALE_RUN = PASS: exact-head CI run 35580861670 (head 9f84a6e) green 6/6;
+PR #129 merged as 89a88cf; post-merge main run 35582548200 green 6/6.
 COMMAND = cargo test --workspace --locked (rust ubuntu/macos/windows jobs)
 ```
 
 ## Results
 
 ```text
-PENDING. Record at close: per-job large-table test durations, snapshot byte
-sizes, part counts, page counts, runner hardware (GitHub-hosted labels).
+Cargo's default test runner does not print per-test timing, only per-binary
+aggregates, so this records the binary-level number honestly rather than a
+fabricated per-test figure. On post-merge main run 35582548200
+(rust ubuntu-latest, GitHub-hosted runner), the 15-test Core
+data_sources_075 binary - which includes large_table_import_pages_correctly
+(20,000 rows) alongside 14 other Core integration tests - completed in
+5.38s total. No per-test isolation, snapshot-byte-size, part-count, or
+page-count figures were captured; these remain an open evidence gap, not a
+budget claim (budgets_claimed_met stays false either way).
 ```
 
 ## Limits stated honestly

@@ -37,7 +37,10 @@
 ## Invariant suite result
 
 ```text
-CONTRACT_TESTS = PENDING (CI run 35416747817 on head a11b08e)
+CONTRACT_TESTS = PASS: exact-head CI run 35580861670 (head 9f84a6e) green
+6/6 required jobs; PR #129 merged as 89a88cf; post-merge main run
+35582548200 green 6/6. Includes the exact-range-review addition
+`remote_dataset_file_names_reject_traversal_and_absolute_paths`.
 COMMAND = cargo test -p medscale-contracts --locked
 ```
 
