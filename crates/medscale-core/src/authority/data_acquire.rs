@@ -67,7 +67,7 @@ pub fn parse_delimited(bytes: &[u8], delimiter: u8) -> Result<ParsedTable, Acqui
         ));
     }
     let text = std::str::from_utf8(bytes)
-        .map_err(|_| AcquireFail::Rejected("input is not valid UTF-8".to_owned()))?;
+        .map_err(|_| AcquireFail::Quarantined("input is not valid UTF-8".to_owned()))?;
     let records = split_records(text, delimiter);
     if records.is_empty() {
         return Err(AcquireFail::Rejected("input has no rows".to_owned()));
@@ -286,7 +286,7 @@ pub fn parse_json_bytes(bytes: &[u8], lines: bool) -> Result<ParsedTable, Acquir
         ));
     }
     let text = std::str::from_utf8(bytes)
-        .map_err(|_| AcquireFail::Rejected("input is not valid UTF-8".to_owned()))?;
+        .map_err(|_| AcquireFail::Quarantined("input is not valid UTF-8".to_owned()))?;
     let mut objects: Vec<serde_json::Map<String, serde_json::Value>> = Vec::new();
     if lines {
         for (index, line) in text.lines().enumerate() {

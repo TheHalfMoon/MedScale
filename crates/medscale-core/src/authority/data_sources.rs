@@ -512,7 +512,7 @@ impl DataSources<'_> {
                 )
                 .map_err(|err| match err {
                     MetaError::NotFound => {
-                        AcquireFail::Missing("database object is gone".to_owned())
+                        AcquireFail::Unavailable("database object is gone".to_owned())
                     }
                     MetaError::UnsupportedSchema(reason) => AcquireFail::Unsupported(reason),
                     other => AcquireFail::Unavailable(other.to_string()),
