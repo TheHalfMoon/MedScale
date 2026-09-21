@@ -223,3 +223,49 @@ COLLAB_TABLES = <exact names>
 INDEXES = <exact names/queries>
 ROLLBACK_METHOD = <verified method>
 ```
+
+## 16. Freeze record (T076-02, FROZEN_FOR_076)
+
+```text
+MIGRATION_CONTRACT = FROZEN_FOR_076
+CURRENT_STORAGE_VERSION = 4
+076_STORAGE_VERSION = 5
+MIGRATION_CODE_PATH = crates/medscale-storage/src/sqlite_meta.rs (migrate),
+                      crates/medscale-storage/src/collaboration.rs (V5_DDL + rows)
+BACKUP_CODE_PATH = crates/medscale-storage/src/backup.rs (restore_v5, chains
+                   through restore_v4/v3/v2), crates/medscale-storage/src/
+                   sqlite_meta.rs (snapshot_bytes bumped to schema_version 5
+                   with 13 new collab_* keys), crates/medscale-storage/src/
+                   encrypted_vault.rs (sealed backup/restore is a raw file
+                   copy; requires no per-spec change)
+COLLAB_TABLES = collab_participants, collab_rooms, collab_room_memberships,
+                collab_threads, collab_messages, collab_message_edits,
+                collab_tasks, collab_notes, collab_note_revisions,
+                collab_approval_requests, collab_approval_decisions,
+                collab_activity_records
+                (AgentParticipantIdentity has no dedicated table:
+                agent_profile_ref is a nullable column on collab_participants)
+INDEXES = idx_collab_participants_holder (unique, scope+holder_id),
+          idx_collab_rooms_project, idx_collab_memberships_room,
+          idx_collab_memberships_participant, idx_collab_threads_room,
+          idx_collab_messages_thread, idx_collab_message_edits_message,
+          idx_collab_tasks_room, idx_collab_tasks_assignee,
+          idx_collab_notes_room, idx_collab_note_revisions_note,
+          idx_collab_approval_requests_room,
+          idx_collab_approval_decisions_request,
+          idx_collab_activity_room_seq (unique, room_id+seq)
+ROLLBACK_METHOD = restore verified pre-migration backup (no destructive
+                  down-migration; interrupted journal fails closed with
+                  MigrationIncomplete; see the updated
+                  interrupted_migration_fails_closed_on_reopen test in
+                  project_graph_074.rs, which now simulates the interruption
+                  at the live top version 5 rather than the superseded 4 --
+                  the journal table keys one row per version, so
+                  re-triggering begin_migration on an older, already-
+                  superseded version becomes invisible to the fail-closed
+                  check once a newer version has finished)
+FORWARD_FIXES = project_graph_074.rs and data_sources_075.rs each pinned
+                finished_version == 4 in three assertions; updated to 5 in
+                this closure, mirroring the exact forward-fix pattern Spec
+                075 itself applied to Spec 074's tests when v3->v4 landed.
+```

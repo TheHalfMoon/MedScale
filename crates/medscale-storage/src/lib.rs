@@ -3,6 +3,7 @@
 mod backup;
 mod blob;
 mod claim;
+mod collaboration;
 mod data_sources;
 mod encrypted_vault;
 mod gc;
