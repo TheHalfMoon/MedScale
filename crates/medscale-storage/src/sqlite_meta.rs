@@ -228,6 +228,12 @@ impl SqliteMetaStore {
             self.conn.execute_batch(crate::collaboration::V5_DDL)?;
             self.finish_migration(5)?;
         }
+        let journal = self.migration_journal()?;
+        if journal.finished_version < 6 {
+            self.begin_migration(6)?;
+            self.conn.execute_batch(crate::medagent::V6_DDL)?;
+            self.finish_migration(6)?;
+        }
         Ok(())
     }
 
@@ -407,7 +413,7 @@ impl SqliteMetaStore {
             })
             .collect();
         let payload = serde_json::json!({
-            "schema_version": 5,
+            "schema_version": 6,
             "next_seq": self.get_next_seq()?,
             "sources": source_payload,
             "objects": object_payload,
@@ -445,6 +451,19 @@ impl SqliteMetaStore {
             "collab_approval_requests": self.list_all_approval_requests()?,
             "collab_approval_decisions": self.list_all_approval_decisions()?,
             "collab_activity_records": self.list_all_activity_records()?,
+            // Spec 077: MedAgent Workbench rows ride the same snapshot so
+            // synthetic backup/restore preserves agent identities, context
+            // manifests, runs, turns, tool invocations/receipts, run
+            // receipts and proposal links without a second mechanism.
+            "medagent_identities": self.list_all_agent_identities()?,
+            "medagent_capability_manifests": self.list_all_capability_manifests()?,
+            "medagent_context_manifests": self.list_all_context_manifests()?,
+            "medagent_runs": self.list_all_agent_runs()?,
+            "medagent_turns": self.list_all_agent_turns()?,
+            "medagent_tool_invocations": self.list_all_tool_invocations()?,
+            "medagent_tool_receipts": self.list_all_tool_receipts()?,
+            "medagent_run_receipts": self.list_all_run_receipts()?,
+            "medagent_proposals": self.list_all_agent_proposals()?,
         });
         Ok(serde_json::to_vec(&payload).unwrap_or_default())
     }

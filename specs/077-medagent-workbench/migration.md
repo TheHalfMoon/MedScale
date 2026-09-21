@@ -33,7 +33,9 @@ valid; the agent workbench is opt-in capability layered on top.
 medagent_identities
 medagent_capability_manifests
 medagent_context_manifests
-medagent_context_artifacts
+  (selected_artifacts travel as validated JSON on this row, mirroring
+  collab_approval_requests.assignees_json -- no separate child table;
+  there is exactly one row per manifest, never a partially-visible list)
 medagent_runs
 medagent_turns
 medagent_tool_invocations
