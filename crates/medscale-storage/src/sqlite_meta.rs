@@ -216,6 +216,12 @@ impl SqliteMetaStore {
             self.conn.execute_batch(crate::project_graph::V3_DDL)?;
             self.finish_migration(3)?;
         }
+        let journal = self.migration_journal()?;
+        if journal.finished_version < 4 {
+            self.begin_migration(4)?;
+            self.conn.execute_batch(crate::data_sources::V4_DDL)?;
+            self.finish_migration(4)?;
+        }
         Ok(())
     }
 
@@ -395,7 +401,7 @@ impl SqliteMetaStore {
             })
             .collect();
         let payload = serde_json::json!({
-            "schema_version": 3,
+            "schema_version": 4,
             "next_seq": self.get_next_seq()?,
             "sources": source_payload,
             "objects": object_payload,
@@ -406,6 +412,16 @@ impl SqliteMetaStore {
             "experiments": self.list_all_experiments()?,
             "refs": self.list_all_refs()?,
             "edges": self.list_all_edges()?,
+            // Spec 075: Data Source Fabric rows ride the same snapshot so
+            // synthetic backup/restore preserves sources, snapshots, views,
+            // transformations and releases without a second mechanism.
+            "data_sources": self.list_all_data_sources()?,
+            "data_snapshots": self.list_all_snapshots()?,
+            "data_snapshot_parts": self.list_all_snapshot_parts()?,
+            "data_receipts": self.list_all_receipts()?,
+            "data_saved_views": self.list_all_saved_views()?,
+            "data_transformations": self.list_all_transformations()?,
+            "dataset_releases": self.list_all_dataset_releases()?,
         });
         Ok(serde_json::to_vec(&payload).unwrap_or_default())
     }

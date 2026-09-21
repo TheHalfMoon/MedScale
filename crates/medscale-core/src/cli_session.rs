@@ -823,4 +823,462 @@ impl CliSession {
         };
         Ok(page)
     }
+
+    /// Creates a data source through Core authority.
+    pub fn data_source_create(
+        &mut self,
+        project_id: OpaqueId,
+        display_name: String,
+        locator: medscale_contracts::data_sources::SourceLocator,
+        credential_ref: Option<OpaqueId>,
+    ) -> Result<medscale_contracts::data_sources::DataSourceManifest, AuthorityError> {
+        let resp = self.dispatch(
+            Capability::DataSourceCreate,
+            RequestBody::DataSourceCreate {
+                project_id,
+                display_name,
+                locator,
+                credential_ref,
+            },
+        )?;
+        Self::expect_data_source(resp)
+    }
+
+    /// Reads one data source through Core authority.
+    pub fn data_source_get(
+        &mut self,
+        source_id: OpaqueId,
+    ) -> Result<medscale_contracts::data_sources::DataSourceManifest, AuthorityError> {
+        let resp = self.dispatch(
+            Capability::DataSourceRead,
+            RequestBody::DataSourceGet { source_id },
+        )?;
+        Self::expect_data_source(resp)
+    }
+
+    /// Lists data sources for one project through Core authority.
+    pub fn data_source_list(
+        &mut self,
+        project_id: OpaqueId,
+        limit: Option<u32>,
+        cursor: Option<String>,
+    ) -> Result<
+        (
+            Vec<medscale_contracts::data_sources::DataSourceSummary>,
+            Option<String>,
+        ),
+        AuthorityError,
+    > {
+        let resp = self.dispatch(
+            Capability::DataSourceRead,
+            RequestBody::DataSourceList {
+                project_id,
+                limit,
+                cursor,
+            },
+        )?;
+        let ResponseBody::DataSourceList {
+            sources,
+            next_cursor,
+        } = resp
+        else {
+            return Err(AuthorityError::InvalidArgument {
+                message: "expected data source list".to_owned(),
+            });
+        };
+        Ok((sources, next_cursor))
+    }
+
+    /// Updates data-source metadata through Core authority.
+    pub fn data_source_update(
+        &mut self,
+        source_id: OpaqueId,
+        expected_revision: u64,
+        display_name: Option<String>,
+        credential_ref: Option<Option<OpaqueId>>,
+    ) -> Result<medscale_contracts::data_sources::DataSourceManifest, AuthorityError> {
+        let resp = self.dispatch(
+            Capability::DataSourceUpdate,
+            RequestBody::DataSourceUpdate {
+                source_id,
+                expected_revision,
+                display_name,
+                credential_ref,
+            },
+        )?;
+        Self::expect_data_source(resp)
+    }
+
+    /// Archives a data source (snapshots and lineage are retained).
+    pub fn data_source_archive(
+        &mut self,
+        source_id: OpaqueId,
+        expected_revision: u64,
+    ) -> Result<medscale_contracts::data_sources::DataSourceManifest, AuthorityError> {
+        let resp = self.dispatch(
+            Capability::DataSourceArchive,
+            RequestBody::DataSourceArchive {
+                source_id,
+                expected_revision,
+            },
+        )?;
+        Self::expect_data_source(resp)
+    }
+
+    /// Imports current source bytes into an immutable snapshot.
+    pub fn snapshot_import(
+        &mut self,
+        source_id: OpaqueId,
+    ) -> Result<
+        (
+            medscale_contracts::data_sources::DataSnapshot,
+            medscale_contracts::data_sources::ImportReceipt,
+        ),
+        AuthorityError,
+    > {
+        let resp = self.dispatch(
+            Capability::SnapshotImport,
+            RequestBody::SnapshotImport { source_id },
+        )?;
+        let ResponseBody::SnapshotImported { snapshot, receipt } = resp else {
+            return Err(AuthorityError::InvalidArgument {
+                message: "expected imported snapshot".to_owned(),
+            });
+        };
+        Ok((*snapshot, receipt))
+    }
+
+    /// Previews source schema plus leading rows without persisting.
+    pub fn snapshot_preview(
+        &mut self,
+        source_id: OpaqueId,
+        max_rows: Option<u32>,
+    ) -> Result<
+        (
+            medscale_contracts::data_sources::SourceSchema,
+            Vec<Vec<medscale_contracts::data_sources::CellValue>>,
+        ),
+        AuthorityError,
+    > {
+        let resp = self.dispatch(
+            Capability::SnapshotPreview,
+            RequestBody::SnapshotPreview {
+                source_id,
+                max_rows,
+            },
+        )?;
+        let ResponseBody::SnapshotPreview { schema, rows } = resp else {
+            return Err(AuthorityError::InvalidArgument {
+                message: "expected snapshot preview".to_owned(),
+            });
+        };
+        Ok((schema, rows))
+    }
+
+    /// Reads one snapshot record through Core authority.
+    pub fn snapshot_get(
+        &mut self,
+        snapshot_id: OpaqueId,
+    ) -> Result<medscale_contracts::data_sources::DataSnapshot, AuthorityError> {
+        let resp = self.dispatch(
+            Capability::SnapshotRead,
+            RequestBody::SnapshotGet { snapshot_id },
+        )?;
+        let ResponseBody::Snapshot { snapshot } = resp else {
+            return Err(AuthorityError::InvalidArgument {
+                message: "expected snapshot".to_owned(),
+            });
+        };
+        Ok(*snapshot)
+    }
+
+    /// Lists snapshots for one source through Core authority.
+    pub fn snapshot_list(
+        &mut self,
+        source_id: OpaqueId,
+        limit: Option<u32>,
+        cursor: Option<String>,
+    ) -> Result<
+        (
+            Vec<medscale_contracts::data_sources::SnapshotSummary>,
+            Option<String>,
+        ),
+        AuthorityError,
+    > {
+        let resp = self.dispatch(
+            Capability::SnapshotRead,
+            RequestBody::SnapshotList {
+                source_id,
+                limit,
+                cursor,
+            },
+        )?;
+        let ResponseBody::SnapshotList {
+            snapshots,
+            next_cursor,
+        } = resp
+        else {
+            return Err(AuthorityError::InvalidArgument {
+                message: "expected snapshot list".to_owned(),
+            });
+        };
+        Ok((snapshots, next_cursor))
+    }
+
+    /// Queries snapshot rows with optional filters/sort and stable paging.
+    pub fn snapshot_rows(
+        &mut self,
+        snapshot_id: OpaqueId,
+        limit: Option<u32>,
+        cursor: Option<String>,
+        filters: Vec<medscale_contracts::data_sources::FilterExpr>,
+        sort: Vec<medscale_contracts::data_sources::SortKey>,
+    ) -> Result<medscale_contracts::data_sources::SnapshotRowPage, AuthorityError> {
+        let resp = self.dispatch(
+            Capability::SnapshotRead,
+            RequestBody::SnapshotRows {
+                snapshot_id,
+                limit,
+                cursor,
+                filters,
+                sort,
+            },
+        )?;
+        let ResponseBody::SnapshotRows { page } = resp else {
+            return Err(AuthorityError::InvalidArgument {
+                message: "expected snapshot rows".to_owned(),
+            });
+        };
+        Ok(page)
+    }
+
+    /// Refreshes a source against current external state.
+    pub fn snapshot_refresh(
+        &mut self,
+        source_id: OpaqueId,
+        allow_schema_change: bool,
+    ) -> Result<
+        (
+            medscale_contracts::data_sources::RefreshReceipt,
+            Option<medscale_contracts::data_sources::DataSnapshot>,
+        ),
+        AuthorityError,
+    > {
+        let resp = self.dispatch(
+            Capability::SnapshotRefresh,
+            RequestBody::SnapshotRefresh {
+                source_id,
+                allow_schema_change,
+            },
+        )?;
+        let ResponseBody::SnapshotRefreshed { receipt, snapshot } = resp else {
+            return Err(AuthorityError::InvalidArgument {
+                message: "expected refresh receipt".to_owned(),
+            });
+        };
+        Ok((receipt, snapshot.map(|boxed| *boxed)))
+    }
+
+    /// Creates one saved view through Core authority.
+    pub fn saved_view_create(
+        &mut self,
+        snapshot_id: OpaqueId,
+        view_kind: medscale_contracts::data_sources::DataViewKind,
+        state: medscale_contracts::data_sources::ViewState,
+    ) -> Result<medscale_contracts::data_sources::SavedDataView, AuthorityError> {
+        let resp = self.dispatch(
+            Capability::SavedViewCreate,
+            RequestBody::SavedViewCreate {
+                snapshot_id,
+                view_kind,
+                state,
+            },
+        )?;
+        Self::expect_saved_view(resp)
+    }
+
+    /// Reads one saved view through Core authority.
+    pub fn saved_view_get(
+        &mut self,
+        view_id: OpaqueId,
+    ) -> Result<medscale_contracts::data_sources::SavedDataView, AuthorityError> {
+        let resp = self.dispatch(
+            Capability::SavedViewRead,
+            RequestBody::SavedViewGet { view_id },
+        )?;
+        Self::expect_saved_view(resp)
+    }
+
+    /// Lists saved views for one snapshot through Core authority.
+    pub fn saved_view_list(
+        &mut self,
+        snapshot_id: OpaqueId,
+        limit: Option<u32>,
+        cursor: Option<String>,
+    ) -> Result<
+        (
+            Vec<medscale_contracts::data_sources::SavedViewSummary>,
+            Option<String>,
+        ),
+        AuthorityError,
+    > {
+        let resp = self.dispatch(
+            Capability::SavedViewRead,
+            RequestBody::SavedViewList {
+                snapshot_id,
+                limit,
+                cursor,
+            },
+        )?;
+        let ResponseBody::SavedViewList { views, next_cursor } = resp else {
+            return Err(AuthorityError::InvalidArgument {
+                message: "expected saved view list".to_owned(),
+            });
+        };
+        Ok((views, next_cursor))
+    }
+
+    /// Updates one saved view state through Core authority.
+    pub fn saved_view_update(
+        &mut self,
+        view_id: OpaqueId,
+        expected_revision: u64,
+        state: medscale_contracts::data_sources::ViewState,
+    ) -> Result<medscale_contracts::data_sources::SavedDataView, AuthorityError> {
+        let resp = self.dispatch(
+            Capability::SavedViewUpdate,
+            RequestBody::SavedViewUpdate {
+                view_id,
+                expected_revision,
+                state,
+            },
+        )?;
+        Self::expect_saved_view(resp)
+    }
+
+    /// Executes one deterministic transformation through Core authority.
+    pub fn transform_execute(
+        &mut self,
+        input_snapshot_ids: Vec<OpaqueId>,
+        ops: Vec<medscale_contracts::data_sources::TransformOp>,
+    ) -> Result<
+        (
+            medscale_contracts::data_sources::DataSnapshot,
+            medscale_contracts::data_sources::TransformationReceipt,
+        ),
+        AuthorityError,
+    > {
+        let resp = self.dispatch(
+            Capability::TransformExecute,
+            RequestBody::TransformExecute {
+                input_snapshot_ids,
+                ops,
+            },
+        )?;
+        let ResponseBody::Transformed { snapshot, receipt } = resp else {
+            return Err(AuthorityError::InvalidArgument {
+                message: "expected transformed snapshot".to_owned(),
+            });
+        };
+        Ok((*snapshot, receipt))
+    }
+
+    /// Creates one dataset release through Core authority.
+    pub fn dataset_release_create(
+        &mut self,
+        snapshot_id: OpaqueId,
+        version: String,
+        split_group: Option<String>,
+        annotation_schema_ref: Option<String>,
+        rights_state: medscale_contracts::data_sources::RightsState,
+    ) -> Result<medscale_contracts::data_sources::ReleaseManifest, AuthorityError> {
+        let resp = self.dispatch(
+            Capability::DatasetReleaseCreate,
+            RequestBody::DatasetReleaseCreate {
+                snapshot_id,
+                version,
+                split_group,
+                annotation_schema_ref,
+                rights_state,
+            },
+        )?;
+        let ResponseBody::DatasetRelease { release } = resp else {
+            return Err(AuthorityError::InvalidArgument {
+                message: "expected dataset release".to_owned(),
+            });
+        };
+        Ok(*release)
+    }
+
+    /// Reads one dataset release through Core authority.
+    pub fn dataset_release_get(
+        &mut self,
+        release_id: OpaqueId,
+    ) -> Result<medscale_contracts::data_sources::ReleaseManifest, AuthorityError> {
+        let resp = self.dispatch(
+            Capability::DatasetReleaseRead,
+            RequestBody::DatasetReleaseGet { release_id },
+        )?;
+        let ResponseBody::DatasetRelease { release } = resp else {
+            return Err(AuthorityError::InvalidArgument {
+                message: "expected dataset release".to_owned(),
+            });
+        };
+        Ok(*release)
+    }
+
+    /// Lists dataset releases for one project through Core authority.
+    pub fn dataset_release_list(
+        &mut self,
+        project_id: OpaqueId,
+        limit: Option<u32>,
+        cursor: Option<String>,
+    ) -> Result<
+        (
+            Vec<medscale_contracts::data_sources::DatasetReleaseSummary>,
+            Option<String>,
+        ),
+        AuthorityError,
+    > {
+        let resp = self.dispatch(
+            Capability::DatasetReleaseRead,
+            RequestBody::DatasetReleaseList {
+                project_id,
+                limit,
+                cursor,
+            },
+        )?;
+        let ResponseBody::DatasetReleaseList {
+            releases,
+            next_cursor,
+        } = resp
+        else {
+            return Err(AuthorityError::InvalidArgument {
+                message: "expected dataset release list".to_owned(),
+            });
+        };
+        Ok((releases, next_cursor))
+    }
+
+    fn expect_data_source(
+        resp: ResponseBody,
+    ) -> Result<medscale_contracts::data_sources::DataSourceManifest, AuthorityError> {
+        let ResponseBody::DataSource { source } = resp else {
+            return Err(AuthorityError::InvalidArgument {
+                message: "expected data source".to_owned(),
+            });
+        };
+        Ok(*source)
+    }
+
+    fn expect_saved_view(
+        resp: ResponseBody,
+    ) -> Result<medscale_contracts::data_sources::SavedDataView, AuthorityError> {
+        let ResponseBody::SavedView { view } = resp else {
+            return Err(AuthorityError::InvalidArgument {
+                message: "expected saved view".to_owned(),
+            });
+        };
+        Ok(*view)
+    }
 }

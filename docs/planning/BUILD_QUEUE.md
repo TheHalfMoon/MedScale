@@ -89,8 +89,9 @@ See Trusted V1 delivery plan. Specs 018–067 are closed; Spec 012 remains optio
 | 071 | OpenMed Evidence Center | `CLOSED_CANONICAL` | Pinned OpenMed evidence, 39-row fail-closed claim ledger, and native comparative Evidence Center merged and post-main qualified. |
 | 072 | Product Requalification | `CLOSED_CANONICAL` | Final head `02e343ff...` passed run `35089753209`, PR #117 merged as `f97637e7...`, and post-main run `35091230970` passed all six required jobs. |
 | 073 | Final UI Polish | `CLOSED_CANONICAL` | Final head `3ea26b29…` passed run `35174991802`, PR #119 merged as `f9587c3e…`, and post-merge main run `35175649969` passed all six required jobs. |
-| 074 | Project + Artifact Graph Foundation | `CLOSED_CANONICAL` | Exact-head `660ca54…` passed run `35308381108`, PR #122 merged as `3d59255…`, and post-merge main run `35309949710` passed all six required jobs. See `evidence/074-project-artifact-graph-foundation/CLOSURE.md`. Spec 075 is NOT authorized. |
-| 075+ | Advanced deferred work | `DEFERRED_BY_CANONICAL_DESIGN` | Research OS candidates 075+ (collaboration, MedAgent, Fleet, Privacy Gate, Browse, AudioFlow, Analytics, Knowledge/Canvas, Hub, Compute, R workspace, extensions, packs, adapters, federation, qualification); require fresh promotion. |
+| 074 | Project + Artifact Graph Foundation | `CLOSED_CANONICAL` | Exact-head `660ca54…` passed run `35308381108`, PR #122 merged as `3d59255…`, and post-merge main run `35309949710` passed all six required jobs. See `evidence/074-project-artifact-graph-foundation/CLOSURE.md`. |
+| 075 | Data Source Fabric + Data Workbench Foundation | `PROMOTED_IMPLEMENTATION_AUTHORIZED` | Promoted 2026-09-19 by `docs/planning/SPEC_075_PROMOTION.md` on canonical base `ae04419…` (PR #128 planning merge; post-merge main run `35413163411` green). Owning package: `specs/075-data-source-fabric/`. Target branch: `spec/075-data-source-fabric`. |
+| 076+ | Advanced deferred work | `DEFERRED_BY_CANONICAL_DESIGN` | Research OS V2 candidates 076+ (Collaboration Substrate, MedAgent + Evidence Copilot, Model Fleet + Compare, Privacy Gate, Governed Browse + Medical Literature Acquisition, AudioFlow + Local Scribe, Analytics Gate + Cohort Builder, Clinical Graph + Knowledge/Research Canvas, Hub, Compute, R Workspace, Community Extensions, AudioFlow Advanced, Research/Evidence Packs, Institutional Adapters, Federation, Whole-Platform Qualification); require fresh promotion. |
 
 ## Automatic progression
 
@@ -100,5 +101,5 @@ Do not stop merely because a PR merged, one milestone passed, or an external opt
 
 **Mobile remains deferred until Desktop+CLI launch.** No mobile application implementation is authorized by Specs 068-072.
 
-**Next eligible (honest):** Specs **068**-**074** are `CLOSED_CANONICAL`. No repository-owned implementation unit is promoted; `NEXT_PROMOTED_SPEC=NONE`. Repository implementation closure is restored through Spec 074 pending external gates only. `RELEASE_READY`, `PRIVATE_DATA_READY`, and `MULTI_CLIENT_RELEASE_READY` remain false. MESC is a separate project/repository and is excluded from MedScale execution, completion, and release criteria; historical Specs 012/036 remain provenance only.
+**Next eligible (honest):** Specs **068**-**074** are `CLOSED_CANONICAL`. Spec **075** (Data Source Fabric + Data Workbench Foundation) is `PROMOTED_IMPLEMENTATION_AUTHORIZED`; `NEXT_PROMOTED_SPEC=075`. Repository implementation closure is restored through Spec 074 pending external gates only. `RELEASE_READY`, `PRIVATE_DATA_READY`, and `MULTI_CLIENT_RELEASE_READY` remain false. MESC is a separate project/repository and is excluded from MedScale execution, completion, and release criteria; historical Specs 012/036 remain provenance only.
 

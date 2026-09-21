@@ -14,6 +14,7 @@ use medscale_core::{
 };
 use serde::Serialize;
 
+mod data_source;
 mod project;
 
 #[derive(Debug, Parser)]
@@ -144,6 +145,32 @@ enum Commands {
     Experiment {
         #[command(subcommand)]
         action: project::ExperimentCmd,
+    },
+    /// Data source fabric (Spec 075; governed sources through Core).
+    /// Boxed: the locator/filter/transform DSL variants are large by value.
+    DataSource {
+        #[command(subcommand)]
+        action: Box<data_source::DataSourceCmd>,
+    },
+    /// Immutable data snapshots (Spec 075; import/refresh/rows through Core).
+    Snapshot {
+        #[command(subcommand)]
+        action: Box<data_source::SnapshotCmd>,
+    },
+    /// Saved data views (Spec 075; projections through Core).
+    DataView {
+        #[command(subcommand)]
+        action: Box<data_source::DataViewCmd>,
+    },
+    /// Deterministic data transformations (Spec 075; through Core).
+    DataTransform {
+        #[command(subcommand)]
+        action: Box<data_source::DataTransformCmd>,
+    },
+    /// Versioned dataset releases (Spec 075; through Core).
+    DataRelease {
+        #[command(subcommand)]
+        action: Box<data_source::DataReleaseCmd>,
     },
 }
 
@@ -1125,6 +1152,11 @@ fn run() -> Result<()> {
         },
         Commands::Project { action } => project::run_project(action),
         Commands::Experiment { action } => project::run_experiment(action),
+        Commands::DataSource { action } => data_source::run_data_source(*action),
+        Commands::Snapshot { action } => data_source::run_snapshot(*action),
+        Commands::DataView { action } => data_source::run_data_view(*action),
+        Commands::DataTransform { action } => data_source::run_data_transform(*action),
+        Commands::DataRelease { action } => data_source::run_data_release(*action),
     }
 }
 
