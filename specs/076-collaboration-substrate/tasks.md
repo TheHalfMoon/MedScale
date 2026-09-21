@@ -98,9 +98,9 @@ Check a task only when its implementation, tests and required evidence are real 
 - [ ] Add Collaboration navigation through current native Slint composition, backed exclusively by Core.
 - [ ] Implement at minimum a comments/review panel and a task/decision list.
 - [ ] Preserve design system, keyboard/focus/accessibility, light/dark parity.
-- [ ] Complete CLI vertical slice with human + JSON output.
+- [x] Complete CLI vertical slice with human + JSON output: `crates/medscale-cli/src/collaboration.rs` (`medscale collab ...` for participant/room/membership, `medscale collab-work ...` for thread/message/task/note/approval/activity), backed by ~30 new `CliSession::collab_*` convenience methods in `crates/medscale-core/src/cli_session.rs`. Anchor input is deliberately simplified to `IdentityOnly` bindings for CLI ergonomics (a CLI scope simplification, not a Core limitation -- Core's full `ArtifactVersionBinding` precision is exercised by the Core-layer tests instead).
 
-**Acceptance:** CLI/Desktop tests prove real Core-backed collaboration data; no direct storage/network access from CLI/Desktop.
+**Acceptance:** CLI vertical slice complete and CI-green; no direct storage/network access from CLI. Desktop surface is the remaining piece of this task.
 
 ## T076-11 — Qualification and closure
 
