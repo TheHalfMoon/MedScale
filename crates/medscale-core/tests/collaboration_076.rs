@@ -460,12 +460,13 @@ fn message_post_list_and_author_only_edit_delete() {
     let author = h.register_self("Author");
     let project = h.project("study");
     let room = h.room(&project, "room");
+    let source = h.source_record(b"x");
     let (thread, _) = match h
         .call(
             Capability::ThreadCreate,
             RequestBody::ThreadOpen {
                 room_id: room.header.id.clone(),
-                anchor: source_anchor(h.source_record(b"x")),
+                anchor: source_anchor(source),
             },
         )
         .expect("thread")
@@ -1050,13 +1051,14 @@ fn t9_hostile_looking_text_is_stored_and_returned_byte_exact() {
     let hostile_name = "'; DROP TABLE collab_rooms; -- \u{202e}\u{0007}\u{4e2d}\u{6587}";
     let room = h.room(&project, hostile_name);
     assert_eq!(room.name, hostile_name);
+    let source = h.source_record(b"x");
 
     let (thread, _) = match h
         .call(
             Capability::ThreadCreate,
             RequestBody::ThreadOpen {
                 room_id: room.header.id.clone(),
-                anchor: source_anchor(h.source_record(b"x")),
+                anchor: source_anchor(source),
             },
         )
         .expect("thread")
