@@ -153,11 +153,15 @@ Desktop scope note: the panel covers Rooms/Threads/Messages/Tasks (the plan.md m
       Fixed by adding `CliSession::holder_id()` and registering under it.
       See `DESKTOP_QUALIFICATION.md` for the full failure-then-fix record
       (not hidden or silently corrected).
-- [ ] Perform exact-range review of the full PR diff using OpenCodeReview
-      (https://github.com/alibaba/open-code-review) exclusively, per explicit
-      instruction -- no other review tool/method.
-- [ ] Run exact-head required CI on the final reviewed head; merge only when
-      green and governance permits.
+- [x] Performed exact-range review of the full PR diff using OpenCodeReview
+      (`ocr`, delegation mode) exclusively, per explicit instruction -- no
+      other review tool/method. Found and fixed one confirmed gap: `restore_v5`
+      never re-verified the activity hash chain after replay (security.md
+      T10 / migration.md section 11). See `EXACT_RANGE_REVIEW.md`.
+- [x] Ran exact-head required CI on the final reviewed head (`04fa4cb`):
+      CI run `35634828435` green 6/6 on every required job. See
+      `EXACT_HEAD_QUALIFICATION.md`.
+- [ ] Merge PR #131 now that the exact head is qualified.
 - [ ] Verify post-merge main CI; update queue/status to `CLOSED_CANONICAL`
       only with real post-main evidence.
 - [ ] Recompute the next eligible unit; do not implement 077+ without
