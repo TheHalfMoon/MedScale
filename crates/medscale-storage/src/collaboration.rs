@@ -33,7 +33,7 @@ use medscale_contracts::collaboration::{
 use medscale_contracts::objects::{
     AuthorityScopeId, DigestSha256, ObjectHeader, OpaqueId, RealmId,
 };
-use rusqlite::{OptionalExtension, params};
+use rusqlite::{OptionalExtension, Transaction, params};
 
 use crate::sqlite_meta::{MetaError, SqliteMetaStore};
 
@@ -633,6 +633,49 @@ impl SqliteMetaStore {
         }
     }
 
+    /// Inserts a new room row and its `RoomCreated` activity entry in one
+    /// transaction (`migration.md` section 5).
+    pub fn insert_room_with_activity(
+        &self,
+        room: &Room,
+        activity_header: ObjectHeader,
+        actor_participant_id: &OpaqueId,
+    ) -> Result<ActivityRecord, MetaError> {
+        let tx = self.conn().unchecked_transaction()?;
+        tx.execute(
+            "INSERT INTO collab_rooms(room_id, project_id, experiment_id, realm_id, authority_scope_id, name, status, revision, schema_version)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+            params![
+                room.header.id.as_str(),
+                room.project_id.as_str(),
+                room.experiment_id.as_ref().map(|e| e.as_str()),
+                room.header.realm_id.as_opaque().as_str(),
+                room.header.authority_scope_id.as_opaque().as_str(),
+                room.name,
+                room_status_str(room.status),
+                revision_to_i64(room.revision),
+                room.header.schema_version as i64,
+            ],
+        )
+        .map_err(|e| {
+            if is_conflict(&e) {
+                MetaError::Conflict(format!("duplicate room {}", room.header.id.as_str()))
+            } else {
+                MetaError::Sqlite(e)
+            }
+        })?;
+        let activity = append_activity_in_tx(
+            &tx,
+            activity_header,
+            &room.header.id,
+            actor_participant_id,
+            CollabEventKind::RoomCreated,
+            &room.header.id,
+        )?;
+        tx.commit()?;
+        Ok(activity)
+    }
+
     /// Reads one room row.
     pub fn get_room(&self, id: &OpaqueId) -> Result<Room, MetaError> {
         let mut stmt = self.conn().prepare(
@@ -717,34 +760,16 @@ impl SqliteMetaStore {
         Ok(())
     }
 
-    /// Compare-and-swap room name.
+    /// Compare-and-swap room name. `CollabEventKind` has no dedicated
+    /// "renamed" event in the frozen 076 vocabulary, so this records no
+    /// activity entry, only the row mutation itself. Room archive
+    /// (`archive_room_with_activity` below) does have a dedicated kind.
     pub fn update_room_name(
         &self,
         id: &OpaqueId,
         expected: u64,
         name: &str,
     ) -> Result<Room, MetaError> {
-        self.cas_room_scalar(id, expected, "name", name)
-    }
-
-    /// Compare-and-swap room status (archive).
-    pub fn set_room_status(
-        &self,
-        id: &OpaqueId,
-        expected: u64,
-        status: RoomStatus,
-    ) -> Result<Room, MetaError> {
-        self.cas_room_scalar(id, expected, "status", room_status_str(status))
-    }
-
-    fn cas_room_scalar(
-        &self,
-        id: &OpaqueId,
-        expected: u64,
-        column: &str,
-        value: &str,
-    ) -> Result<Room, MetaError> {
-        debug_assert!(matches!(column, "name" | "status"));
         let tx = self.conn().unchecked_transaction()?;
         let current: Option<i64> = tx
             .query_row(
@@ -759,12 +784,54 @@ impl SqliteMetaStore {
         if current_rev != revision_to_i64(expected) {
             return Err(MetaError::Conflict("stale room revision".to_owned()));
         }
-        let sql = format!(
-            "UPDATE collab_rooms SET {column} = ?1, revision = revision + 1 WHERE room_id = ?2"
-        );
-        tx.execute(&sql, params![value, id.as_str()])?;
+        tx.execute(
+            "UPDATE collab_rooms SET name = ?1, revision = revision + 1 WHERE room_id = ?2",
+            params![name, id.as_str()],
+        )?;
         tx.commit()?;
         self.get_room(id)
+    }
+
+    /// Compare-and-swap room status to `Archived`, appending the
+    /// `RoomArchived` activity entry in the same transaction
+    /// (`migration.md` section 5). Room un-archive is out of 076 scope
+    /// (`spec.md` section 5); only the one-way archive transition exists.
+    pub fn archive_room_with_activity(
+        &self,
+        id: &OpaqueId,
+        expected: u64,
+        activity_header: ObjectHeader,
+        actor_participant_id: &OpaqueId,
+    ) -> Result<(Room, ActivityRecord), MetaError> {
+        let tx = self.conn().unchecked_transaction()?;
+        let current: Option<i64> = tx
+            .query_row(
+                "SELECT revision FROM collab_rooms WHERE room_id = ?1",
+                params![id.as_str()],
+                |row| row.get(0),
+            )
+            .optional()?;
+        let Some(current_rev) = current else {
+            return Err(MetaError::NotFound);
+        };
+        if current_rev != revision_to_i64(expected) {
+            return Err(MetaError::Conflict("stale room revision".to_owned()));
+        }
+        tx.execute(
+            "UPDATE collab_rooms SET status = ?1, revision = revision + 1 WHERE room_id = ?2",
+            params![room_status_str(RoomStatus::Archived), id.as_str()],
+        )?;
+        let activity = append_activity_in_tx(
+            &tx,
+            activity_header,
+            id,
+            actor_participant_id,
+            CollabEventKind::RoomArchived,
+            id,
+        )?;
+        tx.commit()?;
+        let room = self.get_room(id)?;
+        Ok((room, activity))
     }
 }
 
@@ -827,12 +894,19 @@ fn map_membership_row(row: &rusqlite::Row<'_>) -> Result<RoomMembership, MetaErr
 }
 
 impl SqliteMetaStore {
-    /// Inserts a new membership row. Duplicate `membership_id` fails as
-    /// `Conflict`; a duplicate *active* `(room, participant)` pair is the
-    /// caller's job to reject via `find_active_membership` first
-    /// (`RoomMembership::same_membership_as`).
-    pub fn insert_membership(&self, membership: &RoomMembership) -> Result<(), MetaError> {
-        let result = self.conn().execute(
+    /// Inserts a new membership row and its `MembershipAdded` activity entry
+    /// in one transaction (`migration.md` section 5). Duplicate
+    /// `membership_id` fails as `Conflict`; a duplicate *active*
+    /// `(room, participant)` pair is the caller's job to reject via
+    /// `find_active_membership` first (`RoomMembership::same_membership_as`).
+    pub fn insert_membership_with_activity(
+        &self,
+        membership: &RoomMembership,
+        activity_header: ObjectHeader,
+        actor_participant_id: &OpaqueId,
+    ) -> Result<ActivityRecord, MetaError> {
+        let tx = self.conn().unchecked_transaction()?;
+        tx.execute(
             "INSERT INTO collab_room_memberships(membership_id, room_id, participant_id, realm_id, authority_scope_id, role, status, revision, schema_version)
              VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
             params![
@@ -846,15 +920,27 @@ impl SqliteMetaStore {
                 revision_to_i64(membership.revision),
                 membership.header.schema_version as i64,
             ],
-        );
-        match result {
-            Ok(_) => Ok(()),
-            Err(e) if is_conflict(&e) => Err(MetaError::Conflict(format!(
-                "duplicate membership {}",
-                membership.header.id.as_str()
-            ))),
-            Err(e) => Err(MetaError::Sqlite(e)),
-        }
+        )
+        .map_err(|e| {
+            if is_conflict(&e) {
+                MetaError::Conflict(format!(
+                    "duplicate membership {}",
+                    membership.header.id.as_str()
+                ))
+            } else {
+                MetaError::Sqlite(e)
+            }
+        })?;
+        let activity = append_activity_in_tx(
+            &tx,
+            activity_header,
+            &membership.room_id,
+            actor_participant_id,
+            CollabEventKind::MembershipAdded,
+            &membership.participant_id,
+        )?;
+        tx.commit()?;
+        Ok(activity)
     }
 
     /// Finds an active membership for `(room, participant)`, if any.
@@ -925,22 +1011,27 @@ impl SqliteMetaStore {
         Ok(())
     }
 
-    /// Compare-and-swap membership role or status.
-    pub fn set_membership_status(
+    /// Compare-and-swap membership to `Removed`, appending the
+    /// `MembershipRemoved` activity entry in the same transaction
+    /// (`migration.md` section 5). Re-adding a removed participant creates
+    /// a new membership row via `insert_membership_with_activity`; this
+    /// function never flips `Removed` back to `Active` in place.
+    pub fn remove_membership_with_activity(
         &self,
         id: &OpaqueId,
         expected: u64,
-        status: MembershipStatus,
-    ) -> Result<RoomMembership, MetaError> {
+        activity_header: ObjectHeader,
+        actor_participant_id: &OpaqueId,
+    ) -> Result<(RoomMembership, ActivityRecord), MetaError> {
         let tx = self.conn().unchecked_transaction()?;
-        let current: Option<i64> = tx
+        let current: Option<(i64, String, String)> = tx
             .query_row(
-                "SELECT revision FROM collab_room_memberships WHERE membership_id = ?1",
+                "SELECT revision, room_id, participant_id FROM collab_room_memberships WHERE membership_id = ?1",
                 params![id.as_str()],
-                |row| row.get(0),
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
             )
             .optional()?;
-        let Some(current_rev) = current else {
+        let Some((current_rev, room_id, participant_id)) = current else {
             return Err(MetaError::NotFound);
         };
         if current_rev != revision_to_i64(expected) {
@@ -948,7 +1039,15 @@ impl SqliteMetaStore {
         }
         tx.execute(
             "UPDATE collab_room_memberships SET status = ?1, revision = revision + 1 WHERE membership_id = ?2",
-            params![membership_status_str(status), id.as_str()],
+            params![membership_status_str(MembershipStatus::Removed), id.as_str()],
+        )?;
+        let activity = append_activity_in_tx(
+            &tx,
+            activity_header,
+            &OpaqueId::new(room_id),
+            actor_participant_id,
+            CollabEventKind::MembershipRemoved,
+            &OpaqueId::new(participant_id),
         )?;
         tx.commit()?;
         let mut stmt = self.conn().prepare(
@@ -957,7 +1056,8 @@ impl SqliteMetaStore {
         )?;
         let mut rows = stmt.query(params![id.as_str()])?;
         let row = rows.next()?.ok_or(MetaError::NotFound)?;
-        map_membership_row(row)
+        let membership = map_membership_row(row)?;
+        Ok((membership, activity))
     }
 }
 
@@ -2267,6 +2367,87 @@ impl SqliteMetaStore {
 // ---------------------------------------------------------------------------
 // activity records (tamper-evident audit trail and activity feed)
 // ---------------------------------------------------------------------------
+
+/// Appends one activity record inside a caller-provided transaction, so the
+/// primary mutation and its activity entry commit together or not at all
+/// (`migration.md` section 5, `security.md` T12). Extends the room's hash
+/// chain the same way `append_activity_record` does, but never opens its
+/// own transaction. A crash before `tx.commit()` leaves neither the primary
+/// row nor this activity record visible; it can never leave one without the
+/// other.
+fn append_activity_in_tx(
+    tx: &Transaction<'_>,
+    header: ObjectHeader,
+    room_id: &OpaqueId,
+    actor_participant_id: &OpaqueId,
+    event_kind: CollabEventKind,
+    target_object_id: &OpaqueId,
+) -> Result<ActivityRecord, MetaError> {
+    let prev_digest_hex: Option<String> = tx
+        .query_row(
+            "SELECT checkpoint_digest_hex FROM collab_activity_records WHERE room_id = ?1 ORDER BY seq DESC LIMIT 1",
+            params![room_id.as_str()],
+            |row| row.get(0),
+        )
+        .optional()?;
+    let prev_digest = match prev_digest_hex {
+        Some(hex) => Some(parse_digest_hex(&hex, "activity checkpoint")?),
+        None => None,
+    };
+    let seq_key = format!("collab-activity-seq-{}", room_id.as_str());
+    let current: Option<String> = tx
+        .query_row(
+            "SELECT value FROM store_state WHERE key = ?1",
+            params![seq_key],
+            |row| row.get(0),
+        )
+        .optional()?;
+    let seq: u64 = match current.as_deref() {
+        None => 1,
+        Some(raw) => {
+            raw.parse::<u64>().map_err(|_| {
+                MetaError::CorruptObjectBody(format!("seq counter {seq_key} is not numeric"))
+            })? + 1
+        }
+    };
+    tx.execute(
+        "INSERT OR REPLACE INTO store_state(key, value) VALUES (?1, ?2)",
+        params![seq_key, seq.to_string()],
+    )?;
+    let checkpoint_digest = medscale_contracts::collaboration::compute_checkpoint_digest(
+        prev_digest.as_ref(),
+        room_id,
+        actor_participant_id,
+        event_kind,
+        target_object_id,
+        seq,
+    );
+    tx.execute(
+        "INSERT INTO collab_activity_records(activity_id, room_id, realm_id, authority_scope_id, actor_participant_id, event_kind, target_object_id, checkpoint_digest_hex, seq, schema_version)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+        params![
+            header.id.as_str(),
+            room_id.as_str(),
+            header.realm_id.as_opaque().as_str(),
+            header.authority_scope_id.as_opaque().as_str(),
+            actor_participant_id.as_str(),
+            event_kind.as_str(),
+            target_object_id.as_str(),
+            digest_hex(&checkpoint_digest),
+            seq as i64,
+            header.schema_version as i64,
+        ],
+    )?;
+    Ok(ActivityRecord {
+        header,
+        room_id: room_id.clone(),
+        actor_participant_id: actor_participant_id.clone(),
+        event_kind,
+        target_object_id: target_object_id.clone(),
+        checkpoint_digest,
+        seq,
+    })
+}
 
 impl SqliteMetaStore {
     /// Appends the next activity record in one room's hash chain. `seq` and

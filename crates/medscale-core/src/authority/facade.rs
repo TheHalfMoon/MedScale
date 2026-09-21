@@ -190,6 +190,43 @@ impl CoreFacade {
         })
     }
 
+    /// Runs one Spec 076 collaboration operation with lease enforcement and
+    /// vault-meta access (synthetic or encrypted). Surfaces never touch
+    /// storage: this is the only path from request to collaboration rows.
+    fn collab<R>(
+        &self,
+        vault_id: &medscale_contracts::objects::VaultId,
+        realm: medscale_contracts::objects::RealmId,
+        scope: medscale_contracts::objects::AuthorityScopeId,
+        session_id: Option<medscale_contracts::objects::OpaqueId>,
+        op: impl FnOnce(super::collaboration::Collab<'_>) -> Result<R, AuthorityError>,
+    ) -> Result<R, AuthorityError> {
+        self.require_lease(vault_id)?;
+        // Lock order vault -> store matches the existing multi-lock arms and
+        // keeps no new lock ordering in the lane.
+        let vault_guard = self.vault();
+        let enc_guard = self.encrypted();
+        let meta = if let Some(enc) = enc_guard.as_ref() {
+            &enc.meta
+        } else if let Some(vault) = vault_guard.as_ref() {
+            &vault.meta
+        } else {
+            return Err(AuthorityError::VaultRequired);
+        };
+        let mut store = self.store();
+        let store_ref: &mut InMemoryAuthorityStore = &mut store;
+        op(super::collaboration::Collab {
+            store: store_ref,
+            meta,
+            sessions: &self.sessions,
+            leases: &self.leases,
+            vault_id,
+            realm,
+            scope,
+            session_id,
+        })
+    }
+
     fn allowlist(&self) -> std::sync::MutexGuard<'_, Vec<EgressAllowlistEntry>> {
         self.allowlist
             .lock()
@@ -2027,6 +2064,178 @@ impl CoreFacade {
                     next_cursor,
                 })
             }
+            // Spec 076 Collaboration Substrate: every mutation flows through
+            // Core authority paths. Surfaces never write collaboration
+            // storage directly. T076-03 slice only (participant/room/
+            // membership); thread/message/task/note/approval/activity land
+            // in later slices.
+            RequestBody::ParticipantRegister {
+                holder_id,
+                kind,
+                display_name,
+                agent_profile_ref,
+            } => {
+                let participant = self.collab(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut collab| {
+                        collab.register_participant(
+                            holder_id,
+                            kind,
+                            display_name,
+                            agent_profile_ref,
+                        )
+                    },
+                )?;
+                Ok(ResponseBody::Participant {
+                    participant: Box::new(participant),
+                })
+            }
+            RequestBody::ParticipantGet { participant_id } => {
+                let participant = self.collab(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |collab| collab.get_participant(&participant_id),
+                )?;
+                Ok(ResponseBody::Participant {
+                    participant: Box::new(participant),
+                })
+            }
+            RequestBody::ParticipantRevoke {
+                participant_id,
+                expected_revision,
+            } => {
+                let participant = self.collab(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut collab| collab.revoke_participant(&participant_id, expected_revision),
+                )?;
+                Ok(ResponseBody::Participant {
+                    participant: Box::new(participant),
+                })
+            }
+            RequestBody::RoomCreate {
+                project_id,
+                experiment_id,
+                name,
+            } => {
+                let room = self.collab(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut collab| collab.create_room(project_id, experiment_id, name),
+                )?;
+                Ok(ResponseBody::CollabRoom {
+                    room: Box::new(room),
+                })
+            }
+            RequestBody::RoomGet { room_id } => {
+                let room = self.collab(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |collab| collab.get_room(&room_id),
+                )?;
+                Ok(ResponseBody::CollabRoom {
+                    room: Box::new(room),
+                })
+            }
+            RequestBody::RoomList {
+                project_id,
+                status,
+                limit,
+                cursor,
+            } => {
+                let (rooms, next_cursor) = self.collab(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |collab| collab.list_rooms(&project_id, status, limit.unwrap_or(25), cursor),
+                )?;
+                Ok(ResponseBody::CollabRoomList { rooms, next_cursor })
+            }
+            RequestBody::RoomRename {
+                room_id,
+                expected_revision,
+                name,
+            } => {
+                let room = self.collab(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |collab| collab.rename_room(&room_id, expected_revision, name),
+                )?;
+                Ok(ResponseBody::CollabRoom {
+                    room: Box::new(room),
+                })
+            }
+            RequestBody::RoomArchive {
+                room_id,
+                expected_revision,
+            } => {
+                let room = self.collab(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |collab| collab.archive_room(&room_id, expected_revision),
+                )?;
+                Ok(ResponseBody::CollabRoom {
+                    room: Box::new(room),
+                })
+            }
+            RequestBody::RoomMembershipAdd {
+                room_id,
+                participant_id,
+                role,
+            } => {
+                let membership = self.collab(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |collab| collab.add_membership(&room_id, &participant_id, role),
+                )?;
+                Ok(ResponseBody::CollabMembership {
+                    membership: Box::new(membership),
+                })
+            }
+            RequestBody::RoomMembershipList { room_id } => {
+                let memberships = self.collab(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |collab| collab.list_memberships(&room_id),
+                )?;
+                Ok(ResponseBody::CollabMembershipList { memberships })
+            }
+            RequestBody::RoomMembershipRemove {
+                room_id,
+                membership_id,
+                expected_revision,
+            } => {
+                let membership = self.collab(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |collab| collab.remove_membership(&room_id, &membership_id, expected_revision),
+                )?;
+                Ok(ResponseBody::CollabMembership {
+                    membership: Box::new(membership),
+                })
+            }
         }
     }
 }
@@ -2315,6 +2524,35 @@ fn capability_matches(cap: &Capability, body: &RequestBody) -> bool {
             | (
                 Capability::DatasetReleaseRead,
                 RequestBody::DatasetReleaseList { .. }
+            )
+            | (
+                Capability::ParticipantRegister,
+                RequestBody::ParticipantRegister { .. }
+            )
+            | (
+                Capability::ParticipantRead,
+                RequestBody::ParticipantGet { .. }
+            )
+            | (
+                Capability::ParticipantRevoke,
+                RequestBody::ParticipantRevoke { .. }
+            )
+            | (Capability::RoomCreate, RequestBody::RoomCreate { .. })
+            | (Capability::RoomRead, RequestBody::RoomGet { .. })
+            | (Capability::RoomRead, RequestBody::RoomList { .. })
+            | (Capability::RoomUpdate, RequestBody::RoomRename { .. })
+            | (Capability::RoomArchive, RequestBody::RoomArchive { .. })
+            | (
+                Capability::RoomMembershipManage,
+                RequestBody::RoomMembershipAdd { .. }
+            )
+            | (
+                Capability::RoomMembershipRead,
+                RequestBody::RoomMembershipList { .. }
+            )
+            | (
+                Capability::RoomMembershipManage,
+                RequestBody::RoomMembershipRemove { .. }
             )
     )
 }

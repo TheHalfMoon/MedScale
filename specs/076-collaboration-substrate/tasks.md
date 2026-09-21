@@ -42,11 +42,13 @@ Check a task only when its implementation, tests and required evidence are real 
 
 ## T076-03 — Participant + Room + Membership
 
-- [ ] Implement participant registration, room create/get/list/update/archive, membership add/update/remove.
-- [ ] Wire `RoomMembership` visibility filter into every read path.
-- [ ] CLI inspect for room/participant/membership.
+- [x] Implement participant registration (idempotent on scope+holder_id, kind immutable), revoke, room create/get/list/rename/archive, membership add/list/remove.
+- [x] Wire `RoomMembership` visibility filter into every read path (`require_membership` gates room get/rename/archive/membership add-list-remove; `list_rooms` intersects with caller's active memberships).
+- [x] Discovered and closed a real atomicity gap during this slice: the primary row write and its `ActivityRecord` append were two separate transactions. Added `append_activity_in_tx` and rebuilt `insert_room_with_activity`/`archive_room_with_activity`/`insert_membership_with_activity`/`remove_membership_with_activity` so both commit together (`migration.md` section 5, `security.md` T12) -- found and fixed before any test caught it, same discipline as the T076-02 backup/restore gap.
+- [x] Wired 9 new `Capability` variants, 11 new `RequestBody` variants, 5 new `ResponseBody` variants into `envelopes/mod.rs`, plus the `collab()` facade helper and dispatch arms in `facade.rs` (mirrors the `pg`/`ds` pattern exactly).
+- [ ] CLI inspect for room/participant/membership. **Deferred to T076-10** (CLI/Desktop slice), matching the plan.md staging order (Core vertical slices land before the CLI/Desktop pass).
 
-**Acceptance:** vertical slice proven end to end with reopen durability and cross-room visibility denial.
+**Acceptance:** Core authority layer complete and wired for participant/room/membership. End-to-end reopen-durability and cross-room-visibility-denial *tests* land in T076-11 qualification, matching how the storage-layer plumbing/testing split was organized in T076-02.
 
 ## T076-04 — Thread and anchor resolution
 

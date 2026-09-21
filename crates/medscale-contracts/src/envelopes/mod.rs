@@ -5,6 +5,9 @@ use serde_json::Value;
 
 use crate::AUTHORITY_SCHEMA_VERSION;
 use crate::actions::{CreateExternalActionIntentRequest, NphiesInvokeRequest, OutboxEntry};
+use crate::collaboration::{
+    MembershipRole, ParticipantIdentity, ParticipantKind, Room, RoomMembership, RoomStatus,
+};
 use crate::data_sources::{
     DataSourceManifest, DataSourceSummary, DataViewKind, DatasetReleaseSummary, FilterExpr,
     RefreshReceipt, ReleaseManifest, SavedDataView, SavedViewSummary, SnapshotRowPage,
@@ -115,6 +118,18 @@ pub enum Capability {
     TransformExecute,
     DatasetReleaseCreate,
     DatasetReleaseRead,
+    // Spec 076: Collaboration Substrate (T076-03 slice: participant, room,
+    // membership only; thread/message/task/note/approval/activity
+    // capabilities land in later slices).
+    ParticipantRegister,
+    ParticipantRead,
+    ParticipantRevoke,
+    RoomCreate,
+    RoomRead,
+    RoomUpdate,
+    RoomArchive,
+    RoomMembershipManage,
+    RoomMembershipRead,
 }
 
 impl Capability {
@@ -152,6 +167,9 @@ impl Capability {
                 | Self::SnapshotRead
                 | Self::SavedViewRead
                 | Self::DatasetReleaseRead
+                | Self::ParticipantRead
+                | Self::RoomRead
+                | Self::RoomMembershipRead
         )
     }
 
@@ -241,6 +259,15 @@ impl Capability {
             Self::TransformExecute,
             Self::DatasetReleaseCreate,
             Self::DatasetReleaseRead,
+            Self::ParticipantRegister,
+            Self::ParticipantRead,
+            Self::ParticipantRevoke,
+            Self::RoomCreate,
+            Self::RoomRead,
+            Self::RoomUpdate,
+            Self::RoomArchive,
+            Self::RoomMembershipManage,
+            Self::RoomMembershipRead,
         ]
     }
 }
@@ -623,6 +650,57 @@ pub enum RequestBody {
         limit: Option<u32>,
         cursor: Option<String>,
     },
+    // Spec 076: every mutation flows through Core authority paths. Surfaces
+    // never write collaboration storage directly. T076-03 slice only.
+    ParticipantRegister {
+        holder_id: OpaqueId,
+        kind: ParticipantKind,
+        display_name: String,
+        agent_profile_ref: Option<OpaqueId>,
+    },
+    ParticipantGet {
+        participant_id: OpaqueId,
+    },
+    ParticipantRevoke {
+        participant_id: OpaqueId,
+        expected_revision: u64,
+    },
+    RoomCreate {
+        project_id: OpaqueId,
+        experiment_id: Option<OpaqueId>,
+        name: String,
+    },
+    RoomGet {
+        room_id: OpaqueId,
+    },
+    RoomList {
+        project_id: OpaqueId,
+        status: Option<RoomStatus>,
+        limit: Option<u32>,
+        cursor: Option<String>,
+    },
+    RoomRename {
+        room_id: OpaqueId,
+        expected_revision: u64,
+        name: String,
+    },
+    RoomArchive {
+        room_id: OpaqueId,
+        expected_revision: u64,
+    },
+    RoomMembershipAdd {
+        room_id: OpaqueId,
+        participant_id: OpaqueId,
+        role: MembershipRole,
+    },
+    RoomMembershipList {
+        room_id: OpaqueId,
+    },
+    RoomMembershipRemove {
+        room_id: OpaqueId,
+        membership_id: OpaqueId,
+        expected_revision: u64,
+    },
 }
 
 impl RequestBody {
@@ -867,6 +945,24 @@ pub enum ResponseBody {
     DatasetReleaseList {
         releases: Vec<DatasetReleaseSummary>,
         next_cursor: Option<String>,
+    },
+    // Spec 076 typed results (revisioned, membership-gated, no secrets).
+    // T076-03 slice only.
+    Participant {
+        participant: Box<ParticipantIdentity>,
+    },
+    CollabRoom {
+        room: Box<Room>,
+    },
+    CollabRoomList {
+        rooms: Vec<Room>,
+        next_cursor: Option<String>,
+    },
+    CollabMembership {
+        membership: Box<RoomMembership>,
+    },
+    CollabMembershipList {
+        memberships: Vec<RoomMembership>,
     },
 }
 

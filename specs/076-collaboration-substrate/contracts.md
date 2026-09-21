@@ -329,6 +329,8 @@ ActivityRecord {
 
 Tamper-evidence is the same hash-chain idea already used elsewhere for digest-bound evidence: recomputing the chain from `seq = 1` and comparing the stored `checkpoint_digest` at each step detects any row edited or removed out of band. `ActivityRecord` rows are searchable locally (by room, actor, event kind, target) without any new index technology.
 
+**Scope note:** the chain is per-room (`UNIQUE(room_id, seq)`), because every event that appends to it — room lifecycle, membership, threads, messages, tasks, notes, approvals — naturally has one. `ParticipantRegistered`/`ParticipantRevoked` are the one exception: a `ParticipantIdentity` is scoped to `(realm, authority_scope)`, not to any single room, so it has no room to chain into. Those two events are recorded through the *existing* in-memory `ActionAuditRecord` audit trail instead (the same mechanism Spec 074 uses for `project.create`/`project.archive`), not through `collab_activity_records`. This is a deliberate reuse, not an oversight: 076 does not need a second scope-level audit mechanism when one already exists.
+
 ## 15. SyncCursor (inert placeholder, no network)
 
 ```text
