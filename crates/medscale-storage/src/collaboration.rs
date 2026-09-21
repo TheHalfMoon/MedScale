@@ -231,10 +231,6 @@ fn is_conflict(err: &rusqlite::Error) -> bool {
     )
 }
 
-fn to_meta(err: rusqlite::Error) -> MetaError {
-    MetaError::Sqlite(err)
-}
-
 fn digest_hex(digest: &DigestSha256) -> String {
     digest.to_hex()
 }
