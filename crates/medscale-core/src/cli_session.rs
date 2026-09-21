@@ -323,6 +323,19 @@ impl CliSession {
         self.open
     }
 
+    /// This session's bound lease/session holder id -- the identity every
+    /// Core authority check resolves `actor()` to for requests made through
+    /// this session. A caller that needs to register its own
+    /// `ParticipantIdentity` (Spec 076 collaboration) must register under
+    /// this exact id, not an arbitrary string: `caller_participant()` looks
+    /// up the participant by the session's real holder, so a mismatched
+    /// `holder_id` would register a participant Core can never resolve as
+    /// the caller.
+    #[must_use]
+    pub fn holder_id(&self) -> OpaqueId {
+        self.holder_id.clone()
+    }
+
     /// Offline local pack install (Spec 008).
     pub fn packs_install_local(
         &mut self,

@@ -67,16 +67,22 @@ pub fn status_message(err: &AuthorityError) -> &'static str {
     }
 }
 
-/// Registers (or reuses) the Human participant backing the current session
-/// holder, so the first collaboration action in a fresh vault does not fail
-/// with "not a registered participant". Idempotent.
+/// Registers (or reuses) the Human participant backing the current session's
+/// *real* holder id (`CliSession::holder_id`), so the first collaboration
+/// action in a fresh vault does not fail with "not a registered
+/// participant". Idempotent. Must register under the session's actual bound
+/// holder, not an arbitrary display string: `Collab::caller_participant`
+/// resolves the caller via the session's real actor id, so a mismatched
+/// `holder_id` would register a participant Core can never recognize as the
+/// caller (every subsequent room/thread/message/task action would fail
+/// closed with `Unauthorized`).
 fn ensure_self_participant(
     session: &mut CliSession,
-    holder_id: &str,
     display_name: &str,
 ) -> Result<OpaqueId, AuthorityError> {
+    let holder_id = session.holder_id();
     let participant = session.collab_participant_register(
-        OpaqueId::new(holder_id),
+        holder_id,
         ParticipantKind::Human,
         display_name.to_owned(),
         None,
@@ -90,7 +96,7 @@ pub fn refresh_rooms(
     session: &mut CliSession,
     project_id: &str,
 ) -> Result<Vec<RoomRowVm>, AuthorityError> {
-    ensure_self_participant(session, "desktop-operator", "Desktop Operator")?;
+    ensure_self_participant(session, "Desktop Operator")?;
     let (rooms, _) = session.collab_room_list(OpaqueId::new(project_id), None, Some(100), None)?;
     Ok(rooms
         .into_iter()
@@ -108,7 +114,7 @@ pub fn create_room(
     project_id: &str,
     name: String,
 ) -> Result<RoomRowVm, AuthorityError> {
-    ensure_self_participant(session, "desktop-operator", "Desktop Operator")?;
+    ensure_self_participant(session, "Desktop Operator")?;
     let room = session.collab_room_create(OpaqueId::new(project_id), None, name)?;
     Ok(RoomRowVm {
         id: room.header.id.as_str().to_owned(),
