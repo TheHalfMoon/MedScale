@@ -14,7 +14,10 @@ use medscale_contracts::collaboration::{
     COLLAB_SCHEMA_VERSION, CollabEventKind, MembershipRole, ParticipantIdentity, ParticipantKind,
     Room, RoomMembership, Task,
 };
-use medscale_contracts::objects::{AuthorityScopeId, ObjectHeader, OpaqueId, RealmId};
+use medscale_contracts::ingest::BackupManifest;
+use medscale_contracts::objects::{
+    AuthorityScopeId, DigestSha256, ObjectHeader, OpaqueId, RealmId,
+};
 use medscale_contracts::project_graph::{Project, ProjectStatus};
 use medscale_storage::{MetaError, SqliteMetaStore, SyntheticVault, backup_vault, restore_vault};
 
@@ -213,6 +216,77 @@ fn backup_restore_roundtrips_collab_rows_and_verifies_activity_chain() {
     assert_eq!(records.len(), 3);
     assert_eq!(records[0].seq, 1);
     assert_eq!(records[2].seq, 3);
+}
+
+/// Exact-range review finding (fixed before merge, not hidden): `restore_v5`
+/// replayed every `collab_activity_records` row but never re-verified the
+/// chain afterward, so a hand-edited backup -- one whose editor also
+/// recomputes the outer `metadata_snapshot_digest` to match their edit,
+/// exactly `security.md` T10's threat, not a random bit-flip -- would
+/// restore silently instead of failing closed, contradicting
+/// `migration.md` section 11. Fixed by verifying every restored room's
+/// chain inside `restore_v5`.
+#[test]
+fn restore_rejects_hand_edited_backup_with_broken_activity_chain() {
+    let root = temp_root("tamper-backup");
+    let vault_root = root.join("vault");
+    let vault = SyntheticVault::open("vault-1", &vault_root).unwrap();
+
+    vault
+        .meta
+        .insert_participant(&participant("p-1", "holder-1"), None)
+        .unwrap();
+    vault
+        .meta
+        .insert_room_with_activity(
+            &room("room-1", "proj-1"),
+            header("act-1"),
+            &OpaqueId::new("p-1"),
+        )
+        .unwrap();
+    vault
+        .meta
+        .insert_membership_with_activity(
+            &membership("m-1", "room-1", "p-1"),
+            header("act-2"),
+            &OpaqueId::new("p-1"),
+        )
+        .unwrap();
+
+    let dest = root.join("backup");
+    backup_vault(&vault, &dest).unwrap();
+
+    // Hand-edit the seq-1 activity record's target inside the raw snapshot
+    // file, then recompute the outer manifest digest to match the edit --
+    // the outer digest is a plain content hash, not a signature, so an
+    // editor with file access can trivially keep it self-consistent. Only
+    // the activity hash chain can catch this specific tamper.
+    let snapshot_path = dest.join("metadata.snapshot");
+    let mut snapshot: serde_json::Value =
+        serde_json::from_slice(&fs::read(&snapshot_path).unwrap()).unwrap();
+    let records = snapshot
+        .get_mut("collab_activity_records")
+        .and_then(|v| v.as_array_mut())
+        .expect("activity records present in snapshot");
+    assert!(!records.is_empty());
+    records[0]["target_object_id"] = serde_json::Value::String("tampered-target".to_owned());
+    let new_snapshot_bytes = serde_json::to_vec(&snapshot).unwrap();
+    fs::write(&snapshot_path, &new_snapshot_bytes).unwrap();
+
+    let manifest_path = dest.join("manifest.json");
+    let mut manifest: BackupManifest =
+        serde_json::from_slice(&fs::read(&manifest_path).unwrap()).unwrap();
+    manifest.metadata_snapshot_digest = DigestSha256::of(&new_snapshot_bytes);
+    fs::write(&manifest_path, serde_json::to_vec(&manifest).unwrap()).unwrap();
+
+    let restore_root = root.join("restored");
+    let err = restore_vault(&dest, &restore_root).unwrap_err();
+    assert!(
+        err.contains("chain") || err.contains("checkpoint") || err.contains("mismatch"),
+        "hand-edited backup with a broken activity chain must fail closed \
+         at restore time, not merely be detectable by a separate manual \
+         verify_activity_chain call afterward; got: {err}"
+    );
 }
 
 // ---------------------------------------------------------------------------

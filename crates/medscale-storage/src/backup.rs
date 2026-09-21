@@ -555,12 +555,26 @@ fn restore_v5(
         .get("collab_activity_records")
         .and_then(|v| v.as_array())
     {
+        let mut room_ids: std::collections::HashSet<medscale_contracts::objects::OpaqueId> =
+            std::collections::HashSet::new();
         for value in entries {
             let record: medscale_contracts::collaboration::ActivityRecord =
                 serde_json::from_value(value.clone()).map_err(|e| e.to_string())?;
+            room_ids.insert(record.room_id.clone());
             vault
                 .meta
                 .restore_activity_record_row(&record)
+                .map_err(|e| e.to_string())?;
+        }
+        // migration.md section 11: `checkpoint_digest` chains must still
+        // verify after a restore. `restore_activity_record_row` preserves
+        // each row's digest verbatim (never recomputed), so a tampered
+        // middle row would otherwise persist silently; re-verify every
+        // restored room's chain from seq = 1 and fail closed on mismatch.
+        for room_id in &room_ids {
+            vault
+                .meta
+                .verify_activity_chain(room_id)
                 .map_err(|e| e.to_string())?;
         }
     }
