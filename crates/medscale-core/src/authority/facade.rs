@@ -215,9 +215,12 @@ impl CoreFacade {
         };
         let mut store = self.store();
         let store_ref: &mut InMemoryAuthorityStore = &mut store;
+        let packs_guard = self.packs();
+        let packs_ref: &medscale_pack::PackStore = &packs_guard;
         op(super::collaboration::Collab {
             store: store_ref,
             meta,
+            packs: packs_ref,
             sessions: &self.sessions,
             leases: &self.leases,
             vault_id,
@@ -2238,7 +2241,7 @@ impl CoreFacade {
             }
             // Spec 076 T076-04/05/06 slice: thread, message, task.
             RequestBody::ThreadOpen { room_id, anchor } => {
-                let thread = self.collab(
+                let (thread, resolution) = self.collab(
                     &req.vault_id,
                     req.realm_id,
                     req.authority_scope_id,
@@ -2247,10 +2250,11 @@ impl CoreFacade {
                 )?;
                 Ok(ResponseBody::CollabThread {
                     thread: Box::new(thread),
+                    resolution,
                 })
             }
             RequestBody::ThreadGet { thread_id } => {
-                let thread = self.collab(
+                let (thread, resolution) = self.collab(
                     &req.vault_id,
                     req.realm_id,
                     req.authority_scope_id,
@@ -2259,6 +2263,7 @@ impl CoreFacade {
                 )?;
                 Ok(ResponseBody::CollabThread {
                     thread: Box::new(thread),
+                    resolution,
                 })
             }
             RequestBody::ThreadList {
@@ -2266,15 +2271,17 @@ impl CoreFacade {
                 limit,
                 cursor,
             } => {
-                let (threads, next_cursor) = self.collab(
+                let (resolved, next_cursor) = self.collab(
                     &req.vault_id,
                     req.realm_id,
                     req.authority_scope_id,
                     req.session_id,
                     |collab| collab.list_threads(&room_id, limit.unwrap_or(25), cursor),
                 )?;
+                let (threads, resolutions) = resolved.into_iter().unzip();
                 Ok(ResponseBody::CollabThreadList {
                     threads,
+                    resolutions,
                     next_cursor,
                 })
             }
@@ -2283,7 +2290,7 @@ impl CoreFacade {
                 expected_revision,
                 status,
             } => {
-                let thread = self.collab(
+                let (thread, resolution) = self.collab(
                     &req.vault_id,
                     req.realm_id,
                     req.authority_scope_id,
@@ -2292,6 +2299,7 @@ impl CoreFacade {
                 )?;
                 Ok(ResponseBody::CollabThread {
                     thread: Box::new(thread),
+                    resolution,
                 })
             }
             RequestBody::MessagePost { thread_id, body } => {

@@ -56,6 +56,7 @@ fn header(realm: &RealmId, scope: &AuthorityScopeId, id: OpaqueId) -> ObjectHead
 pub struct Collab<'a> {
     pub store: &'a mut InMemoryAuthorityStore,
     pub meta: &'a SqliteMetaStore,
+    pub packs: &'a medscale_pack::PackStore,
     pub sessions: &'a SessionRegistry,
     pub leases: &'a LeaseRegistry,
     pub vault_id: &'a VaultId,
@@ -491,15 +492,142 @@ impl Collab<'_> {
         Ok(thread)
     }
 
+    /// Resolves one anchor's target `ArtifactDescriptor` against canonical
+    /// owners in this realm/scope, live, at read time (`contracts.md`
+    /// section 6): never cached, never trusted from a prior write. This
+    /// deliberately mirrors `project_graph::ProjectGraph::resolve_descriptor`
+    /// field-for-field rather than sharing it: that method takes `&self` on
+    /// a different struct shape, and 076 does not modify Spec 074's closed
+    /// file to extract a shared helper. A future refactor could unify them.
+    ///
+    /// Coverage is exactly what `ArtifactKind`'s frozen vocabulary supports
+    /// today: `PackManifest` and the H0-era in-memory `StoredObject` kinds.
+    /// `ArtifactKind` has no variant yet for Spec 075 data-source/snapshot
+    /// objects, so an anchor pointing at those resolves as `UnsupportedKind`
+    /// -- an honest fail-closed answer, not a fabricated `Current`.
+    fn resolve_anchor_artifact(
+        &self,
+        descriptor: &medscale_contracts::project_graph::ArtifactDescriptor,
+    ) -> medscale_contracts::project_graph::ReferenceResolution {
+        use medscale_contracts::project_graph::{
+            ArtifactKind, ArtifactVersionBinding, ReferenceResolution,
+        };
+        match &descriptor.kind {
+            ArtifactKind::PackManifest => {
+                let Some(manifest) = self.packs.get(&descriptor.object_id) else {
+                    return ReferenceResolution::Missing;
+                };
+                match &descriptor.binding {
+                    ArtifactVersionBinding::IdentityOnly => ReferenceResolution::Current,
+                    ArtifactVersionBinding::Digest(digest) => {
+                        if manifest.content_digest == *digest {
+                            ReferenceResolution::Current
+                        } else {
+                            ReferenceResolution::Stale
+                        }
+                    }
+                    ArtifactVersionBinding::Revision(rev) => {
+                        if manifest.version == *rev {
+                            ReferenceResolution::Current
+                        } else {
+                            ReferenceResolution::Stale
+                        }
+                    }
+                    ArtifactVersionBinding::DigestAndRevision { digest, revision } => {
+                        if manifest.content_digest == *digest && manifest.version == *revision {
+                            ReferenceResolution::Current
+                        } else {
+                            ReferenceResolution::Stale
+                        }
+                    }
+                }
+            }
+            ArtifactKind::EvidenceDocument | ArtifactKind::OtherExplicit(_) => {
+                ReferenceResolution::UnsupportedKind
+            }
+            _ => {
+                let stored =
+                    match self
+                        .store
+                        .get_scoped(&descriptor.object_id, &self.realm, &self.scope)
+                    {
+                        Ok(obj) => obj,
+                        Err(super::store::ScopeError::NotFound) => {
+                            return ReferenceResolution::Missing;
+                        }
+                        Err(super::store::ScopeError::WrongScope) => {
+                            return ReferenceResolution::Denied;
+                        }
+                    };
+                let class_matches = matches!(
+                    (stored, &descriptor.kind),
+                    (StoredObject::Source(_), ArtifactKind::SourceRecord)
+                        | (
+                            StoredObject::Derived(_),
+                            ArtifactKind::DerivedSourceArtifact
+                        )
+                        | (StoredObject::Proposal(_), ArtifactKind::Proposal)
+                        | (StoredObject::Assertion(_), ArtifactKind::ClinicalAssertion)
+                        | (StoredObject::Evaluation(_), ArtifactKind::EvaluationRecord)
+                        | (StoredObject::Identity(_), ArtifactKind::IdentityAssertion)
+                        | (StoredObject::Amendment(_), ArtifactKind::AmendmentRecord)
+                );
+                if !class_matches {
+                    return ReferenceResolution::Corrupt;
+                }
+                match stored {
+                    StoredObject::Source(record) => {
+                        if !record.digest_valid() {
+                            return ReferenceResolution::Corrupt;
+                        }
+                        match &descriptor.binding {
+                            ArtifactVersionBinding::IdentityOnly => ReferenceResolution::Current,
+                            ArtifactVersionBinding::Digest(digest) => {
+                                if record.content_digest == *digest {
+                                    ReferenceResolution::Current
+                                } else {
+                                    ReferenceResolution::Stale
+                                }
+                            }
+                            _ => ReferenceResolution::Stale,
+                        }
+                    }
+                    StoredObject::Derived(artifact) => match &descriptor.binding {
+                        ArtifactVersionBinding::IdentityOnly => ReferenceResolution::Current,
+                        ArtifactVersionBinding::Digest(digest) => {
+                            if artifact.content_digest == *digest {
+                                ReferenceResolution::Current
+                            } else {
+                                ReferenceResolution::Stale
+                            }
+                        }
+                        _ => ReferenceResolution::Stale,
+                    },
+                    _ => match &descriptor.binding {
+                        ArtifactVersionBinding::IdentityOnly => ReferenceResolution::Current,
+                        _ => ReferenceResolution::Stale,
+                    },
+                }
+            }
+        }
+    }
+
     /// Opens a thread anchored to an exact artifact revision (membership-
-    /// gated). Anchor shape is validated by `ThreadRef::new`; live
-    /// resolution against the artifact is always a separate read-time
-    /// concern (`contracts.md` section 6), not performed here.
+    /// gated). Anchor shape is validated by `ThreadRef::new`. Returns the
+    /// live resolution computed immediately after creation (normally
+    /// `Current`, but honestly reported like any other read since nothing
+    /// prevents the target from already being stale/missing at open time).
     pub fn open_thread(
         &self,
         room_id: OpaqueId,
         anchor: medscale_contracts::collaboration::AnchorTarget,
-    ) -> Result<ThreadRef, AuthorityError> {
+    ) -> Result<
+        (
+            ThreadRef,
+            medscale_contracts::project_graph::ReferenceResolution,
+        ),
+        AuthorityError,
+    > {
         self.require_membership(&room_id)?;
         let thread_id = self
             .meta
@@ -519,37 +647,78 @@ impl Collab<'_> {
                 &actor_id,
             )
             .map_err(meta_err)?;
-        Ok(thread)
+        let resolution = self.resolve_anchor_artifact(&thread.anchor.artifact);
+        Ok((thread, resolution))
     }
 
-    /// Membership-gated thread read.
-    pub fn get_thread(&self, id: &OpaqueId) -> Result<ThreadRef, AuthorityError> {
+    /// Membership-gated thread read with live `ReferenceResolution`
+    /// (`contracts.md` section 6): recomputed on every read, never cached.
+    pub fn get_thread(
+        &self,
+        id: &OpaqueId,
+    ) -> Result<
+        (
+            ThreadRef,
+            medscale_contracts::project_graph::ReferenceResolution,
+        ),
+        AuthorityError,
+    > {
         let thread = self.scoped_thread(id)?;
         self.require_membership(&thread.room_id)?;
-        Ok(thread)
+        let resolution = self.resolve_anchor_artifact(&thread.anchor.artifact);
+        Ok((thread, resolution))
     }
 
-    /// Lists threads in one room (membership-gated).
+    /// Lists threads in one room with each thread's live `ReferenceResolution`
+    /// (membership-gated).
     pub fn list_threads(
         &self,
         room_id: &OpaqueId,
         limit: u32,
         cursor: Option<String>,
-    ) -> Result<(Vec<ThreadRef>, Option<String>), AuthorityError> {
+    ) -> Result<
+        (
+            Vec<(
+                ThreadRef,
+                medscale_contracts::project_graph::ReferenceResolution,
+            )>,
+            Option<String>,
+        ),
+        AuthorityError,
+    > {
         self.require_membership(room_id)?;
-        self.meta
+        let (threads, next) = self
+            .meta
             .list_threads(room_id, limit, cursor.as_deref())
-            .map_err(meta_err)
+            .map_err(meta_err)?;
+        let resolved = threads
+            .into_iter()
+            .map(|thread| {
+                let resolution = self.resolve_anchor_artifact(&thread.anchor.artifact);
+                (thread, resolution)
+            })
+            .collect();
+        Ok((resolved, next))
     }
 
     /// Transitions a thread `Open -> Resolved` or `Resolved -> Reopened`
-    /// (membership-gated). Any other transition is a conflict.
+    /// (membership-gated). Any other transition is a conflict. Returns the
+    /// live resolution alongside the updated thread: resolving/reopening a
+    /// thread is independent of whether its anchor is still current
+    /// (`contracts.md` section 7) -- both facts are surfaced together, never
+    /// collapsed.
     pub fn set_thread_status(
         &self,
         id: &OpaqueId,
         expected: u64,
         target: medscale_contracts::collaboration::ThreadStatus,
-    ) -> Result<ThreadRef, AuthorityError> {
+    ) -> Result<
+        (
+            ThreadRef,
+            medscale_contracts::project_graph::ReferenceResolution,
+        ),
+        AuthorityError,
+    > {
         use medscale_contracts::collaboration::ThreadStatus;
         let current = self.scoped_thread(id)?;
         self.require_membership(&current.room_id)?;
@@ -582,7 +751,8 @@ impl Collab<'_> {
                 &actor_id,
             )
             .map_err(meta_err)?;
-        Ok(thread)
+        let resolution = self.resolve_anchor_artifact(&thread.anchor.artifact);
+        Ok((thread, resolution))
     }
 
     // ----- messages -----

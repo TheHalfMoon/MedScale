@@ -34,7 +34,7 @@ use crate::presentation::{DrillDownResult, SubjectBriefV1, SubjectCoverageV1, Su
 use crate::project_graph::{
     ArtifactDescriptor, Experiment, ExperimentSummary, GraphDirection, GraphEndpoint,
     GraphNeighborPage, Project, ProjectArtifactRef, ProjectContext, ProjectGraphEdge,
-    ProjectGraphPredicate, ProjectStatus, ProjectSummary, ResolvedArtifactRef,
+    ProjectGraphPredicate, ProjectStatus, ProjectSummary, ReferenceResolution, ResolvedArtifactRef,
 };
 use crate::workflow::DisclosureRecord;
 
@@ -1109,9 +1109,11 @@ pub enum ResponseBody {
     },
     CollabThread {
         thread: Box<ThreadRef>,
+        resolution: ReferenceResolution,
     },
     CollabThreadList {
         threads: Vec<ThreadRef>,
+        resolutions: Vec<ReferenceResolution>,
         next_cursor: Option<String>,
     },
     CollabMessage {

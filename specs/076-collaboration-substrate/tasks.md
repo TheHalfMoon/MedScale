@@ -53,9 +53,9 @@ Check a task only when its implementation, tests and required evidence are real 
 ## T076-04 — Thread and anchor resolution
 
 - [x] Implement thread create/get/list/resolve/reopen (`open_thread`, `get_thread`, `list_threads`, `set_thread_status` -- allows `Open->Resolved`, `Resolved->Reopened`, `Reopened->Resolved`; any other transition is `Conflict`).
-- [ ] Implement live `ReferenceResolution` recomputation against `ArtifactDescriptor` targets as a queryable field on thread reads. **Deferred**: the anchor is stored and validated for shape (`AnchorTarget::validate` inside `ThreadRef::new`), but `get_thread`/`list_threads` do not yet compute and attach a live `ReferenceResolution`. Tracked to close before T076-11 closure, since this is a frozen acceptance criterion (`SPEC_076_PROMOTION.md` requirement 2).
+- [x] Implement live `ReferenceResolution` recomputation against `ArtifactDescriptor` targets, attached to every thread read (`resolve_anchor_artifact`, mirroring `project_graph::ProjectGraph::resolve_descriptor` field-for-field against the same `packs`/`store`-backed canonical owners; deliberately not shared code since that would touch Spec 074's closed file). Coverage matches `ArtifactKind`'s current frozen vocabulary exactly: `PackManifest` and the H0-era `StoredObject` kinds resolve properly; kinds `ArtifactKind` does not yet model (notably Spec 075 data-source/snapshot objects, which have no `ArtifactKind` variant at all today) resolve as `UnsupportedKind` -- an honest fail-closed answer, not a fabricated `Current`. Recorded as a residual in `CLOSURE.md` at T076-11, not hidden.
 
-**Acceptance:** thread CRUD + status-transition vertical slice complete and CI-green. Live resolution recomputation is the one remaining piece before this task's full acceptance bar is met; not silently claimed done.
+**Acceptance:** thread CRUD + status-transition + live resolution vertical slice complete and CI-green (`open_thread`/`get_thread`/`set_thread_status` return `(ThreadRef, ReferenceResolution)`; `list_threads` returns the same pairing per thread). Frozen acceptance requirement 2 (`SPEC_076_PROMOTION.md`) is met for the artifact kinds `ArtifactKind` currently models.
 
 ## T076-05 — Message and MessageEdit
 
