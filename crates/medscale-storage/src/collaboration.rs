@@ -2452,6 +2452,7 @@ impl SqliteMetaStore {
     /// request are expected (dual/independent review); this row is
     /// insert-only. The caller supplies `room_id` (already resolved with
     /// the request).
+    #[allow(clippy::too_many_arguments)]
     pub fn insert_approval_decision_with_activity(
         &self,
         header: ObjectHeader,
