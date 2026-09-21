@@ -117,7 +117,11 @@ fn migration_v4_to_v5_preserves_pre_076_rows_and_adds_collab_tables() {
     assert_eq!(activity.event_kind, CollabEventKind::RoomCreated);
 
     let journal = meta.migration_journal().unwrap();
-    assert_eq!(journal.finished_version, 5);
+    // Forward-fixed for Spec 077 (v5 -> v6): a fresh vault always migrates
+    // to the live top version, not the version this spec introduced. This
+    // is the same forward-fix Spec 076 itself required for Spec 075's
+    // pinned finished_version == 4 assertions when v4->v5 landed.
+    assert_eq!(journal.finished_version, 6);
 
     // Reopen must be safe (idempotent migration) and preserve every row
     // across both the pre-076 and the 076 families.
@@ -125,7 +129,7 @@ fn migration_v4_to_v5_preserves_pre_076_rows_and_adds_collab_tables() {
     let meta = open_meta(&root);
     let journal_again = meta.migration_journal().unwrap();
     assert_eq!(
-        journal_again.finished_version, 5,
+        journal_again.finished_version, 6,
         "repeat open must be a no-op, not a re-migration"
     );
 
@@ -187,7 +191,8 @@ fn backup_restore_roundtrips_collab_rows_and_verifies_activity_chain() {
 
     let dest = root.join("backup");
     let manifest_out = backup_vault(&vault, &dest).unwrap();
-    assert_eq!(manifest_out.schema_version, 5);
+    // Forward-fixed for Spec 077 (v5 -> v6), same discipline as above.
+    assert_eq!(manifest_out.schema_version, 6);
 
     let restore_root = root.join("restored");
     let _ = restore_vault(&dest, &restore_root).unwrap();

@@ -85,7 +85,9 @@ fn schema_v3_migrates_empty_store_additively() {
     let root = temp_root("empty");
     let meta = open_meta(&root);
     let journal = meta.migration_journal().unwrap();
-    assert_eq!(journal.finished_version, 5);
+    // Forward-fixed for Spec 077 (v5 -> v6); see interrupted_migration_fails_closed_on_reopen
+    // below for why this must track the live top version, not this test's own.
+    assert_eq!(journal.finished_version, 6);
     assert!(!journal.interrupted());
     // Pre-074 state still queryable after migration.
     assert!(meta.list_sources().unwrap().is_empty());
@@ -131,7 +133,8 @@ fn schema_v3_migrates_populated_v2_store_without_identity_loss() {
     }
     let meta = SqliteMetaStore::open_at(&db_path).unwrap();
     let journal = meta.migration_journal().unwrap();
-    assert_eq!(journal.finished_version, 5);
+    // Forward-fixed for Spec 077 (v5 -> v6).
+    assert_eq!(journal.finished_version, 6);
     // Pre-074 identities survive the migration untouched.
     let source = meta.get_source(&OpaqueId::new("src-keep")).unwrap();
     assert_eq!(source.media_type, "text/plain");
@@ -160,14 +163,14 @@ fn interrupted_migration_fails_closed_on_reopen() {
         // would be invisible to the fail-closed check once a newer version
         // has finished (a higher finished_version already exists). The
         // interruption must be simulated at the current live top version
-        // (5, established by Spec 076's v4->v5 step) to stay meaningful.
-        assert_eq!(meta.migration_journal().unwrap().finished_version, 5);
-        meta.begin_migration(5).unwrap();
+        // (6, established by Spec 077's v5->v6 step) to stay meaningful.
+        assert_eq!(meta.migration_journal().unwrap().finished_version, 6);
+        meta.begin_migration(6).unwrap();
         // Drop without finish: simulated crash mid-migration.
     }
     let err = SqliteMetaStore::open_at(&root.join("meta.sqlite3")).unwrap_err();
     assert!(
-        matches!(err, MetaError::MigrationIncomplete(5)),
+        matches!(err, MetaError::MigrationIncomplete(6)),
         "interrupted migration must fail closed, got {err:?}"
     );
 }
