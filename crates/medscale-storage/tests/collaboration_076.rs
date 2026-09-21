@@ -1,12 +1,12 @@
 //! Spec 076 storage + migration integration tests (076-B).
 //!
 //! Synthetic data only. Every claim binds to exact behavior below; nothing is
-//! inferred from a green compile. Covers `migration.md` sections 7-8 (fixture
-//! + qualification sequence), `security.md` T10 (activity hash-chain
-//! tamper detection) and T12 (half-committed state after crash), using the
-//! same raw-storage idiom `project_graph_074.rs`/`data_sources_075.rs`
-//! already established for this workstation (no local linker; CI is the
-//! authoritative compile/test signal).
+//! inferred from a green compile. Covers `migration.md` sections 7 and 8
+//! (fixture and qualification sequence), `security.md` T10 (activity
+//! hash-chain tamper detection) and T12 (half-committed state after crash),
+//! using the same raw-storage idiom `project_graph_074.rs`/
+//! `data_sources_075.rs` already established for this workstation (no local
+//! linker; CI is the authoritative compile/test signal).
 
 use std::fs;
 
