@@ -132,17 +132,27 @@ Desktop scope note: the panel covers Rooms/Threads/Messages/Tasks (the plan.md m
       activity-append half of `insert_room_with_activity` to fail proves the
       primary row never commits without it, via a pre-occupied `(room_id,
       seq)` unique-index collision).
-- [ ] Run format, dependency-direction, full workspace tests, Clippy under
-      current policy, cargo-deny/supply-chain gates on this slice's exact
-      head (`cargo fmt --check` passes locally; full compile/test/clippy
-      verification is CI-only on this workstation -- pending the next CI run).
-- [ ] Run credential/log secret and content-leakage scans (T11: no 076
-      mutation path logs raw message/note/task/approval body content;
-      pending an explicit log-capture-based test or inspection record).
-- [ ] Capture rendered Desktop evidence or record the honest residual if the
-      toolchain/CI cannot produce it (this workstation cannot link locally
-      to render a screenshot; CI has no display surface either -- expected
-      outcome is the same honest residual Spec 075 recorded, not fabricated).
+- [x] Ran format, dependency-direction, full workspace tests, Clippy under
+      current policy, cargo-deny/supply-chain gates: exact-head CI run
+      `35630430836` (head `bf9907c`) green 6/6 on every required job.
+- [x] Ran credential/log secret and content-leakage scan (T11): inspection
+      confirms zero `log::`/`tracing::` calls anywhere in the 076 code paths
+      (`authority/collaboration.rs`, `storage/src/collaboration.rs`,
+      `cli/src/collaboration.rs`, `desktop/src/collaboration_workspace.rs`,
+      `facade.rs`, `cli_session.rs`); the only body-printing calls are the
+      CLI's own explicit human-output printer, the same established pattern
+      `data_source.rs` already uses. Recorded in `SECURITY_ADVERSARIAL.md`.
+- [x] Captured Desktop evidence honestly: no rendered PNG exists (no local
+      or CI rendering path, same residual Spec 075 recorded), but this
+      qualification's own new in-module test
+      (`collab_workspace_flows_through_real_core_session`) **found and
+      fixed a real functional bug** before merge -- `ensure_self_participant`
+      registered the operator under the hardcoded string `"desktop-operator"`
+      instead of the session's actual bound holder id, so every real
+      "Create Room" click would have failed closed with `Unauthorized`.
+      Fixed by adding `CliSession::holder_id()` and registering under it.
+      See `DESKTOP_QUALIFICATION.md` for the full failure-then-fix record
+      (not hidden or silently corrected).
 - [ ] Perform exact-range review of the full PR diff using OpenCodeReview
       (https://github.com/alibaba/open-code-review) exclusively, per explicit
       instruction -- no other review tool/method.

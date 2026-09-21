@@ -76,11 +76,12 @@ across all three OS targets (Spec 075 touched no `.slint` file at all, so
 its own residual note covers a smaller risk surface than this one does).
 
 ```text
-RESULT = PENDING re-verification on the fix commit's exact-head CI (the
-holder-id bug above was found by this qualification's own test, on run
-35629013553, and is fixed but not yet exact-head-CI-green as of this
-writing). Slint compile proof stands independently: exact-head CI run
-35624477017 (head ebec119) green 6/6 including rust (windows-latest).
+RESULT = PASS: fix commit bf9907c re-ran the full workspace test suite
+(including the in-module collab_workspace_flows_through_real_core_session
+test that had caught the holder-id bug) on CI run 35630430836, green 6/6 on
+every required job, including rust (windows-latest). Slint compile proof for
+the panel itself stands independently: exact-head CI run 35624477017 (head
+ebec119) green 6/6 including rust (windows-latest).
 RESIDUAL = no rendered PNG evidence exists for this spec (no local or CI
 rendering path); Notes and Approvals have no Desktop surface (CLI-only,
 documented gap, not silently claimed). Tracked for whichever future spec
