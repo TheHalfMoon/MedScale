@@ -383,3 +383,65 @@ NEW_RESPONSE_BODY_VARIANTS = <exact count>
 ```
 
 Any later change to those frozen items requires an explicit reason, test-impact review, and migration-impact review before code proceeds.
+
+## 19. Freeze record (T076-01, FROZEN_FOR_076)
+
+```text
+CONTRACT_FREEZE = FROZEN_FOR_076
+LIVE_BASE_SHA = 6021ff9aad397a8488087cae01e56528370e8211
+CONTRACT_FILES = crates/medscale-contracts/src/collaboration.rs,
+                 crates/medscale-contracts/src/lib.rs (module registration)
+REVISION_MODEL = medscale_contracts::project_graph::ProjectRevision (u64 alias)
+                 + check_revision/initial_revision; no new revision type.
+                 NoteDocument is the sole exception: check_revision is not
+                 used on it directly — NoteDocument::is_fast_forward(expected)
+                 tells the caller (Core, in T076-07) whether to fast-forward
+                 or create a conflict-copy NoteRevision instead.
+PARTICIPANT_KIND_VOCABULARY = human, service, agent (ParticipantKind; immutable
+                 once set on a ParticipantIdentity)
+EVENT_KIND_VOCABULARY = room_created, room_archived, membership_added,
+                 membership_removed, thread_opened, thread_resolved,
+                 thread_reopened, message_posted, message_edited,
+                 message_deleted, task_created, task_updated, note_created,
+                 note_revised, note_conflict_copy_created, approval_requested,
+                 approval_decided, approval_withdrawn, participant_registered,
+                 participant_revoked (20 variants; CollabEventKind)
+ANCHOR_DETAIL_SET = text_region { span: TextSpan } (reuses contracts::text::TextSpan),
+                 dataset_cell { row_index: u64, column: String } (forward-compatible
+                 with Spec 075 SnapshotRowPage; not resolved/validated in 076)
+ERROR_TYPE = medscale_contracts::envelopes::AuthorityError, unchanged — no new
+                 variant was required. NoteDocument's conflict-copy path does
+                 not use AuthorityError::Conflict at all (see REVISION_MODEL
+                 above); every other mutable row (Room, RoomMembership,
+                 ThreadRef, Task, ApprovalRequest) uses Conflict exactly like
+                 Spec 074/075.
+NEW_CAPABILITIES = deferred to T076-03 onward (Core dispatch slices), not
+                 required to exist for the contracts module itself to compile
+                 and pass its own tests. Planned ~28 across
+                 Room/RoomMembership/Participant/Thread/Message/Task/Note/
+                 Approval/Presence/Activity families; exact list frozen when
+                 crates/medscale-contracts/src/envelopes/mod.rs is amended.
+NEW_REQUEST_BODY_VARIANTS = deferred to the same T076-03+ slices, same reason.
+NEW_RESPONSE_BODY_VARIANTS = deferred to the same T076-03+ slices, same reason.
+TEST_FILE = in-module `#[cfg(test)] mod tests` in collaboration.rs (23 tests):
+                 participant kind round-trip and immutability, room revision
+                 start/increment/conflict, empty/oversized room name
+                 rejection, membership duplicate-identity detection, anchor
+                 text-region ordering validation, thread creation without a
+                 stored resolution field, message body bound, message-edit
+                 append semantics (replace + delete), task stale-revision
+                 conflict, note fast-forward-vs-conflict detection, note
+                 conflict-copy dual-body preservation, approval request
+                 empty-assignee rejection, approval request dual-assignee
+                 support, blind-until-closed read-time filtering (three
+                 cases), activity hash-chain tamper detection, full
+                 CollabEventKind vocabulary round-trip, agent participant
+                 identity opaque-forward-ref-only behavior.
+LOCAL_VERIFICATION = cargo fmt --check -p medscale-contracts and --all both
+                 pass (exit 0). cargo check/test cannot run on this
+                 workstation (no MSVC linker; see evidence/076-.../README.md);
+                 GitHub Actions CI is the authoritative build/test/clippy
+                 verification for this freeze, to be recorded in
+                 evidence/076-collaboration-substrate/EXACT_HEAD_QUALIFICATION.md
+                 once the exact-head PR run completes.
+```

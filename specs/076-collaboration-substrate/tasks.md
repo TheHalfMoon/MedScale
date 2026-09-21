@@ -6,25 +6,25 @@ Check a task only when its implementation, tests and required evidence are real 
 
 ## T076-00 — Live truth and baseline
 
-- [ ] Verify branch/base/main/PR state and repository cleanliness.
-- [ ] Read mandatory governance + Research OS V2 + Spec 076 authority chain.
-- [ ] Inspect current contracts/Core/storage/network/key/CLI/Desktop ownership paths.
-- [ ] Confirm no live Spec 076 collision/superseding authority; prove numbering is free.
-- [ ] Verify Spec 075 closure and post-main evidence.
-- [ ] Record baseline focused/full gate state and any pre-existing failures.
-- [ ] Create initial evidence/live-truth record.
+- [x] Verify branch/base/main/PR state and repository cleanliness.
+- [x] Read mandatory governance + Research OS V2 + Spec 076 authority chain.
+- [x] Inspect current contracts/Core/storage/network/key/CLI/Desktop ownership paths.
+- [x] Confirm no live Spec 076 collision/superseding authority; prove numbering is free.
+- [x] Verify Spec 075 closure and post-main evidence.
+- [x] Record baseline focused/full gate state and any pre-existing failures.
+- [x] Create initial evidence/live-truth record.
 
-**Gate:** no code mutation before T076-00 is complete.
+**Gate:** no code mutation before T076-00 is complete. **PROVEN** (`evidence/076-collaboration-substrate/LIVE_TRUTH.md`).
 
 ## T076-01 — Freeze contracts/data model
 
-- [ ] Freeze exact field-level participant/room/membership/thread/message/task/note/approval/activity contracts in `contracts.md`.
-- [ ] Reuse `OpaqueId`, `ObjectHeader`, `DigestSha256`, `ProjectRevision`, `ArtifactDescriptor`/`ArtifactVersionBinding`/`ReferenceResolution`, `TextSpan` where semantically valid.
-- [ ] Freeze `ParticipantKind`/`CollabEventKind`/`AnchorDetail` vocabulary; reject unsafe unknown authority kinds.
-- [ ] Freeze revision/precondition and idempotency behavior for mutable rows, including the `NoteDocument` conflict-copy exception.
-- [ ] Add serialization/validation/invariant tests.
+- [x] Freeze exact field-level participant/room/membership/thread/message/task/note/approval/activity contracts in `contracts.md` (`crates/medscale-contracts/src/collaboration.rs`, section 19 freeze record).
+- [x] Reuse `OpaqueId`, `ObjectHeader`, `DigestSha256`, `ProjectRevision`, `ArtifactDescriptor`/`ArtifactVersionBinding`, `TextSpan` where semantically valid (`ReferenceResolution` reuse lands at Core dispatch time in T076-04, since it is a read-time computation, not a stored contract field).
+- [x] Freeze `ParticipantKind`/`CollabEventKind`/`AnchorDetail` vocabulary; reject unsafe unknown authority kinds (`parse`/`as_str` closed-vocabulary pattern on every enum).
+- [x] Freeze revision/precondition and idempotency behavior for mutable rows, including the `NoteDocument` conflict-copy exception (`is_fast_forward` vs. `check_mutation`).
+- [x] Add serialization/validation/invariant tests (23 tests in `collaboration.rs`).
 
-**Acceptance:** contract tests pass; no storage/network/UI dependency enters contracts.
+**Acceptance:** contract tests pass; no storage/network/UI dependency enters contracts. `cargo fmt --check` passes locally (exit 0); full compile/test verification pending exact-head CI (this workstation cannot link locally — see `evidence/076-collaboration-substrate/README.md`).
 
 ## T076-02 — Storage schema + migration
 
