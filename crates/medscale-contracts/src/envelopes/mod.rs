@@ -6,8 +6,10 @@ use serde_json::Value;
 use crate::AUTHORITY_SCHEMA_VERSION;
 use crate::actions::{CreateExternalActionIntentRequest, NphiesInvokeRequest, OutboxEntry};
 use crate::collaboration::{
-    AnchorTarget, MembershipRole, Message, MessageEdit, ParticipantIdentity, ParticipantKind, Room,
-    RoomMembership, RoomStatus, Task, TaskStatus, ThreadRef, ThreadStatus,
+    ActivityRecord, AnchorTarget, ApprovalDecision, ApprovalDecisionOutcome, ApprovalKind,
+    ApprovalRequest, MembershipRole, Message, MessageEdit, NoteDocument, NoteRevision,
+    ParticipantIdentity, ParticipantKind, Room, RoomMembership, RoomStatus, Task, TaskStatus,
+    ThreadRef, ThreadStatus,
 };
 use crate::data_sources::{
     DataSourceManifest, DataSourceSummary, DataViewKind, DatasetReleaseSummary, FilterExpr,
@@ -141,6 +143,15 @@ pub enum Capability {
     TaskCreate,
     TaskRead,
     TaskUpdate,
+    // Spec 076 T076-07/08/09 slice: note, approval, activity.
+    NoteCreate,
+    NoteRead,
+    NoteUpdate,
+    ApprovalRequestCreate,
+    ApprovalRequestRead,
+    ApprovalDecide,
+    ApprovalWithdraw,
+    ActivityRead,
 }
 
 impl Capability {
@@ -184,6 +195,9 @@ impl Capability {
                 | Self::ThreadRead
                 | Self::MessageRead
                 | Self::TaskRead
+                | Self::NoteRead
+                | Self::ApprovalRequestRead
+                | Self::ActivityRead
         )
     }
 
@@ -291,6 +305,14 @@ impl Capability {
             Self::TaskCreate,
             Self::TaskRead,
             Self::TaskUpdate,
+            Self::NoteCreate,
+            Self::NoteRead,
+            Self::NoteUpdate,
+            Self::ApprovalRequestCreate,
+            Self::ApprovalRequestRead,
+            Self::ApprovalDecide,
+            Self::ApprovalWithdraw,
+            Self::ActivityRead,
         ]
     }
 }
@@ -778,6 +800,50 @@ pub enum RequestBody {
         status: TaskStatus,
         assignee_participant_id: Option<OpaqueId>,
     },
+    // Spec 076 T076-07/08/09 slice: note, approval, activity.
+    NoteCreate {
+        room_id: OpaqueId,
+        title: String,
+        body: String,
+    },
+    NoteGet {
+        note_id: OpaqueId,
+    },
+    NoteListRevisions {
+        note_id: OpaqueId,
+    },
+    NoteEdit {
+        note_id: OpaqueId,
+        expected_revision: u64,
+        body: String,
+    },
+    ApprovalRequestCreate {
+        room_id: OpaqueId,
+        anchor: AnchorTarget,
+        kind: ApprovalKind,
+        assignee_participant_ids: Vec<OpaqueId>,
+        blind_until_closed: bool,
+    },
+    ApprovalRequestGet {
+        request_id: OpaqueId,
+    },
+    ApprovalRequestWithdraw {
+        request_id: OpaqueId,
+        expected_revision: u64,
+    },
+    ApprovalDecide {
+        request_id: OpaqueId,
+        outcome: ApprovalDecisionOutcome,
+        rationale: Option<String>,
+    },
+    ApprovalDecisionList {
+        request_id: OpaqueId,
+    },
+    ActivityList {
+        room_id: OpaqueId,
+        limit: Option<u32>,
+        after_seq: Option<u64>,
+    },
 }
 
 impl RequestBody {
@@ -1063,6 +1129,29 @@ pub enum ResponseBody {
     CollabTaskList {
         tasks: Vec<Task>,
         next_cursor: Option<String>,
+    },
+    CollabNote {
+        note: Box<NoteDocument>,
+    },
+    CollabNoteRevisionList {
+        revisions: Vec<NoteRevision>,
+    },
+    CollabNoteEdit {
+        note: Box<NoteDocument>,
+        new_revision: Box<NoteRevision>,
+        is_conflict_copy: bool,
+    },
+    CollabApprovalRequest {
+        request: Box<ApprovalRequest>,
+    },
+    CollabApprovalDecision {
+        decision: Box<ApprovalDecision>,
+    },
+    CollabApprovalDecisionList {
+        decisions: Vec<ApprovalDecision>,
+    },
+    CollabActivityList {
+        records: Vec<ActivityRecord>,
     },
 }
 

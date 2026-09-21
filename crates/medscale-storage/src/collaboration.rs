@@ -1894,13 +1894,16 @@ fn map_note_revision_row(row: &rusqlite::Row<'_>) -> Result<NoteRevision, MetaEr
 }
 
 impl SqliteMetaStore {
-    /// Inserts a new note document row plus its initial (revision-1) body.
-    /// Both writes commit in one transaction.
-    pub fn insert_note(
+    /// Inserts a new note document row plus its initial (revision-1) body
+    /// and the `NoteCreated` activity entry, all in one transaction
+    /// (`migration.md` section 5).
+    pub fn insert_note_with_activity(
         &self,
         note: &NoteDocument,
         initial_revision: &NoteRevision,
-    ) -> Result<(), MetaError> {
+        activity_header: ObjectHeader,
+        actor_participant_id: &OpaqueId,
+    ) -> Result<ActivityRecord, MetaError> {
         let tx = self.conn().unchecked_transaction()?;
         tx.execute(
             "INSERT INTO collab_notes(note_id, room_id, realm_id, authority_scope_id, title, status, revision, schema_version)
@@ -1943,8 +1946,16 @@ impl SqliteMetaStore {
                 initial_revision.header.schema_version as i64,
             ],
         )?;
+        let activity = append_activity_in_tx(
+            &tx,
+            activity_header,
+            &note.room_id,
+            actor_participant_id,
+            CollabEventKind::NoteCreated,
+            &note.header.id,
+        )?;
         tx.commit()?;
-        Ok(())
+        Ok(activity)
     }
 
     /// Reads one note document row.
@@ -2046,23 +2057,26 @@ impl SqliteMetaStore {
     }
 
     /// Fast-forward edit: `expected_revision` matches the current pointer.
-    /// Advances `collab_notes.revision` and appends the new body as a
-    /// `NoteRevision` with `conflict_of = NULL`, in one transaction.
-    pub fn apply_note_fast_forward(
+    /// Advances `collab_notes.revision`, appends the new body as a
+    /// `NoteRevision` with `conflict_of = NULL`, and appends the
+    /// `NoteRevised` activity entry, all in one transaction (`migration.md`
+    /// section 5).
+    pub fn apply_note_fast_forward_with_activity(
         &self,
         note_id: &OpaqueId,
         expected: u64,
         new_revision: &NoteRevision,
-    ) -> Result<NoteDocument, MetaError> {
+        activity_header: ObjectHeader,
+    ) -> Result<(NoteDocument, ActivityRecord), MetaError> {
         let tx = self.conn().unchecked_transaction()?;
-        let current: Option<i64> = tx
+        let current: Option<(i64, String)> = tx
             .query_row(
-                "SELECT revision FROM collab_notes WHERE note_id = ?1",
+                "SELECT revision, room_id FROM collab_notes WHERE note_id = ?1",
                 params![note_id.as_str()],
-                |row| row.get(0),
+                |row| Ok((row.get(0)?, row.get(1)?)),
             )
             .optional()?;
-        let Some(current_rev) = current else {
+        let Some((current_rev, room_id)) = current else {
             return Err(MetaError::NotFound);
         };
         if current_rev != revision_to_i64(expected) {
@@ -2091,21 +2105,34 @@ impl SqliteMetaStore {
             "UPDATE collab_notes SET revision = ?1 WHERE note_id = ?2",
             params![revision_to_i64(new_revision.revision), note_id.as_str()],
         )?;
+        let activity = append_activity_in_tx(
+            &tx,
+            activity_header,
+            &OpaqueId::new(room_id),
+            &new_revision.author_participant_id,
+            CollabEventKind::NoteRevised,
+            note_id,
+        )?;
         tx.commit()?;
-        self.get_note(note_id)
+        let note = self.get_note(note_id)?;
+        Ok((note, activity))
     }
 
     /// Conflict copy: `expected_revision` did not match the current
     /// pointer. Appends the caller's body as a `NoteRevision` with
-    /// `conflict_of` set to the currently-current revision's id.
+    /// `conflict_of` set to the currently-current revision's id, plus the
+    /// `NoteConflictCopyCreated` activity entry, in one transaction.
     /// `collab_notes.revision` is left untouched — the caller's content is
     /// preserved, never discarded, and the pointer never moves backward.
-    pub fn insert_note_conflict_copy(
+    pub fn insert_note_conflict_copy_with_activity(
         &self,
+        room_id: &OpaqueId,
         note_id: &OpaqueId,
         conflict_copy: &NoteRevision,
-    ) -> Result<(), MetaError> {
-        self.conn().execute(
+        activity_header: ObjectHeader,
+    ) -> Result<ActivityRecord, MetaError> {
+        let tx = self.conn().unchecked_transaction()?;
+        tx.execute(
             "INSERT INTO collab_note_revisions(note_revision_id, note_id, realm_id, authority_scope_id, revision, parent_revision, body, author_participant_id, conflict_of, schema_version)
              VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
             params![
@@ -2121,7 +2148,16 @@ impl SqliteMetaStore {
                 conflict_copy.header.schema_version as i64,
             ],
         )?;
-        Ok(())
+        let activity = append_activity_in_tx(
+            &tx,
+            activity_header,
+            room_id,
+            &conflict_copy.author_participant_id,
+            CollabEventKind::NoteConflictCopyCreated,
+            note_id,
+        )?;
+        tx.commit()?;
+        Ok(activity)
     }
 }
 
@@ -2219,8 +2255,14 @@ fn map_approval_request_row(row: &rusqlite::Row<'_>) -> Result<ApprovalRequest, 
 }
 
 impl SqliteMetaStore {
-    /// Inserts a new approval request row.
-    pub fn insert_approval_request(&self, request: &ApprovalRequest) -> Result<(), MetaError> {
+    /// Inserts a new approval request row and its `ApprovalRequested`
+    /// activity entry in one transaction (`migration.md` section 5).
+    pub fn insert_approval_request_with_activity(
+        &self,
+        request: &ApprovalRequest,
+        activity_header: ObjectHeader,
+        actor_participant_id: &OpaqueId,
+    ) -> Result<ActivityRecord, MetaError> {
         let anchor_json = serde_json::to_string(&request.anchor)
             .map_err(|e| MetaError::CorruptObjectBody(e.to_string()))?;
         let assignee_strings: Vec<&str> = request
@@ -2230,7 +2272,8 @@ impl SqliteMetaStore {
             .collect();
         let assignees_json = serde_json::to_string(&assignee_strings)
             .map_err(|e| MetaError::CorruptObjectBody(e.to_string()))?;
-        let result = self.conn().execute(
+        let tx = self.conn().unchecked_transaction()?;
+        tx.execute(
             "INSERT INTO collab_approval_requests(request_id, room_id, realm_id, authority_scope_id, anchor_json, kind, requested_by_participant_id, assignees_json, blind_until_closed, status, revision, schema_version)
              VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)",
             params![
@@ -2247,15 +2290,27 @@ impl SqliteMetaStore {
                 revision_to_i64(request.revision),
                 request.header.schema_version as i64,
             ],
-        );
-        match result {
-            Ok(_) => Ok(()),
-            Err(e) if is_conflict(&e) => Err(MetaError::Conflict(format!(
-                "duplicate approval request {}",
-                request.header.id.as_str()
-            ))),
-            Err(e) => Err(MetaError::Sqlite(e)),
-        }
+        )
+        .map_err(|e| {
+            if is_conflict(&e) {
+                MetaError::Conflict(format!(
+                    "duplicate approval request {}",
+                    request.header.id.as_str()
+                ))
+            } else {
+                MetaError::Sqlite(e)
+            }
+        })?;
+        let activity = append_activity_in_tx(
+            &tx,
+            activity_header,
+            &request.room_id,
+            actor_participant_id,
+            CollabEventKind::ApprovalRequested,
+            &request.header.id,
+        )?;
+        tx.commit()?;
+        Ok(activity)
     }
 
     /// Reads one approval request row.
@@ -2343,22 +2398,28 @@ impl SqliteMetaStore {
         Ok(())
     }
 
-    /// Compare-and-swap approval request status (withdraw/close).
-    pub fn set_approval_request_status(
+    /// Compare-and-swap approval request status `Open -> Withdrawn`,
+    /// appending the `ApprovalWithdrawn` activity entry in the same
+    /// transaction (`migration.md` section 5). `Closed` has no dedicated
+    /// `CollabEventKind` in the frozen 076 vocabulary and is not a
+    /// transition this function performs; it is a deferred product
+    /// decision for a later slice (when/how a request closes).
+    pub fn withdraw_approval_request_with_activity(
         &self,
         id: &OpaqueId,
         expected: u64,
-        status: ApprovalRequestStatus,
-    ) -> Result<ApprovalRequest, MetaError> {
+        activity_header: ObjectHeader,
+        actor_participant_id: &OpaqueId,
+    ) -> Result<(ApprovalRequest, ActivityRecord), MetaError> {
         let tx = self.conn().unchecked_transaction()?;
-        let current: Option<i64> = tx
+        let current: Option<(i64, String)> = tx
             .query_row(
-                "SELECT revision FROM collab_approval_requests WHERE request_id = ?1",
+                "SELECT revision, room_id FROM collab_approval_requests WHERE request_id = ?1",
                 params![id.as_str()],
-                |row| row.get(0),
+                |row| Ok((row.get(0)?, row.get(1)?)),
             )
             .optional()?;
-        let Some(current_rev) = current else {
+        let Some((current_rev, room_id)) = current else {
             return Err(MetaError::NotFound);
         };
         if current_rev != revision_to_i64(expected) {
@@ -2368,24 +2429,61 @@ impl SqliteMetaStore {
         }
         tx.execute(
             "UPDATE collab_approval_requests SET status = ?1, revision = revision + 1 WHERE request_id = ?2",
-            params![approval_status_str(status), id.as_str()],
+            params![
+                approval_status_str(ApprovalRequestStatus::Withdrawn),
+                id.as_str()
+            ],
+        )?;
+        let activity = append_activity_in_tx(
+            &tx,
+            activity_header,
+            &OpaqueId::new(room_id),
+            actor_participant_id,
+            CollabEventKind::ApprovalWithdrawn,
+            id,
         )?;
         tx.commit()?;
-        self.get_approval_request(id)
+        let request = self.get_approval_request(id)?;
+        Ok((request, activity))
     }
 
-    /// Appends a decision. Multiple decisions per request are expected
-    /// (dual/independent review); this row is insert-only.
-    pub fn insert_approval_decision(
+    /// Appends a decision and its `ApprovalDecided` activity entry in one
+    /// transaction (`migration.md` section 5). Multiple decisions per
+    /// request are expected (dual/independent review); this row is
+    /// insert-only. The caller supplies `room_id` (already resolved with
+    /// the request).
+    pub fn insert_approval_decision_with_activity(
         &self,
         header: ObjectHeader,
+        room_id: &OpaqueId,
         request_id: &OpaqueId,
         decided_by_participant_id: &OpaqueId,
         outcome: ApprovalDecisionOutcome,
         rationale: Option<&str>,
-    ) -> Result<ApprovalDecision, MetaError> {
-        let seq = self.next_collab_seq(&format!("collab-decision-seq-{}", request_id.as_str()))?;
-        self.conn().execute(
+        activity_header: ObjectHeader,
+    ) -> Result<(ApprovalDecision, ActivityRecord), MetaError> {
+        let tx = self.conn().unchecked_transaction()?;
+        let seq_key = format!("collab-decision-seq-{}", request_id.as_str());
+        let current: Option<String> = tx
+            .query_row(
+                "SELECT value FROM store_state WHERE key = ?1",
+                params![seq_key],
+                |row| row.get(0),
+            )
+            .optional()?;
+        let seq: u64 = match current.as_deref() {
+            None => 1,
+            Some(raw) => {
+                raw.parse::<u64>().map_err(|_| {
+                    MetaError::CorruptObjectBody(format!("seq counter {seq_key} is not numeric"))
+                })? + 1
+            }
+        };
+        tx.execute(
+            "INSERT OR REPLACE INTO store_state(key, value) VALUES (?1, ?2)",
+            params![seq_key, seq.to_string()],
+        )?;
+        tx.execute(
             "INSERT INTO collab_approval_decisions(decision_id, request_id, realm_id, authority_scope_id, decided_by_participant_id, outcome, rationale, seq, schema_version)
              VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
             params![
@@ -2400,14 +2498,24 @@ impl SqliteMetaStore {
                 header.schema_version as i64,
             ],
         )?;
-        Ok(ApprovalDecision {
+        let activity = append_activity_in_tx(
+            &tx,
+            activity_header,
+            room_id,
+            decided_by_participant_id,
+            CollabEventKind::ApprovalDecided,
+            request_id,
+        )?;
+        tx.commit()?;
+        let decision = ApprovalDecision {
             header,
             request_id: request_id.clone(),
             decided_by_participant_id: decided_by_participant_id.clone(),
             outcome,
             rationale: rationale.map(str::to_owned),
             seq,
-        })
+        };
+        Ok((decision, activity))
     }
 
     /// Lists every decision recorded against one request, in `seq` order.

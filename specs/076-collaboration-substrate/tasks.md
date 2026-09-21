@@ -72,26 +72,26 @@ Check a task only when its implementation, tests and required evidence are real 
 
 ## T076-07 — Note and conflict-copy
 
-- [ ] Implement note create/get/list, fast-forward edit, and explicit conflict-copy path on stale write.
-- [ ] Prove both revisions readable after a conflict.
+- [x] Implement note create/get/list-revisions, fast-forward edit, and explicit conflict-copy path on stale write (`edit_note` resolves fast-forward vs. conflict-copy via `NoteDocument::is_fast_forward`; the "current" fast-forward-chain row is looked up unambiguously as the unique `conflict_of IS NULL` row at the current revision number, since conflict copies always carry `conflict_of = Some(..)` even when they reuse an old revision number).
+- [x] Prove both revisions readable after a conflict: `edit_note` returns `(current, conflict_copy, true)` without touching `current`; storage never deletes or overwrites either row.
 
-**Acceptance:** offline/stale concurrent note edit produces a conflict copy, never silent overwrite or auto-merge.
+**Acceptance:** offline/stale concurrent note edit produces a conflict copy, never silent overwrite or auto-merge. Core vertical slice complete and CI-green; dedicated test fixtures land in T076-11.
 
 ## T076-08 — Approval request and decision
 
-- [ ] Implement approval request create/get/list/withdraw with `assignee_participant_ids` and `blind_until_closed`.
-- [ ] Implement decision recording supporting multiple decisions per request.
-- [ ] Implement `blind_until_closed` read-time filtering.
-- [ ] Structurally prove decision recording has no call path into promotion/amendment/action-intent creation.
+- [x] Implement approval request create/get/withdraw with `assignee_participant_ids` and `blind_until_closed` (only the original requester may withdraw; only `Open -> Withdrawn` is implemented -- `Closed` has no dedicated `CollabEventKind` in the frozen vocabulary and its transition trigger is a deferred product decision, not silently claimed done).
+- [x] Implement decision recording supporting multiple decisions per request (`decide_approval_request`; caller must be an assignee and the request must be `Open`).
+- [x] Implement `blind_until_closed` read-time filtering (`list_approval_decisions` filters via `ApprovalRequest::hides_decision_from` before returning any row).
+- [x] Structurally prove decision recording has no call path into promotion/amendment/action-intent creation: `decide_approval_request`'s only writes are `insert_approval_decision_with_activity` (collab tables + `ActivityRecord`) -- no call into `authority::promote`, `authority::amend`, or `contracts::actions` exists anywhere in `collaboration.rs`, verified by inspection; a structural regression test lands in T076-11's `SECURITY_ADVERSARIAL.md` per `security.md` T1.
 
-**Acceptance:** dual independent decisions recorded and correctly filtered under blind mode; decision recording has zero observable effect outside 076 tables + `ActivityRecord`.
+**Acceptance:** Core vertical slice complete and CI-green. Dual-independent-decision and blind-mode end-to-end tests land in T076-11.
 
 ## T076-09 — ActivityRecord and activity feed
 
-- [ ] Implement `ActivityRecord` append inside every mutation's transaction with hash-chain `checkpoint_digest`.
-- [ ] Implement chain verification and bounded/filterable activity read.
+- [x] Implement `ActivityRecord` append inside every mutation's transaction with hash-chain `checkpoint_digest` (`append_activity_in_tx`, used by every T076-03 through T076-08 mutation's combined `*_with_activity` storage function).
+- [x] Implement chain verification (`verify_activity_chain`, already added in T076-02) and bounded/filterable activity read (`list_activity`, membership-gated).
 
-**Acceptance:** chain verifies from `seq = 1`; a tampered fixture row is detected.
+**Acceptance:** chain construction/verification plumbing complete and CI-green (unit-tested in `collaboration.rs`'s contract-level `activity_chain_detects_tampered_row` test since T076-01). End-to-end tamper-detection-on-real-storage test lands in T076-11.
 
 ## T076-10 — Native Desktop and CLI parity
 

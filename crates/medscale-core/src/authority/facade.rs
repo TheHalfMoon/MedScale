@@ -2420,6 +2420,158 @@ impl CoreFacade {
                     task: Box::new(task),
                 })
             }
+            // Spec 076 T076-07/08/09 slice: note, approval, activity.
+            RequestBody::NoteCreate {
+                room_id,
+                title,
+                body,
+            } => {
+                let note = self.collab(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |collab| collab.create_note(room_id, title, body),
+                )?;
+                Ok(ResponseBody::CollabNote {
+                    note: Box::new(note),
+                })
+            }
+            RequestBody::NoteGet { note_id } => {
+                let note = self.collab(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |collab| collab.get_note(&note_id),
+                )?;
+                Ok(ResponseBody::CollabNote {
+                    note: Box::new(note),
+                })
+            }
+            RequestBody::NoteListRevisions { note_id } => {
+                let revisions = self.collab(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |collab| collab.list_note_revisions(&note_id),
+                )?;
+                Ok(ResponseBody::CollabNoteRevisionList { revisions })
+            }
+            RequestBody::NoteEdit {
+                note_id,
+                expected_revision,
+                body,
+            } => {
+                let (note, new_revision, is_conflict_copy) = self.collab(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |collab| collab.edit_note(&note_id, expected_revision, body),
+                )?;
+                Ok(ResponseBody::CollabNoteEdit {
+                    note: Box::new(note),
+                    new_revision: Box::new(new_revision),
+                    is_conflict_copy,
+                })
+            }
+            RequestBody::ApprovalRequestCreate {
+                room_id,
+                anchor,
+                kind,
+                assignee_participant_ids,
+                blind_until_closed,
+            } => {
+                let request = self.collab(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |collab| {
+                        collab.create_approval_request(
+                            room_id,
+                            anchor,
+                            kind,
+                            assignee_participant_ids,
+                            blind_until_closed,
+                        )
+                    },
+                )?;
+                Ok(ResponseBody::CollabApprovalRequest {
+                    request: Box::new(request),
+                })
+            }
+            RequestBody::ApprovalRequestGet { request_id } => {
+                let request = self.collab(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |collab| collab.get_approval_request(&request_id),
+                )?;
+                Ok(ResponseBody::CollabApprovalRequest {
+                    request: Box::new(request),
+                })
+            }
+            RequestBody::ApprovalRequestWithdraw {
+                request_id,
+                expected_revision,
+            } => {
+                let request = self.collab(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |collab| collab.withdraw_approval_request(&request_id, expected_revision),
+                )?;
+                Ok(ResponseBody::CollabApprovalRequest {
+                    request: Box::new(request),
+                })
+            }
+            RequestBody::ApprovalDecide {
+                request_id,
+                outcome,
+                rationale,
+            } => {
+                let decision = self.collab(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |collab| collab.decide_approval_request(&request_id, outcome, rationale),
+                )?;
+                Ok(ResponseBody::CollabApprovalDecision {
+                    decision: Box::new(decision),
+                })
+            }
+            RequestBody::ApprovalDecisionList { request_id } => {
+                let decisions = self.collab(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |collab| collab.list_approval_decisions(&request_id),
+                )?;
+                Ok(ResponseBody::CollabApprovalDecisionList { decisions })
+            }
+            RequestBody::ActivityList {
+                room_id,
+                limit,
+                after_seq,
+            } => {
+                let records = self.collab(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |collab| {
+                        collab.list_activity(&room_id, limit.unwrap_or(100), after_seq.unwrap_or(0))
+                    },
+                )?;
+                Ok(ResponseBody::CollabActivityList { records })
+            }
         }
     }
 }
@@ -2753,6 +2905,31 @@ fn capability_matches(cap: &Capability, body: &RequestBody) -> bool {
             | (Capability::TaskRead, RequestBody::TaskGet { .. })
             | (Capability::TaskRead, RequestBody::TaskList { .. })
             | (Capability::TaskUpdate, RequestBody::TaskUpdate { .. })
+            | (Capability::NoteCreate, RequestBody::NoteCreate { .. })
+            | (Capability::NoteRead, RequestBody::NoteGet { .. })
+            | (Capability::NoteRead, RequestBody::NoteListRevisions { .. })
+            | (Capability::NoteUpdate, RequestBody::NoteEdit { .. })
+            | (
+                Capability::ApprovalRequestCreate,
+                RequestBody::ApprovalRequestCreate { .. }
+            )
+            | (
+                Capability::ApprovalRequestRead,
+                RequestBody::ApprovalRequestGet { .. }
+            )
+            | (
+                Capability::ApprovalWithdraw,
+                RequestBody::ApprovalRequestWithdraw { .. }
+            )
+            | (
+                Capability::ApprovalDecide,
+                RequestBody::ApprovalDecide { .. }
+            )
+            | (
+                Capability::ApprovalRequestRead,
+                RequestBody::ApprovalDecisionList { .. }
+            )
+            | (Capability::ActivityRead, RequestBody::ActivityList { .. })
     )
 }
 

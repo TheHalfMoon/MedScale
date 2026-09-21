@@ -808,4 +808,371 @@ impl Collab<'_> {
             .map_err(meta_err)?;
         Ok(task)
     }
+
+    // ----- notes (conflict-copy, not silent merge) -----
+
+    fn scoped_note(
+        &self,
+        id: &OpaqueId,
+    ) -> Result<medscale_contracts::collaboration::NoteDocument, AuthorityError> {
+        let note = self.meta.get_note(id).map_err(meta_err)?;
+        if note.header.realm_id != self.realm || note.header.authority_scope_id != self.scope {
+            return Err(AuthorityError::WrongScope);
+        }
+        Ok(note)
+    }
+
+    /// Creates a note document with its initial (revision-1) body
+    /// (membership-gated).
+    pub fn create_note(
+        &self,
+        room_id: OpaqueId,
+        title: String,
+        body: String,
+    ) -> Result<medscale_contracts::collaboration::NoteDocument, AuthorityError> {
+        let caller = self.require_membership(&room_id)?;
+        let note_id = self
+            .meta
+            .alloc_collab_id("collab-note", "note")
+            .map_err(meta_err)?;
+        let note = medscale_contracts::collaboration::NoteDocument::new(
+            header(&self.realm, &self.scope, note_id.clone()),
+            room_id,
+            title,
+        )
+        .map_err(|message| AuthorityError::InvalidArgument { message })?;
+        let revision_id = self
+            .meta
+            .alloc_collab_id("collab-note-revision", "noterev")
+            .map_err(meta_err)?;
+        let initial_revision = medscale_contracts::collaboration::NoteRevision {
+            header: header(&self.realm, &self.scope, revision_id),
+            note_id: note_id.clone(),
+            revision: note.revision,
+            parent_revision: None,
+            body,
+            author_participant_id: caller.header.id,
+            conflict_of: None,
+        };
+        initial_revision
+            .validate()
+            .map_err(|message| AuthorityError::InvalidArgument { message })?;
+        let actor_id = self.actor()?;
+        let activity_id = self
+            .meta
+            .alloc_collab_id("collab-activity", "activity")
+            .map_err(meta_err)?;
+        self.meta
+            .insert_note_with_activity(
+                &note,
+                &initial_revision,
+                header(&self.realm, &self.scope, activity_id),
+                &actor_id,
+            )
+            .map_err(meta_err)?;
+        Ok(note)
+    }
+
+    /// Membership-gated note-document read.
+    pub fn get_note(
+        &self,
+        id: &OpaqueId,
+    ) -> Result<medscale_contracts::collaboration::NoteDocument, AuthorityError> {
+        let note = self.scoped_note(id)?;
+        self.require_membership(&note.room_id)?;
+        Ok(note)
+    }
+
+    /// Lists the full revision history of one note, including conflict
+    /// copies (membership-gated).
+    pub fn list_note_revisions(
+        &self,
+        note_id: &OpaqueId,
+    ) -> Result<Vec<medscale_contracts::collaboration::NoteRevision>, AuthorityError> {
+        let note = self.scoped_note(note_id)?;
+        self.require_membership(&note.room_id)?;
+        self.meta.list_note_revisions(note_id).map_err(meta_err)
+    }
+
+    /// Edits a note. `expected` matching the current pointer is a fast-
+    /// forward edit; a mismatch creates an explicit conflict copy that
+    /// preserves the caller's content instead of rejecting the write
+    /// (`contracts.md` section 10). Returns
+    /// `(note_document, new_revision, is_conflict_copy)`.
+    pub fn edit_note(
+        &self,
+        note_id: &OpaqueId,
+        expected: u64,
+        body: String,
+    ) -> Result<
+        (
+            medscale_contracts::collaboration::NoteDocument,
+            medscale_contracts::collaboration::NoteRevision,
+            bool,
+        ),
+        AuthorityError,
+    > {
+        let current = self.scoped_note(note_id)?;
+        let caller = self.require_membership(&current.room_id)?;
+        let revision_id = self
+            .meta
+            .alloc_collab_id("collab-note-revision", "noterev")
+            .map_err(meta_err)?;
+        if current.is_fast_forward(expected) {
+            let new_revision = medscale_contracts::collaboration::NoteRevision {
+                header: header(&self.realm, &self.scope, revision_id),
+                note_id: note_id.clone(),
+                revision: expected.saturating_add(1),
+                parent_revision: Some(expected),
+                body,
+                author_participant_id: caller.header.id,
+                conflict_of: None,
+            };
+            new_revision
+                .validate()
+                .map_err(|message| AuthorityError::InvalidArgument { message })?;
+            let activity_id = self
+                .meta
+                .alloc_collab_id("collab-activity", "activity")
+                .map_err(meta_err)?;
+            let (note, _activity) = self
+                .meta
+                .apply_note_fast_forward_with_activity(
+                    note_id,
+                    expected,
+                    &new_revision,
+                    header(&self.realm, &self.scope, activity_id),
+                )
+                .map_err(meta_err)?;
+            Ok((note, new_revision, false))
+        } else {
+            // The row currently backing NoteDocument.revision is the unique
+            // fast-forward-chain row (conflict_of IS NULL) at that revision
+            // number: conflict copies reuse an old, already-superseded
+            // revision number but always carry conflict_of = Some(..), so
+            // this lookup is unambiguous even after repeated conflicts.
+            let history = self.meta.list_note_revisions(note_id).map_err(meta_err)?;
+            let current_row = history
+                .iter()
+                .find(|r| r.conflict_of.is_none() && r.revision == current.revision)
+                .ok_or(AuthorityError::Internal {
+                    message: "note has no current fast-forward revision row".to_owned(),
+                })?;
+            let conflict_copy = medscale_contracts::collaboration::NoteRevision {
+                header: header(&self.realm, &self.scope, revision_id),
+                note_id: note_id.clone(),
+                revision: expected,
+                parent_revision: Some(expected),
+                body,
+                author_participant_id: caller.header.id,
+                conflict_of: Some(current_row.header.id.clone()),
+            };
+            conflict_copy
+                .validate()
+                .map_err(|message| AuthorityError::InvalidArgument { message })?;
+            let activity_id = self
+                .meta
+                .alloc_collab_id("collab-activity", "activity")
+                .map_err(meta_err)?;
+            self.meta
+                .insert_note_conflict_copy_with_activity(
+                    &current.room_id,
+                    note_id,
+                    &conflict_copy,
+                    header(&self.realm, &self.scope, activity_id),
+                )
+                .map_err(meta_err)?;
+            Ok((current, conflict_copy, true))
+        }
+    }
+
+    // ----- approval requests and decisions -----
+
+    fn scoped_approval_request(
+        &self,
+        id: &OpaqueId,
+    ) -> Result<medscale_contracts::collaboration::ApprovalRequest, AuthorityError> {
+        let request = self.meta.get_approval_request(id).map_err(meta_err)?;
+        if request.header.realm_id != self.realm || request.header.authority_scope_id != self.scope
+        {
+            return Err(AuthorityError::WrongScope);
+        }
+        Ok(request)
+    }
+
+    /// Creates an approval request (membership-gated). Supports multiple
+    /// independent assignees (dual/blinded review) and an optional
+    /// `blind_until_closed` read-time filter.
+    #[allow(clippy::too_many_arguments)]
+    pub fn create_approval_request(
+        &self,
+        room_id: OpaqueId,
+        anchor: medscale_contracts::collaboration::AnchorTarget,
+        kind: medscale_contracts::collaboration::ApprovalKind,
+        assignee_participant_ids: Vec<OpaqueId>,
+        blind_until_closed: bool,
+    ) -> Result<medscale_contracts::collaboration::ApprovalRequest, AuthorityError> {
+        let caller = self.require_membership(&room_id)?;
+        for assignee in &assignee_participant_ids {
+            let participant = self.scoped_participant(assignee)?;
+            if participant.status != ParticipantStatus::Active {
+                return Err(AuthorityError::Conflict {
+                    message: "assignee participant is not active".to_owned(),
+                });
+            }
+        }
+        let request_id = self
+            .meta
+            .alloc_collab_id("collab-approval-request", "approval")
+            .map_err(meta_err)?;
+        let request = medscale_contracts::collaboration::ApprovalRequest::new(
+            header(&self.realm, &self.scope, request_id),
+            room_id,
+            anchor,
+            kind,
+            caller.header.id,
+            assignee_participant_ids,
+            blind_until_closed,
+        )
+        .map_err(|message| AuthorityError::InvalidArgument { message })?;
+        let actor_id = self.actor()?;
+        let activity_id = self
+            .meta
+            .alloc_collab_id("collab-activity", "activity")
+            .map_err(meta_err)?;
+        self.meta
+            .insert_approval_request_with_activity(
+                &request,
+                header(&self.realm, &self.scope, activity_id),
+                &actor_id,
+            )
+            .map_err(meta_err)?;
+        Ok(request)
+    }
+
+    /// Membership-gated approval-request read.
+    pub fn get_approval_request(
+        &self,
+        id: &OpaqueId,
+    ) -> Result<medscale_contracts::collaboration::ApprovalRequest, AuthorityError> {
+        let request = self.scoped_approval_request(id)?;
+        self.require_membership(&request.room_id)?;
+        Ok(request)
+    }
+
+    /// Withdraws an open approval request (membership-gated; only the
+    /// original requester may withdraw).
+    pub fn withdraw_approval_request(
+        &self,
+        id: &OpaqueId,
+        expected: u64,
+    ) -> Result<medscale_contracts::collaboration::ApprovalRequest, AuthorityError> {
+        let current = self.scoped_approval_request(id)?;
+        let caller = self.require_membership(&current.room_id)?;
+        if current.requested_by_participant_id != caller.header.id {
+            return Err(AuthorityError::Unauthorized);
+        }
+        if current.status != medscale_contracts::collaboration::ApprovalRequestStatus::Open {
+            return Err(AuthorityError::Conflict {
+                message: "approval request is not open".to_owned(),
+            });
+        }
+        let actor_id = self.actor()?;
+        let activity_id = self
+            .meta
+            .alloc_collab_id("collab-activity", "activity")
+            .map_err(meta_err)?;
+        let (request, _activity) = self
+            .meta
+            .withdraw_approval_request_with_activity(
+                id,
+                expected,
+                header(&self.realm, &self.scope, activity_id),
+                &actor_id,
+            )
+            .map_err(meta_err)?;
+        Ok(request)
+    }
+
+    /// Records a decision against an open approval request. The caller must
+    /// be an assignee; multiple decisions per request are expected (dual/
+    /// independent review) and this never triggers any effect/action/
+    /// proposal-promotion path (`security.md` T1) -- it is a pure
+    /// collaboration-table write plus the `ActivityRecord` append above.
+    pub fn decide_approval_request(
+        &self,
+        request_id: &OpaqueId,
+        outcome: medscale_contracts::collaboration::ApprovalDecisionOutcome,
+        rationale: Option<String>,
+    ) -> Result<medscale_contracts::collaboration::ApprovalDecision, AuthorityError> {
+        let request = self.scoped_approval_request(request_id)?;
+        let caller = self.require_membership(&request.room_id)?;
+        if request.status != medscale_contracts::collaboration::ApprovalRequestStatus::Open {
+            return Err(AuthorityError::Conflict {
+                message: "approval request is not open".to_owned(),
+            });
+        }
+        if !request.is_assignee(&caller.header.id) {
+            return Err(AuthorityError::Unauthorized);
+        }
+        let decision_id = self
+            .meta
+            .alloc_collab_id("collab-approval-decision", "decision")
+            .map_err(meta_err)?;
+        let activity_id = self
+            .meta
+            .alloc_collab_id("collab-activity", "activity")
+            .map_err(meta_err)?;
+        let (decision, _activity) = self
+            .meta
+            .insert_approval_decision_with_activity(
+                header(&self.realm, &self.scope, decision_id),
+                &request.room_id,
+                request_id,
+                &caller.header.id,
+                outcome,
+                rationale.as_deref(),
+                header(&self.realm, &self.scope, activity_id),
+            )
+            .map_err(meta_err)?;
+        Ok(decision)
+    }
+
+    /// Lists every decision recorded against one request, filtered by the
+    /// request's `blind_until_closed` policy relative to the caller
+    /// (`ApprovalRequest::hides_decision_from`; `contracts.md` section 11).
+    pub fn list_approval_decisions(
+        &self,
+        request_id: &OpaqueId,
+    ) -> Result<Vec<medscale_contracts::collaboration::ApprovalDecision>, AuthorityError> {
+        let request = self.scoped_approval_request(request_id)?;
+        let caller = self.require_membership(&request.room_id)?;
+        let decisions = self
+            .meta
+            .list_approval_decisions(request_id)
+            .map_err(meta_err)?;
+        Ok(decisions
+            .into_iter()
+            .filter(|d| {
+                !request.hides_decision_from(&d.decided_by_participant_id, &caller.header.id)
+            })
+            .collect())
+    }
+
+    // ----- activity (read-only) -----
+
+    /// Lists activity records for one room, in `seq` order (membership-
+    /// gated). This is the same durable log `verify_activity_chain` walks;
+    /// no separate feed store exists.
+    pub fn list_activity(
+        &self,
+        room_id: &OpaqueId,
+        limit: u32,
+        after_seq: u64,
+    ) -> Result<Vec<medscale_contracts::collaboration::ActivityRecord>, AuthorityError> {
+        self.require_membership(room_id)?;
+        self.meta
+            .list_activity_records(room_id, limit, after_seq)
+            .map_err(meta_err)
+    }
 }
