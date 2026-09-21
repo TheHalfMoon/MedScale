@@ -106,14 +106,51 @@ Desktop scope note: the panel covers Rooms/Threads/Messages/Tasks (the plan.md m
 
 ## T076-11 — Qualification and closure
 
-- [ ] Run format, dependency-direction, focused contract/storage/Core/CLI/Desktop tests.
-- [ ] Run Clippy under current policy, workspace tests, cargo-deny/supply-chain gates.
-- [ ] Run migration/reopen/recovery, malformed/corrupt, cross-scope-leakage suites.
-- [ ] Run credential/log secret and content-leakage scans.
-- [ ] Capture rendered Desktop evidence or record the honest residual if the toolchain/CI cannot produce it.
-- [ ] Perform exact-range review of the full PR diff.
-- [ ] Run exact-head required CI; merge only when green and governance permits.
-- [ ] Verify post-merge main CI; update queue/status to `CLOSED_CANONICAL` only with real post-main evidence.
-- [ ] Recompute the next eligible unit; do not implement 077+ without separate promotion.
+- [x] Desktop panel exact-head CI proof: commit `ebec119` (T076-10 Desktop half)
+      ran on CI run `35624477017` and finished green on all 6 required jobs,
+      including `rust (windows-latest)` (the native Slint compile target this
+      workstation cannot exercise locally) -- the highest-risk commit of the
+      spec compiled cleanly with no follow-up fix needed.
+- [x] Added `crates/medscale-core/tests/collaboration_076.rs`: functional
+      lifecycle coverage for every entity family (participant, room,
+      membership, thread + live resolution, message + author-only edit,
+      task + stale-conflict, note fast-forward/conflict-copy, approval
+      request + blind-mode decisions + requester-only withdraw, activity
+      feed ordering) plus dedicated tests for `security.md` T1 (structural
+      no-call-into-promotion/amend/actions check), T2 (participant kind
+      immutability), T3 (cross-room/cross-project visibility denial), T4
+      (removed membership fails closed on the very next request), and T9
+      (bound enforcement + hostile/SQL-like/control-character text stored
+      byte-exact through parameterized storage).
+- [x] Added `crates/medscale-storage/tests/collaboration_076.rs`: v4->v5
+      migration preserving a pre-076 (074-era) `Project` row alongside new
+      076 rows with a safe repeat-open; backup/restore roundtrip of
+      participant/room/membership/task rows with post-restore activity
+      hash-chain re-verification (`migration.md` section 11); `security.md`
+      T10 (direct-DB tamper on a stored `ActivityRecord` row fails
+      `verify_activity_chain` closed); `security.md` T12 (forcing the
+      activity-append half of `insert_room_with_activity` to fail proves the
+      primary row never commits without it, via a pre-occupied `(room_id,
+      seq)` unique-index collision).
+- [ ] Run format, dependency-direction, full workspace tests, Clippy under
+      current policy, cargo-deny/supply-chain gates on this slice's exact
+      head (`cargo fmt --check` passes locally; full compile/test/clippy
+      verification is CI-only on this workstation -- pending the next CI run).
+- [ ] Run credential/log secret and content-leakage scans (T11: no 076
+      mutation path logs raw message/note/task/approval body content;
+      pending an explicit log-capture-based test or inspection record).
+- [ ] Capture rendered Desktop evidence or record the honest residual if the
+      toolchain/CI cannot produce it (this workstation cannot link locally
+      to render a screenshot; CI has no display surface either -- expected
+      outcome is the same honest residual Spec 075 recorded, not fabricated).
+- [ ] Perform exact-range review of the full PR diff using OpenCodeReview
+      (https://github.com/alibaba/open-code-review) exclusively, per explicit
+      instruction -- no other review tool/method.
+- [ ] Run exact-head required CI on the final reviewed head; merge only when
+      green and governance permits.
+- [ ] Verify post-merge main CI; update queue/status to `CLOSED_CANONICAL`
+      only with real post-main evidence.
+- [ ] Recompute the next eligible unit; do not implement 077+ without
+      separate promotion.
 
 **Acceptance:** all frozen acceptance requirements mapped to exact-head proof.
