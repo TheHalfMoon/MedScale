@@ -52,6 +52,14 @@ fn header(realm: &RealmId, scope: &AuthorityScopeId, id: OpaqueId) -> ObjectHead
     }
 }
 
+/// A thread paired with its live `ReferenceResolution`, recomputed at read
+/// time (`contracts.md` section 6). Named to keep `list_threads`'s return
+/// type under clippy's `type_complexity` threshold.
+type ResolvedThread = (
+    ThreadRef,
+    medscale_contracts::project_graph::ReferenceResolution,
+);
+
 /// Authenticated authority view for one request.
 pub struct Collab<'a> {
     pub store: &'a mut InMemoryAuthorityStore,
@@ -621,13 +629,7 @@ impl Collab<'_> {
         &self,
         room_id: OpaqueId,
         anchor: medscale_contracts::collaboration::AnchorTarget,
-    ) -> Result<
-        (
-            ThreadRef,
-            medscale_contracts::project_graph::ReferenceResolution,
-        ),
-        AuthorityError,
-    > {
+    ) -> Result<ResolvedThread, AuthorityError> {
         self.require_membership(&room_id)?;
         let thread_id = self
             .meta
@@ -653,16 +655,7 @@ impl Collab<'_> {
 
     /// Membership-gated thread read with live `ReferenceResolution`
     /// (`contracts.md` section 6): recomputed on every read, never cached.
-    pub fn get_thread(
-        &self,
-        id: &OpaqueId,
-    ) -> Result<
-        (
-            ThreadRef,
-            medscale_contracts::project_graph::ReferenceResolution,
-        ),
-        AuthorityError,
-    > {
+    pub fn get_thread(&self, id: &OpaqueId) -> Result<ResolvedThread, AuthorityError> {
         let thread = self.scoped_thread(id)?;
         self.require_membership(&thread.room_id)?;
         let resolution = self.resolve_anchor_artifact(&thread.anchor.artifact);
@@ -676,16 +669,7 @@ impl Collab<'_> {
         room_id: &OpaqueId,
         limit: u32,
         cursor: Option<String>,
-    ) -> Result<
-        (
-            Vec<(
-                ThreadRef,
-                medscale_contracts::project_graph::ReferenceResolution,
-            )>,
-            Option<String>,
-        ),
-        AuthorityError,
-    > {
+    ) -> Result<(Vec<ResolvedThread>, Option<String>), AuthorityError> {
         self.require_membership(room_id)?;
         let (threads, next) = self
             .meta
@@ -712,13 +696,7 @@ impl Collab<'_> {
         id: &OpaqueId,
         expected: u64,
         target: medscale_contracts::collaboration::ThreadStatus,
-    ) -> Result<
-        (
-            ThreadRef,
-            medscale_contracts::project_graph::ReferenceResolution,
-        ),
-        AuthorityError,
-    > {
+    ) -> Result<ResolvedThread, AuthorityError> {
         use medscale_contracts::collaboration::ThreadStatus;
         let current = self.scoped_thread(id)?;
         self.require_membership(&current.room_id)?;
