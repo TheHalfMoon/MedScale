@@ -349,7 +349,7 @@ fn backup_restore_roundtrips_fabric_rows() {
 
     let dest = root.join("backup");
     let manifest_out = backup_vault(&vault, &dest).unwrap();
-    assert_eq!(manifest_out.schema_version, 4);
+    assert_eq!(manifest_out.schema_version, 5);
 
     let restore_root = root.join("restored");
     let (sources, _) = restore_vault(&dest, &restore_root).unwrap();
