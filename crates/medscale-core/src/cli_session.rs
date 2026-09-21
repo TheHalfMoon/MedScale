@@ -323,6 +323,19 @@ impl CliSession {
         self.open
     }
 
+    /// This session's bound lease/session holder id -- the identity every
+    /// Core authority check resolves `actor()` to for requests made through
+    /// this session. A caller that needs to register its own
+    /// `ParticipantIdentity` (Spec 076 collaboration) must register under
+    /// this exact id, not an arbitrary string: `caller_participant()` looks
+    /// up the participant by the session's real holder, so a mismatched
+    /// `holder_id` would register a participant Core can never resolve as
+    /// the caller.
+    #[must_use]
+    pub fn holder_id(&self) -> OpaqueId {
+        self.holder_id.clone()
+    }
+
     /// Offline local pack install (Spec 008).
     pub fn packs_install_local(
         &mut self,
@@ -1280,5 +1293,733 @@ impl CliSession {
             });
         };
         Ok(*view)
+    }
+
+    // ---------------------------------------------------------------------
+    // Spec 076: Collaboration Substrate
+    // ---------------------------------------------------------------------
+
+    /// Registers a participant, or returns the existing one if already
+    /// registered under the same `holder_id` (idempotent).
+    pub fn collab_participant_register(
+        &mut self,
+        holder_id: OpaqueId,
+        kind: medscale_contracts::collaboration::ParticipantKind,
+        display_name: String,
+        agent_profile_ref: Option<OpaqueId>,
+    ) -> Result<medscale_contracts::collaboration::ParticipantIdentity, AuthorityError> {
+        let resp = self.dispatch(
+            Capability::ParticipantRegister,
+            RequestBody::ParticipantRegister {
+                holder_id,
+                kind,
+                display_name,
+                agent_profile_ref,
+            },
+        )?;
+        Self::expect_participant(resp)
+    }
+
+    /// Reads one participant through Core authority.
+    pub fn collab_participant_get(
+        &mut self,
+        participant_id: OpaqueId,
+    ) -> Result<medscale_contracts::collaboration::ParticipantIdentity, AuthorityError> {
+        let resp = self.dispatch(
+            Capability::ParticipantRead,
+            RequestBody::ParticipantGet { participant_id },
+        )?;
+        Self::expect_participant(resp)
+    }
+
+    /// Revokes a participant (status only; `kind`/`holder_id` never change).
+    pub fn collab_participant_revoke(
+        &mut self,
+        participant_id: OpaqueId,
+        expected_revision: u64,
+    ) -> Result<medscale_contracts::collaboration::ParticipantIdentity, AuthorityError> {
+        let resp = self.dispatch(
+            Capability::ParticipantRevoke,
+            RequestBody::ParticipantRevoke {
+                participant_id,
+                expected_revision,
+            },
+        )?;
+        Self::expect_participant(resp)
+    }
+
+    fn expect_participant(
+        resp: ResponseBody,
+    ) -> Result<medscale_contracts::collaboration::ParticipantIdentity, AuthorityError> {
+        let ResponseBody::Participant { participant } = resp else {
+            return Err(AuthorityError::InvalidArgument {
+                message: "expected participant".to_owned(),
+            });
+        };
+        Ok(*participant)
+    }
+
+    /// Creates a Room scoped to an existing Project; grants the caller
+    /// `Owner` membership.
+    pub fn collab_room_create(
+        &mut self,
+        project_id: OpaqueId,
+        experiment_id: Option<OpaqueId>,
+        name: String,
+    ) -> Result<medscale_contracts::collaboration::Room, AuthorityError> {
+        let resp = self.dispatch(
+            Capability::RoomCreate,
+            RequestBody::RoomCreate {
+                project_id,
+                experiment_id,
+                name,
+            },
+        )?;
+        Self::expect_room(resp)
+    }
+
+    /// Reads one Room through Core authority (membership-gated).
+    pub fn collab_room_get(
+        &mut self,
+        room_id: OpaqueId,
+    ) -> Result<medscale_contracts::collaboration::Room, AuthorityError> {
+        let resp = self.dispatch(Capability::RoomRead, RequestBody::RoomGet { room_id })?;
+        Self::expect_room(resp)
+    }
+
+    /// Lists Rooms in one Project that the caller is an active member of.
+    pub fn collab_room_list(
+        &mut self,
+        project_id: OpaqueId,
+        status: Option<medscale_contracts::collaboration::RoomStatus>,
+        limit: Option<u32>,
+        cursor: Option<String>,
+    ) -> Result<(Vec<medscale_contracts::collaboration::Room>, Option<String>), AuthorityError>
+    {
+        let resp = self.dispatch(
+            Capability::RoomRead,
+            RequestBody::RoomList {
+                project_id,
+                status,
+                limit,
+                cursor,
+            },
+        )?;
+        let ResponseBody::CollabRoomList { rooms, next_cursor } = resp else {
+            return Err(AuthorityError::InvalidArgument {
+                message: "expected room list".to_owned(),
+            });
+        };
+        Ok((rooms, next_cursor))
+    }
+
+    /// Renames a Room (revision-guarded).
+    pub fn collab_room_rename(
+        &mut self,
+        room_id: OpaqueId,
+        expected_revision: u64,
+        name: String,
+    ) -> Result<medscale_contracts::collaboration::Room, AuthorityError> {
+        let resp = self.dispatch(
+            Capability::RoomUpdate,
+            RequestBody::RoomRename {
+                room_id,
+                expected_revision,
+                name,
+            },
+        )?;
+        Self::expect_room(resp)
+    }
+
+    /// Archives a Room (revision-guarded; `Owner` role required).
+    pub fn collab_room_archive(
+        &mut self,
+        room_id: OpaqueId,
+        expected_revision: u64,
+    ) -> Result<medscale_contracts::collaboration::Room, AuthorityError> {
+        let resp = self.dispatch(
+            Capability::RoomArchive,
+            RequestBody::RoomArchive {
+                room_id,
+                expected_revision,
+            },
+        )?;
+        Self::expect_room(resp)
+    }
+
+    fn expect_room(
+        resp: ResponseBody,
+    ) -> Result<medscale_contracts::collaboration::Room, AuthorityError> {
+        let ResponseBody::CollabRoom { room, .. } = resp else {
+            return Err(AuthorityError::InvalidArgument {
+                message: "expected room".to_owned(),
+            });
+        };
+        Ok(*room)
+    }
+
+    /// Adds a member to a Room (membership-gated: caller must already be an
+    /// active member).
+    pub fn collab_membership_add(
+        &mut self,
+        room_id: OpaqueId,
+        participant_id: OpaqueId,
+        role: medscale_contracts::collaboration::MembershipRole,
+    ) -> Result<medscale_contracts::collaboration::RoomMembership, AuthorityError> {
+        let resp = self.dispatch(
+            Capability::RoomMembershipManage,
+            RequestBody::RoomMembershipAdd {
+                room_id,
+                participant_id,
+                role,
+            },
+        )?;
+        Self::expect_membership(resp)
+    }
+
+    /// Lists active memberships for one Room.
+    pub fn collab_membership_list(
+        &mut self,
+        room_id: OpaqueId,
+    ) -> Result<Vec<medscale_contracts::collaboration::RoomMembership>, AuthorityError> {
+        let resp = self.dispatch(
+            Capability::RoomMembershipRead,
+            RequestBody::RoomMembershipList { room_id },
+        )?;
+        let ResponseBody::CollabMembershipList { memberships } = resp else {
+            return Err(AuthorityError::InvalidArgument {
+                message: "expected membership list".to_owned(),
+            });
+        };
+        Ok(memberships)
+    }
+
+    /// Removes a member (a member may remove themself; removing another
+    /// requires `Owner` role).
+    pub fn collab_membership_remove(
+        &mut self,
+        room_id: OpaqueId,
+        membership_id: OpaqueId,
+        expected_revision: u64,
+    ) -> Result<medscale_contracts::collaboration::RoomMembership, AuthorityError> {
+        let resp = self.dispatch(
+            Capability::RoomMembershipManage,
+            RequestBody::RoomMembershipRemove {
+                room_id,
+                membership_id,
+                expected_revision,
+            },
+        )?;
+        Self::expect_membership(resp)
+    }
+
+    fn expect_membership(
+        resp: ResponseBody,
+    ) -> Result<medscale_contracts::collaboration::RoomMembership, AuthorityError> {
+        let ResponseBody::CollabMembership { membership } = resp else {
+            return Err(AuthorityError::InvalidArgument {
+                message: "expected membership".to_owned(),
+            });
+        };
+        Ok(*membership)
+    }
+
+    /// Opens a thread anchored to an exact artifact revision (membership-
+    /// gated). Returns the thread plus its live `ReferenceResolution`.
+    pub fn collab_thread_open(
+        &mut self,
+        room_id: OpaqueId,
+        anchor: medscale_contracts::collaboration::AnchorTarget,
+    ) -> Result<
+        (
+            medscale_contracts::collaboration::ThreadRef,
+            medscale_contracts::project_graph::ReferenceResolution,
+        ),
+        AuthorityError,
+    > {
+        let resp = self.dispatch(
+            Capability::ThreadCreate,
+            RequestBody::ThreadOpen { room_id, anchor },
+        )?;
+        Self::expect_thread(resp)
+    }
+
+    /// Reads one thread with its live `ReferenceResolution`.
+    pub fn collab_thread_get(
+        &mut self,
+        thread_id: OpaqueId,
+    ) -> Result<
+        (
+            medscale_contracts::collaboration::ThreadRef,
+            medscale_contracts::project_graph::ReferenceResolution,
+        ),
+        AuthorityError,
+    > {
+        let resp = self.dispatch(Capability::ThreadRead, RequestBody::ThreadGet { thread_id })?;
+        Self::expect_thread(resp)
+    }
+
+    /// Lists threads in one room with each thread's live resolution.
+    #[allow(clippy::type_complexity)]
+    pub fn collab_thread_list(
+        &mut self,
+        room_id: OpaqueId,
+        limit: Option<u32>,
+        cursor: Option<String>,
+    ) -> Result<
+        (
+            Vec<medscale_contracts::collaboration::ThreadRef>,
+            Vec<medscale_contracts::project_graph::ReferenceResolution>,
+            Option<String>,
+        ),
+        AuthorityError,
+    > {
+        let resp = self.dispatch(
+            Capability::ThreadRead,
+            RequestBody::ThreadList {
+                room_id,
+                limit,
+                cursor,
+            },
+        )?;
+        let ResponseBody::CollabThreadList {
+            threads,
+            resolutions,
+            next_cursor,
+        } = resp
+        else {
+            return Err(AuthorityError::InvalidArgument {
+                message: "expected thread list".to_owned(),
+            });
+        };
+        Ok((threads, resolutions, next_cursor))
+    }
+
+    /// Transitions a thread's status (`Open<->Resolved<->Reopened` only).
+    pub fn collab_thread_set_status(
+        &mut self,
+        thread_id: OpaqueId,
+        expected_revision: u64,
+        status: medscale_contracts::collaboration::ThreadStatus,
+    ) -> Result<
+        (
+            medscale_contracts::collaboration::ThreadRef,
+            medscale_contracts::project_graph::ReferenceResolution,
+        ),
+        AuthorityError,
+    > {
+        let resp = self.dispatch(
+            Capability::ThreadResolve,
+            RequestBody::ThreadSetStatus {
+                thread_id,
+                expected_revision,
+                status,
+            },
+        )?;
+        Self::expect_thread(resp)
+    }
+
+    fn expect_thread(
+        resp: ResponseBody,
+    ) -> Result<
+        (
+            medscale_contracts::collaboration::ThreadRef,
+            medscale_contracts::project_graph::ReferenceResolution,
+        ),
+        AuthorityError,
+    > {
+        let ResponseBody::CollabThread { thread, resolution } = resp else {
+            return Err(AuthorityError::InvalidArgument {
+                message: "expected thread".to_owned(),
+            });
+        };
+        Ok((*thread, resolution))
+    }
+
+    /// Posts a message to a thread (membership-gated).
+    pub fn collab_message_post(
+        &mut self,
+        thread_id: OpaqueId,
+        body: String,
+    ) -> Result<medscale_contracts::collaboration::Message, AuthorityError> {
+        let resp = self.dispatch(
+            Capability::MessagePost,
+            RequestBody::MessagePost { thread_id, body },
+        )?;
+        let ResponseBody::CollabMessage { message } = resp else {
+            return Err(AuthorityError::InvalidArgument {
+                message: "expected message".to_owned(),
+            });
+        };
+        Ok(*message)
+    }
+
+    /// Lists messages in one thread, in `seq` order.
+    pub fn collab_message_list(
+        &mut self,
+        thread_id: OpaqueId,
+        limit: Option<u32>,
+        after_seq: Option<u64>,
+    ) -> Result<Vec<medscale_contracts::collaboration::Message>, AuthorityError> {
+        let resp = self.dispatch(
+            Capability::MessageRead,
+            RequestBody::MessageList {
+                thread_id,
+                limit,
+                after_seq,
+            },
+        )?;
+        let ResponseBody::CollabMessageList { messages } = resp else {
+            return Err(AuthorityError::InvalidArgument {
+                message: "expected message list".to_owned(),
+            });
+        };
+        Ok(messages)
+    }
+
+    /// Edits a message's body (author-only).
+    pub fn collab_message_edit(
+        &mut self,
+        message_id: OpaqueId,
+        new_body: String,
+    ) -> Result<medscale_contracts::collaboration::MessageEdit, AuthorityError> {
+        let resp = self.dispatch(
+            Capability::MessageEdit,
+            RequestBody::MessageEditBody {
+                message_id,
+                new_body,
+            },
+        )?;
+        Self::expect_message_edit(resp)
+    }
+
+    /// Deletes a message (append-only tombstone; author-only).
+    pub fn collab_message_delete(
+        &mut self,
+        message_id: OpaqueId,
+    ) -> Result<medscale_contracts::collaboration::MessageEdit, AuthorityError> {
+        let resp = self.dispatch(
+            Capability::MessageEdit,
+            RequestBody::MessageDelete { message_id },
+        )?;
+        Self::expect_message_edit(resp)
+    }
+
+    fn expect_message_edit(
+        resp: ResponseBody,
+    ) -> Result<medscale_contracts::collaboration::MessageEdit, AuthorityError> {
+        let ResponseBody::CollabMessageEdit { edit } = resp else {
+            return Err(AuthorityError::InvalidArgument {
+                message: "expected message edit".to_owned(),
+            });
+        };
+        Ok(*edit)
+    }
+
+    /// Creates a task, optionally anchored to an artifact (membership-gated).
+    pub fn collab_task_create(
+        &mut self,
+        room_id: OpaqueId,
+        anchor: Option<medscale_contracts::collaboration::AnchorTarget>,
+        title: String,
+        description: Option<String>,
+    ) -> Result<medscale_contracts::collaboration::Task, AuthorityError> {
+        let resp = self.dispatch(
+            Capability::TaskCreate,
+            RequestBody::TaskCreate {
+                room_id,
+                anchor,
+                title,
+                description,
+            },
+        )?;
+        Self::expect_task(resp)
+    }
+
+    /// Reads one task.
+    pub fn collab_task_get(
+        &mut self,
+        task_id: OpaqueId,
+    ) -> Result<medscale_contracts::collaboration::Task, AuthorityError> {
+        let resp = self.dispatch(Capability::TaskRead, RequestBody::TaskGet { task_id })?;
+        Self::expect_task(resp)
+    }
+
+    /// Lists tasks in one room.
+    pub fn collab_task_list(
+        &mut self,
+        room_id: OpaqueId,
+        limit: Option<u32>,
+        cursor: Option<String>,
+    ) -> Result<(Vec<medscale_contracts::collaboration::Task>, Option<String>), AuthorityError>
+    {
+        let resp = self.dispatch(
+            Capability::TaskRead,
+            RequestBody::TaskList {
+                room_id,
+                limit,
+                cursor,
+            },
+        )?;
+        let ResponseBody::CollabTaskList { tasks, next_cursor } = resp else {
+            return Err(AuthorityError::InvalidArgument {
+                message: "expected task list".to_owned(),
+            });
+        };
+        Ok((tasks, next_cursor))
+    }
+
+    /// Updates task status/assignee (revision-guarded).
+    pub fn collab_task_update(
+        &mut self,
+        task_id: OpaqueId,
+        expected_revision: u64,
+        status: medscale_contracts::collaboration::TaskStatus,
+        assignee_participant_id: Option<OpaqueId>,
+    ) -> Result<medscale_contracts::collaboration::Task, AuthorityError> {
+        let resp = self.dispatch(
+            Capability::TaskUpdate,
+            RequestBody::TaskUpdate {
+                task_id,
+                expected_revision,
+                status,
+                assignee_participant_id,
+            },
+        )?;
+        Self::expect_task(resp)
+    }
+
+    fn expect_task(
+        resp: ResponseBody,
+    ) -> Result<medscale_contracts::collaboration::Task, AuthorityError> {
+        let ResponseBody::CollabTask { task } = resp else {
+            return Err(AuthorityError::InvalidArgument {
+                message: "expected task".to_owned(),
+            });
+        };
+        Ok(*task)
+    }
+
+    /// Creates a note with its initial body (membership-gated).
+    pub fn collab_note_create(
+        &mut self,
+        room_id: OpaqueId,
+        title: String,
+        body: String,
+    ) -> Result<medscale_contracts::collaboration::NoteDocument, AuthorityError> {
+        let resp = self.dispatch(
+            Capability::NoteCreate,
+            RequestBody::NoteCreate {
+                room_id,
+                title,
+                body,
+            },
+        )?;
+        let ResponseBody::CollabNote { note } = resp else {
+            return Err(AuthorityError::InvalidArgument {
+                message: "expected note".to_owned(),
+            });
+        };
+        Ok(*note)
+    }
+
+    /// Reads one note document (pointer only; see `collab_note_revisions`
+    /// for body history).
+    pub fn collab_note_get(
+        &mut self,
+        note_id: OpaqueId,
+    ) -> Result<medscale_contracts::collaboration::NoteDocument, AuthorityError> {
+        let resp = self.dispatch(Capability::NoteRead, RequestBody::NoteGet { note_id })?;
+        let ResponseBody::CollabNote { note } = resp else {
+            return Err(AuthorityError::InvalidArgument {
+                message: "expected note".to_owned(),
+            });
+        };
+        Ok(*note)
+    }
+
+    /// Lists the full revision history of one note, including conflict
+    /// copies.
+    pub fn collab_note_revisions(
+        &mut self,
+        note_id: OpaqueId,
+    ) -> Result<Vec<medscale_contracts::collaboration::NoteRevision>, AuthorityError> {
+        let resp = self.dispatch(
+            Capability::NoteRead,
+            RequestBody::NoteListRevisions { note_id },
+        )?;
+        let ResponseBody::CollabNoteRevisionList { revisions } = resp else {
+            return Err(AuthorityError::InvalidArgument {
+                message: "expected note revision list".to_owned(),
+            });
+        };
+        Ok(revisions)
+    }
+
+    /// Edits a note. Fast-forward when `expected_revision` matches the
+    /// current pointer; otherwise creates an explicit conflict copy that
+    /// preserves the caller's content (`is_conflict_copy` in the result).
+    pub fn collab_note_edit(
+        &mut self,
+        note_id: OpaqueId,
+        expected_revision: u64,
+        body: String,
+    ) -> Result<
+        (
+            medscale_contracts::collaboration::NoteDocument,
+            medscale_contracts::collaboration::NoteRevision,
+            bool,
+        ),
+        AuthorityError,
+    > {
+        let resp = self.dispatch(
+            Capability::NoteUpdate,
+            RequestBody::NoteEdit {
+                note_id,
+                expected_revision,
+                body,
+            },
+        )?;
+        let ResponseBody::CollabNoteEdit {
+            note,
+            new_revision,
+            is_conflict_copy,
+        } = resp
+        else {
+            return Err(AuthorityError::InvalidArgument {
+                message: "expected note edit".to_owned(),
+            });
+        };
+        Ok((*note, *new_revision, is_conflict_copy))
+    }
+
+    /// Creates an approval request (membership-gated). Supports multiple
+    /// independent assignees and an optional `blind_until_closed` filter.
+    pub fn collab_approval_request_create(
+        &mut self,
+        room_id: OpaqueId,
+        anchor: medscale_contracts::collaboration::AnchorTarget,
+        kind: medscale_contracts::collaboration::ApprovalKind,
+        assignee_participant_ids: Vec<OpaqueId>,
+        blind_until_closed: bool,
+    ) -> Result<medscale_contracts::collaboration::ApprovalRequest, AuthorityError> {
+        let resp = self.dispatch(
+            Capability::ApprovalRequestCreate,
+            RequestBody::ApprovalRequestCreate {
+                room_id,
+                anchor,
+                kind,
+                assignee_participant_ids,
+                blind_until_closed,
+            },
+        )?;
+        Self::expect_approval_request(resp)
+    }
+
+    /// Reads one approval request.
+    pub fn collab_approval_request_get(
+        &mut self,
+        request_id: OpaqueId,
+    ) -> Result<medscale_contracts::collaboration::ApprovalRequest, AuthorityError> {
+        let resp = self.dispatch(
+            Capability::ApprovalRequestRead,
+            RequestBody::ApprovalRequestGet { request_id },
+        )?;
+        Self::expect_approval_request(resp)
+    }
+
+    /// Withdraws an open approval request (requester-only).
+    pub fn collab_approval_request_withdraw(
+        &mut self,
+        request_id: OpaqueId,
+        expected_revision: u64,
+    ) -> Result<medscale_contracts::collaboration::ApprovalRequest, AuthorityError> {
+        let resp = self.dispatch(
+            Capability::ApprovalWithdraw,
+            RequestBody::ApprovalRequestWithdraw {
+                request_id,
+                expected_revision,
+            },
+        )?;
+        Self::expect_approval_request(resp)
+    }
+
+    fn expect_approval_request(
+        resp: ResponseBody,
+    ) -> Result<medscale_contracts::collaboration::ApprovalRequest, AuthorityError> {
+        let ResponseBody::CollabApprovalRequest { request } = resp else {
+            return Err(AuthorityError::InvalidArgument {
+                message: "expected approval request".to_owned(),
+            });
+        };
+        Ok(*request)
+    }
+
+    /// Records a decision against an open approval request (assignee-only).
+    /// Never triggers any effect/action/proposal-promotion path
+    /// (`security.md` T1).
+    pub fn collab_approval_decide(
+        &mut self,
+        request_id: OpaqueId,
+        outcome: medscale_contracts::collaboration::ApprovalDecisionOutcome,
+        rationale: Option<String>,
+    ) -> Result<medscale_contracts::collaboration::ApprovalDecision, AuthorityError> {
+        let resp = self.dispatch(
+            Capability::ApprovalDecide,
+            RequestBody::ApprovalDecide {
+                request_id,
+                outcome,
+                rationale,
+            },
+        )?;
+        let ResponseBody::CollabApprovalDecision { decision } = resp else {
+            return Err(AuthorityError::InvalidArgument {
+                message: "expected approval decision".to_owned(),
+            });
+        };
+        Ok(*decision)
+    }
+
+    /// Lists decisions recorded against one request, filtered by
+    /// `blind_until_closed` relative to the caller.
+    pub fn collab_approval_decision_list(
+        &mut self,
+        request_id: OpaqueId,
+    ) -> Result<Vec<medscale_contracts::collaboration::ApprovalDecision>, AuthorityError> {
+        let resp = self.dispatch(
+            Capability::ApprovalRequestRead,
+            RequestBody::ApprovalDecisionList { request_id },
+        )?;
+        let ResponseBody::CollabApprovalDecisionList { decisions } = resp else {
+            return Err(AuthorityError::InvalidArgument {
+                message: "expected approval decision list".to_owned(),
+            });
+        };
+        Ok(decisions)
+    }
+
+    /// Lists activity records for one room, in `seq` order (membership-
+    /// gated); the same durable, hash-chained log the activity feed and
+    /// tamper-evidence check both read.
+    pub fn collab_activity_list(
+        &mut self,
+        room_id: OpaqueId,
+        limit: Option<u32>,
+        after_seq: Option<u64>,
+    ) -> Result<Vec<medscale_contracts::collaboration::ActivityRecord>, AuthorityError> {
+        let resp = self.dispatch(
+            Capability::ActivityRead,
+            RequestBody::ActivityList {
+                room_id,
+                limit,
+                after_seq,
+            },
+        )?;
+        let ResponseBody::CollabActivityList { records } = resp else {
+            return Err(AuthorityError::InvalidArgument {
+                message: "expected activity list".to_owned(),
+            });
+        };
+        Ok(records)
     }
 }

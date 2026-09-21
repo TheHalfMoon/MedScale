@@ -329,7 +329,7 @@ fn migration_v3_to_v4_preserves_old_rows() {
     // open_at runs migrate(); v4 tables must exist on a fresh vault.
     meta.insert_data_source(&manifest("dsrc-1")).unwrap();
     let journal = meta.migration_journal().unwrap();
-    assert_eq!(journal.finished_version, 4);
+    assert_eq!(journal.finished_version, 5);
     // Reopen is safe (idempotent migration).
     drop(meta);
     let meta = open_meta(&root);
@@ -349,7 +349,7 @@ fn backup_restore_roundtrips_fabric_rows() {
 
     let dest = root.join("backup");
     let manifest_out = backup_vault(&vault, &dest).unwrap();
-    assert_eq!(manifest_out.schema_version, 4);
+    assert_eq!(manifest_out.schema_version, 5);
 
     let restore_root = root.join("restored");
     let (sources, _) = restore_vault(&dest, &restore_root).unwrap();

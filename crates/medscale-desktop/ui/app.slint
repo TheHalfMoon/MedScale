@@ -162,6 +162,32 @@ export struct WorkbenchRowItem {
     text: string,
 }
 
+export struct RoomRowItem {
+    id: string,
+    name: string,
+    revision: string,
+}
+
+export struct ThreadRowItem {
+    id: string,
+    status: string,
+    resolution: string,
+    artifact-id: string,
+}
+
+export struct MessageRowItem {
+    author: string,
+    body: string,
+    seq: string,
+}
+
+export struct TaskRowItem {
+    id: string,
+    title: string,
+    status: string,
+    revision: string,
+}
+
 export component AppWindow inherits Window {
     title: "MedScale";
     preferred-width: 1440px;
@@ -257,6 +283,17 @@ export component AppWindow inherits Window {
     in-out property <string> data-filter-op: "equals";
     in-out property <string> data-filter-value: "";
     in-out property <string> data-sort-input: "";
+    in-out property <string> collab-status: "Rooms not loaded";
+    in property <[RoomRowItem]> collab-rooms;
+    in-out property <string> collab-room-name-input: "";
+    in-out property <string> collab-active-room-id: "";
+    in property <[ThreadRowItem]> collab-threads;
+    in-out property <string> collab-active-thread-id: "";
+    in-out property <string> collab-thread-artifact-input: "";
+    in property <[MessageRowItem]> collab-messages;
+    in-out property <string> collab-message-input: "";
+    in property <[TaskRowItem]> collab-tasks;
+    in-out property <string> collab-task-title-input: "";
     callback ui-action(string);
 
     forward-focus: global-keys;
@@ -384,6 +421,7 @@ export component AppWindow inherits Window {
                     NavItem { label: "Workflows"; selected: root.active-route == "Workflows"; activated => { root.active-route = "Workflows"; } }
                     NavItem { label: "Tasks"; selected: root.active-route == "Tasks"; activated => { root.active-route = "Tasks"; } }
                     NavItem { label: "Messages"; selected: root.active-route == "Messages"; activated => { root.active-route = "Messages"; } }
+                    NavItem { label: "Collaboration"; selected: root.active-route == "Collaboration"; activated => { root.active-route = "Collaboration"; } }
 
                     Rectangle { height: 4px; background: transparent; }
                     Text { text: "GOVERNANCE"; color: Theme.ink-quiet; font-size: 11px; letter-spacing: 1.05px; }
@@ -490,7 +528,7 @@ export component AppWindow inherits Window {
                             VerticalLayout {
                                 spacing: 2px;
                                 Text { text: root.active-route == "Home" ? "Clinical Workspace" : root.active-route == "Patients" ? root.patient-name : root.active-route; color: Theme.ink; font-size: 28px; font-weight: 720; letter-spacing: -0.4px; }
-                                Text { text: root.active-route == "Home" ? "Trusted local clinical intelligence · evidence before authority" : root.active-route == "Patients" ? "Trusted longitudinal workspace · Synthetic demo" : root.active-route == "Insights" ? "Evidence-aware population view · Synthetic demo" : root.active-route == "Models" ? "Local model fabric · provenance, runtime and benchmark state" : root.active-route == "Evidence" ? "Pinned OpenMed evidence · measured claims only · limitations explicit" : root.active-route == "Workflows" ? "Review-first controlled-action studio · Synthetic demo" : root.active-route == "Tasks" ? "Derived outbox review queue · No second task authority" : root.active-route == "Messages" ? "Local review previews · No external transport claim" : root.active-route == "Documents" ? "Bounded document intake posture · Custody is not understanding" : root.active-route == "Projects" ? "Project and artifact organization · Core-backed references, never payload copies" : root.active-route == "Data" ? "Governed datasets · immutable snapshots, saved views and deterministic transforms" : root.active-route == "Audit Trail" ? "Synthetic disclosure history · Core Host remains canonical" : root.active-route == "Exports" ? "Loss-aware FHIR support · No full conformance claim" : root.active-route == "Settings" ? "Doctor truth and evidence-gated readiness" : root.active-route == "Integrations" ? "Brokered integration posture · Default deny" : root.active-route == "About" ? "Native product and attribution details" : "Unrecognized route"; color: Theme.ink-subtle; font-size: 13px; }
+                                Text { text: root.active-route == "Home" ? "Trusted local clinical intelligence · evidence before authority" : root.active-route == "Patients" ? "Trusted longitudinal workspace · Synthetic demo" : root.active-route == "Insights" ? "Evidence-aware population view · Synthetic demo" : root.active-route == "Models" ? "Local model fabric · provenance, runtime and benchmark state" : root.active-route == "Evidence" ? "Pinned OpenMed evidence · measured claims only · limitations explicit" : root.active-route == "Workflows" ? "Review-first controlled-action studio · Synthetic demo" : root.active-route == "Tasks" ? "Derived outbox review queue · No second task authority" : root.active-route == "Messages" ? "Local review previews · No external transport claim" : root.active-route == "Documents" ? "Bounded document intake posture · Custody is not understanding" : root.active-route == "Projects" ? "Project and artifact organization · Core-backed references, never payload copies" : root.active-route == "Data" ? "Governed datasets · immutable snapshots, saved views and deterministic transforms" : root.active-route == "Collaboration" ? "Local-first rooms, threads and tasks · Core-backed, membership-gated" : root.active-route == "Audit Trail" ? "Synthetic disclosure history · Core Host remains canonical" : root.active-route == "Exports" ? "Loss-aware FHIR support · No full conformance claim" : root.active-route == "Settings" ? "Doctor truth and evidence-gated readiness" : root.active-route == "Integrations" ? "Brokered integration posture · Default deny" : root.active-route == "About" ? "Native product and attribution details" : "Unrecognized route"; color: Theme.ink-subtle; font-size: 13px; }
                             }
                             Rectangle { horizontal-stretch: 1; background: transparent; }
                             if root.active-route == "Home": Text {
@@ -785,6 +823,154 @@ export component AppWindow inherits Window {
                                         spacing: 8px;
                                         ToolbarAction { label: "Save grid view"; activated => { root.ui-action("data-view-grid"); } }
                                         ToolbarAction { label: "Apply transform"; activated => { root.ui-action("data-transform-apply"); } }
+                                    }
+                                }
+                            }
+                        }
+
+                        if root.active-route == "Collaboration": VerticalLayout {
+                            spacing: 14px;
+                            HonestyPanel { title: "Collaboration authority boundary"; body: "Rooms/threads/tasks are membership-gated, independent of Core capability grants · an approval decision never triggers a canonical/external effect · notes preserve conflicting edits, never overwrite"; accent: Theme.success; }
+
+                            Rectangle {
+                                min-height: 64px;
+                                border-radius: Theme.radius-compact;
+                                border-width: 1px;
+                                border-color: Theme.border;
+                                background: Theme.surface;
+                                accessible-role: groupbox;
+                                accessible-label: "Rooms. " + root.collab-status;
+                                HorizontalLayout {
+                                    padding-left: 10px;
+                                    padding-right: 10px;
+                                    spacing: 12px;
+                                    VerticalLayout { horizontal-stretch: 1; alignment: center; spacing: 2px;
+                                        Text { text: "Rooms follow the active project"; color: Theme.ink; font-size: 12px; font-weight: 680; }
+                                        Text { text: root.collab-status; color: Theme.ink-quiet; font-size: 11px; wrap: word-wrap; }
+                                    }
+                                    AdaptiveLineEdit {
+                                        width: 200px;
+                                        text <=> root.collab-room-name-input;
+                                        placeholder: "New room name";
+                                        accessible-name: "New room name";
+                                    }
+                                    ToolbarAction { label: "Create"; activated => { root.ui-action("collab-room-create"); } }
+                                    ToolbarAction { label: "Refresh"; activated => { root.ui-action("collab-rooms-refresh"); } }
+                                }
+                            }
+
+                            Text { text: "Rooms"; color: Theme.ink; font-size: 14px; font-weight: 680; }
+                            for item in root.collab-rooms: Rectangle {
+                                min-height: 48px;
+                                border-width: 1px;
+                                border-color: Theme.border;
+                                background: Theme.surface;
+                                accessible-role: groupbox;
+                                accessible-label: item.name + ", revision " + item.revision;
+                                HorizontalLayout {
+                                    padding-left: 10px;
+                                    padding-right: 10px;
+                                    spacing: 12px;
+                                    VerticalLayout { horizontal-stretch: 1; alignment: center; spacing: 2px;
+                                        Text { text: item.name; color: Theme.ink; font-size: 12px; font-weight: 680; wrap: word-wrap; }
+                                        Text { text: item.id + " · rev " + item.revision; color: Theme.ink-quiet; font-size: 11px; }
+                                    }
+                                    QuickAction { width: 110px; title: "Open"; subtitle: "Threads/Tasks"; glyph: ""; accent: Theme.signal; activated => { root.ui-action("collab-room-open:" + item.id); } }
+                                }
+                            }
+
+                            if root.collab-active-room-id != "": VerticalLayout {
+                                spacing: 12px;
+
+                                Text { text: "Threads (comments/review)"; color: Theme.ink; font-size: 14px; font-weight: 680; }
+                                HorizontalLayout {
+                                    spacing: 8px;
+                                    AdaptiveLineEdit {
+                                        horizontal-stretch: 1;
+                                        text <=> root.collab-thread-artifact-input;
+                                        placeholder: "Artifact id to open a thread on";
+                                        accessible-name: "Thread anchor artifact id";
+                                    }
+                                    ToolbarAction { label: "Open thread"; activated => { root.ui-action("collab-thread-open"); } }
+                                }
+                                for item in root.collab-threads: Rectangle {
+                                    min-height: 48px;
+                                    border-width: 1px;
+                                    border-color: Theme.border;
+                                    background: Theme.surface;
+                                    accessible-role: groupbox;
+                                    accessible-label: "Thread " + item.id + ", " + item.status + ", resolution " + item.resolution;
+                                    HorizontalLayout {
+                                        padding-left: 10px;
+                                        padding-right: 10px;
+                                        spacing: 12px;
+                                        VerticalLayout { horizontal-stretch: 1; alignment: center; spacing: 2px;
+                                            Text { text: item.id; color: Theme.ink; font-size: 12px; font-weight: 680; }
+                                            Text { text: "anchor " + item.artifact-id + " · " + item.status; color: Theme.ink-quiet; font-size: 11px; }
+                                        }
+                                        StatusPill { label: item.resolution; accent: item.resolution == "current" ? Theme.success : item.resolution == "stale" || item.resolution == "missing" ? Theme.warning : Theme.danger; }
+                                        QuickAction { width: 100px; title: "Open"; subtitle: "Messages"; glyph: ""; accent: Theme.signal; activated => { root.ui-action("collab-thread-select:" + item.id); } }
+                                    }
+                                }
+
+                                if root.collab-active-thread-id != "": VerticalLayout {
+                                    spacing: 8px;
+                                    Text { text: "Messages"; color: Theme.ink; font-size: 14px; font-weight: 680; }
+                                    for item in root.collab-messages: Rectangle {
+                                        min-height: 40px;
+                                        border-width: 1px;
+                                        border-color: Theme.border;
+                                        background: Theme.surface;
+                                        accessible-role: text;
+                                        accessible-label: item.author + ": " + item.body;
+                                        HorizontalLayout {
+                                            padding-left: 10px;
+                                            padding-right: 10px;
+                                            spacing: 8px;
+                                            Text { width: 140px; text: item.author; color: Theme.ink-subtle; font-size: 11px; }
+                                            Text { horizontal-stretch: 1; text: item.body; color: Theme.ink; font-size: 11px; wrap: word-wrap; }
+                                        }
+                                    }
+                                    HorizontalLayout {
+                                        spacing: 8px;
+                                        AdaptiveLineEdit {
+                                            horizontal-stretch: 1;
+                                            text <=> root.collab-message-input;
+                                            placeholder: "Post a message";
+                                            accessible-name: "New message body";
+                                        }
+                                        ToolbarAction { label: "Post"; activated => { root.ui-action("collab-message-post"); } }
+                                    }
+                                }
+
+                                Text { text: "Tasks"; color: Theme.ink; font-size: 14px; font-weight: 680; }
+                                HorizontalLayout {
+                                    spacing: 8px;
+                                    AdaptiveLineEdit {
+                                        horizontal-stretch: 1;
+                                        text <=> root.collab-task-title-input;
+                                        placeholder: "New task title";
+                                        accessible-name: "New task title";
+                                    }
+                                    ToolbarAction { label: "Add task"; activated => { root.ui-action("collab-task-create"); } }
+                                }
+                                for item in root.collab-tasks: Rectangle {
+                                    min-height: 48px;
+                                    border-width: 1px;
+                                    border-color: Theme.border;
+                                    background: Theme.surface;
+                                    accessible-role: groupbox;
+                                    accessible-label: item.title + ", " + item.status;
+                                    HorizontalLayout {
+                                        padding-left: 10px;
+                                        padding-right: 10px;
+                                        spacing: 12px;
+                                        VerticalLayout { horizontal-stretch: 1; alignment: center; spacing: 2px;
+                                            Text { text: item.title; color: Theme.ink; font-size: 12px; font-weight: 680; wrap: word-wrap; }
+                                            Text { text: item.id + " · rev " + item.revision; color: Theme.ink-quiet; font-size: 11px; }
+                                        }
+                                        StatusPill { label: item.status; accent: item.status == "Done" ? Theme.success : item.status == "Cancelled" ? Theme.danger : Theme.warning; }
+                                        QuickAction { width: 100px; title: "Complete"; subtitle: "Mark done"; glyph: ""; accent: Theme.signal; activated => { root.ui-action("collab-task-complete:" + item.id + ":" + item.revision); } }
                                     }
                                 }
                             }

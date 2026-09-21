@@ -14,6 +14,7 @@ use medscale_core::{
 };
 use serde::Serialize;
 
+mod collaboration;
 mod data_source;
 mod project;
 
@@ -145,6 +146,16 @@ enum Commands {
     Experiment {
         #[command(subcommand)]
         action: project::ExperimentCmd,
+    },
+    /// Collaboration substrate (Spec 076; participant/room/membership through Core).
+    Collab {
+        #[command(subcommand)]
+        action: Box<collaboration::CollabCmd>,
+    },
+    /// Collaboration substrate (Spec 076; thread/message/task/note/approval/activity through Core).
+    CollabWork {
+        #[command(subcommand)]
+        action: Box<collaboration::CollabWorkCmd>,
     },
     /// Data source fabric (Spec 075; governed sources through Core).
     /// Boxed: the locator/filter/transform DSL variants are large by value.
@@ -1152,6 +1163,8 @@ fn run() -> Result<()> {
         },
         Commands::Project { action } => project::run_project(action),
         Commands::Experiment { action } => project::run_experiment(action),
+        Commands::Collab { action } => collaboration::run_collab(*action),
+        Commands::CollabWork { action } => collaboration::run_collab_work(*action),
         Commands::DataSource { action } => data_source::run_data_source(*action),
         Commands::Snapshot { action } => data_source::run_snapshot(*action),
         Commands::DataView { action } => data_source::run_data_view(*action),

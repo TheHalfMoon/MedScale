@@ -54,7 +54,7 @@ pub fn backup_vault(vault: &SyntheticVault, dest: &Path) -> Result<BackupManifes
     }
 
     let manifest = BackupManifest {
-        schema_version: 4,
+        schema_version: 5,
         vault_id: vault.vault_id.clone(),
         created_at: "1970-01-01T00:00:00Z".to_owned(),
         metadata_snapshot_digest: snapshot_digest,
@@ -106,7 +106,9 @@ pub fn restore_vault(src: &Path, dest_vault_root: &Path) -> Result<(u64, u64), S
     let snapshot_schema = snapshot_value
         .get("schema_version")
         .and_then(|v| v.as_u64());
-    if snapshot_schema == Some(4) {
+    if snapshot_schema == Some(5) {
+        restore_v5(&vault, &snapshot_value, &mut sources)?;
+    } else if snapshot_schema == Some(4) {
         restore_v4(&vault, &snapshot_value, &mut sources)?;
     } else if snapshot_schema == Some(3) {
         restore_v3(&vault, &snapshot_value, &mut sources)?;
@@ -359,6 +361,220 @@ fn restore_v4(
             vault
                 .meta
                 .restore_dataset_release_row(&release)
+                .map_err(|e| e.to_string())?;
+        }
+    }
+    Ok(())
+}
+
+fn restore_v5(
+    vault: &SyntheticVault,
+    snapshot: &serde_json::Value,
+    sources: &mut u64,
+) -> Result<(), String> {
+    restore_v4(vault, snapshot, sources)?;
+    // Spec 076 rows replay exactly (ids/revisions/seqs/checkpoint digests
+    // preserved); every row is re-validated where a standalone validator
+    // exists so a tampered snapshot fails closed instead of persisting.
+    // Participants restore first: every other 076 family references a
+    // participant id.
+    let agent_refs: std::collections::HashMap<String, Option<String>> =
+        match snapshot.get("collab_participant_agent_refs") {
+            Some(value) => serde_json::from_value(value.clone()).map_err(|e| e.to_string())?,
+            None => std::collections::HashMap::new(),
+        };
+    if let Some(entries) = snapshot
+        .get("collab_participants")
+        .and_then(|v| v.as_array())
+    {
+        for value in entries {
+            let participant: medscale_contracts::collaboration::ParticipantIdentity =
+                serde_json::from_value(value.clone()).map_err(|e| e.to_string())?;
+            if participant.revision < 1 {
+                return Err("tampered participant revision".to_owned());
+            }
+            let agent_ref = agent_refs
+                .get(participant.header.id.as_str())
+                .and_then(|v| v.as_deref())
+                .map(medscale_contracts::objects::OpaqueId::new);
+            vault
+                .meta
+                .restore_participant_row(&participant, agent_ref.as_ref())
+                .map_err(|e| e.to_string())?;
+        }
+    }
+    if let Some(entries) = snapshot.get("collab_rooms").and_then(|v| v.as_array()) {
+        for value in entries {
+            let room: medscale_contracts::collaboration::Room =
+                serde_json::from_value(value.clone()).map_err(|e| e.to_string())?;
+            if room.revision < 1 {
+                return Err("tampered room revision".to_owned());
+            }
+            vault
+                .meta
+                .restore_room_row(&room)
+                .map_err(|e| e.to_string())?;
+        }
+    }
+    if let Some(entries) = snapshot
+        .get("collab_room_memberships")
+        .and_then(|v| v.as_array())
+    {
+        for value in entries {
+            let membership: medscale_contracts::collaboration::RoomMembership =
+                serde_json::from_value(value.clone()).map_err(|e| e.to_string())?;
+            if membership.revision < 1 {
+                return Err("tampered membership revision".to_owned());
+            }
+            vault
+                .meta
+                .restore_membership_row(&membership)
+                .map_err(|e| e.to_string())?;
+        }
+    }
+    if let Some(entries) = snapshot.get("collab_threads").and_then(|v| v.as_array()) {
+        for value in entries {
+            let thread: medscale_contracts::collaboration::ThreadRef =
+                serde_json::from_value(value.clone()).map_err(|e| e.to_string())?;
+            thread.anchor.validate().map_err(|e| e.to_string())?;
+            if thread.revision < 1 {
+                return Err("tampered thread revision".to_owned());
+            }
+            vault
+                .meta
+                .restore_thread_row(&thread)
+                .map_err(|e| e.to_string())?;
+        }
+    }
+    if let Some(entries) = snapshot.get("collab_messages").and_then(|v| v.as_array()) {
+        for value in entries {
+            let message: medscale_contracts::collaboration::Message =
+                serde_json::from_value(value.clone()).map_err(|e| e.to_string())?;
+            message.validate().map_err(|e| e.to_string())?;
+            vault
+                .meta
+                .restore_message_row(&message)
+                .map_err(|e| e.to_string())?;
+        }
+    }
+    if let Some(entries) = snapshot
+        .get("collab_message_edits")
+        .and_then(|v| v.as_array())
+    {
+        for value in entries {
+            let edit: medscale_contracts::collaboration::MessageEdit =
+                serde_json::from_value(value.clone()).map_err(|e| e.to_string())?;
+            edit.validate().map_err(|e| e.to_string())?;
+            vault
+                .meta
+                .restore_message_edit_row(&edit)
+                .map_err(|e| e.to_string())?;
+        }
+    }
+    if let Some(entries) = snapshot.get("collab_tasks").and_then(|v| v.as_array()) {
+        for value in entries {
+            let task: medscale_contracts::collaboration::Task =
+                serde_json::from_value(value.clone()).map_err(|e| e.to_string())?;
+            if let Some(anchor) = &task.anchor {
+                anchor.validate().map_err(|e| e.to_string())?;
+            }
+            if task.revision < 1 {
+                return Err("tampered task revision".to_owned());
+            }
+            vault
+                .meta
+                .restore_task_row(&task)
+                .map_err(|e| e.to_string())?;
+        }
+    }
+    if let Some(entries) = snapshot.get("collab_notes").and_then(|v| v.as_array()) {
+        for value in entries {
+            let note: medscale_contracts::collaboration::NoteDocument =
+                serde_json::from_value(value.clone()).map_err(|e| e.to_string())?;
+            if note.revision < 1 {
+                return Err("tampered note revision".to_owned());
+            }
+            vault
+                .meta
+                .restore_note_row(&note)
+                .map_err(|e| e.to_string())?;
+        }
+    }
+    if let Some(entries) = snapshot
+        .get("collab_note_revisions")
+        .and_then(|v| v.as_array())
+    {
+        for value in entries {
+            let revision: medscale_contracts::collaboration::NoteRevision =
+                serde_json::from_value(value.clone()).map_err(|e| e.to_string())?;
+            revision.validate().map_err(|e| e.to_string())?;
+            if revision.revision < 1 {
+                return Err("tampered note revision number".to_owned());
+            }
+            vault
+                .meta
+                .restore_note_revision_row(&revision)
+                .map_err(|e| e.to_string())?;
+        }
+    }
+    if let Some(entries) = snapshot
+        .get("collab_approval_requests")
+        .and_then(|v| v.as_array())
+    {
+        for value in entries {
+            let request: medscale_contracts::collaboration::ApprovalRequest =
+                serde_json::from_value(value.clone()).map_err(|e| e.to_string())?;
+            request.anchor.validate().map_err(|e| e.to_string())?;
+            if request.assignee_participant_ids.is_empty() {
+                return Err("tampered approval request: no assignees".to_owned());
+            }
+            if request.revision < 1 {
+                return Err("tampered approval request revision".to_owned());
+            }
+            vault
+                .meta
+                .restore_approval_request_row(&request)
+                .map_err(|e| e.to_string())?;
+        }
+    }
+    if let Some(entries) = snapshot
+        .get("collab_approval_decisions")
+        .and_then(|v| v.as_array())
+    {
+        for value in entries {
+            let decision: medscale_contracts::collaboration::ApprovalDecision =
+                serde_json::from_value(value.clone()).map_err(|e| e.to_string())?;
+            decision.validate().map_err(|e| e.to_string())?;
+            vault
+                .meta
+                .restore_approval_decision_row(&decision)
+                .map_err(|e| e.to_string())?;
+        }
+    }
+    if let Some(entries) = snapshot
+        .get("collab_activity_records")
+        .and_then(|v| v.as_array())
+    {
+        let mut room_ids: std::collections::HashSet<medscale_contracts::objects::OpaqueId> =
+            std::collections::HashSet::new();
+        for value in entries {
+            let record: medscale_contracts::collaboration::ActivityRecord =
+                serde_json::from_value(value.clone()).map_err(|e| e.to_string())?;
+            room_ids.insert(record.room_id.clone());
+            vault
+                .meta
+                .restore_activity_record_row(&record)
+                .map_err(|e| e.to_string())?;
+        }
+        // migration.md section 11: `checkpoint_digest` chains must still
+        // verify after a restore. `restore_activity_record_row` preserves
+        // each row's digest verbatim (never recomputed), so a tampered
+        // middle row would otherwise persist silently; re-verify every
+        // restored room's chain from seq = 1 and fail closed on mismatch.
+        for room_id in &room_ids {
+            vault
+                .meta
+                .verify_activity_chain(room_id)
                 .map_err(|e| e.to_string())?;
         }
     }

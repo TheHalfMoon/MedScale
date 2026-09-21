@@ -1,6 +1,7 @@
 //! Authority facade, store, promotion, and identity operations.
 
 mod amend;
+mod collaboration;
 mod corpus;
 mod data_acquire;
 mod data_sources;

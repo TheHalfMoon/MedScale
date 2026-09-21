@@ -222,6 +222,12 @@ impl SqliteMetaStore {
             self.conn.execute_batch(crate::data_sources::V4_DDL)?;
             self.finish_migration(4)?;
         }
+        let journal = self.migration_journal()?;
+        if journal.finished_version < 5 {
+            self.begin_migration(5)?;
+            self.conn.execute_batch(crate::collaboration::V5_DDL)?;
+            self.finish_migration(5)?;
+        }
         Ok(())
     }
 
@@ -401,7 +407,7 @@ impl SqliteMetaStore {
             })
             .collect();
         let payload = serde_json::json!({
-            "schema_version": 4,
+            "schema_version": 5,
             "next_seq": self.get_next_seq()?,
             "sources": source_payload,
             "objects": object_payload,
@@ -422,6 +428,23 @@ impl SqliteMetaStore {
             "data_saved_views": self.list_all_saved_views()?,
             "data_transformations": self.list_all_transformations()?,
             "dataset_releases": self.list_all_dataset_releases()?,
+            // Spec 076: Collaboration Substrate rows ride the same snapshot
+            // so synthetic backup/restore preserves rooms, participants,
+            // threads, messages, tasks, notes, approvals and the activity
+            // hash chain without a second mechanism.
+            "collab_participants": self.list_all_participants()?,
+            "collab_participant_agent_refs": self.list_all_participant_agent_refs()?,
+            "collab_rooms": self.list_all_rooms()?,
+            "collab_room_memberships": self.list_all_memberships()?,
+            "collab_threads": self.list_all_threads()?,
+            "collab_messages": self.list_all_messages()?,
+            "collab_message_edits": self.list_all_message_edits()?,
+            "collab_tasks": self.list_all_tasks()?,
+            "collab_notes": self.list_all_notes()?,
+            "collab_note_revisions": self.list_all_note_revisions()?,
+            "collab_approval_requests": self.list_all_approval_requests()?,
+            "collab_approval_decisions": self.list_all_approval_decisions()?,
+            "collab_activity_records": self.list_all_activity_records()?,
         });
         Ok(serde_json::to_vec(&payload).unwrap_or_default())
     }

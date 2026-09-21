@@ -5,6 +5,12 @@ use serde_json::Value;
 
 use crate::AUTHORITY_SCHEMA_VERSION;
 use crate::actions::{CreateExternalActionIntentRequest, NphiesInvokeRequest, OutboxEntry};
+use crate::collaboration::{
+    ActivityRecord, AnchorTarget, ApprovalDecision, ApprovalDecisionOutcome, ApprovalKind,
+    ApprovalRequest, MembershipRole, Message, MessageEdit, NoteDocument, NoteRevision,
+    ParticipantIdentity, ParticipantKind, Room, RoomMembership, RoomStatus, Task, TaskStatus,
+    ThreadRef, ThreadStatus,
+};
 use crate::data_sources::{
     DataSourceManifest, DataSourceSummary, DataViewKind, DatasetReleaseSummary, FilterExpr,
     RefreshReceipt, ReleaseManifest, SavedDataView, SavedViewSummary, SnapshotRowPage,
@@ -28,7 +34,7 @@ use crate::presentation::{DrillDownResult, SubjectBriefV1, SubjectCoverageV1, Su
 use crate::project_graph::{
     ArtifactDescriptor, Experiment, ExperimentSummary, GraphDirection, GraphEndpoint,
     GraphNeighborPage, Project, ProjectArtifactRef, ProjectContext, ProjectGraphEdge,
-    ProjectGraphPredicate, ProjectStatus, ProjectSummary, ResolvedArtifactRef,
+    ProjectGraphPredicate, ProjectStatus, ProjectSummary, ReferenceResolution, ResolvedArtifactRef,
 };
 use crate::workflow::DisclosureRecord;
 
@@ -115,6 +121,37 @@ pub enum Capability {
     TransformExecute,
     DatasetReleaseCreate,
     DatasetReleaseRead,
+    // Spec 076: Collaboration Substrate (T076-03 slice: participant, room,
+    // membership only; thread/message/task/note/approval/activity
+    // capabilities land in later slices).
+    ParticipantRegister,
+    ParticipantRead,
+    ParticipantRevoke,
+    RoomCreate,
+    RoomRead,
+    RoomUpdate,
+    RoomArchive,
+    RoomMembershipManage,
+    RoomMembershipRead,
+    // Spec 076 T076-04/05/06 slice: thread, message, task.
+    ThreadCreate,
+    ThreadRead,
+    ThreadResolve,
+    MessagePost,
+    MessageRead,
+    MessageEdit,
+    TaskCreate,
+    TaskRead,
+    TaskUpdate,
+    // Spec 076 T076-07/08/09 slice: note, approval, activity.
+    NoteCreate,
+    NoteRead,
+    NoteUpdate,
+    ApprovalRequestCreate,
+    ApprovalRequestRead,
+    ApprovalDecide,
+    ApprovalWithdraw,
+    ActivityRead,
 }
 
 impl Capability {
@@ -152,6 +189,15 @@ impl Capability {
                 | Self::SnapshotRead
                 | Self::SavedViewRead
                 | Self::DatasetReleaseRead
+                | Self::ParticipantRead
+                | Self::RoomRead
+                | Self::RoomMembershipRead
+                | Self::ThreadRead
+                | Self::MessageRead
+                | Self::TaskRead
+                | Self::NoteRead
+                | Self::ApprovalRequestRead
+                | Self::ActivityRead
         )
     }
 
@@ -241,6 +287,32 @@ impl Capability {
             Self::TransformExecute,
             Self::DatasetReleaseCreate,
             Self::DatasetReleaseRead,
+            Self::ParticipantRegister,
+            Self::ParticipantRead,
+            Self::ParticipantRevoke,
+            Self::RoomCreate,
+            Self::RoomRead,
+            Self::RoomUpdate,
+            Self::RoomArchive,
+            Self::RoomMembershipManage,
+            Self::RoomMembershipRead,
+            Self::ThreadCreate,
+            Self::ThreadRead,
+            Self::ThreadResolve,
+            Self::MessagePost,
+            Self::MessageRead,
+            Self::MessageEdit,
+            Self::TaskCreate,
+            Self::TaskRead,
+            Self::TaskUpdate,
+            Self::NoteCreate,
+            Self::NoteRead,
+            Self::NoteUpdate,
+            Self::ApprovalRequestCreate,
+            Self::ApprovalRequestRead,
+            Self::ApprovalDecide,
+            Self::ApprovalWithdraw,
+            Self::ActivityRead,
         ]
     }
 }
@@ -623,6 +695,155 @@ pub enum RequestBody {
         limit: Option<u32>,
         cursor: Option<String>,
     },
+    // Spec 076: every mutation flows through Core authority paths. Surfaces
+    // never write collaboration storage directly. T076-03 slice only.
+    ParticipantRegister {
+        holder_id: OpaqueId,
+        kind: ParticipantKind,
+        display_name: String,
+        agent_profile_ref: Option<OpaqueId>,
+    },
+    ParticipantGet {
+        participant_id: OpaqueId,
+    },
+    ParticipantRevoke {
+        participant_id: OpaqueId,
+        expected_revision: u64,
+    },
+    RoomCreate {
+        project_id: OpaqueId,
+        experiment_id: Option<OpaqueId>,
+        name: String,
+    },
+    RoomGet {
+        room_id: OpaqueId,
+    },
+    RoomList {
+        project_id: OpaqueId,
+        status: Option<RoomStatus>,
+        limit: Option<u32>,
+        cursor: Option<String>,
+    },
+    RoomRename {
+        room_id: OpaqueId,
+        expected_revision: u64,
+        name: String,
+    },
+    RoomArchive {
+        room_id: OpaqueId,
+        expected_revision: u64,
+    },
+    RoomMembershipAdd {
+        room_id: OpaqueId,
+        participant_id: OpaqueId,
+        role: MembershipRole,
+    },
+    RoomMembershipList {
+        room_id: OpaqueId,
+    },
+    RoomMembershipRemove {
+        room_id: OpaqueId,
+        membership_id: OpaqueId,
+        expected_revision: u64,
+    },
+    // Spec 076 T076-04/05/06 slice: thread, message, task.
+    ThreadOpen {
+        room_id: OpaqueId,
+        anchor: AnchorTarget,
+    },
+    ThreadGet {
+        thread_id: OpaqueId,
+    },
+    ThreadList {
+        room_id: OpaqueId,
+        limit: Option<u32>,
+        cursor: Option<String>,
+    },
+    ThreadSetStatus {
+        thread_id: OpaqueId,
+        expected_revision: u64,
+        status: ThreadStatus,
+    },
+    MessagePost {
+        thread_id: OpaqueId,
+        body: String,
+    },
+    MessageList {
+        thread_id: OpaqueId,
+        limit: Option<u32>,
+        after_seq: Option<u64>,
+    },
+    MessageEditBody {
+        message_id: OpaqueId,
+        new_body: String,
+    },
+    MessageDelete {
+        message_id: OpaqueId,
+    },
+    TaskCreate {
+        room_id: OpaqueId,
+        anchor: Option<AnchorTarget>,
+        title: String,
+        description: Option<String>,
+    },
+    TaskGet {
+        task_id: OpaqueId,
+    },
+    TaskList {
+        room_id: OpaqueId,
+        limit: Option<u32>,
+        cursor: Option<String>,
+    },
+    TaskUpdate {
+        task_id: OpaqueId,
+        expected_revision: u64,
+        status: TaskStatus,
+        assignee_participant_id: Option<OpaqueId>,
+    },
+    // Spec 076 T076-07/08/09 slice: note, approval, activity.
+    NoteCreate {
+        room_id: OpaqueId,
+        title: String,
+        body: String,
+    },
+    NoteGet {
+        note_id: OpaqueId,
+    },
+    NoteListRevisions {
+        note_id: OpaqueId,
+    },
+    NoteEdit {
+        note_id: OpaqueId,
+        expected_revision: u64,
+        body: String,
+    },
+    ApprovalRequestCreate {
+        room_id: OpaqueId,
+        anchor: AnchorTarget,
+        kind: ApprovalKind,
+        assignee_participant_ids: Vec<OpaqueId>,
+        blind_until_closed: bool,
+    },
+    ApprovalRequestGet {
+        request_id: OpaqueId,
+    },
+    ApprovalRequestWithdraw {
+        request_id: OpaqueId,
+        expected_revision: u64,
+    },
+    ApprovalDecide {
+        request_id: OpaqueId,
+        outcome: ApprovalDecisionOutcome,
+        rationale: Option<String>,
+    },
+    ApprovalDecisionList {
+        request_id: OpaqueId,
+    },
+    ActivityList {
+        room_id: OpaqueId,
+        limit: Option<u32>,
+        after_seq: Option<u64>,
+    },
 }
 
 impl RequestBody {
@@ -867,6 +1088,72 @@ pub enum ResponseBody {
     DatasetReleaseList {
         releases: Vec<DatasetReleaseSummary>,
         next_cursor: Option<String>,
+    },
+    // Spec 076 typed results (revisioned, membership-gated, no secrets).
+    // T076-03 slice only.
+    Participant {
+        participant: Box<ParticipantIdentity>,
+    },
+    CollabRoom {
+        room: Box<Room>,
+    },
+    CollabRoomList {
+        rooms: Vec<Room>,
+        next_cursor: Option<String>,
+    },
+    CollabMembership {
+        membership: Box<RoomMembership>,
+    },
+    CollabMembershipList {
+        memberships: Vec<RoomMembership>,
+    },
+    CollabThread {
+        thread: Box<ThreadRef>,
+        resolution: ReferenceResolution,
+    },
+    CollabThreadList {
+        threads: Vec<ThreadRef>,
+        resolutions: Vec<ReferenceResolution>,
+        next_cursor: Option<String>,
+    },
+    CollabMessage {
+        message: Box<Message>,
+    },
+    CollabMessageList {
+        messages: Vec<Message>,
+    },
+    CollabMessageEdit {
+        edit: Box<MessageEdit>,
+    },
+    CollabTask {
+        task: Box<Task>,
+    },
+    CollabTaskList {
+        tasks: Vec<Task>,
+        next_cursor: Option<String>,
+    },
+    CollabNote {
+        note: Box<NoteDocument>,
+    },
+    CollabNoteRevisionList {
+        revisions: Vec<NoteRevision>,
+    },
+    CollabNoteEdit {
+        note: Box<NoteDocument>,
+        new_revision: Box<NoteRevision>,
+        is_conflict_copy: bool,
+    },
+    CollabApprovalRequest {
+        request: Box<ApprovalRequest>,
+    },
+    CollabApprovalDecision {
+        decision: Box<ApprovalDecision>,
+    },
+    CollabApprovalDecisionList {
+        decisions: Vec<ApprovalDecision>,
+    },
+    CollabActivityList {
+        records: Vec<ActivityRecord>,
     },
 }
 
