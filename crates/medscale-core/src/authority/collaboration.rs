@@ -22,7 +22,7 @@
 use medscale_contracts::AUTHORITY_SCHEMA_VERSION;
 use medscale_contracts::collaboration::{
     COLLAB_SCHEMA_VERSION, MembershipRole, ParticipantIdentity, ParticipantKind, ParticipantStatus,
-    Room, RoomMembership, RoomStatus,
+    Room, RoomMembership, RoomStatus, Task, ThreadRef,
 };
 use medscale_contracts::envelopes::AuthorityError;
 use medscale_contracts::objects::{AuthorityScopeId, ObjectHeader, OpaqueId, RealmId, VaultId};
@@ -479,5 +479,333 @@ impl Collab<'_> {
             )
             .map_err(meta_err)?;
         Ok(membership)
+    }
+
+    // ----- threads -----
+
+    fn scoped_thread(&self, id: &OpaqueId) -> Result<ThreadRef, AuthorityError> {
+        let thread = self.meta.get_thread(id).map_err(meta_err)?;
+        if thread.header.realm_id != self.realm || thread.header.authority_scope_id != self.scope {
+            return Err(AuthorityError::WrongScope);
+        }
+        Ok(thread)
+    }
+
+    /// Opens a thread anchored to an exact artifact revision (membership-
+    /// gated). Anchor shape is validated by `ThreadRef::new`; live
+    /// resolution against the artifact is always a separate read-time
+    /// concern (`contracts.md` section 6), not performed here.
+    pub fn open_thread(
+        &self,
+        room_id: OpaqueId,
+        anchor: medscale_contracts::collaboration::AnchorTarget,
+    ) -> Result<ThreadRef, AuthorityError> {
+        self.require_membership(&room_id)?;
+        let thread_id = self
+            .meta
+            .alloc_collab_id("collab-thread", "thread")
+            .map_err(meta_err)?;
+        let thread = ThreadRef::new(header(&self.realm, &self.scope, thread_id), room_id, anchor)
+            .map_err(|message| AuthorityError::InvalidArgument { message })?;
+        let actor_id = self.actor()?;
+        let activity_id = self
+            .meta
+            .alloc_collab_id("collab-activity", "activity")
+            .map_err(meta_err)?;
+        self.meta
+            .insert_thread_with_activity(
+                &thread,
+                header(&self.realm, &self.scope, activity_id),
+                &actor_id,
+            )
+            .map_err(meta_err)?;
+        Ok(thread)
+    }
+
+    /// Membership-gated thread read.
+    pub fn get_thread(&self, id: &OpaqueId) -> Result<ThreadRef, AuthorityError> {
+        let thread = self.scoped_thread(id)?;
+        self.require_membership(&thread.room_id)?;
+        Ok(thread)
+    }
+
+    /// Lists threads in one room (membership-gated).
+    pub fn list_threads(
+        &self,
+        room_id: &OpaqueId,
+        limit: u32,
+        cursor: Option<String>,
+    ) -> Result<(Vec<ThreadRef>, Option<String>), AuthorityError> {
+        self.require_membership(room_id)?;
+        self.meta
+            .list_threads(room_id, limit, cursor.as_deref())
+            .map_err(meta_err)
+    }
+
+    /// Transitions a thread `Open -> Resolved` or `Resolved -> Reopened`
+    /// (membership-gated). Any other transition is a conflict.
+    pub fn set_thread_status(
+        &self,
+        id: &OpaqueId,
+        expected: u64,
+        target: medscale_contracts::collaboration::ThreadStatus,
+    ) -> Result<ThreadRef, AuthorityError> {
+        use medscale_contracts::collaboration::ThreadStatus;
+        let current = self.scoped_thread(id)?;
+        self.require_membership(&current.room_id)?;
+        let allowed = matches!(
+            (current.status, target),
+            (ThreadStatus::Open, ThreadStatus::Resolved)
+                | (ThreadStatus::Resolved, ThreadStatus::Reopened)
+                | (ThreadStatus::Reopened, ThreadStatus::Resolved)
+        );
+        if !allowed {
+            return Err(AuthorityError::Conflict {
+                message: format!(
+                    "cannot transition thread from {:?} to {target:?}",
+                    current.status
+                ),
+            });
+        }
+        let actor_id = self.actor()?;
+        let activity_id = self
+            .meta
+            .alloc_collab_id("collab-activity", "activity")
+            .map_err(meta_err)?;
+        let (thread, _activity) = self
+            .meta
+            .set_thread_status_with_activity(
+                id,
+                expected,
+                target,
+                header(&self.realm, &self.scope, activity_id),
+                &actor_id,
+            )
+            .map_err(meta_err)?;
+        Ok(thread)
+    }
+
+    // ----- messages -----
+
+    fn scoped_message(
+        &self,
+        id: &OpaqueId,
+    ) -> Result<medscale_contracts::collaboration::Message, AuthorityError> {
+        let message = self.meta.get_message(id).map_err(meta_err)?;
+        if message.header.realm_id != self.realm || message.header.authority_scope_id != self.scope
+        {
+            return Err(AuthorityError::WrongScope);
+        }
+        Ok(message)
+    }
+
+    /// Posts a message to a thread (membership-gated via the thread's room).
+    pub fn post_message(
+        &self,
+        thread_id: &OpaqueId,
+        body: String,
+    ) -> Result<medscale_contracts::collaboration::Message, AuthorityError> {
+        let thread = self.scoped_thread(thread_id)?;
+        let caller = self.require_membership(&thread.room_id)?;
+        let candidate = medscale_contracts::collaboration::Message {
+            header: header(&self.realm, &self.scope, OpaqueId::new("validate-only")),
+            thread_id: thread_id.clone(),
+            author_participant_id: caller.header.id.clone(),
+            body: body.clone(),
+            seq: 0,
+        };
+        candidate
+            .validate()
+            .map_err(|message| AuthorityError::InvalidArgument { message })?;
+        let message_id = self
+            .meta
+            .alloc_collab_id("collab-message", "message")
+            .map_err(meta_err)?;
+        let activity_id = self
+            .meta
+            .alloc_collab_id("collab-activity", "activity")
+            .map_err(meta_err)?;
+        let (message, _activity) = self
+            .meta
+            .insert_message_with_activity(
+                header(&self.realm, &self.scope, message_id),
+                &thread.room_id,
+                thread_id,
+                &caller.header.id,
+                &body,
+                header(&self.realm, &self.scope, activity_id),
+            )
+            .map_err(meta_err)?;
+        Ok(message)
+    }
+
+    /// Lists messages in one thread (membership-gated).
+    pub fn list_messages(
+        &self,
+        thread_id: &OpaqueId,
+        limit: u32,
+        after_seq: u64,
+    ) -> Result<Vec<medscale_contracts::collaboration::Message>, AuthorityError> {
+        let thread = self.scoped_thread(thread_id)?;
+        self.require_membership(&thread.room_id)?;
+        self.meta
+            .list_messages(thread_id, limit, after_seq)
+            .map_err(meta_err)
+    }
+
+    /// Edits a message's body. Only the original author may edit or delete
+    /// their own message; membership alone is not sufficient (this is a
+    /// stricter check than the generic room-visibility gate).
+    pub fn edit_message(
+        &self,
+        message_id: &OpaqueId,
+        new_body: String,
+    ) -> Result<medscale_contracts::collaboration::MessageEdit, AuthorityError> {
+        self.edit_message_inner(
+            message_id,
+            medscale_contracts::collaboration::MessageEditKind::BodyReplace { new_body },
+        )
+    }
+
+    /// Deletes a message (append-only tombstone; the original row and its
+    /// full edit history remain intact for audit).
+    pub fn delete_message(
+        &self,
+        message_id: &OpaqueId,
+    ) -> Result<medscale_contracts::collaboration::MessageEdit, AuthorityError> {
+        self.edit_message_inner(
+            message_id,
+            medscale_contracts::collaboration::MessageEditKind::Delete,
+        )
+    }
+
+    fn edit_message_inner(
+        &self,
+        message_id: &OpaqueId,
+        kind: medscale_contracts::collaboration::MessageEditKind,
+    ) -> Result<medscale_contracts::collaboration::MessageEdit, AuthorityError> {
+        let message = self.scoped_message(message_id)?;
+        let thread = self.scoped_thread(&message.thread_id)?;
+        let caller = self.require_membership(&thread.room_id)?;
+        if message.author_participant_id != caller.header.id {
+            return Err(AuthorityError::Unauthorized);
+        }
+        kind.validate()
+            .map_err(|message| AuthorityError::InvalidArgument { message })?;
+        let edit_id = self
+            .meta
+            .alloc_collab_id("collab-message-edit", "msgedit")
+            .map_err(meta_err)?;
+        let activity_id = self
+            .meta
+            .alloc_collab_id("collab-activity", "activity")
+            .map_err(meta_err)?;
+        let (edit, _activity) = self
+            .meta
+            .insert_message_edit_with_activity(
+                header(&self.realm, &self.scope, edit_id),
+                &thread.room_id,
+                message_id,
+                &kind,
+                &caller.header.id,
+                header(&self.realm, &self.scope, activity_id),
+            )
+            .map_err(meta_err)?;
+        Ok(edit)
+    }
+
+    // ----- tasks -----
+
+    fn scoped_task(&self, id: &OpaqueId) -> Result<Task, AuthorityError> {
+        let task = self.meta.get_task(id).map_err(meta_err)?;
+        if task.header.realm_id != self.realm || task.header.authority_scope_id != self.scope {
+            return Err(AuthorityError::WrongScope);
+        }
+        Ok(task)
+    }
+
+    /// Creates a task, optionally anchored to an artifact (membership-gated).
+    pub fn create_task(
+        &self,
+        room_id: OpaqueId,
+        anchor: Option<medscale_contracts::collaboration::AnchorTarget>,
+        title: String,
+        description: Option<String>,
+    ) -> Result<Task, AuthorityError> {
+        self.require_membership(&room_id)?;
+        let task_id = self
+            .meta
+            .alloc_collab_id("collab-task", "task")
+            .map_err(meta_err)?;
+        let task = Task::new(
+            header(&self.realm, &self.scope, task_id),
+            room_id,
+            anchor,
+            title,
+            description,
+        )
+        .map_err(|message| AuthorityError::InvalidArgument { message })?;
+        let actor_id = self.actor()?;
+        let activity_id = self
+            .meta
+            .alloc_collab_id("collab-activity", "activity")
+            .map_err(meta_err)?;
+        self.meta
+            .insert_task_with_activity(
+                &task,
+                header(&self.realm, &self.scope, activity_id),
+                &actor_id,
+            )
+            .map_err(meta_err)?;
+        Ok(task)
+    }
+
+    /// Membership-gated task read.
+    pub fn get_task(&self, id: &OpaqueId) -> Result<Task, AuthorityError> {
+        let task = self.scoped_task(id)?;
+        self.require_membership(&task.room_id)?;
+        Ok(task)
+    }
+
+    /// Lists tasks in one room (membership-gated).
+    pub fn list_tasks(
+        &self,
+        room_id: &OpaqueId,
+        limit: u32,
+        cursor: Option<String>,
+    ) -> Result<(Vec<Task>, Option<String>), AuthorityError> {
+        self.require_membership(room_id)?;
+        self.meta
+            .list_tasks(room_id, limit, cursor.as_deref())
+            .map_err(meta_err)
+    }
+
+    /// Compare-and-swap task status/assignee (membership-gated).
+    pub fn update_task(
+        &self,
+        id: &OpaqueId,
+        expected: u64,
+        status: medscale_contracts::collaboration::TaskStatus,
+        assignee_participant_id: Option<OpaqueId>,
+    ) -> Result<Task, AuthorityError> {
+        let current = self.scoped_task(id)?;
+        self.require_membership(&current.room_id)?;
+        let actor_id = self.actor()?;
+        let activity_id = self
+            .meta
+            .alloc_collab_id("collab-activity", "activity")
+            .map_err(meta_err)?;
+        let (task, _activity) = self
+            .meta
+            .update_task_with_activity(
+                id,
+                expected,
+                status,
+                assignee_participant_id.as_ref(),
+                header(&self.realm, &self.scope, activity_id),
+                &actor_id,
+            )
+            .map_err(meta_err)?;
+        Ok(task)
     }
 }

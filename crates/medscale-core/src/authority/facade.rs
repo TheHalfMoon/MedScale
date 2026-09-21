@@ -2236,6 +2236,190 @@ impl CoreFacade {
                     membership: Box::new(membership),
                 })
             }
+            // Spec 076 T076-04/05/06 slice: thread, message, task.
+            RequestBody::ThreadOpen { room_id, anchor } => {
+                let thread = self.collab(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |collab| collab.open_thread(room_id, anchor),
+                )?;
+                Ok(ResponseBody::CollabThread {
+                    thread: Box::new(thread),
+                })
+            }
+            RequestBody::ThreadGet { thread_id } => {
+                let thread = self.collab(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |collab| collab.get_thread(&thread_id),
+                )?;
+                Ok(ResponseBody::CollabThread {
+                    thread: Box::new(thread),
+                })
+            }
+            RequestBody::ThreadList {
+                room_id,
+                limit,
+                cursor,
+            } => {
+                let (threads, next_cursor) = self.collab(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |collab| collab.list_threads(&room_id, limit.unwrap_or(25), cursor),
+                )?;
+                Ok(ResponseBody::CollabThreadList {
+                    threads,
+                    next_cursor,
+                })
+            }
+            RequestBody::ThreadSetStatus {
+                thread_id,
+                expected_revision,
+                status,
+            } => {
+                let thread = self.collab(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |collab| collab.set_thread_status(&thread_id, expected_revision, status),
+                )?;
+                Ok(ResponseBody::CollabThread {
+                    thread: Box::new(thread),
+                })
+            }
+            RequestBody::MessagePost { thread_id, body } => {
+                let message = self.collab(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |collab| collab.post_message(&thread_id, body),
+                )?;
+                Ok(ResponseBody::CollabMessage {
+                    message: Box::new(message),
+                })
+            }
+            RequestBody::MessageList {
+                thread_id,
+                limit,
+                after_seq,
+            } => {
+                let messages = self.collab(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |collab| {
+                        collab.list_messages(
+                            &thread_id,
+                            limit.unwrap_or(50),
+                            after_seq.unwrap_or(0),
+                        )
+                    },
+                )?;
+                Ok(ResponseBody::CollabMessageList { messages })
+            }
+            RequestBody::MessageEditBody {
+                message_id,
+                new_body,
+            } => {
+                let edit = self.collab(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |collab| collab.edit_message(&message_id, new_body),
+                )?;
+                Ok(ResponseBody::CollabMessageEdit {
+                    edit: Box::new(edit),
+                })
+            }
+            RequestBody::MessageDelete { message_id } => {
+                let edit = self.collab(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |collab| collab.delete_message(&message_id),
+                )?;
+                Ok(ResponseBody::CollabMessageEdit {
+                    edit: Box::new(edit),
+                })
+            }
+            RequestBody::TaskCreate {
+                room_id,
+                anchor,
+                title,
+                description,
+            } => {
+                let task = self.collab(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |collab| collab.create_task(room_id, anchor, title, description),
+                )?;
+                Ok(ResponseBody::CollabTask {
+                    task: Box::new(task),
+                })
+            }
+            RequestBody::TaskGet { task_id } => {
+                let task = self.collab(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |collab| collab.get_task(&task_id),
+                )?;
+                Ok(ResponseBody::CollabTask {
+                    task: Box::new(task),
+                })
+            }
+            RequestBody::TaskList {
+                room_id,
+                limit,
+                cursor,
+            } => {
+                let (tasks, next_cursor) = self.collab(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |collab| collab.list_tasks(&room_id, limit.unwrap_or(25), cursor),
+                )?;
+                Ok(ResponseBody::CollabTaskList { tasks, next_cursor })
+            }
+            RequestBody::TaskUpdate {
+                task_id,
+                expected_revision,
+                status,
+                assignee_participant_id,
+            } => {
+                let task = self.collab(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |collab| {
+                        collab.update_task(
+                            &task_id,
+                            expected_revision,
+                            status,
+                            assignee_participant_id,
+                        )
+                    },
+                )?;
+                Ok(ResponseBody::CollabTask {
+                    task: Box::new(task),
+                })
+            }
         }
     }
 }
@@ -2554,6 +2738,21 @@ fn capability_matches(cap: &Capability, body: &RequestBody) -> bool {
                 Capability::RoomMembershipManage,
                 RequestBody::RoomMembershipRemove { .. }
             )
+            | (Capability::ThreadCreate, RequestBody::ThreadOpen { .. })
+            | (Capability::ThreadRead, RequestBody::ThreadGet { .. })
+            | (Capability::ThreadRead, RequestBody::ThreadList { .. })
+            | (
+                Capability::ThreadResolve,
+                RequestBody::ThreadSetStatus { .. }
+            )
+            | (Capability::MessagePost, RequestBody::MessagePost { .. })
+            | (Capability::MessageRead, RequestBody::MessageList { .. })
+            | (Capability::MessageEdit, RequestBody::MessageEditBody { .. })
+            | (Capability::MessageEdit, RequestBody::MessageDelete { .. })
+            | (Capability::TaskCreate, RequestBody::TaskCreate { .. })
+            | (Capability::TaskRead, RequestBody::TaskGet { .. })
+            | (Capability::TaskRead, RequestBody::TaskList { .. })
+            | (Capability::TaskUpdate, RequestBody::TaskUpdate { .. })
     )
 }
 

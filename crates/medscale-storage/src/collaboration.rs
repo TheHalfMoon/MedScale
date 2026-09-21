@@ -1105,11 +1105,18 @@ fn map_thread_row(row: &rusqlite::Row<'_>) -> Result<ThreadRef, MetaError> {
 }
 
 impl SqliteMetaStore {
-    /// Inserts a new thread row.
-    pub fn insert_thread(&self, thread: &ThreadRef) -> Result<(), MetaError> {
+    /// Inserts a new thread row and its `ThreadOpened` activity entry in one
+    /// transaction (`migration.md` section 5).
+    pub fn insert_thread_with_activity(
+        &self,
+        thread: &ThreadRef,
+        activity_header: ObjectHeader,
+        actor_participant_id: &OpaqueId,
+    ) -> Result<ActivityRecord, MetaError> {
         let anchor_json = serde_json::to_string(&thread.anchor)
             .map_err(|e| MetaError::CorruptObjectBody(e.to_string()))?;
-        let result = self.conn().execute(
+        let tx = self.conn().unchecked_transaction()?;
+        tx.execute(
             "INSERT INTO collab_threads(thread_id, room_id, realm_id, authority_scope_id, anchor_json, status, revision, schema_version)
              VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
             params![
@@ -1122,15 +1129,24 @@ impl SqliteMetaStore {
                 revision_to_i64(thread.revision),
                 thread.header.schema_version as i64,
             ],
-        );
-        match result {
-            Ok(_) => Ok(()),
-            Err(e) if is_conflict(&e) => Err(MetaError::Conflict(format!(
-                "duplicate thread {}",
-                thread.header.id.as_str()
-            ))),
-            Err(e) => Err(MetaError::Sqlite(e)),
-        }
+        )
+        .map_err(|e| {
+            if is_conflict(&e) {
+                MetaError::Conflict(format!("duplicate thread {}", thread.header.id.as_str()))
+            } else {
+                MetaError::Sqlite(e)
+            }
+        })?;
+        let activity = append_activity_in_tx(
+            &tx,
+            activity_header,
+            &thread.room_id,
+            actor_participant_id,
+            CollabEventKind::ThreadOpened,
+            &thread.header.id,
+        )?;
+        tx.commit()?;
+        Ok(activity)
     }
 
     /// Reads one thread row.
@@ -1207,22 +1223,26 @@ impl SqliteMetaStore {
         Ok(())
     }
 
-    /// Compare-and-swap thread status (resolve/reopen).
-    pub fn set_thread_status(
+    /// Compare-and-swap thread status (resolve/reopen), appending the
+    /// matching `ThreadResolved`/`ThreadReopened` activity entry in the same
+    /// transaction (`migration.md` section 5).
+    pub fn set_thread_status_with_activity(
         &self,
         id: &OpaqueId,
         expected: u64,
         status: ThreadStatus,
-    ) -> Result<ThreadRef, MetaError> {
+        activity_header: ObjectHeader,
+        actor_participant_id: &OpaqueId,
+    ) -> Result<(ThreadRef, ActivityRecord), MetaError> {
         let tx = self.conn().unchecked_transaction()?;
-        let current: Option<i64> = tx
+        let current: Option<(i64, String)> = tx
             .query_row(
-                "SELECT revision FROM collab_threads WHERE thread_id = ?1",
+                "SELECT revision, room_id FROM collab_threads WHERE thread_id = ?1",
                 params![id.as_str()],
-                |row| row.get(0),
+                |row| Ok((row.get(0)?, row.get(1)?)),
             )
             .optional()?;
-        let Some(current_rev) = current else {
+        let Some((current_rev, room_id)) = current else {
             return Err(MetaError::NotFound);
         };
         if current_rev != revision_to_i64(expected) {
@@ -1232,8 +1252,22 @@ impl SqliteMetaStore {
             "UPDATE collab_threads SET status = ?1, revision = revision + 1 WHERE thread_id = ?2",
             params![thread_status_str(status), id.as_str()],
         )?;
+        let event_kind = match status {
+            ThreadStatus::Resolved => CollabEventKind::ThreadResolved,
+            ThreadStatus::Reopened => CollabEventKind::ThreadReopened,
+            ThreadStatus::Open => CollabEventKind::ThreadOpened,
+        };
+        let activity = append_activity_in_tx(
+            &tx,
+            activity_header,
+            &OpaqueId::new(room_id),
+            actor_participant_id,
+            event_kind,
+            id,
+        )?;
         tx.commit()?;
-        self.get_thread(id)
+        let thread = self.get_thread(id)?;
+        Ok((thread, activity))
     }
 }
 
@@ -1260,17 +1294,42 @@ fn map_message_row(row: &rusqlite::Row<'_>) -> Result<Message, MetaError> {
 }
 
 impl SqliteMetaStore {
-    /// Appends a new message. `seq` is assigned by storage (per-thread
-    /// counter), never client-supplied.
-    pub fn insert_message(
+    /// Appends a new message and its `MessagePosted` activity entry in one
+    /// transaction (`migration.md` section 5). `seq` is assigned by storage
+    /// (per-thread counter), never client-supplied. The caller supplies
+    /// `room_id` (already resolved when the thread was loaded) so this
+    /// function does not need an extra lookup to scope the activity chain.
+    pub fn insert_message_with_activity(
         &self,
         header: ObjectHeader,
+        room_id: &OpaqueId,
         thread_id: &OpaqueId,
         author_participant_id: &OpaqueId,
         body: &str,
-    ) -> Result<Message, MetaError> {
-        let seq = self.next_collab_seq(&format!("collab-msg-seq-{}", thread_id.as_str()))?;
-        self.conn().execute(
+        activity_header: ObjectHeader,
+    ) -> Result<(Message, ActivityRecord), MetaError> {
+        let tx = self.conn().unchecked_transaction()?;
+        let seq_key = format!("collab-msg-seq-{}", thread_id.as_str());
+        let current: Option<String> = tx
+            .query_row(
+                "SELECT value FROM store_state WHERE key = ?1",
+                params![seq_key],
+                |row| row.get(0),
+            )
+            .optional()?;
+        let seq: u64 = match current.as_deref() {
+            None => 1,
+            Some(raw) => {
+                raw.parse::<u64>().map_err(|_| {
+                    MetaError::CorruptObjectBody(format!("seq counter {seq_key} is not numeric"))
+                })? + 1
+            }
+        };
+        tx.execute(
+            "INSERT OR REPLACE INTO store_state(key, value) VALUES (?1, ?2)",
+            params![seq_key, seq.to_string()],
+        )?;
+        tx.execute(
             "INSERT INTO collab_messages(message_id, thread_id, realm_id, authority_scope_id, author_participant_id, body, seq, schema_version)
              VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
             params![
@@ -1284,13 +1343,23 @@ impl SqliteMetaStore {
                 header.schema_version as i64,
             ],
         )?;
-        Ok(Message {
+        let activity = append_activity_in_tx(
+            &tx,
+            activity_header,
+            room_id,
+            author_participant_id,
+            CollabEventKind::MessagePosted,
+            &header.id,
+        )?;
+        tx.commit()?;
+        let message = Message {
             header,
             thread_id: thread_id.clone(),
             author_participant_id: author_participant_id.clone(),
             body: body.to_owned(),
             seq,
-        })
+        };
+        Ok((message, activity))
     }
 
     /// Lists messages in one thread, in `seq` order.
@@ -1324,18 +1393,43 @@ impl SqliteMetaStore {
         map_message_row(row)
     }
 
-    /// Appends a message edit or delete. Never rewrites `collab_messages`.
-    pub fn insert_message_edit(
+    /// Appends a message edit or delete and its `MessageEdited`/
+    /// `MessageDeleted` activity entry in one transaction (`migration.md`
+    /// section 5). Never rewrites `collab_messages`. The caller supplies
+    /// `room_id` (already resolved with the message/thread).
+    pub fn insert_message_edit_with_activity(
         &self,
         header: ObjectHeader,
+        room_id: &OpaqueId,
         message_id: &OpaqueId,
         kind: &MessageEditKind,
         edited_by_participant_id: &OpaqueId,
-    ) -> Result<MessageEdit, MetaError> {
+        activity_header: ObjectHeader,
+    ) -> Result<(MessageEdit, ActivityRecord), MetaError> {
         let kind_json =
             serde_json::to_string(kind).map_err(|e| MetaError::CorruptObjectBody(e.to_string()))?;
-        let seq = self.next_collab_seq(&format!("collab-msgedit-seq-{}", message_id.as_str()))?;
-        self.conn().execute(
+        let tx = self.conn().unchecked_transaction()?;
+        let seq_key = format!("collab-msgedit-seq-{}", message_id.as_str());
+        let current: Option<String> = tx
+            .query_row(
+                "SELECT value FROM store_state WHERE key = ?1",
+                params![seq_key],
+                |row| row.get(0),
+            )
+            .optional()?;
+        let seq: u64 = match current.as_deref() {
+            None => 1,
+            Some(raw) => {
+                raw.parse::<u64>().map_err(|_| {
+                    MetaError::CorruptObjectBody(format!("seq counter {seq_key} is not numeric"))
+                })? + 1
+            }
+        };
+        tx.execute(
+            "INSERT OR REPLACE INTO store_state(key, value) VALUES (?1, ?2)",
+            params![seq_key, seq.to_string()],
+        )?;
+        tx.execute(
             "INSERT INTO collab_message_edits(edit_id, message_id, realm_id, authority_scope_id, kind_json, edited_by_participant_id, seq, schema_version)
              VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
             params![
@@ -1349,13 +1443,27 @@ impl SqliteMetaStore {
                 header.schema_version as i64,
             ],
         )?;
-        Ok(MessageEdit {
+        let event_kind = match kind {
+            MessageEditKind::BodyReplace { .. } => CollabEventKind::MessageEdited,
+            MessageEditKind::Delete => CollabEventKind::MessageDeleted,
+        };
+        let activity = append_activity_in_tx(
+            &tx,
+            activity_header,
+            room_id,
+            edited_by_participant_id,
+            event_kind,
+            message_id,
+        )?;
+        tx.commit()?;
+        let edit = MessageEdit {
             header,
             message_id: message_id.clone(),
             kind: kind.clone(),
             edited_by_participant_id: edited_by_participant_id.clone(),
             seq,
-        })
+        };
+        Ok((edit, activity))
     }
 
     /// Lists every message row (backup/restore snapshot only).
@@ -1534,8 +1642,14 @@ fn map_task_row(row: &rusqlite::Row<'_>) -> Result<Task, MetaError> {
 }
 
 impl SqliteMetaStore {
-    /// Inserts a new task row.
-    pub fn insert_task(&self, task: &Task) -> Result<(), MetaError> {
+    /// Inserts a new task row and its `TaskCreated` activity entry in one
+    /// transaction (`migration.md` section 5).
+    pub fn insert_task_with_activity(
+        &self,
+        task: &Task,
+        activity_header: ObjectHeader,
+        actor_participant_id: &OpaqueId,
+    ) -> Result<ActivityRecord, MetaError> {
         let anchor_json = match &task.anchor {
             Some(anchor) => Some(
                 serde_json::to_string(anchor)
@@ -1543,7 +1657,8 @@ impl SqliteMetaStore {
             ),
             None => None,
         };
-        let result = self.conn().execute(
+        let tx = self.conn().unchecked_transaction()?;
+        tx.execute(
             "INSERT INTO collab_tasks(task_id, room_id, realm_id, authority_scope_id, anchor_json, title, description, assignee_participant_id, status, revision, schema_version)
              VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
             params![
@@ -1559,15 +1674,24 @@ impl SqliteMetaStore {
                 revision_to_i64(task.revision),
                 task.header.schema_version as i64,
             ],
-        );
-        match result {
-            Ok(_) => Ok(()),
-            Err(e) if is_conflict(&e) => Err(MetaError::Conflict(format!(
-                "duplicate task {}",
-                task.header.id.as_str()
-            ))),
-            Err(e) => Err(MetaError::Sqlite(e)),
-        }
+        )
+        .map_err(|e| {
+            if is_conflict(&e) {
+                MetaError::Conflict(format!("duplicate task {}", task.header.id.as_str()))
+            } else {
+                MetaError::Sqlite(e)
+            }
+        })?;
+        let activity = append_activity_in_tx(
+            &tx,
+            activity_header,
+            &task.room_id,
+            actor_participant_id,
+            CollabEventKind::TaskCreated,
+            &task.header.id,
+        )?;
+        tx.commit()?;
+        Ok(activity)
     }
 
     /// Reads one task row.
@@ -1652,23 +1776,27 @@ impl SqliteMetaStore {
         Ok(())
     }
 
-    /// Compare-and-swap task fields (status/assignee/description).
-    pub fn update_task(
+    /// Compare-and-swap task fields (status/assignee), appending the
+    /// `TaskUpdated` activity entry in the same transaction (`migration.md`
+    /// section 5).
+    pub fn update_task_with_activity(
         &self,
         id: &OpaqueId,
         expected: u64,
         status: TaskStatus,
         assignee_participant_id: Option<&OpaqueId>,
-    ) -> Result<Task, MetaError> {
+        activity_header: ObjectHeader,
+        actor_participant_id: &OpaqueId,
+    ) -> Result<(Task, ActivityRecord), MetaError> {
         let tx = self.conn().unchecked_transaction()?;
-        let current: Option<i64> = tx
+        let current: Option<(i64, String)> = tx
             .query_row(
-                "SELECT revision FROM collab_tasks WHERE task_id = ?1",
+                "SELECT revision, room_id FROM collab_tasks WHERE task_id = ?1",
                 params![id.as_str()],
-                |row| row.get(0),
+                |row| Ok((row.get(0)?, row.get(1)?)),
             )
             .optional()?;
-        let Some(current_rev) = current else {
+        let Some((current_rev, room_id)) = current else {
             return Err(MetaError::NotFound);
         };
         if current_rev != revision_to_i64(expected) {
@@ -1682,8 +1810,17 @@ impl SqliteMetaStore {
                 id.as_str()
             ],
         )?;
+        let activity = append_activity_in_tx(
+            &tx,
+            activity_header,
+            &OpaqueId::new(room_id),
+            actor_participant_id,
+            CollabEventKind::TaskUpdated,
+            id,
+        )?;
         tx.commit()?;
-        self.get_task(id)
+        let task = self.get_task(id)?;
+        Ok((task, activity))
     }
 }
 

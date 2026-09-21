@@ -6,7 +6,8 @@ use serde_json::Value;
 use crate::AUTHORITY_SCHEMA_VERSION;
 use crate::actions::{CreateExternalActionIntentRequest, NphiesInvokeRequest, OutboxEntry};
 use crate::collaboration::{
-    MembershipRole, ParticipantIdentity, ParticipantKind, Room, RoomMembership, RoomStatus,
+    AnchorTarget, MembershipRole, Message, MessageEdit, ParticipantIdentity, ParticipantKind, Room,
+    RoomMembership, RoomStatus, Task, TaskStatus, ThreadRef, ThreadStatus,
 };
 use crate::data_sources::{
     DataSourceManifest, DataSourceSummary, DataViewKind, DatasetReleaseSummary, FilterExpr,
@@ -130,6 +131,16 @@ pub enum Capability {
     RoomArchive,
     RoomMembershipManage,
     RoomMembershipRead,
+    // Spec 076 T076-04/05/06 slice: thread, message, task.
+    ThreadCreate,
+    ThreadRead,
+    ThreadResolve,
+    MessagePost,
+    MessageRead,
+    MessageEdit,
+    TaskCreate,
+    TaskRead,
+    TaskUpdate,
 }
 
 impl Capability {
@@ -170,6 +181,9 @@ impl Capability {
                 | Self::ParticipantRead
                 | Self::RoomRead
                 | Self::RoomMembershipRead
+                | Self::ThreadRead
+                | Self::MessageRead
+                | Self::TaskRead
         )
     }
 
@@ -268,6 +282,15 @@ impl Capability {
             Self::RoomArchive,
             Self::RoomMembershipManage,
             Self::RoomMembershipRead,
+            Self::ThreadCreate,
+            Self::ThreadRead,
+            Self::ThreadResolve,
+            Self::MessagePost,
+            Self::MessageRead,
+            Self::MessageEdit,
+            Self::TaskCreate,
+            Self::TaskRead,
+            Self::TaskUpdate,
         ]
     }
 }
@@ -701,6 +724,60 @@ pub enum RequestBody {
         membership_id: OpaqueId,
         expected_revision: u64,
     },
+    // Spec 076 T076-04/05/06 slice: thread, message, task.
+    ThreadOpen {
+        room_id: OpaqueId,
+        anchor: AnchorTarget,
+    },
+    ThreadGet {
+        thread_id: OpaqueId,
+    },
+    ThreadList {
+        room_id: OpaqueId,
+        limit: Option<u32>,
+        cursor: Option<String>,
+    },
+    ThreadSetStatus {
+        thread_id: OpaqueId,
+        expected_revision: u64,
+        status: ThreadStatus,
+    },
+    MessagePost {
+        thread_id: OpaqueId,
+        body: String,
+    },
+    MessageList {
+        thread_id: OpaqueId,
+        limit: Option<u32>,
+        after_seq: Option<u64>,
+    },
+    MessageEditBody {
+        message_id: OpaqueId,
+        new_body: String,
+    },
+    MessageDelete {
+        message_id: OpaqueId,
+    },
+    TaskCreate {
+        room_id: OpaqueId,
+        anchor: Option<AnchorTarget>,
+        title: String,
+        description: Option<String>,
+    },
+    TaskGet {
+        task_id: OpaqueId,
+    },
+    TaskList {
+        room_id: OpaqueId,
+        limit: Option<u32>,
+        cursor: Option<String>,
+    },
+    TaskUpdate {
+        task_id: OpaqueId,
+        expected_revision: u64,
+        status: TaskStatus,
+        assignee_participant_id: Option<OpaqueId>,
+    },
 }
 
 impl RequestBody {
@@ -963,6 +1040,29 @@ pub enum ResponseBody {
     },
     CollabMembershipList {
         memberships: Vec<RoomMembership>,
+    },
+    CollabThread {
+        thread: Box<ThreadRef>,
+    },
+    CollabThreadList {
+        threads: Vec<ThreadRef>,
+        next_cursor: Option<String>,
+    },
+    CollabMessage {
+        message: Box<Message>,
+    },
+    CollabMessageList {
+        messages: Vec<Message>,
+    },
+    CollabMessageEdit {
+        edit: Box<MessageEdit>,
+    },
+    CollabTask {
+        task: Box<Task>,
+    },
+    CollabTaskList {
+        tasks: Vec<Task>,
+        next_cursor: Option<String>,
     },
 }
 

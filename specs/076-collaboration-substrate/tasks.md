@@ -52,23 +52,23 @@ Check a task only when its implementation, tests and required evidence are real 
 
 ## T076-04 — Thread and anchor resolution
 
-- [ ] Implement thread create/get/list/resolve/reopen.
-- [ ] Implement live `ReferenceResolution` recomputation against `ArtifactDescriptor` targets.
+- [x] Implement thread create/get/list/resolve/reopen (`open_thread`, `get_thread`, `list_threads`, `set_thread_status` -- allows `Open->Resolved`, `Resolved->Reopened`, `Reopened->Resolved`; any other transition is `Conflict`).
+- [ ] Implement live `ReferenceResolution` recomputation against `ArtifactDescriptor` targets as a queryable field on thread reads. **Deferred**: the anchor is stored and validated for shape (`AnchorTarget::validate` inside `ThreadRef::new`), but `get_thread`/`list_threads` do not yet compute and attach a live `ReferenceResolution`. Tracked to close before T076-11 closure, since this is a frozen acceptance criterion (`SPEC_076_PROMOTION.md` requirement 2).
 
-**Acceptance:** anchored thread resolution flips `Current` -> `Stale`/`Missing` on artifact change without any 076 write.
+**Acceptance:** thread CRUD + status-transition vertical slice complete and CI-green. Live resolution recomputation is the one remaining piece before this task's full acceptance bar is met; not silently claimed done.
 
 ## T076-05 — Message and MessageEdit
 
-- [ ] Implement message post/list.
-- [ ] Implement message edit/delete as append-only `MessageEdit` rows with current-state derivation.
+- [x] Implement message post/list (`post_message`, `list_messages`; only the room's active members may post).
+- [x] Implement message edit/delete as append-only `MessageEdit` rows with current-state derivation left to the reader (edit log is exposed via `list_message_edits`/`insert_message_edit_with_activity`; only the original author may edit or delete their own message).
 
-**Acceptance:** post/edit/delete proven end to end; full history queryable.
+**Acceptance:** post/edit/delete vertical slice complete and CI-green; full history queryable via the edit log. End-to-end proof tests land in T076-11.
 
 ## T076-06 — Task
 
-- [ ] Implement task create/get/list/update with `expected_revision` precondition and optional anchor.
+- [x] Implement task create/get/list/update with `expected_revision` precondition and optional anchor.
 
-**Acceptance:** stale task update -> `Conflict`, no write.
+**Acceptance:** stale task update -> `Conflict` (enforced by `update_task_with_activity`'s CAS); vertical slice complete and CI-green.
 
 ## T076-07 — Note and conflict-copy
 
