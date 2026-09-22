@@ -12,6 +12,8 @@ mod handles;
 mod identity;
 mod ingest_ops;
 mod medagent;
+mod model_fleet;
+mod model_fleet_compare;
 mod presentation;
 mod project_graph;
 mod promote;

@@ -234,6 +234,12 @@ impl SqliteMetaStore {
             self.conn.execute_batch(crate::medagent::V6_DDL)?;
             self.finish_migration(6)?;
         }
+        let journal = self.migration_journal()?;
+        if journal.finished_version < 7 {
+            self.begin_migration(7)?;
+            self.conn.execute_batch(crate::model_fleet::V7_DDL)?;
+            self.finish_migration(7)?;
+        }
         Ok(())
     }
 
@@ -413,7 +419,7 @@ impl SqliteMetaStore {
             })
             .collect();
         let payload = serde_json::json!({
-            "schema_version": 6,
+            "schema_version": 7,
             "next_seq": self.get_next_seq()?,
             "sources": source_payload,
             "objects": object_payload,
@@ -464,6 +470,14 @@ impl SqliteMetaStore {
             "medagent_tool_receipts": self.list_all_tool_receipts()?,
             "medagent_run_receipts": self.list_all_run_receipts()?,
             "medagent_proposals": self.list_all_agent_proposals()?,
+            // Spec 078: Model Fleet + Compare rows ride the same snapshot so
+            // synthetic backup/restore preserves agent lanes, fleet runs,
+            // lane run refs and comparison reports without a second
+            // mechanism.
+            "model_fleet_lanes": self.list_all_agent_lanes()?,
+            "model_fleet_runs": self.list_all_fleet_runs()?,
+            "model_fleet_lane_run_refs": self.list_all_lane_run_refs()?,
+            "model_fleet_comparison_reports": self.list_all_comparison_reports()?,
         });
         Ok(serde_json::to_vec(&payload).unwrap_or_default())
     }

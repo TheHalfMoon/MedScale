@@ -1352,6 +1352,294 @@ impl CliSession {
     // Spec 077: MedAgent Workbench (T077-03 slice)
     // ---------------------------------------------------------------------
 
+    // ---------------------------------------------------------------------
+    // Spec 078: Model Fleet + Compare (T078-03 slice: AgentLane)
+    // ---------------------------------------------------------------------
+
+    fn expect_model_fleet_lane(
+        resp: ResponseBody,
+    ) -> Result<medscale_contracts::model_fleet::AgentLane, AuthorityError> {
+        let ResponseBody::ModelFleetLane { lane } = resp else {
+            return Err(AuthorityError::InvalidArgument {
+                message: "expected model fleet lane".to_owned(),
+            });
+        };
+        Ok(*lane)
+    }
+
+    /// Creates an agent lane over an existing identity/context pair; the
+    /// optional policy subsets may only narrow the underlying grants.
+    pub fn model_fleet_lane_create(
+        &mut self,
+        project_id: OpaqueId,
+        agent_identity_id: OpaqueId,
+        context_manifest_id: OpaqueId,
+        role_label: String,
+        granted_tool_kinds: Option<Vec<medscale_contracts::medagent::ToolKind>>,
+        context_artifact_ids: Option<Vec<OpaqueId>>,
+    ) -> Result<medscale_contracts::model_fleet::AgentLane, AuthorityError> {
+        let resp = self.dispatch(
+            Capability::AgentLaneCreate,
+            RequestBody::AgentLaneCreate {
+                project_id,
+                agent_identity_id,
+                context_manifest_id,
+                role_label,
+                granted_tool_kinds,
+                context_artifact_ids,
+            },
+        )?;
+        Self::expect_model_fleet_lane(resp)
+    }
+
+    /// Reads one agent lane through Core.
+    pub fn model_fleet_lane_get(
+        &mut self,
+        lane_id: OpaqueId,
+    ) -> Result<medscale_contracts::model_fleet::AgentLane, AuthorityError> {
+        let resp = self.dispatch(
+            Capability::AgentLaneRead,
+            RequestBody::AgentLaneGet { lane_id },
+        )?;
+        Self::expect_model_fleet_lane(resp)
+    }
+
+    /// Lists agent lanes in one Project, optionally by status.
+    pub fn model_fleet_lane_list(
+        &mut self,
+        project_id: OpaqueId,
+        status: Option<medscale_contracts::model_fleet::AgentLaneStatus>,
+        limit: Option<u32>,
+    ) -> Result<Vec<medscale_contracts::model_fleet::AgentLane>, AuthorityError> {
+        let resp = self.dispatch(
+            Capability::AgentLaneRead,
+            RequestBody::AgentLaneList {
+                project_id,
+                status,
+                limit,
+            },
+        )?;
+        let ResponseBody::ModelFleetLaneList { lanes } = resp else {
+            return Err(AuthorityError::InvalidArgument {
+                message: "expected model fleet lane list".to_owned(),
+            });
+        };
+        Ok(lanes)
+    }
+
+    /// Retires an agent lane (status tombstone).
+    pub fn model_fleet_lane_retire(
+        &mut self,
+        lane_id: OpaqueId,
+        expected_revision: u64,
+    ) -> Result<medscale_contracts::model_fleet::AgentLane, AuthorityError> {
+        let resp = self.dispatch(
+            Capability::AgentLaneRetire,
+            RequestBody::AgentLaneRetire {
+                lane_id,
+                expected_revision,
+            },
+        )?;
+        Self::expect_model_fleet_lane(resp)
+    }
+
+    // Spec 078 T078-04 slice: FleetRun lifecycle.
+
+    fn expect_model_fleet_run(
+        resp: ResponseBody,
+    ) -> Result<
+        (
+            medscale_contracts::model_fleet::FleetRun,
+            Vec<medscale_contracts::model_fleet::LaneRunRef>,
+        ),
+        AuthorityError,
+    > {
+        let ResponseBody::ModelFleetRun { run, lane_run_refs } = resp else {
+            return Err(AuthorityError::InvalidArgument {
+                message: "expected model fleet run".to_owned(),
+            });
+        };
+        Ok((*run, lane_run_refs))
+    }
+
+    /// Creates a `Pending` fleet run.
+    pub fn model_fleet_run_create(
+        &mut self,
+        project_id: OpaqueId,
+        task_prompt: String,
+    ) -> Result<medscale_contracts::model_fleet::FleetRun, AuthorityError> {
+        let resp = self.dispatch(
+            Capability::FleetRunCreate,
+            RequestBody::FleetRunCreate {
+                project_id,
+                task_prompt,
+            },
+        )?;
+        Ok(Self::expect_model_fleet_run(resp)?.0)
+    }
+
+    /// Reads one fleet run with its lane bindings.
+    pub fn model_fleet_run_get(
+        &mut self,
+        fleet_run_id: OpaqueId,
+    ) -> Result<
+        (
+            medscale_contracts::model_fleet::FleetRun,
+            Vec<medscale_contracts::model_fleet::LaneRunRef>,
+        ),
+        AuthorityError,
+    > {
+        let resp = self.dispatch(
+            Capability::FleetRunRead,
+            RequestBody::FleetRunGet { fleet_run_id },
+        )?;
+        Self::expect_model_fleet_run(resp)
+    }
+
+    /// Lists fleet runs in one Project, optionally by state.
+    pub fn model_fleet_run_list(
+        &mut self,
+        project_id: OpaqueId,
+        status: Option<medscale_contracts::model_fleet::FleetRunState>,
+        limit: Option<u32>,
+    ) -> Result<Vec<medscale_contracts::model_fleet::FleetRun>, AuthorityError> {
+        let resp = self.dispatch(
+            Capability::FleetRunRead,
+            RequestBody::FleetRunList {
+                project_id,
+                status,
+                limit,
+            },
+        )?;
+        let ResponseBody::ModelFleetRunList { runs } = resp else {
+            return Err(AuthorityError::InvalidArgument {
+                message: "expected model fleet run list".to_owned(),
+            });
+        };
+        Ok(runs)
+    }
+
+    /// Dispatches a `Pending` fleet run over `lane_ids`.
+    pub fn model_fleet_run_dispatch(
+        &mut self,
+        fleet_run_id: OpaqueId,
+        expected_revision: u64,
+        lane_ids: Vec<OpaqueId>,
+    ) -> Result<
+        (
+            medscale_contracts::model_fleet::FleetRun,
+            Vec<medscale_contracts::model_fleet::LaneRunRef>,
+        ),
+        AuthorityError,
+    > {
+        let resp = self.dispatch(
+            Capability::FleetRunDispatch,
+            RequestBody::FleetRunDispatch {
+                fleet_run_id,
+                expected_revision,
+                lane_ids,
+            },
+        )?;
+        Self::expect_model_fleet_run(resp)
+    }
+
+    /// Executes one dispatched lane of a `Running` fleet run.
+    pub fn model_fleet_run_execute_lane(
+        &mut self,
+        fleet_run_id: OpaqueId,
+        lane_id: OpaqueId,
+        local_path: String,
+        max_tokens: usize,
+        synthetic_only: bool,
+    ) -> Result<
+        (
+            medscale_contracts::model_fleet::FleetRun,
+            medscale_contracts::medagent::AgentRun,
+            Option<medscale_contracts::medagent::AgentProposal>,
+        ),
+        AuthorityError,
+    > {
+        let resp = self.dispatch(
+            Capability::FleetRunExecuteLane,
+            RequestBody::FleetRunExecuteLane {
+                fleet_run_id,
+                lane_id,
+                local_path,
+                max_tokens,
+                synthetic_only,
+            },
+        )?;
+        let ResponseBody::ModelFleetLaneExecuted {
+            run,
+            lane_run,
+            proposal,
+        } = resp
+        else {
+            return Err(AuthorityError::InvalidArgument {
+                message: "expected model fleet lane execution".to_owned(),
+            });
+        };
+        Ok((*run, *lane_run, proposal.map(|p| *p)))
+    }
+
+    /// Cancels a `Pending` or `Running` fleet run.
+    pub fn model_fleet_run_cancel(
+        &mut self,
+        fleet_run_id: OpaqueId,
+        expected_revision: u64,
+    ) -> Result<
+        (
+            medscale_contracts::model_fleet::FleetRun,
+            Vec<medscale_contracts::model_fleet::LaneRunRef>,
+        ),
+        AuthorityError,
+    > {
+        let resp = self.dispatch(
+            Capability::FleetRunCancel,
+            RequestBody::FleetRunCancel {
+                fleet_run_id,
+                expected_revision,
+            },
+        )?;
+        Self::expect_model_fleet_run(resp)
+    }
+
+    // Spec 078 T078-05/06 slice: comparison + history.
+
+    /// Computes and persists a new comparison report over a fleet run.
+    pub fn model_fleet_compare(
+        &mut self,
+        fleet_run_id: OpaqueId,
+    ) -> Result<medscale_contracts::model_fleet::ComparisonReport, AuthorityError> {
+        let resp = self.dispatch(
+            Capability::ComparisonCompute,
+            RequestBody::ComparisonCompute { fleet_run_id },
+        )?;
+        let ResponseBody::ModelFleetComparisonReport { report } = resp else {
+            return Err(AuthorityError::InvalidArgument {
+                message: "expected comparison report".to_owned(),
+            });
+        };
+        Ok(*report)
+    }
+
+    /// Lists every comparison report computed over one fleet run.
+    pub fn model_fleet_compare_list(
+        &mut self,
+        fleet_run_id: OpaqueId,
+    ) -> Result<Vec<medscale_contracts::model_fleet::ComparisonReport>, AuthorityError> {
+        let resp = self.dispatch(
+            Capability::ComparisonRead,
+            RequestBody::ComparisonReportList { fleet_run_id },
+        )?;
+        let ResponseBody::ModelFleetComparisonReportList { reports } = resp else {
+            return Err(AuthorityError::InvalidArgument {
+                message: "expected comparison report list".to_owned(),
+            });
+        };
+        Ok(reports)
+    }
+
     /// Registers a new `AgentIdentity` bound to `pack_id` (must already be
     /// admitted locally; a non-admitted pack fails closed).
     pub fn medagent_identity_register(

@@ -17,6 +17,7 @@ use serde::Serialize;
 mod collaboration;
 mod data_source;
 mod medagent;
+mod model_fleet;
 mod project;
 
 #[derive(Debug, Parser)]
@@ -162,6 +163,11 @@ enum Commands {
     MedAgent {
         #[command(subcommand)]
         action: Box<medagent::MedAgentCmd>,
+    },
+    /// Model Fleet + Compare (Spec 078; agent lanes through Core).
+    ModelFleet {
+        #[command(subcommand)]
+        action: Box<model_fleet::ModelFleetCmd>,
     },
     /// Data source fabric (Spec 075; governed sources through Core).
     /// Boxed: the locator/filter/transform DSL variants are large by value.
@@ -1172,6 +1178,7 @@ fn run() -> Result<()> {
         Commands::Collab { action } => collaboration::run_collab(*action),
         Commands::CollabWork { action } => collaboration::run_collab_work(*action),
         Commands::MedAgent { action } => medagent::run_medagent(*action),
+        Commands::ModelFleet { action } => model_fleet::run_model_fleet(*action),
         Commands::DataSource { action } => data_source::run_data_source(*action),
         Commands::Snapshot { action } => data_source::run_snapshot(*action),
         Commands::DataView { action } => data_source::run_data_view(*action),

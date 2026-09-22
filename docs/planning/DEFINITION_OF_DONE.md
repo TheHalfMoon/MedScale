@@ -29,3 +29,15 @@ is a live integration or that product release, privacy, clinical, mobile or inte
 readiness is established. Report these axes separately. Trusted V1 release requires the
 measured workflow, storage/recovery, platform and artifact gates in
 [delivery plan](TRUSTED_V1_DELIVERY_PLAN.md). No PARITY or SURPASS claim without matched-task evidence.
+
+## Review-policy refinement (2026-09-22)
+
+Per `FOUNDER_REVIEW_POLICY_AMENDMENT_2026-09-22.md`, "current-head review" and
+"no unresolved material review finding" are satisfied by deterministic,
+executable qualification (format, build, dependency direction, Clippy with
+denied warnings, cargo-deny/supply chain, the unit's tests, a deterministic
+exact-range scope record, exact-head required CI and post-main CI) and
+requirement-to-evidence traceability. Every defect found by that qualification
+or by the implementer is fixed forward or recorded as an explicit residual. No
+external semantic reviewer (Alibaba Open Code Review or any substitute) is
+required. That supersedes the earlier OCR-only directive of the same date.

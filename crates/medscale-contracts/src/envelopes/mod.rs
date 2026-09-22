@@ -27,6 +27,9 @@ use crate::medagent::{
     ContextManifest, RunReceipt, ToolInvocation, ToolKind, ToolReceipt,
 };
 use crate::mesc::{MescArtifactAdmitRequest, MescArtifactVerifyRequest, MescVerifyReport};
+use crate::model_fleet::{
+    AgentLane, AgentLaneStatus, ComparisonReport, FleetRun, FleetRunState, LaneRunRef,
+};
 use crate::network::{EgressAllowlistEntry, NetworkBrokerRequest, NetworkBrokerResult};
 use crate::objects::{AmendmentKind, DigestSha256, EffectState, MedicalTime, OpaqueId, VaultId};
 use crate::online_packs::OnlinePackAcquireRequest;
@@ -177,6 +180,19 @@ pub enum Capability {
     // Spec 077 T077-08 slice.
     AgentRunComplete,
     AgentRunFail,
+    // Spec 078: Model Fleet + Compare (T078-03 slice: AgentLane).
+    AgentLaneCreate,
+    AgentLaneRead,
+    AgentLaneRetire,
+    // Spec 078 T078-04 slice: FleetRun lifecycle.
+    FleetRunCreate,
+    FleetRunRead,
+    FleetRunDispatch,
+    FleetRunExecuteLane,
+    FleetRunCancel,
+    // Spec 078 T078-05/06 slice: comparison + history.
+    ComparisonCompute,
+    ComparisonRead,
 }
 
 impl Capability {
@@ -226,6 +242,9 @@ impl Capability {
                 | Self::AgentIdentityRead
                 | Self::ContextManifestRead
                 | Self::AgentRunRead
+                | Self::AgentLaneRead
+                | Self::FleetRunRead
+                | Self::ComparisonRead
         )
     }
 
@@ -354,6 +373,16 @@ impl Capability {
             Self::AgentRunExecute,
             Self::AgentRunComplete,
             Self::AgentRunFail,
+            Self::AgentLaneCreate,
+            Self::AgentLaneRead,
+            Self::AgentLaneRetire,
+            Self::FleetRunCreate,
+            Self::FleetRunRead,
+            Self::FleetRunDispatch,
+            Self::FleetRunExecuteLane,
+            Self::FleetRunCancel,
+            Self::ComparisonCompute,
+            Self::ComparisonRead,
         ]
     }
 }
@@ -970,6 +999,69 @@ pub enum RequestBody {
         expected_revision: u64,
         failure_reason: String,
     },
+    // Spec 078 T078-03 slice: AgentLane + LanePolicy.
+    AgentLaneCreate {
+        project_id: OpaqueId,
+        agent_identity_id: OpaqueId,
+        context_manifest_id: OpaqueId,
+        role_label: String,
+        /// `None` inherits the identity's full grant; `Some` must be a
+        /// non-empty subset (`security.md` T2).
+        granted_tool_kinds: Option<Vec<ToolKind>>,
+        /// `None` inherits the full context manifest; `Some` must be a
+        /// non-empty subset (`security.md` T2).
+        context_artifact_ids: Option<Vec<OpaqueId>>,
+    },
+    AgentLaneGet {
+        lane_id: OpaqueId,
+    },
+    AgentLaneList {
+        project_id: OpaqueId,
+        status: Option<AgentLaneStatus>,
+        limit: Option<u32>,
+    },
+    AgentLaneRetire {
+        lane_id: OpaqueId,
+        expected_revision: u64,
+    },
+    // Spec 078 T078-04 slice: FleetRun lifecycle.
+    FleetRunCreate {
+        project_id: OpaqueId,
+        task_prompt: String,
+    },
+    FleetRunGet {
+        fleet_run_id: OpaqueId,
+    },
+    FleetRunList {
+        project_id: OpaqueId,
+        status: Option<FleetRunState>,
+        limit: Option<u32>,
+    },
+    /// Binds and starts one real Spec 077 `AgentRun` per lane.
+    FleetRunDispatch {
+        fleet_run_id: OpaqueId,
+        expected_revision: u64,
+        lane_ids: Vec<OpaqueId>,
+    },
+    /// Executes one dispatched lane through Spec 077 `execute_agent_run`.
+    FleetRunExecuteLane {
+        fleet_run_id: OpaqueId,
+        lane_id: OpaqueId,
+        local_path: String,
+        max_tokens: usize,
+        synthetic_only: bool,
+    },
+    FleetRunCancel {
+        fleet_run_id: OpaqueId,
+        expected_revision: u64,
+    },
+    // Spec 078 T078-05/06 slice: comparison + history.
+    ComparisonCompute {
+        fleet_run_id: OpaqueId,
+    },
+    ComparisonReportList {
+        fleet_run_id: OpaqueId,
+    },
 }
 
 impl RequestBody {
@@ -1325,6 +1417,31 @@ pub enum ResponseBody {
     MedAgentRunExecuted {
         turn: Box<AgentTurn>,
         proposal: Box<AgentProposal>,
+    },
+    // Spec 078: Model Fleet + Compare typed results (T078-03 slice).
+    ModelFleetLane {
+        lane: Box<AgentLane>,
+    },
+    ModelFleetLaneList {
+        lanes: Vec<AgentLane>,
+    },
+    ModelFleetRun {
+        run: Box<FleetRun>,
+        lane_run_refs: Vec<LaneRunRef>,
+    },
+    ModelFleetRunList {
+        runs: Vec<FleetRun>,
+    },
+    ModelFleetLaneExecuted {
+        run: Box<FleetRun>,
+        lane_run: Box<AgentRun>,
+        proposal: Option<Box<AgentProposal>>,
+    },
+    ModelFleetComparisonReport {
+        report: Box<ComparisonReport>,
+    },
+    ModelFleetComparisonReportList {
+        reports: Vec<ComparisonReport>,
     },
 }
 

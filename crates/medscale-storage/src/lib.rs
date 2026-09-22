@@ -9,6 +9,7 @@ mod encrypted_vault;
 mod gc;
 mod medagent;
 mod migrate;
+mod model_fleet;
 mod privacy_probes;
 mod project_graph;
 mod sealed_blob;

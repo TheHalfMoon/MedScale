@@ -271,6 +271,44 @@ impl CoreFacade {
         })
     }
 
+    /// Runs one Spec 078 Model Fleet operation with lease enforcement and
+    /// vault-meta/pack-store access, exactly like `medagent`. Surfaces never
+    /// touch storage: this is the only path from request to model_fleet rows.
+    fn model_fleet<R>(
+        &self,
+        vault_id: &medscale_contracts::objects::VaultId,
+        realm: medscale_contracts::objects::RealmId,
+        scope: medscale_contracts::objects::AuthorityScopeId,
+        session_id: Option<medscale_contracts::objects::OpaqueId>,
+        op: impl FnOnce(super::model_fleet::ModelFleet<'_>) -> Result<R, AuthorityError>,
+    ) -> Result<R, AuthorityError> {
+        self.require_lease(vault_id)?;
+        let vault_guard = self.vault();
+        let enc_guard = self.encrypted();
+        let meta = if let Some(enc) = enc_guard.as_ref() {
+            &enc.meta
+        } else if let Some(vault) = vault_guard.as_ref() {
+            &vault.meta
+        } else {
+            return Err(AuthorityError::VaultRequired);
+        };
+        let mut store = self.store();
+        let store_ref: &mut InMemoryAuthorityStore = &mut store;
+        let packs_guard = self.packs();
+        let packs_ref: &medscale_pack::PackStore = &packs_guard;
+        op(super::model_fleet::ModelFleet {
+            store: store_ref,
+            meta,
+            packs: packs_ref,
+            sessions: &self.sessions,
+            leases: &self.leases,
+            vault_id,
+            realm,
+            scope,
+            session_id,
+        })
+    }
+
     fn allowlist(&self) -> std::sync::MutexGuard<'_, Vec<EgressAllowlistEntry>> {
         self.allowlist
             .lock()
@@ -2625,6 +2663,205 @@ impl CoreFacade {
             // Core authority paths. Surfaces never write medagent storage
             // directly. T077-03 slice only (AgentIdentity +
             // AgentCapabilityManifest).
+            // Spec 078 Model Fleet + Compare: every mutation flows through
+            // Core authority paths. T078-03 slice (AgentLane).
+            RequestBody::ComparisonCompute { fleet_run_id } => {
+                let report = self.model_fleet(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut fleet| fleet.compute_comparison(&fleet_run_id),
+                )?;
+                Ok(ResponseBody::ModelFleetComparisonReport {
+                    report: Box::new(report),
+                })
+            }
+            RequestBody::ComparisonReportList { fleet_run_id } => {
+                let reports = self.model_fleet(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |fleet| fleet.list_comparison_reports(&fleet_run_id),
+                )?;
+                Ok(ResponseBody::ModelFleetComparisonReportList { reports })
+            }
+            RequestBody::FleetRunCreate {
+                project_id,
+                task_prompt,
+            } => {
+                let run = self.model_fleet(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut fleet| fleet.create_fleet_run(project_id, task_prompt),
+                )?;
+                Ok(ResponseBody::ModelFleetRun {
+                    run: Box::new(run),
+                    lane_run_refs: Vec::new(),
+                })
+            }
+            RequestBody::FleetRunGet { fleet_run_id } => {
+                let (run, lane_run_refs) = self.model_fleet(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |fleet| fleet.get_fleet_run(&fleet_run_id),
+                )?;
+                Ok(ResponseBody::ModelFleetRun {
+                    run: Box::new(run),
+                    lane_run_refs,
+                })
+            }
+            RequestBody::FleetRunList {
+                project_id,
+                status,
+                limit,
+            } => {
+                let runs = self.model_fleet(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |fleet| fleet.list_fleet_runs(&project_id, status, limit.unwrap_or(100)),
+                )?;
+                Ok(ResponseBody::ModelFleetRunList { runs })
+            }
+            RequestBody::FleetRunDispatch {
+                fleet_run_id,
+                expected_revision,
+                lane_ids,
+            } => {
+                let (run, lane_run_refs) = self.model_fleet(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut fleet| {
+                        fleet.dispatch_fleet_run(&fleet_run_id, expected_revision, lane_ids)
+                    },
+                )?;
+                Ok(ResponseBody::ModelFleetRun {
+                    run: Box::new(run),
+                    lane_run_refs,
+                })
+            }
+            RequestBody::FleetRunExecuteLane {
+                fleet_run_id,
+                lane_id,
+                local_path,
+                max_tokens,
+                synthetic_only,
+            } => {
+                let (run, lane_run, proposal) = self.model_fleet(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut fleet| {
+                        fleet.execute_fleet_lane(
+                            &fleet_run_id,
+                            &lane_id,
+                            &local_path,
+                            max_tokens,
+                            synthetic_only,
+                        )
+                    },
+                )?;
+                Ok(ResponseBody::ModelFleetLaneExecuted {
+                    run: Box::new(run),
+                    lane_run: Box::new(lane_run),
+                    proposal: proposal.map(Box::new),
+                })
+            }
+            RequestBody::FleetRunCancel {
+                fleet_run_id,
+                expected_revision,
+            } => {
+                let (run, lane_run_refs) = self.model_fleet(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut fleet| fleet.cancel_fleet_run(&fleet_run_id, expected_revision),
+                )?;
+                Ok(ResponseBody::ModelFleetRun {
+                    run: Box::new(run),
+                    lane_run_refs,
+                })
+            }
+            RequestBody::AgentLaneCreate {
+                project_id,
+                agent_identity_id,
+                context_manifest_id,
+                role_label,
+                granted_tool_kinds,
+                context_artifact_ids,
+            } => {
+                let lane = self.model_fleet(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut fleet| {
+                        fleet.create_agent_lane(
+                            project_id,
+                            agent_identity_id,
+                            context_manifest_id,
+                            role_label,
+                            granted_tool_kinds,
+                            context_artifact_ids,
+                        )
+                    },
+                )?;
+                Ok(ResponseBody::ModelFleetLane {
+                    lane: Box::new(lane),
+                })
+            }
+            RequestBody::AgentLaneGet { lane_id } => {
+                let lane = self.model_fleet(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |fleet| fleet.get_agent_lane(&lane_id),
+                )?;
+                Ok(ResponseBody::ModelFleetLane {
+                    lane: Box::new(lane),
+                })
+            }
+            RequestBody::AgentLaneList {
+                project_id,
+                status,
+                limit,
+            } => {
+                let lanes = self.model_fleet(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |fleet| fleet.list_agent_lanes(&project_id, status, limit.unwrap_or(100)),
+                )?;
+                Ok(ResponseBody::ModelFleetLaneList { lanes })
+            }
+            RequestBody::AgentLaneRetire {
+                lane_id,
+                expected_revision,
+            } => {
+                let lane = self.model_fleet(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut fleet| fleet.retire_agent_lane(&lane_id, expected_revision),
+                )?;
+                Ok(ResponseBody::ModelFleetLane {
+                    lane: Box::new(lane),
+                })
+            }
             RequestBody::AgentIdentityRegister {
                 project_id,
                 pack_id,
@@ -2825,6 +3062,16 @@ impl CoreFacade {
                 kind,
                 arguments,
             } => {
+                // Spec 078 security.md T2: a run bound to an agent lane is
+                // held to the lane's narrower policy before Spec 077's own
+                // capability/context checks run.
+                self.model_fleet(
+                    &req.vault_id,
+                    req.realm_id.clone(),
+                    req.authority_scope_id.clone(),
+                    req.session_id.clone(),
+                    |mut fleet| fleet.require_lane_policy_allows_tool(&run_id, kind, &arguments),
+                )?;
                 let (invocation, receipt) = self.medagent(
                     &req.vault_id,
                     req.realm_id,
@@ -3306,6 +3553,42 @@ fn capability_matches(cap: &Capability, body: &RequestBody) -> bool {
                 RequestBody::AgentRunComplete { .. }
             )
             | (Capability::AgentRunFail, RequestBody::AgentRunFail { .. })
+            | (
+                Capability::AgentLaneCreate,
+                RequestBody::AgentLaneCreate { .. }
+            )
+            | (Capability::AgentLaneRead, RequestBody::AgentLaneGet { .. })
+            | (Capability::AgentLaneRead, RequestBody::AgentLaneList { .. })
+            | (
+                Capability::AgentLaneRetire,
+                RequestBody::AgentLaneRetire { .. }
+            )
+            | (
+                Capability::FleetRunCreate,
+                RequestBody::FleetRunCreate { .. }
+            )
+            | (Capability::FleetRunRead, RequestBody::FleetRunGet { .. })
+            | (Capability::FleetRunRead, RequestBody::FleetRunList { .. })
+            | (
+                Capability::FleetRunDispatch,
+                RequestBody::FleetRunDispatch { .. }
+            )
+            | (
+                Capability::FleetRunExecuteLane,
+                RequestBody::FleetRunExecuteLane { .. }
+            )
+            | (
+                Capability::FleetRunCancel,
+                RequestBody::FleetRunCancel { .. }
+            )
+            | (
+                Capability::ComparisonCompute,
+                RequestBody::ComparisonCompute { .. }
+            )
+            | (
+                Capability::ComparisonRead,
+                RequestBody::ComparisonReportList { .. }
+            )
     )
 }
 
