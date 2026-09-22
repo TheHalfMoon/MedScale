@@ -113,6 +113,19 @@ const SEARCH_SNIPPET_RADIUS_BYTES: usize = 80;
 /// leaving ample room under `TOOL_RESULT_MAX_BYTES` for JSON structure and
 /// UTF-8 lossy-conversion replacement-character growth.
 const READ_CONTENT_MAX_BYTES: usize = TOOL_RESULT_MAX_BYTES / 2;
+/// Per-artifact byte cap `execute_search_context_artifacts` will actually
+/// scan. `SourceRecord`/`DerivedSourceArtifact.bytes` carries no size
+/// bound of its own (Spec 002/074, out of this spec's authority to add
+/// one), so without this cap a `ContextManifest` naming up to
+/// `CONTEXT_MANIFEST_MAX_ARTIFACTS` large artifacts would make every
+/// search call do unbounded lowercase-copy-and-scan work per artifact --
+/// only the *output* (match count, snippet radius) was bounded before
+/// this cap existed, never the input work. 256 KiB keeps a single search
+/// call's per-artifact cost small and constant regardless of how large
+/// the underlying canonical object actually is; a search that needs to
+/// see further into a large artifact should narrow via `ReadContextArtifact`
+/// on a specific object instead.
+const SEARCH_ARTIFACT_SCAN_MAX_BYTES: usize = 256 * 1024;
 
 /// Mirrors `project_graph::stored_class_matches` (deliberately duplicated,
 /// not imported, per this spec's own module-independence convention -- see
@@ -585,11 +598,6 @@ impl MedAgent<'_> {
         Ok((updated, turn))
     }
 
-    /// Cancels a `Pending` or `Running` run, committing its `RunReceipt`
-    /// atomically with the terminal transition. No tool invocations exist
-    /// yet at T077-05, so `tool_invocation_ids` is always empty here;
-    /// T077-06/T077-08 thread real invocation ids through once tool
-    /// dispatch exists.
     /// Commits any terminal transition (`Cancelled`/`Completed`/`Failed`)
     /// with a `RunReceipt` threading the run's *real* tool-invocation
     /// history (in `seq` order, executed and refused alike -- "exact
@@ -899,7 +907,8 @@ impl MedAgent<'_> {
             let Ok(bytes) = self.fetch_artifact_bytes(&artifact.object_id) else {
                 continue;
             };
-            let text = String::from_utf8_lossy(&bytes);
+            let scan_len = bytes.len().min(SEARCH_ARTIFACT_SCAN_MAX_BYTES);
+            let text = String::from_utf8_lossy(&bytes[..scan_len]);
             let text_lower = text.to_lowercase();
             if let Some(pos) = text_lower.find(&query_lower) {
                 // Slice text_lower (not the original text): lowercasing can

@@ -1122,6 +1122,53 @@ fn search_context_artifacts_finds_only_bound_content() {
     }
 }
 
+/// `execute_search_context_artifacts` bounds per-artifact scan work (this
+/// session's OpenCodeReview finding): content placed past the scan cap
+/// must not be found, proving the cap is actually enforced, not merely
+/// documented. 300 KiB of filler comfortably exceeds the
+/// 256 KiB `SEARCH_ARTIFACT_SCAN_MAX_BYTES` cap.
+#[test]
+fn search_context_artifacts_does_not_scan_past_the_size_cap() {
+    let mut h = Harness::setup("tool-search-cap");
+    let filler = "x".repeat(300 * 1024);
+    let content = format!("{filler}unique-marker-beyond-cap");
+    let (run_id, _source_id) = running_run_with_one_source(
+        &mut h,
+        vec![ToolKind::SearchContextArtifacts],
+        content.as_bytes(),
+    );
+
+    let resp = h
+        .call(
+            Capability::AgentToolInvoke,
+            RequestBody::AgentToolInvoke {
+                run_id,
+                kind: ToolKind::SearchContextArtifacts,
+                arguments: serde_json::json!({ "query": "unique-marker-beyond-cap" }),
+            },
+        )
+        .expect("invoke tool");
+    match resp {
+        ResponseBody::MedAgentToolInvocation {
+            invocation,
+            receipt,
+        } => {
+            assert_eq!(invocation.status.as_str(), "executed");
+            let receipt = receipt.expect("executed invocation carries a receipt");
+            let matches = receipt
+                .result
+                .get("matches")
+                .and_then(|v| v.as_array())
+                .expect("matches array");
+            assert!(
+                matches.is_empty(),
+                "content beyond the scan cap must not be found, got {matches:?}"
+            );
+        }
+        other => panic!("{other:?}"),
+    }
+}
+
 #[test]
 fn tool_invocation_refused_with_malformed_arguments() {
     let mut h = Harness::setup("tool-malformed");
