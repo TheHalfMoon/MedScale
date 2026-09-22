@@ -1,6 +1,7 @@
 //! Spec 078 Model Fleet + Compare commands (CLI vertical slice through Core).
 //!
-//! T078-03 scope: `AgentLane` create/show/list/retire. Every command opens
+//! T078-03 scope: `AgentLane` create/show/list/retire. T078-04 scope:
+//! `FleetRun` create/show/list/dispatch/execute-lane/cancel. Every command opens
 //! the session scope, dispatches one typed Core request via `CliSession`,
 //! and renders the typed result as human lines or stable JSON. The CLI never
 //! reads or writes model_fleet storage directly.
@@ -9,8 +10,10 @@ use std::path::PathBuf;
 
 use clap::Subcommand;
 use medscale_contracts::envelopes::AuthorityError;
-use medscale_contracts::medagent::ToolKind;
-use medscale_contracts::model_fleet::{AgentLane, AgentLaneStatus};
+use medscale_contracts::medagent::{AgentProposal, AgentRun, ToolKind};
+use medscale_contracts::model_fleet::{
+    AgentLane, AgentLaneStatus, FleetRun, FleetRunState, LaneRunRef,
+};
 use medscale_contracts::objects::OpaqueId;
 use medscale_core::CliSession;
 
@@ -96,6 +99,43 @@ fn print_lane_human(lane: &AgentLane) {
     }
 }
 
+fn print_fleet_human(run: &FleetRun, refs: &[LaneRunRef]) {
+    println!("fleet_run_id: {}", run.header.id.as_str());
+    println!("project_id: {}", run.project_id.as_str());
+    println!("status: {}", run.status.as_str());
+    println!("revision: {}", run.revision);
+    println!("task_prompt_chars: {}", run.task_prompt.chars().count());
+    for lane_ref in refs {
+        println!(
+            "lane: {}\trun: {}",
+            lane_ref.agent_lane_id.as_str(),
+            lane_ref.agent_run_id.as_str()
+        );
+    }
+}
+
+#[derive(Debug, serde::Serialize)]
+struct FleetJson {
+    run: FleetRun,
+    lane_run_refs: Vec<LaneRunRef>,
+}
+
+#[derive(Debug, serde::Serialize)]
+struct LaneExecutedJson {
+    run: FleetRun,
+    lane_run: AgentRun,
+    proposal: Option<AgentProposal>,
+}
+
+fn print_fleet(run: FleetRun, lane_run_refs: Vec<LaneRunRef>, json: bool) -> anyhow::Result<()> {
+    if json {
+        print_json_or_debug(&FleetJson { run, lane_run_refs }, true)?;
+    } else {
+        print_fleet_human(&run, &lane_run_refs);
+    }
+    Ok(())
+}
+
 /// Spec 078 Model Fleet + Compare commands.
 #[derive(Debug, Subcommand)]
 pub enum ModelFleetCmd {
@@ -159,6 +199,97 @@ pub enum ModelFleetCmd {
         vault_root: PathBuf,
         #[arg(long)]
         lane_id: String,
+        #[arg(long)]
+        expected_revision: u64,
+        #[arg(long)]
+        json: bool,
+    },
+    /// Create a pending fleet run with one task prompt for every lane.
+    FleetCreate {
+        #[arg(long)]
+        vault_id: String,
+        #[arg(long)]
+        vault_root: PathBuf,
+        #[arg(long)]
+        project_id: String,
+        #[arg(long)]
+        task_prompt: String,
+        #[arg(long)]
+        json: bool,
+    },
+    /// Show one fleet run with its lane bindings.
+    FleetShow {
+        #[arg(long)]
+        vault_id: String,
+        #[arg(long)]
+        vault_root: PathBuf,
+        #[arg(long)]
+        fleet_run_id: String,
+        #[arg(long)]
+        json: bool,
+    },
+    /// List fleet runs in one Project.
+    FleetList {
+        #[arg(long)]
+        vault_id: String,
+        #[arg(long)]
+        vault_root: PathBuf,
+        #[arg(long)]
+        project_id: String,
+        /// `pending`, `running`, `completed`, `partially_failed`, `failed` or `cancelled`.
+        #[arg(long)]
+        status: Option<String>,
+        #[arg(long)]
+        limit: Option<u32>,
+        #[arg(long)]
+        json: bool,
+    },
+    /// Dispatch a pending fleet run: one real agent run per lane.
+    FleetDispatch {
+        #[arg(long)]
+        vault_id: String,
+        #[arg(long)]
+        vault_root: PathBuf,
+        #[arg(long)]
+        fleet_run_id: String,
+        #[arg(long)]
+        expected_revision: u64,
+        /// Comma-separated agent lane ids (2..=8, distinct).
+        #[arg(long)]
+        lanes: String,
+        /// Directory of an admitted Pack a lane identity binds (repeatable).
+        /// Core keeps admitted Packs per process, so each is admitted first.
+        #[arg(long = "pack-dir")]
+        pack_dirs: Vec<PathBuf>,
+        #[arg(long)]
+        json: bool,
+    },
+    /// Execute one dispatched lane through its admitted local model Pack.
+    FleetExecuteLane {
+        #[arg(long)]
+        vault_id: String,
+        #[arg(long)]
+        vault_root: PathBuf,
+        #[arg(long)]
+        fleet_run_id: String,
+        #[arg(long)]
+        lane_id: String,
+        /// Directory of the exact admitted Pack the lane's identity binds.
+        #[arg(long)]
+        pack_dir: PathBuf,
+        #[arg(long, default_value_t = 64)]
+        max_tokens: usize,
+        #[arg(long)]
+        json: bool,
+    },
+    /// Cancel a pending or running fleet run.
+    FleetCancel {
+        #[arg(long)]
+        vault_id: String,
+        #[arg(long)]
+        vault_root: PathBuf,
+        #[arg(long)]
+        fleet_run_id: String,
         #[arg(long)]
         expected_revision: u64,
         #[arg(long)]
@@ -263,6 +394,141 @@ pub fn run_model_fleet(action: ModelFleetCmd) -> anyhow::Result<()> {
                 .model_fleet_lane_retire(OpaqueId::new(lane_id), expected_revision)
                 .map_err(|err| fleet_fail(&err, json))?;
             print_lane(&lane, json)
+        }
+        ModelFleetCmd::FleetCreate {
+            vault_id,
+            vault_root,
+            project_id,
+            task_prompt,
+            json,
+        } => {
+            let mut session = open_fleet_session(&vault_id, &vault_root, json)?;
+            let run = session
+                .model_fleet_run_create(OpaqueId::new(project_id), task_prompt)
+                .map_err(|err| fleet_fail(&err, json))?;
+            print_fleet(run, Vec::new(), json)
+        }
+        ModelFleetCmd::FleetShow {
+            vault_id,
+            vault_root,
+            fleet_run_id,
+            json,
+        } => {
+            let mut session = open_fleet_session(&vault_id, &vault_root, json)?;
+            let (run, refs) = session
+                .model_fleet_run_get(OpaqueId::new(fleet_run_id))
+                .map_err(|err| fleet_fail(&err, json))?;
+            print_fleet(run, refs, json)
+        }
+        ModelFleetCmd::FleetList {
+            vault_id,
+            vault_root,
+            project_id,
+            status,
+            limit,
+            json,
+        } => {
+            let status = status
+                .as_deref()
+                .map(FleetRunState::parse)
+                .transpose()
+                .map_err(|m| invalid(m, json))?;
+            let mut session = open_fleet_session(&vault_id, &vault_root, json)?;
+            let runs = session
+                .model_fleet_run_list(OpaqueId::new(project_id), status, limit)
+                .map_err(|err| fleet_fail(&err, json))?;
+            if json {
+                print_json_or_debug(&runs, true)?;
+            } else {
+                for run in &runs {
+                    println!(
+                        "{}\t{}\t{}",
+                        run.header.id.as_str(),
+                        run.status.as_str(),
+                        run.revision
+                    );
+                }
+            }
+            Ok(())
+        }
+        ModelFleetCmd::FleetDispatch {
+            vault_id,
+            vault_root,
+            fleet_run_id,
+            expected_revision,
+            lanes,
+            pack_dirs,
+            json,
+        } => {
+            let lane_ids = parse_ids(&lanes);
+            let mut session = open_fleet_session(&vault_id, &vault_root, json)?;
+            for pack_dir in &pack_dirs {
+                session
+                    .packs_install_local(&pack_dir.display().to_string())
+                    .map_err(|err| fleet_fail(&err, json))?;
+            }
+            let (run, refs) = session
+                .model_fleet_run_dispatch(OpaqueId::new(fleet_run_id), expected_revision, lane_ids)
+                .map_err(|err| fleet_fail(&err, json))?;
+            print_fleet(run, refs, json)
+        }
+        ModelFleetCmd::FleetExecuteLane {
+            vault_id,
+            vault_root,
+            fleet_run_id,
+            lane_id,
+            pack_dir,
+            max_tokens,
+            json,
+        } => {
+            let mut session = open_fleet_session(&vault_id, &vault_root, json)?;
+            // The Core facade keeps admitted Packs per process: admit the
+            // exact directory first, as `medagent run-execute` does.
+            session
+                .packs_install_local(&pack_dir.display().to_string())
+                .map_err(|err| fleet_fail(&err, json))?;
+            let (run, lane_run, proposal) = session
+                .model_fleet_run_execute_lane(
+                    OpaqueId::new(fleet_run_id),
+                    OpaqueId::new(lane_id),
+                    pack_dir.display().to_string(),
+                    max_tokens,
+                    true,
+                )
+                .map_err(|err| fleet_fail(&err, json))?;
+            if json {
+                print_json_or_debug(
+                    &LaneExecutedJson {
+                        run,
+                        lane_run,
+                        proposal,
+                    },
+                    true,
+                )?;
+            } else {
+                println!("fleet_run_id: {}", run.header.id.as_str());
+                println!("fleet_status: {}", run.status.as_str());
+                println!("lane_run_id: {}", lane_run.header.id.as_str());
+                println!("lane_run_status: {}", lane_run.status.as_str());
+                match proposal {
+                    Some(p) => println!("proposal_id: {}", p.proposal_id.as_str()),
+                    None => println!("proposal_id: (none)"),
+                }
+            }
+            Ok(())
+        }
+        ModelFleetCmd::FleetCancel {
+            vault_id,
+            vault_root,
+            fleet_run_id,
+            expected_revision,
+            json,
+        } => {
+            let mut session = open_fleet_session(&vault_id, &vault_root, json)?;
+            let (run, refs) = session
+                .model_fleet_run_cancel(OpaqueId::new(fleet_run_id), expected_revision)
+                .map_err(|err| fleet_fail(&err, json))?;
+            print_fleet(run, refs, json)
         }
     }
 }
@@ -409,5 +675,107 @@ mod tests {
             .unwrap();
         assert_eq!(retired.status, AgentLaneStatus::Retired);
         assert_eq!(retired.revision, 2);
+        let second_lane = lanes[1].header.id.as_str().to_owned();
+        let third_lane = session
+            .model_fleet_lane_create(
+                project_id.clone(),
+                agent_id.clone(),
+                context_id.clone(),
+                "second reviewer".to_owned(),
+                None,
+                None,
+            )
+            .unwrap()
+            .header
+            .id;
+        drop(session);
+
+        // Fleet commands: create -> dispatch -> cancel, human + JSON.
+        run_model_fleet(ModelFleetCmd::FleetCreate {
+            vault_id: VAULT.to_owned(),
+            vault_root: root.clone(),
+            project_id: project_id.as_str().to_owned(),
+            task_prompt: "compare".to_owned(),
+            json: true,
+        })
+        .expect("fleet create");
+        let mut session = CliSession::connect(VAULT).unwrap();
+        session
+            .open_synthetic_vault(&root.display().to_string())
+            .unwrap();
+        let fleets = session
+            .model_fleet_run_list(project_id.clone(), None, None)
+            .unwrap();
+        assert_eq!(fleets.len(), 1);
+        let fleet_id = fleets[0].header.id.as_str().to_owned();
+        drop(session);
+
+        // Refused without writes: the retired lane, and lanes whose Pack is
+        // not admitted in this process. Then two active lanes dispatch.
+        let pack_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("../../evidence/008-local-ai-capability-fabric/fixtures/pack-fixture-ner-v0");
+        for (lanes, pack_dirs) in [
+            (format!("{lane_id},{second_lane}"), vec![pack_dir.clone()]),
+            (format!("{second_lane},{}", third_lane.as_str()), Vec::new()),
+        ] {
+            assert!(
+                run_model_fleet(ModelFleetCmd::FleetDispatch {
+                    vault_id: VAULT.to_owned(),
+                    vault_root: root.clone(),
+                    fleet_run_id: fleet_id.clone(),
+                    expected_revision: 1,
+                    lanes,
+                    pack_dirs,
+                    json: true,
+                })
+                .is_err()
+            );
+        }
+        run_model_fleet(ModelFleetCmd::FleetDispatch {
+            vault_id: VAULT.to_owned(),
+            vault_root: root.clone(),
+            fleet_run_id: fleet_id.clone(),
+            expected_revision: 1,
+            lanes: format!("{second_lane},{}", third_lane.as_str()),
+            pack_dirs: vec![pack_dir],
+            json: false,
+        })
+        .expect("fleet dispatch");
+        for json in [true, false] {
+            run_model_fleet(ModelFleetCmd::FleetShow {
+                vault_id: VAULT.to_owned(),
+                vault_root: root.clone(),
+                fleet_run_id: fleet_id.clone(),
+                json,
+            })
+            .expect("fleet show");
+            run_model_fleet(ModelFleetCmd::FleetList {
+                vault_id: VAULT.to_owned(),
+                vault_root: root.clone(),
+                project_id: project_id.as_str().to_owned(),
+                status: Some("running".to_owned()),
+                limit: None,
+                json,
+            })
+            .expect("fleet list");
+        }
+        run_model_fleet(ModelFleetCmd::FleetCancel {
+            vault_id: VAULT.to_owned(),
+            vault_root: root.clone(),
+            fleet_run_id: fleet_id.clone(),
+            expected_revision: 2,
+            json: true,
+        })
+        .expect("fleet cancel");
+
+        let mut session = CliSession::connect(VAULT).unwrap();
+        session
+            .open_synthetic_vault(&root.display().to_string())
+            .unwrap();
+        let (fleet, refs) = session
+            .model_fleet_run_get(OpaqueId::new(fleet_id))
+            .unwrap();
+        assert_eq!(fleet.status, FleetRunState::Cancelled);
+        assert_eq!(refs.len(), 2);
     }
 }

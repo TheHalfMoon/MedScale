@@ -24,7 +24,7 @@
 
 use std::collections::{HashMap, HashSet};
 
-use medscale_contracts::medagent::AgentRun;
+use medscale_contracts::medagent::{AgentRun, AgentRunState};
 use medscale_contracts::model_fleet::{
     AgentLane, AgentLaneStatus, ComparisonObservation, ComparisonReport, FLEET_RUN_MAX_LANES,
     FleetRun, FleetRunState, LanePolicy, LaneRunRef,
@@ -506,6 +506,23 @@ impl SqliteMetaStore {
         }
     }
 
+    /// The lane binding of one Spec 077 `AgentRun`, if any (served by the
+    /// UNIQUE `agent_run_id` index; at most one row can match).
+    pub fn get_lane_run_ref_for_agent_run(
+        &self,
+        agent_run_id: &OpaqueId,
+    ) -> Result<Option<LaneRunRef>, MetaError> {
+        let mut stmt = self.conn().prepare(
+            "SELECT lane_run_ref_id, fleet_run_id, realm_id, authority_scope_id, agent_lane_id, agent_run_id, schema_version
+             FROM model_fleet_lane_run_refs WHERE agent_run_id = ?1",
+        )?;
+        let mut rows = stmt.query(params![agent_run_id.as_str()])?;
+        match rows.next()? {
+            Some(row) => Ok(Some(map_lane_run_ref_row(row)?)),
+            None => Ok(None),
+        }
+    }
+
     /// Lists lane run refs for one fleet run.
     pub fn list_lane_run_refs(
         &self,
@@ -637,9 +654,10 @@ impl SqliteMetaStore {
     /// - no fleet run binds more than `FLEET_RUN_MAX_LANES` lanes, or the
     ///   same lane twice;
     /// - a terminal fleet run has at least one bound lane (unless it was
-    ///   cancelled before dispatch), every bound run is terminal, and a
-    ///   non-`Cancelled` terminal state equals the aggregate of its bound
-    ///   runs' states (no fleet visible `Completed` over a failed lane);
+    ///   cancelled before dispatch), every bound run is terminal, a
+    ///   `Cancelled` fleet binds only `Cancelled` runs, and any other
+    ///   terminal state equals the aggregate of its bound runs' states (no
+    ///   fleet visible `Completed` over a failed lane);
     /// - every `ComparisonReport` names an existing `Completed`/
     ///   `PartiallyFailed` fleet run, passes its contract validation, and
     ///   names only lanes actually bound to that fleet run.
@@ -738,7 +756,19 @@ impl SqliteMetaStore {
                     "terminal fleet run {fleet_id} binds a non-terminal agent run"
                 )));
             }
-            if fleet.status != FleetRunState::Cancelled {
+            if fleet.status == FleetRunState::Cancelled {
+                // `contracts.md` section 3: a fleet is `Cancelled` only when
+                // it was cancelled before any lane reached another terminal
+                // state, so every bound lane run is itself `Cancelled`.
+                if entries
+                    .iter()
+                    .any(|(_, run)| run.status != AgentRunState::Cancelled)
+                {
+                    return Err(corrupt(format!(
+                        "cancelled fleet run {fleet_id} binds a lane run that is not cancelled"
+                    )));
+                }
+            } else {
                 let states: Vec<_> = entries.iter().map(|(_, run)| run.status).collect();
                 let aggregate = FleetRun::aggregate_state(&states);
                 if aggregate != fleet.status {

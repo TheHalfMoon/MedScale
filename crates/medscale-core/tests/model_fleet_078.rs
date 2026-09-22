@@ -7,15 +7,24 @@
 //! T078-03 scope: `AgentLane` + `LanePolicy` create/get/list/retire,
 //! `security.md` T2 (subset-only policy), T5 (stale revision) and T7
 //! (bounded text), plus reopen durability.
+//!
+//! T078-04 scope: `FleetRun` create/dispatch/execute-lane/cancel over real
+//! local ONNX execution, the frozen state machine incl. partial failure and
+//! cancel semantics, dispatch refusals, T3 lane isolation, the lane-policy
+//! guard on Spec 077's direct tool path, the real-PHI gate, and reopen.
 
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use medscale_contracts::envelopes::{
     AuthorityError, AuthorityRequest, Capability, RequestBody, ResponseBody,
 };
-use medscale_contracts::medagent::ToolKind;
-use medscale_contracts::model_fleet::{AgentLane, AgentLaneStatus, ROLE_LABEL_MAX_CHARS};
+use medscale_contracts::medagent::{
+    AgentProposal, AgentRun, AgentRunState, ToolInvocation, ToolInvocationStatus, ToolKind,
+};
+use medscale_contracts::model_fleet::{
+    AgentLane, AgentLaneStatus, FleetRun, FleetRunState, LaneRunRef, ROLE_LABEL_MAX_CHARS,
+};
 use medscale_contracts::objects::{AuthorityScopeId, OpaqueId, RealmId, VaultId};
 use medscale_contracts::project_graph::{ArtifactDescriptor, ArtifactKind, ArtifactVersionBinding};
 use medscale_core::CoreFacade;
@@ -678,4 +687,747 @@ fn lane_capabilities_are_distinct_from_spec_077_capabilities() {
         "capability/body mismatch must be refused: {result:?}"
     );
     assert!(h.list_lanes(&f.project_id, None).is_empty());
+}
+
+// ===========================================================================
+// T078-04: FleetRun lifecycle
+// ===========================================================================
+
+/// The Spec 069 pack admitted for real local model execution.
+fn onnx_fixture_pack() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(
+        "../../evidence/069-real-local-model-runtime-hf-pack-path/fixtures/pack-tiny-token-classifier-v0",
+    )
+}
+
+impl Harness {
+    fn install_onnx_pack(&mut self) -> OpaqueId {
+        let local_path = onnx_fixture_pack().display().to_string();
+        match self
+            .call(
+                Capability::PacksInstallLocal,
+                RequestBody::PacksInstallLocal { local_path },
+            )
+            .expect("onnx pack install")
+        {
+            ResponseBody::PackAdmit { result } => {
+                assert!(result.admitted, "onnx fixture pack must admit cleanly");
+                result.pack_id.expect("admitted pack carries a pack_id")
+            }
+            other => panic!("{other:?}"),
+        }
+    }
+
+    fn fleet(
+        &mut self,
+        capability: Capability,
+        body: RequestBody,
+    ) -> Result<(FleetRun, Vec<LaneRunRef>), AuthorityError> {
+        self.call(capability, body).map(|resp| match resp {
+            ResponseBody::ModelFleetRun { run, lane_run_refs } => (*run, lane_run_refs),
+            other => panic!("{other:?}"),
+        })
+    }
+
+    fn create_fleet(&mut self, project_id: &OpaqueId) -> FleetRun {
+        self.fleet(
+            Capability::FleetRunCreate,
+            RequestBody::FleetRunCreate {
+                project_id: project_id.clone(),
+                task_prompt: "Summarize the bound context for review.".to_owned(),
+            },
+        )
+        .expect("create fleet")
+        .0
+    }
+
+    fn dispatch(
+        &mut self,
+        fleet_id: &OpaqueId,
+        expected_revision: u64,
+        lane_ids: &[&OpaqueId],
+    ) -> Result<(FleetRun, Vec<LaneRunRef>), AuthorityError> {
+        self.fleet(
+            Capability::FleetRunDispatch,
+            RequestBody::FleetRunDispatch {
+                fleet_run_id: fleet_id.clone(),
+                expected_revision,
+                lane_ids: lane_ids.iter().map(|id| (*id).clone()).collect(),
+            },
+        )
+    }
+
+    fn get_fleet(&mut self, fleet_id: &OpaqueId) -> (FleetRun, Vec<LaneRunRef>) {
+        self.fleet(
+            Capability::FleetRunRead,
+            RequestBody::FleetRunGet {
+                fleet_run_id: fleet_id.clone(),
+            },
+        )
+        .expect("get fleet")
+    }
+
+    fn cancel_fleet(
+        &mut self,
+        fleet_id: &OpaqueId,
+        expected_revision: u64,
+    ) -> Result<(FleetRun, Vec<LaneRunRef>), AuthorityError> {
+        self.fleet(
+            Capability::FleetRunCancel,
+            RequestBody::FleetRunCancel {
+                fleet_run_id: fleet_id.clone(),
+                expected_revision,
+            },
+        )
+    }
+
+    fn execute_lane(
+        &mut self,
+        fleet_id: &OpaqueId,
+        lane_id: &OpaqueId,
+        local_path: &Path,
+        synthetic_only: bool,
+    ) -> Result<(FleetRun, AgentRun, Option<AgentProposal>), AuthorityError> {
+        self.call(
+            Capability::FleetRunExecuteLane,
+            RequestBody::FleetRunExecuteLane {
+                fleet_run_id: fleet_id.clone(),
+                lane_id: lane_id.clone(),
+                local_path: local_path.display().to_string(),
+                max_tokens: 4,
+                synthetic_only,
+            },
+        )
+        .map(|resp| match resp {
+            ResponseBody::ModelFleetLaneExecuted {
+                run,
+                lane_run,
+                proposal,
+            } => (*run, *lane_run, proposal.map(|p| *p)),
+            other => panic!("{other:?}"),
+        })
+    }
+
+    fn source_record(&mut self, bytes: &[u8]) -> OpaqueId {
+        match self
+            .call(
+                Capability::CreateSourceRecord,
+                RequestBody::CreateSourceRecord {
+                    media_type: "text/plain".to_owned(),
+                    bytes: bytes.to_vec(),
+                },
+            )
+            .expect("create source record")
+        {
+            ResponseBody::Created { object_id } => object_id,
+            other => panic!("{other:?}"),
+        }
+    }
+
+    fn agent_run(&mut self, run_id: &OpaqueId) -> AgentRun {
+        match self
+            .call(
+                Capability::AgentRunRead,
+                RequestBody::AgentRunGet {
+                    run_id: run_id.clone(),
+                },
+            )
+            .expect("agent run")
+        {
+            ResponseBody::MedAgentRun { run } => *run,
+            other => panic!("{other:?}"),
+        }
+    }
+
+    fn invoke_tool(
+        &mut self,
+        run_id: &OpaqueId,
+        kind: ToolKind,
+        arguments: serde_json::Value,
+    ) -> Result<ToolInvocation, AuthorityError> {
+        self.call(
+            Capability::AgentToolInvoke,
+            RequestBody::AgentToolInvoke {
+                run_id: run_id.clone(),
+                kind,
+                arguments,
+            },
+        )
+        .map(|resp| match resp {
+            ResponseBody::MedAgentToolInvocation { invocation, .. } => *invocation,
+            other => panic!("{other:?}"),
+        })
+    }
+}
+
+/// Two lanes over two distinct identities, both bound to the one real
+/// admitted ONNX Pack, with disjoint context manifests and deliberately
+/// different policies (`security.md` T4 closure-fixture requirement).
+struct FleetFixture {
+    project_id: OpaqueId,
+    pack_id: OpaqueId,
+    lane_a: AgentLane,
+    lane_b: AgentLane,
+    a1: OpaqueId,
+    a2: OpaqueId,
+    b1: OpaqueId,
+}
+
+fn fleet_fixture(h: &mut Harness) -> FleetFixture {
+    let project_id = h.project("fleet-project");
+    let pack_id = h.install_onnx_pack();
+    let agent_a = h.register_identity(
+        &project_id,
+        &pack_id,
+        vec![
+            ToolKind::ReadContextArtifact,
+            ToolKind::SearchContextArtifacts,
+        ],
+    );
+    let agent_b = h.register_identity(&project_id, &pack_id, vec![ToolKind::ReadContextArtifact]);
+    let a1 = h.source_record(b"synthetic note a1: lane a may read this");
+    let a2 = h.source_record(b"synthetic note a2: outside lane a policy");
+    let b1 = h.source_record(b"synthetic note b1: lane b context only");
+    let ctx_a = h.create_context(&project_id, &[a1.as_str(), a2.as_str()]);
+    let ctx_b = h.create_context(&project_id, &[b1.as_str()]);
+    let lane_a = h
+        .create_lane(
+            &project_id,
+            &agent_a,
+            &ctx_a,
+            Some(vec![ToolKind::ReadContextArtifact]),
+            Some(vec![a1.clone()]),
+        )
+        .expect("lane a");
+    let lane_b = h
+        .create_lane(&project_id, &agent_b, &ctx_b, None, None)
+        .expect("lane b");
+    FleetFixture {
+        project_id,
+        pack_id,
+        lane_a,
+        lane_b,
+        a1,
+        a2,
+        b1,
+    }
+}
+
+fn ref_for<'a>(refs: &'a [LaneRunRef], lane: &AgentLane) -> &'a LaneRunRef {
+    refs.iter()
+        .find(|r| r.agent_lane_id == lane.header.id)
+        .expect("lane is bound")
+}
+
+#[test]
+fn dispatch_binds_and_starts_one_independent_run_per_lane() {
+    let mut h = Harness::setup("fleet-dispatch");
+    let f = fleet_fixture(&mut h);
+    let fleet = h.create_fleet(&f.project_id);
+    assert_eq!((fleet.status, fleet.revision), (FleetRunState::Pending, 1));
+    assert!(h.get_fleet(&fleet.header.id).1.is_empty());
+
+    let (running, refs) = h
+        .dispatch(
+            &fleet.header.id,
+            1,
+            &[&f.lane_a.header.id, &f.lane_b.header.id],
+        )
+        .expect("dispatch");
+    assert_eq!(
+        (running.status, running.revision),
+        (FleetRunState::Running, 2)
+    );
+    assert_eq!(refs.len(), 2);
+    let ref_a = ref_for(&refs, &f.lane_a);
+    let ref_b = ref_for(&refs, &f.lane_b);
+    assert_ne!(ref_a.agent_run_id, ref_b.agent_run_id, "security.md T4");
+
+    for (lane, lane_ref) in [(&f.lane_a, ref_a), (&f.lane_b, ref_b)] {
+        let run = h.agent_run(&lane_ref.agent_run_id);
+        // security.md T2: the dispatched run binds exactly the lane's own
+        // identity/context and the fleet's prompt, never a substitute.
+        assert_eq!(run.agent_identity_id, lane.agent_identity_id);
+        assert_eq!(run.context_manifest_id, lane.context_manifest_id);
+        assert_eq!(run.prompt, running.task_prompt);
+        assert_eq!(run.project_id, f.project_id);
+        // Started only after binding: Running with its prompt turn.
+        assert_eq!(run.status, AgentRunState::Running);
+    }
+    assert_eq!(h.get_fleet(&fleet.header.id), (running, refs));
+}
+
+#[test]
+fn fleet_reaches_completed_and_partially_failed_from_real_lane_outcomes() {
+    let mut h = Harness::setup("fleet-outcomes");
+    let f = fleet_fixture(&mut h);
+
+    // Every lane completes -> Completed.
+    let fleet = h.create_fleet(&f.project_id);
+    h.dispatch(
+        &fleet.header.id,
+        1,
+        &[&f.lane_a.header.id, &f.lane_b.header.id],
+    )
+    .unwrap();
+    let (after_a, run_a, proposal_a) = h
+        .execute_lane(
+            &fleet.header.id,
+            &f.lane_a.header.id,
+            &onnx_fixture_pack(),
+            true,
+        )
+        .expect("execute lane a");
+    assert_eq!(
+        after_a.status,
+        FleetRunState::Running,
+        "lane b still in flight"
+    );
+    assert_eq!(run_a.status, AgentRunState::Completed);
+    let proposal_a = proposal_a.expect("a completed lane carries its proposal");
+    assert_eq!(proposal_a.run_id, run_a.header.id);
+    let (after_b, run_b, proposal_b) = h
+        .execute_lane(
+            &fleet.header.id,
+            &f.lane_b.header.id,
+            &onnx_fixture_pack(),
+            true,
+        )
+        .expect("execute lane b");
+    assert_eq!(after_b.status, FleetRunState::Completed);
+    assert_eq!(run_b.status, AgentRunState::Completed);
+    assert_ne!(proposal_b.unwrap().proposal_id, proposal_a.proposal_id);
+
+    // One lane fails (wrong Pack directory) -> PartiallyFailed.
+    let fleet = h.create_fleet(&f.project_id);
+    h.dispatch(
+        &fleet.header.id,
+        1,
+        &[&f.lane_a.header.id, &f.lane_b.header.id],
+    )
+    .unwrap();
+    h.execute_lane(
+        &fleet.header.id,
+        &f.lane_a.header.id,
+        &onnx_fixture_pack(),
+        true,
+    )
+    .unwrap();
+    let (partial, failed_run, none) = h
+        .execute_lane(&fleet.header.id, &f.lane_b.header.id, &fixture_pack(), true)
+        .expect("a failed execution closes the lane, it is not an error");
+    assert_eq!(partial.status, FleetRunState::PartiallyFailed);
+    assert_eq!(failed_run.status, AgentRunState::Failed);
+    assert!(none.is_none());
+
+    // Every lane fails -> Failed.
+    let fleet = h.create_fleet(&f.project_id);
+    h.dispatch(
+        &fleet.header.id,
+        1,
+        &[&f.lane_a.header.id, &f.lane_b.header.id],
+    )
+    .unwrap();
+    h.execute_lane(&fleet.header.id, &f.lane_a.header.id, &fixture_pack(), true)
+        .unwrap();
+    let (failed, _, _) = h
+        .execute_lane(&fleet.header.id, &f.lane_b.header.id, &fixture_pack(), true)
+        .unwrap();
+    assert_eq!(failed.status, FleetRunState::Failed);
+
+    // A terminal fleet accepts no further lane execution or cancel.
+    assert!(matches!(
+        h.execute_lane(
+            &fleet.header.id,
+            &f.lane_a.header.id,
+            &onnx_fixture_pack(),
+            true
+        ),
+        Err(AuthorityError::Conflict { .. })
+    ));
+    assert!(matches!(
+        h.cancel_fleet(&fleet.header.id, failed.revision),
+        Err(AuthorityError::Conflict { .. })
+    ));
+}
+
+#[test]
+fn fleet_cancel_semantics_follow_the_frozen_contract() {
+    let mut h = Harness::setup("fleet-cancel");
+    let f = fleet_fixture(&mut h);
+
+    // Pending -> Cancelled directly, nothing dispatched.
+    let fleet = h.create_fleet(&f.project_id);
+    let (cancelled, refs) = h.cancel_fleet(&fleet.header.id, 1).unwrap();
+    assert_eq!(cancelled.status, FleetRunState::Cancelled);
+    assert!(refs.is_empty());
+    assert!(matches!(
+        h.dispatch(
+            &fleet.header.id,
+            cancelled.revision,
+            &[&f.lane_a.header.id, &f.lane_b.header.id]
+        ),
+        Err(AuthorityError::Conflict { .. })
+    ));
+
+    // Running, no lane terminal yet -> every lane Cancelled, fleet Cancelled.
+    let fleet = h.create_fleet(&f.project_id);
+    let (running, _) = h
+        .dispatch(
+            &fleet.header.id,
+            1,
+            &[&f.lane_a.header.id, &f.lane_b.header.id],
+        )
+        .unwrap();
+    let (cancelled, refs) = h.cancel_fleet(&fleet.header.id, running.revision).unwrap();
+    assert_eq!(cancelled.status, FleetRunState::Cancelled);
+    for lane_ref in &refs {
+        assert_eq!(
+            h.agent_run(&lane_ref.agent_run_id).status,
+            AgentRunState::Cancelled
+        );
+    }
+
+    // security.md T6: a lane that completed first keeps Completed; only the
+    // in-flight lane is cancelled; the fleet takes the aggregate, never
+    // `Cancelled` over a completed lane.
+    let fleet = h.create_fleet(&f.project_id);
+    h.dispatch(
+        &fleet.header.id,
+        1,
+        &[&f.lane_a.header.id, &f.lane_b.header.id],
+    )
+    .unwrap();
+    let (after_a, _, _) = h
+        .execute_lane(
+            &fleet.header.id,
+            &f.lane_a.header.id,
+            &onnx_fixture_pack(),
+            true,
+        )
+        .unwrap();
+    let (landed, refs) = h.cancel_fleet(&fleet.header.id, after_a.revision).unwrap();
+    assert_eq!(landed.status, FleetRunState::PartiallyFailed);
+    assert_eq!(
+        h.agent_run(&ref_for(&refs, &f.lane_a).agent_run_id).status,
+        AgentRunState::Completed
+    );
+    assert_eq!(
+        h.agent_run(&ref_for(&refs, &f.lane_b).agent_run_id).status,
+        AgentRunState::Cancelled
+    );
+
+    // A lane closed directly through Spec 077 before the fleet cancel is
+    // left as it is (exactly one terminal state per lane).
+    let fleet = h.create_fleet(&f.project_id);
+    let (running, refs) = h
+        .dispatch(
+            &fleet.header.id,
+            1,
+            &[&f.lane_a.header.id, &f.lane_b.header.id],
+        )
+        .unwrap();
+    let run_b = ref_for(&refs, &f.lane_b).agent_run_id.clone();
+    let rev_b = h.agent_run(&run_b).revision;
+    h.call(
+        Capability::AgentRunFail,
+        RequestBody::AgentRunFail {
+            run_id: run_b.clone(),
+            expected_revision: rev_b,
+            failure_reason: "closed outside the fleet".to_owned(),
+        },
+    )
+    .expect("direct Spec 077 fail");
+    let (landed, _) = h.cancel_fleet(&fleet.header.id, running.revision).unwrap();
+    assert_eq!(h.agent_run(&run_b).status, AgentRunState::Failed);
+    assert_eq!(
+        landed.status,
+        FleetRunState::Failed,
+        "cancelled + failed lanes, none completed"
+    );
+
+    // Stale revision is a conflict.
+    let fleet = h.create_fleet(&f.project_id);
+    assert!(matches!(
+        h.cancel_fleet(&fleet.header.id, 9),
+        Err(AuthorityError::Conflict { .. })
+    ));
+}
+
+#[test]
+fn dispatch_refusals_write_nothing() {
+    let mut h = Harness::setup("fleet-refusals");
+    let f = fleet_fixture(&mut h);
+    let fleet = h.create_fleet(&f.project_id);
+    let id = fleet.header.id.clone();
+    let other_project = h.project("other-project");
+    let foreign_agent = h.register_identity(
+        &other_project,
+        &f.pack_id,
+        vec![ToolKind::ReadContextArtifact],
+    );
+    let foreign_ctx = h.create_context(&other_project, &["artifact-x"]);
+    let foreign_lane = h
+        .create_lane(&other_project, &foreign_agent, &foreign_ctx, None, None)
+        .unwrap();
+    let retired = h
+        .create_lane(
+            &f.project_id,
+            &f.lane_b.agent_identity_id,
+            &f.lane_b.context_manifest_id,
+            None,
+            None,
+        )
+        .unwrap();
+    h.retire_lane(&retired.header.id, 1).unwrap();
+
+    let a = &f.lane_a.header.id;
+    let b = &f.lane_b.header.id;
+    for (why, lanes, rev) in [
+        ("a single lane", vec![a], 1),
+        ("a duplicated lane", vec![a, a], 1),
+        ("a retired lane", vec![a, &retired.header.id], 1),
+        (
+            "a lane of another project",
+            vec![a, &foreign_lane.header.id],
+            1,
+        ),
+        ("a stale revision", vec![a, b], 7),
+    ] {
+        let result = h.dispatch(&id, rev, &lanes);
+        assert!(
+            matches!(
+                result,
+                Err(AuthorityError::InvalidArgument { .. } | AuthorityError::Conflict { .. })
+            ),
+            "{why} must be refused, got {result:?}"
+        );
+        let (unchanged, refs) = h.get_fleet(&id);
+        assert_eq!(
+            (unchanged.status, unchanged.revision),
+            (FleetRunState::Pending, 1),
+            "{why}"
+        );
+        assert!(refs.is_empty(), "{why}: nothing may be bound");
+    }
+    let too_many: Vec<OpaqueId> = (0..=medscale_contracts::model_fleet::FLEET_RUN_MAX_LANES)
+        .map(|n| OpaqueId::new(format!("lane-{n}")))
+        .collect();
+    let too_many: Vec<&OpaqueId> = too_many.iter().collect();
+    assert!(matches!(
+        h.dispatch(&id, 1, &too_many),
+        Err(AuthorityError::InvalidArgument { .. })
+    ));
+
+    // A lane whose identity was revoked after lane creation is refused at
+    // dispatch: the lane's bindings are re-resolved, never cached.
+    h.call(
+        Capability::AgentIdentityRevoke,
+        RequestBody::AgentIdentityRevoke {
+            agent_id: f.lane_b.agent_identity_id.clone(),
+            expected_revision: 1,
+        },
+    )
+    .unwrap();
+    assert!(matches!(
+        h.dispatch(&id, 1, &[a, b]),
+        Err(AuthorityError::InvalidArgument { .. })
+    ));
+    assert!(h.get_fleet(&id).1.is_empty());
+
+    // A lane whose Pack is not admitted in this Core process is refused
+    // before the fleet leaves Pending (fresh Core after reopen: no Packs).
+    let mut h = h.reopen();
+    assert!(matches!(
+        h.dispatch(&id, 1, &[a, b]),
+        Err(AuthorityError::InvalidArgument { .. })
+    ));
+    let (unchanged, refs) = h.get_fleet(&id);
+    assert_eq!(
+        (unchanged.status, unchanged.revision),
+        (FleetRunState::Pending, 1)
+    );
+    assert!(refs.is_empty());
+    h.install_onnx_pack();
+
+    // Dispatching twice is a conflict (the second sees Running).
+    let lane_c = h
+        .create_lane(
+            &f.project_id,
+            &f.lane_a.agent_identity_id,
+            &f.lane_a.context_manifest_id,
+            None,
+            None,
+        )
+        .unwrap();
+    let (running, _) = h.dispatch(&id, 1, &[a, &lane_c.header.id]).unwrap();
+    assert!(matches!(
+        h.dispatch(&id, running.revision, &[a, &lane_c.header.id]),
+        Err(AuthorityError::Conflict { .. })
+    ));
+    assert_eq!(h.get_fleet(&id).1.len(), 2);
+}
+
+#[test]
+fn lanes_cannot_reach_each_others_context_and_lane_policy_holds_on_the_direct_tool_path() {
+    let mut h = Harness::setup("fleet-t3");
+    let f = fleet_fixture(&mut h);
+    let fleet = h.create_fleet(&f.project_id);
+    let (_, refs) = h
+        .dispatch(
+            &fleet.header.id,
+            1,
+            &[&f.lane_a.header.id, &f.lane_b.header.id],
+        )
+        .unwrap();
+    let run_a = ref_for(&refs, &f.lane_a).agent_run_id.clone();
+    let run_b = ref_for(&refs, &f.lane_b).agent_run_id.clone();
+
+    // security.md T3: lane b's run cannot resolve lane a's artifact; Spec
+    // 077's own context check refuses and records it.
+    let refused = h
+        .invoke_tool(
+            &run_b,
+            ToolKind::ReadContextArtifact,
+            serde_json::json!({ "object_id": f.a1.as_str() }),
+        )
+        .expect("Spec 077 records the refusal");
+    assert_eq!(refused.status, ToolInvocationStatus::Refused);
+
+    // security.md T2 on the direct path: lane a's policy narrows both the
+    // tool kinds (read only) and the artifacts (a1 only).
+    for (why, kind, arguments) in [
+        (
+            "a sibling lane's artifact",
+            ToolKind::ReadContextArtifact,
+            serde_json::json!({ "object_id": f.b1.as_str() }),
+        ),
+        (
+            "an in-manifest artifact the lane policy excludes",
+            ToolKind::ReadContextArtifact,
+            serde_json::json!({ "object_id": f.a2.as_str() }),
+        ),
+        (
+            "a tool kind the lane policy excludes",
+            ToolKind::SearchContextArtifacts,
+            serde_json::json!({ "query": "anything" }),
+        ),
+        (
+            "a malformed argument shape",
+            ToolKind::ReadContextArtifact,
+            serde_json::json!({ "object": f.a1.as_str() }),
+        ),
+    ] {
+        let result = h.invoke_tool(&run_a, kind, arguments);
+        assert!(
+            matches!(result, Err(AuthorityError::Unauthorized)),
+            "{why} must be refused by the lane guard, got {result:?}"
+        );
+    }
+    // Within the lane policy the call reaches Spec 077 and executes.
+    let executed = h
+        .invoke_tool(
+            &run_a,
+            ToolKind::ReadContextArtifact,
+            serde_json::json!({ "object_id": f.a1.as_str() }),
+        )
+        .expect("reaches Spec 077");
+    assert_eq!(executed.status, ToolInvocationStatus::Executed);
+    assert_eq!(executed.run_id, run_a);
+    // Lane b (no narrowing) reads its own artifact normally.
+    let own = h
+        .invoke_tool(
+            &run_b,
+            ToolKind::ReadContextArtifact,
+            serde_json::json!({ "object_id": f.b1.as_str() }),
+        )
+        .expect("lane b own read");
+    assert_eq!(own.status, ToolInvocationStatus::Executed);
+}
+
+#[test]
+fn real_phi_gate_and_foreign_lanes_leave_the_lane_run_untouched() {
+    let mut h = Harness::setup("fleet-gate");
+    let f = fleet_fixture(&mut h);
+    let fleet = h.create_fleet(&f.project_id);
+    let (running, refs) = h
+        .dispatch(
+            &fleet.header.id,
+            1,
+            &[&f.lane_a.header.id, &f.lane_b.header.id],
+        )
+        .unwrap();
+    assert!(matches!(
+        h.execute_lane(
+            &fleet.header.id,
+            &f.lane_a.header.id,
+            &onnx_fixture_pack(),
+            false
+        ),
+        Err(AuthorityError::ExternalGateRequired { .. })
+    ));
+    assert!(matches!(
+        h.execute_lane(
+            &fleet.header.id,
+            &OpaqueId::new("lane-unbound"),
+            &onnx_fixture_pack(),
+            true
+        ),
+        Err(AuthorityError::NotFound)
+    ));
+    let run_a = h.agent_run(&ref_for(&refs, &f.lane_a).agent_run_id);
+    assert_eq!(run_a.status, AgentRunState::Running);
+    assert_eq!(h.get_fleet(&fleet.header.id).0, running);
+}
+
+#[test]
+fn fleet_state_and_bindings_survive_reopen() {
+    let mut h = Harness::setup("fleet-reopen");
+    let f = fleet_fixture(&mut h);
+    let fleet = h.create_fleet(&f.project_id);
+    h.dispatch(
+        &fleet.header.id,
+        1,
+        &[&f.lane_a.header.id, &f.lane_b.header.id],
+    )
+    .unwrap();
+    h.execute_lane(
+        &fleet.header.id,
+        &f.lane_a.header.id,
+        &onnx_fixture_pack(),
+        true,
+    )
+    .unwrap();
+    let before = h.get_fleet(&fleet.header.id);
+    assert_eq!(before.0.status, FleetRunState::Running);
+
+    let mut h = h.reopen();
+    // The reopened Core has no admitted Packs in memory; re-admit the
+    // same Pack so lane b can execute.
+    h.install_onnx_pack();
+    assert_eq!(h.get_fleet(&fleet.header.id), before);
+    let (done, _, _) = h
+        .execute_lane(
+            &fleet.header.id,
+            &f.lane_b.header.id,
+            &onnx_fixture_pack(),
+            true,
+        )
+        .expect("lane b after reopen");
+    assert_eq!(done.status, FleetRunState::Completed);
+    let listed = match h
+        .call(
+            Capability::FleetRunRead,
+            RequestBody::FleetRunList {
+                project_id: f.project_id.clone(),
+                status: Some(FleetRunState::Completed),
+                limit: None,
+            },
+        )
+        .unwrap()
+    {
+        ResponseBody::ModelFleetRunList { runs } => runs,
+        other => panic!("{other:?}"),
+    };
+    assert_eq!(listed, vec![done]);
 }

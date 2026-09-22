@@ -27,7 +27,7 @@ use crate::medagent::{
     ContextManifest, RunReceipt, ToolInvocation, ToolKind, ToolReceipt,
 };
 use crate::mesc::{MescArtifactAdmitRequest, MescArtifactVerifyRequest, MescVerifyReport};
-use crate::model_fleet::{AgentLane, AgentLaneStatus};
+use crate::model_fleet::{AgentLane, AgentLaneStatus, FleetRun, FleetRunState, LaneRunRef};
 use crate::network::{EgressAllowlistEntry, NetworkBrokerRequest, NetworkBrokerResult};
 use crate::objects::{AmendmentKind, DigestSha256, EffectState, MedicalTime, OpaqueId, VaultId};
 use crate::online_packs::OnlinePackAcquireRequest;
@@ -182,6 +182,12 @@ pub enum Capability {
     AgentLaneCreate,
     AgentLaneRead,
     AgentLaneRetire,
+    // Spec 078 T078-04 slice: FleetRun lifecycle.
+    FleetRunCreate,
+    FleetRunRead,
+    FleetRunDispatch,
+    FleetRunExecuteLane,
+    FleetRunCancel,
 }
 
 impl Capability {
@@ -232,6 +238,7 @@ impl Capability {
                 | Self::ContextManifestRead
                 | Self::AgentRunRead
                 | Self::AgentLaneRead
+                | Self::FleetRunRead
         )
     }
 
@@ -363,6 +370,11 @@ impl Capability {
             Self::AgentLaneCreate,
             Self::AgentLaneRead,
             Self::AgentLaneRetire,
+            Self::FleetRunCreate,
+            Self::FleetRunRead,
+            Self::FleetRunDispatch,
+            Self::FleetRunExecuteLane,
+            Self::FleetRunCancel,
         ]
     }
 }
@@ -1004,6 +1016,37 @@ pub enum RequestBody {
         lane_id: OpaqueId,
         expected_revision: u64,
     },
+    // Spec 078 T078-04 slice: FleetRun lifecycle.
+    FleetRunCreate {
+        project_id: OpaqueId,
+        task_prompt: String,
+    },
+    FleetRunGet {
+        fleet_run_id: OpaqueId,
+    },
+    FleetRunList {
+        project_id: OpaqueId,
+        status: Option<FleetRunState>,
+        limit: Option<u32>,
+    },
+    /// Binds and starts one real Spec 077 `AgentRun` per lane.
+    FleetRunDispatch {
+        fleet_run_id: OpaqueId,
+        expected_revision: u64,
+        lane_ids: Vec<OpaqueId>,
+    },
+    /// Executes one dispatched lane through Spec 077 `execute_agent_run`.
+    FleetRunExecuteLane {
+        fleet_run_id: OpaqueId,
+        lane_id: OpaqueId,
+        local_path: String,
+        max_tokens: usize,
+        synthetic_only: bool,
+    },
+    FleetRunCancel {
+        fleet_run_id: OpaqueId,
+        expected_revision: u64,
+    },
 }
 
 impl RequestBody {
@@ -1366,6 +1409,18 @@ pub enum ResponseBody {
     },
     ModelFleetLaneList {
         lanes: Vec<AgentLane>,
+    },
+    ModelFleetRun {
+        run: Box<FleetRun>,
+        lane_run_refs: Vec<LaneRunRef>,
+    },
+    ModelFleetRunList {
+        runs: Vec<FleetRun>,
+    },
+    ModelFleetLaneExecuted {
+        run: Box<FleetRun>,
+        lane_run: Box<AgentRun>,
+        proposal: Option<Box<AgentProposal>>,
     },
 }
 

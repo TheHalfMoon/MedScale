@@ -2665,6 +2665,112 @@ impl CoreFacade {
             // AgentCapabilityManifest).
             // Spec 078 Model Fleet + Compare: every mutation flows through
             // Core authority paths. T078-03 slice (AgentLane).
+            RequestBody::FleetRunCreate {
+                project_id,
+                task_prompt,
+            } => {
+                let run = self.model_fleet(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut fleet| fleet.create_fleet_run(project_id, task_prompt),
+                )?;
+                Ok(ResponseBody::ModelFleetRun {
+                    run: Box::new(run),
+                    lane_run_refs: Vec::new(),
+                })
+            }
+            RequestBody::FleetRunGet { fleet_run_id } => {
+                let (run, lane_run_refs) = self.model_fleet(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |fleet| fleet.get_fleet_run(&fleet_run_id),
+                )?;
+                Ok(ResponseBody::ModelFleetRun {
+                    run: Box::new(run),
+                    lane_run_refs,
+                })
+            }
+            RequestBody::FleetRunList {
+                project_id,
+                status,
+                limit,
+            } => {
+                let runs = self.model_fleet(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |fleet| fleet.list_fleet_runs(&project_id, status, limit.unwrap_or(100)),
+                )?;
+                Ok(ResponseBody::ModelFleetRunList { runs })
+            }
+            RequestBody::FleetRunDispatch {
+                fleet_run_id,
+                expected_revision,
+                lane_ids,
+            } => {
+                let (run, lane_run_refs) = self.model_fleet(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut fleet| {
+                        fleet.dispatch_fleet_run(&fleet_run_id, expected_revision, lane_ids)
+                    },
+                )?;
+                Ok(ResponseBody::ModelFleetRun {
+                    run: Box::new(run),
+                    lane_run_refs,
+                })
+            }
+            RequestBody::FleetRunExecuteLane {
+                fleet_run_id,
+                lane_id,
+                local_path,
+                max_tokens,
+                synthetic_only,
+            } => {
+                let (run, lane_run, proposal) = self.model_fleet(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut fleet| {
+                        fleet.execute_fleet_lane(
+                            &fleet_run_id,
+                            &lane_id,
+                            &local_path,
+                            max_tokens,
+                            synthetic_only,
+                        )
+                    },
+                )?;
+                Ok(ResponseBody::ModelFleetLaneExecuted {
+                    run: Box::new(run),
+                    lane_run: Box::new(lane_run),
+                    proposal: proposal.map(Box::new),
+                })
+            }
+            RequestBody::FleetRunCancel {
+                fleet_run_id,
+                expected_revision,
+            } => {
+                let (run, lane_run_refs) = self.model_fleet(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut fleet| fleet.cancel_fleet_run(&fleet_run_id, expected_revision),
+                )?;
+                Ok(ResponseBody::ModelFleetRun {
+                    run: Box::new(run),
+                    lane_run_refs,
+                })
+            }
             RequestBody::AgentLaneCreate {
                 project_id,
                 agent_identity_id,
@@ -2934,6 +3040,16 @@ impl CoreFacade {
                 kind,
                 arguments,
             } => {
+                // Spec 078 security.md T2: a run bound to an agent lane is
+                // held to the lane's narrower policy before Spec 077's own
+                // capability/context checks run.
+                self.model_fleet(
+                    &req.vault_id,
+                    req.realm_id.clone(),
+                    req.authority_scope_id.clone(),
+                    req.session_id.clone(),
+                    |mut fleet| fleet.require_lane_policy_allows_tool(&run_id, kind, &arguments),
+                )?;
                 let (invocation, receipt) = self.medagent(
                     &req.vault_id,
                     req.realm_id,
@@ -3424,6 +3540,24 @@ fn capability_matches(cap: &Capability, body: &RequestBody) -> bool {
             | (
                 Capability::AgentLaneRetire,
                 RequestBody::AgentLaneRetire { .. }
+            )
+            | (
+                Capability::FleetRunCreate,
+                RequestBody::FleetRunCreate { .. }
+            )
+            | (Capability::FleetRunRead, RequestBody::FleetRunGet { .. })
+            | (Capability::FleetRunRead, RequestBody::FleetRunList { .. })
+            | (
+                Capability::FleetRunDispatch,
+                RequestBody::FleetRunDispatch { .. }
+            )
+            | (
+                Capability::FleetRunExecuteLane,
+                RequestBody::FleetRunExecuteLane { .. }
+            )
+            | (
+                Capability::FleetRunCancel,
+                RequestBody::FleetRunCancel { .. }
             )
     )
 }

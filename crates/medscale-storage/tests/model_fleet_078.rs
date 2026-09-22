@@ -798,6 +798,22 @@ fn verify_model_fleet_consistency_detects_every_invariant_break() {
         "report over a non-comparable fleet",
     );
 
+    // A cancelled fleet over a lane that actually completed.
+    let root = temp_root("verify-cancelled-over-completed");
+    let meta = open_meta(&root);
+    populate_pre_078(&meta);
+    build_fleet(&meta);
+    raw(&root)
+        .execute_batch(
+            "UPDATE model_fleet_runs SET status = 'cancelled' WHERE fleet_run_id = 'fleet-1';
+             DELETE FROM model_fleet_comparison_reports;",
+        )
+        .unwrap();
+    assert_corrupt(
+        meta.verify_model_fleet_consistency(),
+        "cancelled fleet over completed/failed lanes",
+    );
+
     // A terminal (non-cancelled) fleet with no dispatched lane at all.
     let root = temp_root("verify-empty-terminal");
     let meta = open_meta(&root);
