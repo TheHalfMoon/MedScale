@@ -441,19 +441,19 @@ non-empty, no-payload-leak status string. See
 
 ## T077-10 — Qualification and closure
 
-- [ ] Run format, dependency-direction, focused contract/storage/Core/CLI/
+- [x] Run format, dependency-direction, focused contract/storage/Core/CLI/
       Desktop tests.
-- [ ] Run Clippy under current policy, workspace tests, cargo-deny/
+- [x] Run Clippy under current policy, workspace tests, cargo-deny/
       supply-chain gates.
-- [ ] Run migration/reopen/recovery, malformed/corrupt, context-boundary-
+- [x] Run migration/reopen/recovery, malformed/corrupt, context-boundary-
       leakage suites.
-- [ ] Run credential/log secret and content-leakage scans.
-- [ ] Capture rendered Desktop evidence or record the honest residual if
+- [x] Run credential/log secret and content-leakage scans.
+- [x] Capture rendered Desktop evidence or record the honest residual if
       the toolchain/CI cannot produce it.
-- [ ] Perform exact-range review of the full PR diff (OpenCodeReview
+- [x] Perform exact-range review of the full PR diff (OpenCodeReview
       delegation mode, matching Spec 076's discipline, unless the founder
       gives a different explicit instruction).
-- [ ] Run exact-head required CI; merge only when green and governance
+- [x] Run exact-head required CI; merge only when green and governance
       permits.
 - [ ] Verify post-merge main CI; update queue/status to `CLOSED_CANONICAL`
       only with real post-main evidence.
@@ -462,3 +462,29 @@ non-empty, no-payload-leak status string. See
 
 **Acceptance:** all frozen acceptance requirements mapped to exact-head
 proof.
+
+**Implemented (this session):** every T077-01..T077-09 commit already
+passed the full CI suite (`cargo fmt --check`, dependency-direction,
+Clippy `-D warnings`, focused + workspace tests across contracts/storage/
+Core/CLI/Desktop, cargo-deny, supply-chain policy) at its own exact head;
+`90589fc`'s run (35732678400) is the cumulative confirmation covering the
+whole PR. Migration/reopen/recovery: T077-02's `migration_v5_to_v6_...`/
+`repeated_open_and_repeated_migration_is_safe`/backup-restore tests, plus
+T077-03's `agent_identity_survives_vault_reopen`. Malformed/corrupt:
+T077-02's tamper tests, T077-06's malformed-tool-argument refusal.
+Context-boundary leakage: T077-04's `require_artifact_in_context` unit
+tests plus T077-06's real-but-out-of-context-artifact refusal proven
+through the facade. Credential/log/content-leakage scan: grepped every
+T077-0N `crates/medscale-{core,storage,contracts}/src/medagent.rs` file
+for `log::`/`tracing::`/`println!`/`eprintln!`/`dbg!` and secret-like
+field names -- zero matches; the CLI's own 34 `println!` calls are all
+operator-requested display output (same established pattern as every
+other `medscale-cli/src/*.rs` printer). Rendered Desktop evidence: none
+captured, honest residual recorded in
+`evidence/077-medagent-workbench/T077-09_IMPLEMENTATION.md` (no local
+Slint toolchain, no CI rendering step -- inherited from Spec 076, not
+introduced here). Exact-range OpenCodeReview: see
+`evidence/077-medagent-workbench/EXACT_RANGE_REVIEW.md` -- 2 confirmed/
+material findings, both fixed at `90589fc`, post-fix re-review clean (0
+findings), exact-head CI green (6/6). `90589fc6e64833d05d0888007d099df4d14aaf32`
+is the merge candidate.
