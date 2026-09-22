@@ -438,6 +438,9 @@ mod tests {
         let sessions = SessionRegistry::new();
         let leases = LeaseRegistry::new();
         let vault_id = VaultId::new("vault-1");
+        leases
+            .acquire(&vault_id, OpaqueId::new("actor-a"), None)
+            .unwrap();
         let record = create_source_record(
             &mut store,
             RealmId::new("realm-a"),
@@ -492,6 +495,9 @@ mod tests {
         let sessions = SessionRegistry::new();
         let leases = LeaseRegistry::new();
         let vault_id = VaultId::new("vault-1");
+        leases
+            .acquire(&vault_id, OpaqueId::new("actor-a"), None)
+            .unwrap();
         let record = create_source_record(
             &mut store,
             RealmId::new("realm-a"),
@@ -549,6 +555,9 @@ mod tests {
         let sessions = SessionRegistry::new();
         let leases = LeaseRegistry::new();
         let vault_id = VaultId::new("vault-1");
+        leases
+            .acquire(&vault_id, OpaqueId::new("actor-a"), None)
+            .unwrap();
         let allowed = create_source_record(
             &mut store,
             RealmId::new("realm-a"),
@@ -617,6 +626,9 @@ mod tests {
         let sessions = SessionRegistry::new();
         let leases = LeaseRegistry::new();
         let vault_id = VaultId::new("vault-1");
+        leases
+            .acquire(&vault_id, OpaqueId::new("actor-a"), None)
+            .unwrap();
         let record = create_source_record(
             &mut store,
             RealmId::new("realm-a"),
