@@ -108,5 +108,14 @@ evidence/077-medagent-workbench/T077-05_IMPLEMENTATION.md (this file)
 
 No local compile/test run was possible (MSVC linker absent, same
 constraint as every prior spec). `cargo fmt --check` is clean across the
-whole workspace after this change. Real qualification is the next
-exact-head CI run.
+whole workspace after this change.
+
+## Exact-head CI qualification
+
+Green on the first push, no fixes needed:
+
+```text
+HEAD f170422 -> SUCCESS, run 35714251561, 6/6.
+```
+
+T077-05 is qualified at exact head `f170422a71d406a022b295b7a75076d39332d14f`.

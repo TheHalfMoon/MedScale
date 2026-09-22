@@ -227,6 +227,33 @@ impl Harness {
             other => panic!("{other:?}"),
         }
     }
+
+    fn source_record(&mut self, bytes: &[u8]) -> OpaqueId {
+        match self
+            .call(
+                Capability::CreateSourceRecord,
+                RequestBody::CreateSourceRecord {
+                    media_type: "text/plain".to_owned(),
+                    bytes: bytes.to_vec(),
+                },
+            )
+            .expect("create source record")
+        {
+            ResponseBody::Created { object_id } => object_id,
+            other => panic!("{other:?}"),
+        }
+    }
+
+    fn start_run(&mut self, run_id: OpaqueId) {
+        self.call(
+            Capability::AgentRunStart,
+            RequestBody::AgentRunStart {
+                run_id,
+                expected_revision: 1,
+            },
+        )
+        .expect("start run");
+    }
 }
 
 #[test]
@@ -839,4 +866,280 @@ fn revoked_identity_fails_closed_at_create_and_at_start() {
         )
         .unwrap_err();
     assert!(matches!(err, AuthorityError::Unauthorized));
+}
+
+// ---------------------------------------------------------------------------
+// T077-06: Tool invocation
+// ---------------------------------------------------------------------------
+
+/// Sets up a Running run bound to a ContextManifest naming exactly one
+/// real SourceRecord, with the agent granted only `granted`. Returns
+/// (run_id, source_id).
+fn running_run_with_one_source(
+    h: &mut Harness,
+    granted: Vec<ToolKind>,
+    content: &[u8],
+) -> (OpaqueId, OpaqueId) {
+    let project_id = h.project("agent-project");
+    let pack_id = h.install_fixture_pack();
+    let source_id = h.source_record(content);
+    let resp = h
+        .call(
+            Capability::AgentIdentityRegister,
+            RequestBody::AgentIdentityRegister {
+                project_id: project_id.clone(),
+                pack_id,
+                display_name: "Research Assistant".to_owned(),
+                granted_tool_kinds: granted,
+            },
+        )
+        .expect("register identity");
+    let agent_id = match resp {
+        ResponseBody::MedAgentIdentity { identity, .. } => identity.header.id,
+        other => panic!("{other:?}"),
+    };
+    let resp = h
+        .call(
+            Capability::ContextManifestCreate,
+            RequestBody::ContextManifestCreate {
+                project_id: project_id.clone(),
+                selected_artifacts: vec![ArtifactDescriptor {
+                    object_id: source_id.clone(),
+                    kind: ArtifactKind::SourceRecord,
+                    binding: ArtifactVersionBinding::IdentityOnly,
+                }],
+            },
+        )
+        .expect("create context");
+    let context_id = match resp {
+        ResponseBody::MedAgentContextManifest { manifest, .. } => manifest.header.id,
+        other => panic!("{other:?}"),
+    };
+    let run_id = h.create_run(project_id, agent_id, context_id, "read the source");
+    h.start_run(run_id.clone());
+    (run_id, source_id)
+}
+
+#[test]
+fn granted_read_context_artifact_executes_and_returns_content() {
+    let mut h = Harness::setup("tool-read-ok");
+    let (run_id, source_id) =
+        running_run_with_one_source(&mut h, vec![ToolKind::ReadContextArtifact], b"hello world");
+
+    let resp = h
+        .call(
+            Capability::AgentToolInvoke,
+            RequestBody::AgentToolInvoke {
+                run_id: run_id.clone(),
+                kind: ToolKind::ReadContextArtifact,
+                arguments: serde_json::json!({ "object_id": source_id.as_str() }),
+            },
+        )
+        .expect("invoke tool");
+    match resp {
+        ResponseBody::MedAgentToolInvocation {
+            invocation,
+            receipt,
+        } => {
+            assert_eq!(invocation.status.as_str(), "executed");
+            assert!(invocation.refusal_reason.is_none());
+            let receipt = receipt.expect("executed invocation carries a receipt");
+            assert_eq!(
+                receipt.result.get("content").and_then(|v| v.as_str()),
+                Some("hello world")
+            );
+        }
+        other => panic!("{other:?}"),
+    }
+
+    // Both ToolRequested and ToolResult turns were appended, after the
+    // initial PromptSubmitted from start_agent_run.
+    let resp = h
+        .call(
+            Capability::AgentRunRead,
+            RequestBody::AgentRunTurnList { run_id },
+        )
+        .expect("list turns");
+    match resp {
+        ResponseBody::MedAgentTurnList { turns } => {
+            assert_eq!(turns.len(), 3);
+            assert_eq!(turns[0].kind.as_str(), "prompt_submitted");
+            assert_eq!(turns[1].kind.as_str(), "tool_requested");
+            assert_eq!(turns[2].kind.as_str(), "tool_result");
+        }
+        other => panic!("{other:?}"),
+    }
+}
+
+/// `security.md` T2: an ungranted tool kind is refused before execution
+/// and recorded as a refusal, never silently dropped or executed.
+#[test]
+fn ungranted_tool_kind_is_refused_before_execution() {
+    let mut h = Harness::setup("tool-ungranted");
+    // Only SearchContextArtifacts is granted; ReadContextArtifact is not.
+    let (run_id, source_id) =
+        running_run_with_one_source(&mut h, vec![ToolKind::SearchContextArtifacts], b"secret");
+
+    let resp = h
+        .call(
+            Capability::AgentToolInvoke,
+            RequestBody::AgentToolInvoke {
+                run_id,
+                kind: ToolKind::ReadContextArtifact,
+                arguments: serde_json::json!({ "object_id": source_id.as_str() }),
+            },
+        )
+        .expect("invoke tool");
+    match resp {
+        ResponseBody::MedAgentToolInvocation {
+            invocation,
+            receipt,
+        } => {
+            assert_eq!(invocation.status.as_str(), "refused");
+            assert!(invocation.refusal_reason.is_some());
+            assert!(
+                receipt.is_none(),
+                "a refused invocation never has a receipt"
+            );
+        }
+        other => panic!("{other:?}"),
+    }
+}
+
+/// `security.md` T4: a granted tool kind whose arguments name an artifact
+/// outside the run's bound ContextManifest is refused, never executed --
+/// even though the object itself really exists and is readable to a human
+/// operator with full Project access.
+#[test]
+fn granted_tool_refuses_artifact_outside_bound_context() {
+    let mut h = Harness::setup("tool-outside-context");
+    let (run_id, _source_id) =
+        running_run_with_one_source(&mut h, vec![ToolKind::ReadContextArtifact], b"in context");
+    // A second, real source record that exists but was never named by this
+    // run's ContextManifest.
+    let outside_id = h.source_record(b"outside context");
+
+    let resp = h
+        .call(
+            Capability::AgentToolInvoke,
+            RequestBody::AgentToolInvoke {
+                run_id,
+                kind: ToolKind::ReadContextArtifact,
+                arguments: serde_json::json!({ "object_id": outside_id.as_str() }),
+            },
+        )
+        .expect("invoke tool");
+    match resp {
+        ResponseBody::MedAgentToolInvocation {
+            invocation,
+            receipt,
+        } => {
+            assert_eq!(invocation.status.as_str(), "refused");
+            assert!(
+                invocation
+                    .refusal_reason
+                    .as_deref()
+                    .unwrap_or_default()
+                    .contains("ContextManifest")
+            );
+            assert!(receipt.is_none());
+        }
+        other => panic!("{other:?}"),
+    }
+}
+
+#[test]
+fn search_context_artifacts_finds_only_bound_content() {
+    let mut h = Harness::setup("tool-search");
+    let (run_id, _source_id) = running_run_with_one_source(
+        &mut h,
+        vec![ToolKind::SearchContextArtifacts],
+        b"the quick brown fox jumps over the lazy dog",
+    );
+
+    let resp = h
+        .call(
+            Capability::AgentToolInvoke,
+            RequestBody::AgentToolInvoke {
+                run_id,
+                kind: ToolKind::SearchContextArtifacts,
+                arguments: serde_json::json!({ "query": "brown fox" }),
+            },
+        )
+        .expect("invoke tool");
+    match resp {
+        ResponseBody::MedAgentToolInvocation {
+            invocation,
+            receipt,
+        } => {
+            assert_eq!(invocation.status.as_str(), "executed");
+            let receipt = receipt.expect("executed invocation carries a receipt");
+            let matches = receipt
+                .result
+                .get("matches")
+                .and_then(|v| v.as_array())
+                .expect("matches array");
+            assert_eq!(matches.len(), 1);
+            let snippet = matches[0]
+                .get("snippet")
+                .and_then(|v| v.as_str())
+                .unwrap_or_default();
+            assert!(snippet.contains("brown fox"));
+        }
+        other => panic!("{other:?}"),
+    }
+}
+
+#[test]
+fn tool_invocation_refused_with_malformed_arguments() {
+    let mut h = Harness::setup("tool-malformed");
+    let (run_id, _source_id) =
+        running_run_with_one_source(&mut h, vec![ToolKind::ReadContextArtifact], b"content");
+
+    // object_id is required by ReadContextArtifactArgs; this payload omits
+    // it entirely, so typed parsing must fail, not partially execute.
+    let resp = h
+        .call(
+            Capability::AgentToolInvoke,
+            RequestBody::AgentToolInvoke {
+                run_id,
+                kind: ToolKind::ReadContextArtifact,
+                arguments: serde_json::json!({ "unexpected_field": "x" }),
+            },
+        )
+        .expect("invoke tool");
+    match resp {
+        ResponseBody::MedAgentToolInvocation {
+            invocation,
+            receipt,
+        } => {
+            assert_eq!(invocation.status.as_str(), "refused");
+            assert!(receipt.is_none());
+        }
+        other => panic!("{other:?}"),
+    }
+}
+
+#[test]
+fn tool_invocation_on_a_non_running_run_is_refused_closed() {
+    let mut h = Harness::setup("tool-not-running");
+    let project_id = h.project("agent-project");
+    let pack_id = h.install_fixture_pack();
+    let source_id = h.source_record(b"content");
+    let agent_id = h.register_identity(project_id.clone(), pack_id);
+    let context_id = h.create_context(project_id.clone(), source_id.as_str());
+    // Pending, never started.
+    let run_id = h.create_run(project_id, agent_id, context_id, "go");
+
+    let err = h
+        .call(
+            Capability::AgentToolInvoke,
+            RequestBody::AgentToolInvoke {
+                run_id,
+                kind: ToolKind::ReadContextArtifact,
+                arguments: serde_json::json!({ "object_id": source_id.as_str() }),
+            },
+        )
+        .unwrap_err();
+    assert!(matches!(err, AuthorityError::Conflict { .. }));
 }

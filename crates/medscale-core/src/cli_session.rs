@@ -1638,6 +1638,39 @@ impl CliSession {
         Ok(*run)
     }
 
+    /// Dispatches one typed tool invocation for a `Running` run.
+    pub fn medagent_tool_invoke(
+        &mut self,
+        run_id: OpaqueId,
+        kind: medscale_contracts::medagent::ToolKind,
+        arguments: serde_json::Value,
+    ) -> Result<
+        (
+            medscale_contracts::medagent::ToolInvocation,
+            Option<medscale_contracts::medagent::ToolReceipt>,
+        ),
+        AuthorityError,
+    > {
+        let resp = self.dispatch(
+            Capability::AgentToolInvoke,
+            RequestBody::AgentToolInvoke {
+                run_id,
+                kind,
+                arguments,
+            },
+        )?;
+        let ResponseBody::MedAgentToolInvocation {
+            invocation,
+            receipt,
+        } = resp
+        else {
+            return Err(AuthorityError::InvalidArgument {
+                message: "expected medagent tool invocation".to_owned(),
+            });
+        };
+        Ok((*invocation, receipt.map(|r| *r)))
+    }
+
     fn expect_medagent_identity(
         resp: ResponseBody,
     ) -> Result<

@@ -13,7 +13,7 @@ use clap::Subcommand;
 use medscale_contracts::envelopes::AuthorityError;
 use medscale_contracts::medagent::{
     AgentCapabilityManifest, AgentIdentity, AgentRun, AgentTurn, ContextManifest, RunReceipt,
-    ToolKind,
+    ToolInvocation, ToolKind, ToolReceipt,
 };
 use medscale_contracts::objects::OpaqueId;
 use medscale_contracts::project_graph::{
@@ -115,6 +115,18 @@ fn print_turn_human(turn: &AgentTurn) {
     );
 }
 
+fn print_tool_invocation_human(invocation: &ToolInvocation, receipt: Option<&ToolReceipt>) {
+    println!("invocation_id: {}", invocation.header.id.as_str());
+    println!("kind: {}", invocation.kind.as_str());
+    println!("status: {}", invocation.status.as_str());
+    if let Some(reason) = &invocation.refusal_reason {
+        println!("refusal_reason: {reason}");
+    }
+    if let Some(receipt) = receipt {
+        println!("result: {}", receipt.result);
+    }
+}
+
 fn print_context_human(manifest: &ContextManifest, resolutions: &[ReferenceResolution]) {
     println!("context_id: {}", manifest.header.id.as_str());
     println!("project_id: {}", manifest.project_id.as_str());
@@ -166,6 +178,16 @@ struct RunStartedJson {
 struct RunTerminalJson {
     run: AgentRun,
     receipt: RunReceipt,
+}
+
+#[derive(Debug, serde::Serialize)]
+struct ToolInvocationJson {
+    invocation: ToolInvocation,
+    receipt: Option<ToolReceipt>,
+}
+
+fn parse_tool_kind(value: &str) -> Result<ToolKind, String> {
+    ToolKind::parse(value)
 }
 
 /// Spec 077 MedAgent Workbench commands (agent identity + context manifest
@@ -329,6 +351,22 @@ pub enum MedAgentCmd {
         vault_root: PathBuf,
         #[arg(long)]
         run_id: String,
+        #[arg(long)]
+        json: bool,
+    },
+    /// Invoke one typed tool against a Running run.
+    ToolInvoke {
+        #[arg(long)]
+        vault_id: String,
+        #[arg(long)]
+        vault_root: PathBuf,
+        #[arg(long)]
+        run_id: String,
+        #[arg(long)]
+        kind: String,
+        /// Raw JSON arguments, e.g. `{"object_id":"src-1"}`.
+        #[arg(long)]
+        arguments: String,
         #[arg(long)]
         json: bool,
     },
@@ -620,6 +658,34 @@ pub fn run_medagent(action: MedAgentCmd) -> anyhow::Result<()> {
                 for turn in &turns {
                     print_turn_human(turn);
                 }
+            }
+            Ok(())
+        }
+        MedAgentCmd::ToolInvoke {
+            vault_id,
+            vault_root,
+            run_id,
+            kind,
+            arguments,
+            json,
+        } => {
+            let kind = parse_tool_kind(&kind).map_err(|m| invalid(m, json))?;
+            let arguments: serde_json::Value =
+                serde_json::from_str(&arguments).map_err(|e| invalid(e.to_string(), json))?;
+            let mut session = open_medagent_session(&vault_id, &vault_root, json)?;
+            let (invocation, receipt) = session
+                .medagent_tool_invoke(OpaqueId::new(run_id), kind, arguments)
+                .map_err(|err| medagent_fail(&err, json))?;
+            if json {
+                print_json_or_debug(
+                    &ToolInvocationJson {
+                        invocation,
+                        receipt,
+                    },
+                    true,
+                )?;
+            } else {
+                print_tool_invocation_human(&invocation, receipt.as_ref());
             }
             Ok(())
         }

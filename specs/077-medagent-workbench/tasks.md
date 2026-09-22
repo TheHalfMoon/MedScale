@@ -205,18 +205,48 @@ failing closed at both create and start. See
 
 ## T077-06 — Tool invocation
 
-- [ ] Implement `ToolManifest`/`ToolInvocation`/`ToolReceipt`, policy-
+- [x] Implement `ToolManifest`/`ToolInvocation`/`ToolReceipt`, policy-
       checked against `AgentCapabilityManifest` and `ContextManifest`
       before dispatch, executed entirely by Core.
 
 **Acceptance:** an ungranted tool kind is refused before execution and
 recorded as a refusal.
 
-**Note for whoever implements this:** `MedAgent::require_artifact_in_context`
-(added in T077-04) currently carries `#[allow(dead_code)]` because it has
-no production caller yet -- remove that attribute the moment this task's
-tool-dispatch path calls it. That call must happen before any artifact
-content is read; there is no second, unchecked read path.
+**Implemented (this session):** `Capability::AgentToolInvoke` + `RequestBody::
+AgentToolInvoke{run_id,kind,arguments}` + `ResponseBody::
+MedAgentToolInvocation{invocation, receipt: Option<...>}`; `MedAgent::
+invoke_tool` in `medagent.rs` (Core) -- the sole tool-dispatch path and
+the first production caller of `require_artifact_in_context` (its
+`#[allow(dead_code)]` from T077-04 is now removed). Arguments are parsed
+into closed, `deny_unknown_fields` typed structs
+(`ReadContextArtifactArgs`/`SearchContextArtifactsArgs`) before any use
+(`security.md` T3); a tool kind not in the run's `AgentCapabilityManifest`,
+an oversized argument payload, a malformed argument shape, or an artifact
+named outside the run's bound `ContextManifest` are all recorded as a
+`Refused` `ToolInvocation` with a reason -- never a hard error, never
+partial execution. Invoking a tool on a non-`Running` run (Pending or
+terminal) IS a hard `AuthorityError::Conflict`, deliberately distinct from
+a refusal: that is a caller/session-state problem, not "the model asked
+for something disallowed." Every invocation appends `ToolRequested`
+(before the grant/boundary check) and `ToolResult` (after, whichever way
+it resolved) turns as side effects -- never a directly callable "append
+arbitrary turn" capability. `ReadContextArtifact` returns the artifact's
+raw bytes (`SourceRecord`/`DerivedSourceArtifact` only), lossily UTF-8
+decoded and bounded; `SearchContextArtifacts` does a bounded,
+case-insensitive substring search over only the run's bound context
+artifacts (never a broader vault query), with UTF-8-char-boundary-safe
+snippet extraction. CLI: `medagent tool-invoke`.
+
+Tests (`crates/medscale-core/tests/medagent_077.rs`, 6 new, through real
+`CoreFacade::dispatch` against real `SourceRecord`s): granted
+`ReadContextArtifact` executes and returns exact content (plus proves the
+3-turn sequence: `prompt_submitted`/`tool_requested`/`tool_result`), an
+ungranted kind is refused with no receipt, a granted kind naming a
+real-but-out-of-context artifact is refused (not executed), bounded
+case-insensitive search finds the expected snippet, malformed arguments
+(missing required field) are refused rather than panicking or partially
+executing, and invoking a tool against a non-`Running` run fails closed
+with `Conflict`. See `evidence/077-medagent-workbench/T077-06_IMPLEMENTATION.md`.
 
 ## T077-07 — Model Pack lane + AgentProposal
 

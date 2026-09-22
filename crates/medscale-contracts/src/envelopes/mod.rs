@@ -24,7 +24,7 @@ use crate::evidence::{LexicalRetrieveRequest, LexicalRetrieveResult};
 use crate::ingest::{BackupManifest, IngestReceipt};
 use crate::medagent::{
     AgentCapabilityManifest, AgentIdentity, AgentRun, AgentTurn, ContextManifest, RunReceipt,
-    ToolKind,
+    ToolInvocation, ToolKind, ToolReceipt,
 };
 use crate::mesc::{MescArtifactAdmitRequest, MescArtifactVerifyRequest, MescVerifyReport};
 use crate::network::{EgressAllowlistEntry, NetworkBrokerRequest, NetworkBrokerResult};
@@ -170,6 +170,8 @@ pub enum Capability {
     AgentRunRead,
     AgentRunStart,
     AgentRunCancel,
+    // Spec 077 T077-06 slice.
+    AgentToolInvoke,
 }
 
 impl Capability {
@@ -343,6 +345,7 @@ impl Capability {
             Self::AgentRunRead,
             Self::AgentRunStart,
             Self::AgentRunCancel,
+            Self::AgentToolInvoke,
         ]
     }
 }
@@ -929,6 +932,12 @@ pub enum RequestBody {
     AgentRunTurnList {
         run_id: OpaqueId,
     },
+    // Spec 077 T077-06 slice.
+    AgentToolInvoke {
+        run_id: OpaqueId,
+        kind: ToolKind,
+        arguments: Value,
+    },
 }
 
 impl RequestBody {
@@ -1274,6 +1283,12 @@ pub enum ResponseBody {
     },
     MedAgentTurnList {
         turns: Vec<AgentTurn>,
+    },
+    /// `receipt` is `None` for a `Refused` invocation, `Some` for
+    /// `Executed`.
+    MedAgentToolInvocation {
+        invocation: Box<ToolInvocation>,
+        receipt: Option<Box<ToolReceipt>>,
     },
 }
 

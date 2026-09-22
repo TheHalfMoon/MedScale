@@ -2818,6 +2818,23 @@ impl CoreFacade {
                 )?;
                 Ok(ResponseBody::MedAgentTurnList { turns })
             }
+            RequestBody::AgentToolInvoke {
+                run_id,
+                kind,
+                arguments,
+            } => {
+                let (invocation, receipt) = self.medagent(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut medagent| medagent.invoke_tool(&run_id, kind, arguments),
+                )?;
+                Ok(ResponseBody::MedAgentToolInvocation {
+                    invocation: Box::new(invocation),
+                    receipt: receipt.map(Box::new),
+                })
+            }
         }
     }
 }
@@ -3214,6 +3231,10 @@ fn capability_matches(cap: &Capability, body: &RequestBody) -> bool {
             | (
                 Capability::AgentRunRead,
                 RequestBody::AgentRunTurnList { .. }
+            )
+            | (
+                Capability::AgentToolInvoke,
+                RequestBody::AgentToolInvoke { .. }
             )
     )
 }

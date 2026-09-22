@@ -1,20 +1,30 @@
 //! MedAgent Workbench Core authority paths (Spec 077).
 //!
-//! T077-03/T077-04/T077-05 scope: `AgentIdentity` + `AgentCapabilityManifest`
+//! T077-03 through T077-06 scope: `AgentIdentity` + `AgentCapabilityManifest`
 //! register/get/list/revoke, `ContextManifest` create/get plus the single
-//! read-boundary check (`require_artifact_in_context`) every future
-//! tool-dispatch path (T077-06) must call, and the full `AgentRun`/
-//! `AgentTurn` lifecycle. Tool invocation/receipt/proposal Core paths land
-//! in T077-06 through T077-08.
+//! read-boundary check (`require_artifact_in_context`), the full
+//! `AgentRun`/`AgentTurn` lifecycle, and typed `ToolInvocation` dispatch
+//! (`invoke_tool`). `AgentProposal`/Model-Pack Core paths land in T077-07
+//! and T077-08.
 //!
 //! `AgentTurn`s are never externally appendable: `PromptSubmitted` is
 //! appended automatically, once, by `start_agent_run` (the run's own
 //! `prompt` field is already known at creation, so no caller input is
-//! trusted); `ToolRequested`/`ToolResult` (T077-06) and `ModelOutput`
-//! (T077-07) turns will likewise be Core-internal side effects of their
-//! own dispatch paths, never a directly callable "append arbitrary turn"
-//! capability -- that would let an external caller fabricate conversation
-//! history.
+//! trusted); `invoke_tool` likewise appends its own `ToolRequested`/
+//! `ToolResult` turns as side effects, never a directly callable "append
+//! arbitrary turn" capability -- that would let an external caller
+//! fabricate conversation history. `ModelOutput` turns (T077-07) will be
+//! appended the same way.
+//!
+//! `invoke_tool` is the sole tool-dispatch path and the first production
+//! caller of `require_artifact_in_context` (added at T077-04): every
+//! `ReadContextArtifact`/`SearchContextArtifacts` execution consults it
+//! before touching any artifact content (`security.md` T4). A tool kind
+//! not present in the run's bound `AgentCapabilityManifest`, an argument
+//! shape that fails typed parsing, or an artifact outside the bound
+//! `ContextManifest` are all recorded as a `Refused` `ToolInvocation` with
+//! a reason -- never a silent drop and never partial execution on a
+//! malformed argument.
 //!
 //! `AgentIdentity.status`/admitted-Pack state is re-checked on every
 //! `create_agent_run` and `start_agent_run` call, never cached across a
@@ -44,16 +54,63 @@
 use medscale_contracts::envelopes::AuthorityError;
 use medscale_contracts::medagent::{
     AgentCapabilityManifest, AgentIdentity, AgentIdentityStatus, AgentRun, AgentRunState,
-    AgentTurn, AgentTurnKind, ContextManifest, MEDAGENT_SCHEMA_VERSION, RunReceipt, ToolKind,
+    AgentTurn, AgentTurnKind, ContextManifest, MEDAGENT_SCHEMA_VERSION, RunReceipt,
+    TOOL_ARGUMENT_MAX_BYTES, TOOL_RESULT_MAX_BYTES, ToolInvocation, ToolKind, ToolReceipt,
 };
 use medscale_contracts::objects::{AuthorityScopeId, ObjectHeader, OpaqueId, RealmId, VaultId};
 use medscale_contracts::project_graph::{
     ArtifactDescriptor, ArtifactKind, ArtifactVersionBinding, ReferenceResolution,
 };
 use medscale_storage::{MetaError, SqliteMetaStore};
+use serde::Deserialize;
 
 use super::store::{InMemoryAuthorityStore, ScopeError, StoredObject};
 use crate::process::{LeaseRegistry, SessionRegistry};
+
+/// Typed, `deny_unknown_fields` argument shapes per `ToolKind`
+/// (`security.md` T3: arguments are deserialized into closed typed structs
+/// before any use, never a raw `Value` passthrough). Kept Core-internal:
+/// the wire envelope still carries `arguments: Value` (mirroring
+/// `ToolInvocation.arguments`'s own frozen shape), but `invoke_tool` never
+/// touches that `Value` before parsing it into one of these.
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ReadContextArtifactArgs {
+    object_id: OpaqueId,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct SearchContextArtifactsArgs {
+    query: String,
+}
+
+/// Nearest byte index `<= idx` that lands on a UTF-8 char boundary in `s`
+/// (stable-Rust equivalent of the unstable `str::floor_char_boundary`).
+fn floor_char_boundary(s: &str, idx: usize) -> usize {
+    let mut idx = idx.min(s.len());
+    while idx > 0 && !s.is_char_boundary(idx) {
+        idx -= 1;
+    }
+    idx
+}
+
+/// Nearest byte index `>= idx` that lands on a UTF-8 char boundary in `s`.
+fn ceil_char_boundary(s: &str, idx: usize) -> usize {
+    let mut idx = idx.min(s.len());
+    while idx < s.len() && !s.is_char_boundary(idx) {
+        idx += 1;
+    }
+    idx
+}
+
+const SEARCH_QUERY_MAX_CHARS: usize = 256;
+const SEARCH_MAX_MATCHES: usize = 20;
+const SEARCH_SNIPPET_RADIUS_BYTES: usize = 80;
+/// Conservative cap on raw content bytes copied into a tool result,
+/// leaving ample room under `TOOL_RESULT_MAX_BYTES` for JSON structure and
+/// UTF-8 lossy-conversion replacement-character growth.
+const READ_CONTENT_MAX_BYTES: usize = TOOL_RESULT_MAX_BYTES / 2;
 
 /// Mirrors `project_graph::stored_class_matches` (deliberately duplicated,
 /// not imported, per this spec's own module-independence convention -- see
@@ -376,16 +433,13 @@ impl MedAgent<'_> {
 
     /// THE single Core-internal check for whether `object_id` is readable
     /// under `context_id`'s bound `ContextManifest` (`security.md` T4).
-    /// Every future tool-dispatch path (T077-06) must call this before
-    /// resolving any artifact content; there is no second, unchecked read
-    /// path for agent-run code. Returns the manifest itself on success so
-    /// the caller never needs a second, separately-scoped fetch.
+    /// Every tool-dispatch path must call this before resolving any
+    /// artifact content; there is no second, unchecked read path for
+    /// agent-run code. Returns the manifest itself on success so the
+    /// caller never needs a second, separately-scoped fetch.
     ///
-    /// No production caller exists yet: T077-06's tool dispatch is the
-    /// first one, and lands in a later commit. Proven directly by this
-    /// module's own tests in the meantime (`#[allow(dead_code)]` is
-    /// temporary and must be removed the moment T077-06 adds its caller).
-    #[allow(dead_code)]
+    /// First (and, as of T077-06, only) production caller:
+    /// `execute_read_context_artifact`.
     pub fn require_artifact_in_context(
         &self,
         context_id: &OpaqueId,
@@ -577,6 +631,246 @@ impl MedAgent<'_> {
     pub fn list_agent_turns(&self, run_id: &OpaqueId) -> Result<Vec<AgentTurn>, AuthorityError> {
         self.scoped_agent_run(run_id)?;
         self.meta.list_agent_turns(run_id).map_err(meta_err)
+    }
+
+    // ----- Tool invocation -----
+
+    /// Fetches one artifact's raw content bytes, only for the object kinds
+    /// this spec's tool vocabulary supports (`SourceRecord`/
+    /// `DerivedSourceArtifact`). Returns `Err` with a human-readable reason
+    /// on any failure; the caller always turns that into a `Refused`
+    /// `ToolInvocation`, never a hard `AuthorityError`.
+    fn fetch_artifact_bytes(&self, object_id: &OpaqueId) -> Result<Vec<u8>, String> {
+        let stored = self
+            .store
+            .get_scoped(object_id, &self.realm, &self.scope)
+            .map_err(|_| "artifact not found".to_owned())?;
+        match stored {
+            StoredObject::Source(record) => Ok(record.bytes.clone()),
+            StoredObject::Derived(artifact) => Ok(artifact.bytes.clone()),
+            _ => Err("artifact kind does not carry readable content".to_owned()),
+        }
+    }
+
+    /// Dispatches one typed tool invocation for a `Running` run, appending
+    /// its `ToolRequested` and `ToolResult` turns as side effects. THE
+    /// only path from an agent run to artifact content: every branch that
+    /// touches storage first calls `require_artifact_in_context`.
+    pub fn invoke_tool(
+        &mut self,
+        run_id: &OpaqueId,
+        kind: ToolKind,
+        arguments: serde_json::Value,
+    ) -> Result<(ToolInvocation, Option<ToolReceipt>), AuthorityError> {
+        let run = self.scoped_agent_run(run_id)?;
+        if run.status != AgentRunState::Running {
+            return Err(AuthorityError::Conflict {
+                message: "run is not Running".to_owned(),
+            });
+        }
+        self.require_active_identity(&run.agent_identity_id)?;
+        let capabilities = self
+            .meta
+            .get_capability_manifest(&run.agent_identity_id)
+            .map_err(meta_err)?;
+
+        let arguments_size = serde_json::to_vec(&arguments)
+            .map(|b| b.len())
+            .unwrap_or(usize::MAX);
+
+        let requested_turn = self.append_turn(
+            run_id,
+            AgentTurnKind::ToolRequested,
+            serde_json::json!({ "kind": kind.as_str(), "arguments": arguments }),
+        )?;
+        let turn_seq = requested_turn.seq;
+
+        let refusal_reason: Option<String> = if arguments_size > TOOL_ARGUMENT_MAX_BYTES {
+            Some("tool arguments exceed bound".to_owned())
+        } else if !capabilities.grants(kind) {
+            Some(format!("tool kind {} is not granted", kind.as_str()))
+        } else {
+            None
+        };
+
+        if let Some(reason) = refusal_reason {
+            let invocation_header =
+                self.next_medagent_header("medagent-invocation-id-seq", "inv")?;
+            let invocation = self
+                .meta
+                .insert_refused_tool_invocation(
+                    invocation_header,
+                    run_id,
+                    turn_seq,
+                    kind,
+                    &arguments,
+                    &reason,
+                )
+                .map_err(meta_err)?;
+            self.append_turn(
+                run_id,
+                AgentTurnKind::ToolResult,
+                serde_json::json!({ "status": "refused", "reason": reason }),
+            )?;
+            self.audit("medagent_tool.refuse", vec![run_id.clone()])?;
+            return Ok((invocation, None));
+        }
+
+        let execution = match kind {
+            ToolKind::ReadContextArtifact => self.execute_read_context_artifact(&run, &arguments),
+            ToolKind::SearchContextArtifacts => {
+                self.execute_search_context_artifacts(&run, &arguments)
+            }
+        };
+        let result = match execution {
+            Ok(result) => result,
+            Err(reason) => {
+                let invocation_header =
+                    self.next_medagent_header("medagent-invocation-id-seq", "inv")?;
+                let invocation = self
+                    .meta
+                    .insert_refused_tool_invocation(
+                        invocation_header,
+                        run_id,
+                        turn_seq,
+                        kind,
+                        &arguments,
+                        &reason,
+                    )
+                    .map_err(meta_err)?;
+                self.append_turn(
+                    run_id,
+                    AgentTurnKind::ToolResult,
+                    serde_json::json!({ "status": "refused", "reason": reason }),
+                )?;
+                self.audit("medagent_tool.refuse", vec![run_id.clone()])?;
+                return Ok((invocation, None));
+            }
+        };
+
+        let invocation_header = self.next_medagent_header("medagent-invocation-id-seq", "inv")?;
+        let receipt_header =
+            self.next_medagent_header("medagent-tool-receipt-id-seq", "tool-receipt")?;
+        let (invocation, receipt) = self
+            .meta
+            .insert_executed_tool_invocation_with_receipt(
+                invocation_header,
+                receipt_header,
+                run_id,
+                turn_seq,
+                kind,
+                &arguments,
+                &result,
+            )
+            .map_err(meta_err)?;
+        self.append_turn(
+            run_id,
+            AgentTurnKind::ToolResult,
+            serde_json::json!({ "status": "executed", "result": result }),
+        )?;
+        self.audit("medagent_tool.execute", vec![run_id.clone()])?;
+        Ok((invocation, Some(receipt)))
+    }
+
+    fn append_turn(
+        &mut self,
+        run_id: &OpaqueId,
+        kind: AgentTurnKind,
+        payload: serde_json::Value,
+    ) -> Result<AgentTurn, AuthorityError> {
+        let header = self.next_medagent_header("medagent-turn-id-seq", "turn")?;
+        self.meta
+            .insert_agent_turn(header, run_id, kind, &payload)
+            .map_err(meta_err)
+    }
+
+    fn next_medagent_header(
+        &self,
+        seq_key: &str,
+        prefix: &str,
+    ) -> Result<ObjectHeader, AuthorityError> {
+        let id = self
+            .meta
+            .alloc_medagent_id(seq_key, prefix)
+            .map_err(meta_err)?;
+        Ok(header(&self.realm, &self.scope, id))
+    }
+
+    /// Executes `ReadContextArtifact`: parses typed arguments, enforces the
+    /// context boundary via `require_artifact_in_context`, and returns the
+    /// artifact's content bytes (bounded, lossily UTF-8 decoded).
+    fn execute_read_context_artifact(
+        &self,
+        run: &AgentRun,
+        arguments: &serde_json::Value,
+    ) -> Result<serde_json::Value, String> {
+        let args: ReadContextArtifactArgs = serde_json::from_value(arguments.clone())
+            .map_err(|e| format!("malformed arguments: {e}"))?;
+        self.require_artifact_in_context(&run.context_manifest_id, &args.object_id)
+            .map_err(|_| "artifact is outside the bound ContextManifest".to_owned())?;
+        let bytes = self.fetch_artifact_bytes(&args.object_id)?;
+        let truncated = bytes.len() > READ_CONTENT_MAX_BYTES;
+        let content = String::from_utf8_lossy(&bytes[..bytes.len().min(READ_CONTENT_MAX_BYTES)]);
+        Ok(serde_json::json!({
+            "object_id": args.object_id.as_str(),
+            "content": content,
+            "truncated": truncated,
+        }))
+    }
+
+    /// Executes `SearchContextArtifacts`: a bounded, case-insensitive
+    /// substring search over only the run's bound `ContextManifest`
+    /// artifacts -- never a broader vault query.
+    fn execute_search_context_artifacts(
+        &self,
+        run: &AgentRun,
+        arguments: &serde_json::Value,
+    ) -> Result<serde_json::Value, String> {
+        let args: SearchContextArtifactsArgs = serde_json::from_value(arguments.clone())
+            .map_err(|e| format!("malformed arguments: {e}"))?;
+        if args.query.trim().is_empty() || args.query.chars().count() > SEARCH_QUERY_MAX_CHARS {
+            return Err("query is empty or exceeds bound".to_owned());
+        }
+        let context = self
+            .scoped_context_manifest(&run.context_manifest_id)
+            .map_err(|_| "context manifest is unavailable".to_owned())?;
+        let query_lower = args.query.to_lowercase();
+        let mut matches = Vec::new();
+        for artifact in &context.selected_artifacts {
+            if matches.len() >= SEARCH_MAX_MATCHES {
+                break;
+            }
+            let Ok(bytes) = self.fetch_artifact_bytes(&artifact.object_id) else {
+                continue;
+            };
+            let text = String::from_utf8_lossy(&bytes);
+            let text_lower = text.to_lowercase();
+            if let Some(pos) = text_lower.find(&query_lower) {
+                // Slice text_lower (not the original text): lowercasing can
+                // change a character's UTF-8 byte length, so byte offsets
+                // found in text_lower are only guaranteed valid against
+                // text_lower itself. Both ends are snapped to a char
+                // boundary -- pos and pos + query_lower.len() already are
+                // (str::find/len respect char boundaries), but the radius
+                // arithmetic can land mid-character.
+                let start = floor_char_boundary(
+                    &text_lower,
+                    pos.saturating_sub(SEARCH_SNIPPET_RADIUS_BYTES),
+                );
+                let end = ceil_char_boundary(
+                    &text_lower,
+                    (pos + query_lower.len() + SEARCH_SNIPPET_RADIUS_BYTES).min(text_lower.len()),
+                );
+                matches.push(serde_json::json!({
+                    "object_id": artifact.object_id.as_str(),
+                    "snippet": text_lower[start..end].to_owned(),
+                }));
+            }
+        }
+        Ok(serde_json::json!({
+            "query": args.query,
+            "matches": matches,
+        }))
     }
 }
 
