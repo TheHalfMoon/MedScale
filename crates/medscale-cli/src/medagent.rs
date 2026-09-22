@@ -324,6 +324,9 @@ pub enum MedAgentCmd {
         project_id: String,
         #[arg(long)]
         agent_id: Option<String>,
+        /// One of: pending, running, cancelled, completed, failed.
+        #[arg(long)]
+        status: Option<String>,
         #[arg(long)]
         limit: Option<u32>,
         #[arg(long)]
@@ -352,6 +355,34 @@ pub enum MedAgentCmd {
         run_id: String,
         #[arg(long)]
         expected_revision: u64,
+        #[arg(long)]
+        json: bool,
+    },
+    /// Mark a Running run Completed.
+    RunComplete {
+        #[arg(long)]
+        vault_id: String,
+        #[arg(long)]
+        vault_root: PathBuf,
+        #[arg(long)]
+        run_id: String,
+        #[arg(long)]
+        expected_revision: u64,
+        #[arg(long)]
+        json: bool,
+    },
+    /// Mark a Running run Failed with a reason.
+    RunFail {
+        #[arg(long)]
+        vault_id: String,
+        #[arg(long)]
+        vault_root: PathBuf,
+        #[arg(long)]
+        run_id: String,
+        #[arg(long)]
+        expected_revision: u64,
+        #[arg(long)]
+        failure_reason: String,
         #[arg(long)]
         json: bool,
     },
@@ -613,14 +644,20 @@ pub fn run_medagent(action: MedAgentCmd) -> anyhow::Result<()> {
             vault_root,
             project_id,
             agent_id,
+            status,
             limit,
             json,
         } => {
+            let status = status
+                .map(|s| medscale_contracts::medagent::AgentRunState::parse(&s))
+                .transpose()
+                .map_err(|m| invalid(m, json))?;
             let mut session = open_medagent_session(&vault_id, &vault_root, json)?;
             let runs = session
                 .medagent_run_list(
                     OpaqueId::new(project_id),
                     agent_id.map(OpaqueId::new),
+                    status,
                     limit,
                 )
                 .map_err(|err| medagent_fail(&err, json))?;
@@ -667,6 +704,45 @@ pub fn run_medagent(action: MedAgentCmd) -> anyhow::Result<()> {
             let mut session = open_medagent_session(&vault_id, &vault_root, json)?;
             let (run, receipt) = session
                 .medagent_run_cancel(OpaqueId::new(run_id), expected_revision)
+                .map_err(|err| medagent_fail(&err, json))?;
+            if json {
+                print_json_or_debug(&RunTerminalJson { run, receipt }, true)?;
+            } else {
+                print_run_human(&run);
+                print_run_receipt_human(&receipt);
+            }
+            Ok(())
+        }
+        MedAgentCmd::RunComplete {
+            vault_id,
+            vault_root,
+            run_id,
+            expected_revision,
+            json,
+        } => {
+            let mut session = open_medagent_session(&vault_id, &vault_root, json)?;
+            let (run, receipt) = session
+                .medagent_run_complete(OpaqueId::new(run_id), expected_revision)
+                .map_err(|err| medagent_fail(&err, json))?;
+            if json {
+                print_json_or_debug(&RunTerminalJson { run, receipt }, true)?;
+            } else {
+                print_run_human(&run);
+                print_run_receipt_human(&receipt);
+            }
+            Ok(())
+        }
+        MedAgentCmd::RunFail {
+            vault_id,
+            vault_root,
+            run_id,
+            expected_revision,
+            failure_reason,
+            json,
+        } => {
+            let mut session = open_medagent_session(&vault_id, &vault_root, json)?;
+            let (run, receipt) = session
+                .medagent_run_fail(OpaqueId::new(run_id), expected_revision, failure_reason)
                 .map_err(|err| medagent_fail(&err, json))?;
             if json {
                 print_json_or_debug(&RunTerminalJson { run, receipt }, true)?;

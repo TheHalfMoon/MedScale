@@ -310,12 +310,53 @@ non-`Running` run fails closed with `Conflict`. See
 
 ## T077-08 — RunReceipt + run history
 
-- [ ] Implement `RunReceipt` committed atomically with a run's terminal
+- [x] Implement `RunReceipt` committed atomically with a run's terminal
       transition.
-- [ ] Implement bounded, filterable run-history read.
+- [x] Implement bounded, filterable run-history read.
 
 **Acceptance:** every terminal run has exactly one `RunReceipt`; no
 orphaned receipt, no receipt-less terminal run.
+
+**Implemented (this session):** `cancel_agent_run` (T077-05) was already
+atomic with its `RunReceipt`, but always recorded an empty
+`tool_invocation_ids: Vec::new()` even when tools had actually run before
+cancellation -- a real provenance gap, not merely an unimplemented
+feature. Refactored into a shared `MedAgent::commit_terminal_run` helper
+(used by `cancel_agent_run` and two new methods,
+`complete_agent_run`/`fail_agent_run`) that threads the run's *real*
+tool-invocation history via `self.meta.list_tool_invocations(run_id)`
+(executed and refused invocations alike, in `seq` order -- "exact
+provenance" means the full record, not just the successes) into every
+terminal `RunReceipt`, closing that gap for all three terminal states at
+once. `Capability::AgentRunComplete`/`AgentRunFail` +
+`RequestBody::AgentRunComplete`/`AgentRunFail` added (reusing
+`ResponseBody::MedAgentRunTerminal`); `fail_agent_run` takes a bounded
+`failure_reason: String`. "Resource/timing facts" from `plan.md`'s work
+bullet are not separately tracked: `RunReceipt`'s frozen contract
+(T077-01) has no timestamp/duration field, and this promotion did not
+authorize amending that frozen shape -- turn/tool-invocation counts
+already recoverable from `list_agent_turns`/`tool_invocation_ids.len()`
+are the resource facts this spec's frozen contract actually supports; an
+honest residual, not a fabricated claim of tracking that does not exist.
+
+**Bounded, filterable run history:** `list_agent_runs` (both the Core
+method and the underlying storage query) gained a `status:
+Option<AgentRunState>` filter, using
+`idx_medagent_runs_project(project_id, status)` directly via SQL `WHERE`
+(not a post-fetch filter, which could silently under-return fewer than
+`limit` matches when more exist beyond a pre-filter window). By Project
+was already required (always present); by agent identity already existed
+(T077-05); by state is the addition this task's own acceptance bullet
+names. CLI: `medagent run-list --status`, `run-complete`, `run-fail`.
+
+Tests (`crates/medscale-core/tests/medagent_077.rs`, 4 new, through real
+`CoreFacade::dispatch`): a completed run's receipt threads the exact real
+`ToolInvocation` id from a tool call made mid-run; a failed run's receipt
+carries the exact failure reason; completing a still-`Pending` run
+(`Pending -> Completed` is not in the frozen table) fails closed with
+`Conflict`; run history correctly returns only the matching subset for
+each of `Cancelled`/`Pending`/no-filter across two runs in different
+states. See `evidence/077-medagent-workbench/T077-08_IMPLEMENTATION.md`.
 
 ## T077-09 — Native Desktop and CLI parity
 

@@ -23,8 +23,8 @@ use crate::documents::{
 use crate::evidence::{LexicalRetrieveRequest, LexicalRetrieveResult};
 use crate::ingest::{BackupManifest, IngestReceipt};
 use crate::medagent::{
-    AgentCapabilityManifest, AgentIdentity, AgentProposal, AgentRun, AgentTurn, ContextManifest,
-    RunReceipt, ToolInvocation, ToolKind, ToolReceipt,
+    AgentCapabilityManifest, AgentIdentity, AgentProposal, AgentRun, AgentRunState, AgentTurn,
+    ContextManifest, RunReceipt, ToolInvocation, ToolKind, ToolReceipt,
 };
 use crate::mesc::{MescArtifactAdmitRequest, MescArtifactVerifyRequest, MescVerifyReport};
 use crate::network::{EgressAllowlistEntry, NetworkBrokerRequest, NetworkBrokerResult};
@@ -174,6 +174,9 @@ pub enum Capability {
     AgentToolInvoke,
     // Spec 077 T077-07 slice.
     AgentRunExecute,
+    // Spec 077 T077-08 slice.
+    AgentRunComplete,
+    AgentRunFail,
 }
 
 impl Capability {
@@ -349,6 +352,8 @@ impl Capability {
             Self::AgentRunCancel,
             Self::AgentToolInvoke,
             Self::AgentRunExecute,
+            Self::AgentRunComplete,
+            Self::AgentRunFail,
         ]
     }
 }
@@ -922,6 +927,7 @@ pub enum RequestBody {
     AgentRunList {
         project_id: OpaqueId,
         agent_id: Option<OpaqueId>,
+        status: Option<AgentRunState>,
         limit: Option<u32>,
     },
     AgentRunStart {
@@ -953,6 +959,16 @@ pub enum RequestBody {
         /// flowing through this local model runtime requires a later,
         /// explicit gate this spec does not grant.
         synthetic_only: bool,
+    },
+    // Spec 077 T077-08 slice.
+    AgentRunComplete {
+        run_id: OpaqueId,
+        expected_revision: u64,
+    },
+    AgentRunFail {
+        run_id: OpaqueId,
+        expected_revision: u64,
+        failure_reason: String,
     },
 }
 

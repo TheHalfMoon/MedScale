@@ -155,5 +155,15 @@ fixture's tokenizer/`fixed_sequence_length`):
 
 No local compile/test run was possible (MSVC linker absent, same
 constraint as every prior spec). `cargo fmt --check` is clean across the
-whole workspace after this change. Real qualification is the next
-exact-head CI run.
+whole workspace after this change.
+
+## Exact-head CI qualification
+
+Green on the first push, no fixes needed -- including the real ONNX
+inference test actually running and passing in CI on all three platforms:
+
+```text
+HEAD 376b8d1 -> SUCCESS, run 35721534239, 6/6.
+```
+
+T077-07 is qualified at exact head `376b8d1b9ac4283176b61f35f2a97d6c2f790ea6`.

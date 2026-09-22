@@ -559,34 +559,59 @@ impl SqliteMetaStore {
         map_agent_run_row(row)
     }
 
-    /// Lists agent runs in one Project, newest-id-last, optionally filtered
-    /// by agent identity.
+    /// Lists agent runs in one Project, newest-id-last, optionally
+    /// filtered by agent identity and/or `AgentRunState` (T077-08:
+    /// bounded, filterable run history). The status filter uses
+    /// `idx_medagent_runs_project(project_id, status)` directly rather
+    /// than filtering post-fetch, so `limit` bounds the actual matching
+    /// set, not a pre-filter window that could silently under-return.
     pub fn list_agent_runs(
         &self,
         project_id: &OpaqueId,
         agent_id: Option<&OpaqueId>,
+        status: Option<AgentRunState>,
         limit: u32,
     ) -> Result<Vec<AgentRun>, MetaError> {
         let limit = i64::from(limit.clamp(1, 200));
+        // AgentRunState::as_str() -> &'static str, so this Option is Copy
+        // and may be matched on again below without moving it.
+        let status_str: Option<&'static str> = status.map(agent_run_state_str);
         let mut out = Vec::new();
-        if let Some(agent_id) = agent_id {
-            let mut stmt = self.conn().prepare(
+        let mut stmt = match (agent_id, status_str) {
+            (Some(_), Some(_)) => self.conn().prepare(
+                "SELECT run_id, project_id, realm_id, authority_scope_id, agent_id, context_id, prompt, status, revision, schema_version
+                 FROM medagent_runs WHERE project_id = ?1 AND agent_id = ?2 AND status = ?3 ORDER BY run_id LIMIT ?4",
+            )?,
+            (Some(_), None) => self.conn().prepare(
                 "SELECT run_id, project_id, realm_id, authority_scope_id, agent_id, context_id, prompt, status, revision, schema_version
                  FROM medagent_runs WHERE project_id = ?1 AND agent_id = ?2 ORDER BY run_id LIMIT ?3",
-            )?;
-            let mut rows = stmt.query(params![project_id.as_str(), agent_id.as_str(), limit])?;
-            while let Some(row) = rows.next()? {
-                out.push(map_agent_run_row(row)?);
-            }
-        } else {
-            let mut stmt = self.conn().prepare(
+            )?,
+            (None, Some(_)) => self.conn().prepare(
+                "SELECT run_id, project_id, realm_id, authority_scope_id, agent_id, context_id, prompt, status, revision, schema_version
+                 FROM medagent_runs WHERE project_id = ?1 AND status = ?2 ORDER BY run_id LIMIT ?3",
+            )?,
+            (None, None) => self.conn().prepare(
                 "SELECT run_id, project_id, realm_id, authority_scope_id, agent_id, context_id, prompt, status, revision, schema_version
                  FROM medagent_runs WHERE project_id = ?1 ORDER BY run_id LIMIT ?2",
-            )?;
-            let mut rows = stmt.query(params![project_id.as_str(), limit])?;
-            while let Some(row) = rows.next()? {
-                out.push(map_agent_run_row(row)?);
+            )?,
+        };
+        let mut rows = match (agent_id, status_str) {
+            (Some(agent_id), Some(status_str)) => stmt.query(params![
+                project_id.as_str(),
+                agent_id.as_str(),
+                status_str,
+                limit
+            ])?,
+            (Some(agent_id), None) => {
+                stmt.query(params![project_id.as_str(), agent_id.as_str(), limit])?
             }
+            (None, Some(status_str)) => {
+                stmt.query(params![project_id.as_str(), status_str, limit])?
+            }
+            (None, None) => stmt.query(params![project_id.as_str(), limit])?,
+        };
+        while let Some(row) = rows.next()? {
+            out.push(map_agent_run_row(row)?);
         }
         Ok(out)
     }

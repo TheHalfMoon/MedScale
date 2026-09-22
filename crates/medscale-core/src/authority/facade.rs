@@ -2759,6 +2759,7 @@ impl CoreFacade {
             RequestBody::AgentRunList {
                 project_id,
                 agent_id,
+                status,
                 limit,
             } => {
                 let runs = self.medagent(
@@ -2770,6 +2771,7 @@ impl CoreFacade {
                         medagent.list_agent_runs(
                             &project_id,
                             agent_id.as_ref(),
+                            status,
                             limit.unwrap_or(100),
                         )
                     },
@@ -2857,6 +2859,41 @@ impl CoreFacade {
                 Ok(ResponseBody::MedAgentRunExecuted {
                     turn: Box::new(turn),
                     proposal: Box::new(proposal),
+                })
+            }
+            RequestBody::AgentRunComplete {
+                run_id,
+                expected_revision,
+            } => {
+                let (run, receipt) = self.medagent(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut medagent| medagent.complete_agent_run(&run_id, expected_revision),
+                )?;
+                Ok(ResponseBody::MedAgentRunTerminal {
+                    run: Box::new(run),
+                    receipt: Box::new(receipt),
+                })
+            }
+            RequestBody::AgentRunFail {
+                run_id,
+                expected_revision,
+                failure_reason,
+            } => {
+                let (run, receipt) = self.medagent(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut medagent| {
+                        medagent.fail_agent_run(&run_id, expected_revision, failure_reason)
+                    },
+                )?;
+                Ok(ResponseBody::MedAgentRunTerminal {
+                    run: Box::new(run),
+                    receipt: Box::new(receipt),
                 })
             }
         }
@@ -3264,6 +3301,11 @@ fn capability_matches(cap: &Capability, body: &RequestBody) -> bool {
                 Capability::AgentRunExecute,
                 RequestBody::AgentRunExecute { .. }
             )
+            | (
+                Capability::AgentRunComplete,
+                RequestBody::AgentRunComplete { .. }
+            )
+            | (Capability::AgentRunFail, RequestBody::AgentRunFail { .. })
     )
 }
 

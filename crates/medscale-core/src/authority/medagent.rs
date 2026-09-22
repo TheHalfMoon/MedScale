@@ -534,15 +534,18 @@ impl MedAgent<'_> {
     }
 
     /// Lists runs in one Project, optionally filtered by agent identity.
+    /// Bounded, filterable run-history read: by Project (always), and
+    /// optionally by agent identity and/or `AgentRunState` (T077-08).
     pub fn list_agent_runs(
         &self,
         project_id: &OpaqueId,
         agent_id: Option<&OpaqueId>,
+        status: Option<AgentRunState>,
         limit: u32,
     ) -> Result<Vec<AgentRun>, AuthorityError> {
         self.scoped_project(project_id)?;
         self.meta
-            .list_agent_runs(project_id, agent_id, limit)
+            .list_agent_runs(project_id, agent_id, status, limit)
             .map_err(meta_err)
     }
 
@@ -587,17 +590,33 @@ impl MedAgent<'_> {
     /// yet at T077-05, so `tool_invocation_ids` is always empty here;
     /// T077-06/T077-08 thread real invocation ids through once tool
     /// dispatch exists.
-    pub fn cancel_agent_run(
+    /// Commits any terminal transition (`Cancelled`/`Completed`/`Failed`)
+    /// with a `RunReceipt` threading the run's *real* tool-invocation
+    /// history (in `seq` order, executed and refused alike -- "exact
+    /// provenance" per T077-08's acceptance bullet means the full record,
+    /// not merely the successes). Shared by `cancel_agent_run`,
+    /// `complete_agent_run`, and `fail_agent_run` so none of them can
+    /// drift into recording a different, weaker receipt than the others.
+    fn commit_terminal_run(
         &mut self,
         id: &OpaqueId,
         expected_revision: u64,
+        final_state: AgentRunState,
+        failure_reason: Option<String>,
     ) -> Result<(AgentRun, RunReceipt), AuthorityError> {
         let current = self.scoped_agent_run(id)?;
         current
-            .check_transition(AgentRunState::Cancelled)
+            .check_transition(final_state)
             .map_err(|message| AuthorityError::Conflict { message })?;
         let identity = self.scoped_agent_identity(&current.agent_identity_id)?;
         let context = self.scoped_context_manifest(&current.context_manifest_id)?;
+        let tool_invocation_ids: Vec<OpaqueId> = self
+            .meta
+            .list_tool_invocations(id)
+            .map_err(meta_err)?
+            .into_iter()
+            .map(|invocation| invocation.header.id)
+            .collect();
         let receipt_id = self
             .meta
             .alloc_medagent_id("medagent-receipt-id-seq", "receipt")
@@ -609,24 +628,59 @@ impl MedAgent<'_> {
             pack_version: identity.pack_version,
             context_manifest_id: current.context_manifest_id,
             context_manifest_revision: context.revision,
-            tool_invocation_ids: Vec::new(),
-            final_state: AgentRunState::Cancelled,
-            failure_reason: None,
+            tool_invocation_ids,
+            final_state,
+            failure_reason,
         };
         receipt
             .validate()
             .map_err(|message| AuthorityError::InvalidArgument { message })?;
         let (updated_run, stored_receipt) = self
             .meta
-            .commit_terminal_transition_with_receipt(
-                id,
-                expected_revision,
-                AgentRunState::Cancelled,
-                &receipt,
-            )
+            .commit_terminal_transition_with_receipt(id, expected_revision, final_state, &receipt)
             .map_err(meta_err)?;
-        self.audit("medagent_run.cancel", vec![id.clone()])?;
+        self.audit(
+            &format!("medagent_run.{}", final_state.as_str()),
+            vec![id.clone()],
+        )?;
         Ok((updated_run, stored_receipt))
+    }
+
+    /// Cancels a `Pending` or `Running` run.
+    pub fn cancel_agent_run(
+        &mut self,
+        id: &OpaqueId,
+        expected_revision: u64,
+    ) -> Result<(AgentRun, RunReceipt), AuthorityError> {
+        self.commit_terminal_run(id, expected_revision, AgentRunState::Cancelled, None)
+    }
+
+    /// Marks a `Running` run `Completed`. Callers decide when a run's work
+    /// is done (e.g. after `execute_agent_run` produced a satisfactory
+    /// `AgentProposal`) -- a run may have multiple `ModelOutput`/tool turns
+    /// before that decision, so completion is never automatic.
+    pub fn complete_agent_run(
+        &mut self,
+        id: &OpaqueId,
+        expected_revision: u64,
+    ) -> Result<(AgentRun, RunReceipt), AuthorityError> {
+        self.commit_terminal_run(id, expected_revision, AgentRunState::Completed, None)
+    }
+
+    /// Marks a `Running` run `Failed` with a bounded, human-readable
+    /// reason.
+    pub fn fail_agent_run(
+        &mut self,
+        id: &OpaqueId,
+        expected_revision: u64,
+        failure_reason: String,
+    ) -> Result<(AgentRun, RunReceipt), AuthorityError> {
+        self.commit_terminal_run(
+            id,
+            expected_revision,
+            AgentRunState::Failed,
+            Some(failure_reason),
+        )
     }
 
     /// Lists a run's turns in `seq` order.

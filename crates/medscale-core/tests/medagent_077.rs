@@ -1355,3 +1355,190 @@ fn execution_on_a_non_running_run_is_refused_closed() {
         .unwrap_err();
     assert!(matches!(err, AuthorityError::Conflict { .. }));
 }
+
+// ---------------------------------------------------------------------------
+// T077-08: RunReceipt + run history
+// ---------------------------------------------------------------------------
+
+#[test]
+fn completed_run_receipt_threads_real_tool_invocation_ids() {
+    let mut h = Harness::setup("receipt-tool-ids");
+    let (run_id, source_id) =
+        running_run_with_one_source(&mut h, vec![ToolKind::ReadContextArtifact], b"hello world");
+
+    let invocation_id = match h
+        .call(
+            Capability::AgentToolInvoke,
+            RequestBody::AgentToolInvoke {
+                run_id: run_id.clone(),
+                kind: ToolKind::ReadContextArtifact,
+                arguments: serde_json::json!({ "object_id": source_id.as_str() }),
+            },
+        )
+        .expect("invoke tool")
+    {
+        ResponseBody::MedAgentToolInvocation { invocation, .. } => invocation.header.id,
+        other => panic!("{other:?}"),
+    };
+
+    // Pending(1) -> Running(2, start) -> after one tool call, still
+    // Running(2) (tool invocation does not itself bump run revision).
+    let resp = h
+        .call(
+            Capability::AgentRunComplete,
+            RequestBody::AgentRunComplete {
+                run_id: run_id.clone(),
+                expected_revision: 2,
+            },
+        )
+        .expect("complete run");
+    match resp {
+        ResponseBody::MedAgentRunTerminal { run, receipt } => {
+            assert_eq!(run.status, AgentRunState::Completed);
+            assert!(receipt.failure_reason.is_none());
+            assert_eq!(receipt.tool_invocation_ids, vec![invocation_id]);
+        }
+        other => panic!("{other:?}"),
+    }
+}
+
+#[test]
+fn fail_agent_run_records_failure_reason_in_receipt() {
+    let mut h = Harness::setup("receipt-fail");
+    let project_id = h.project("agent-project");
+    let pack_id = h.install_fixture_pack();
+    let agent_id = h.register_identity(project_id.clone(), pack_id);
+    let context_id = h.create_context(project_id.clone(), "artifact-1");
+    let run_id = h.create_run(project_id, agent_id, context_id, "go");
+    h.start_run(run_id.clone());
+
+    let resp = h
+        .call(
+            Capability::AgentRunFail,
+            RequestBody::AgentRunFail {
+                run_id: run_id.clone(),
+                expected_revision: 2,
+                failure_reason: "pack runtime evaluation failed: token bound exceeded".to_owned(),
+            },
+        )
+        .expect("fail run");
+    match resp {
+        ResponseBody::MedAgentRunTerminal { run, receipt } => {
+            assert_eq!(run.status, AgentRunState::Failed);
+            assert_eq!(receipt.final_state, AgentRunState::Failed);
+            assert_eq!(
+                receipt.failure_reason.as_deref(),
+                Some("pack runtime evaluation failed: token bound exceeded")
+            );
+        }
+        other => panic!("{other:?}"),
+    }
+}
+
+/// Frozen table: `Pending -> Completed` is not an edge (only
+/// `Running -> Completed`). Completing a never-started run must fail
+/// closed, not silently promote it.
+#[test]
+fn completing_a_pending_run_is_rejected() {
+    let mut h = Harness::setup("complete-pending-rejected");
+    let project_id = h.project("agent-project");
+    let pack_id = h.install_fixture_pack();
+    let agent_id = h.register_identity(project_id.clone(), pack_id);
+    let context_id = h.create_context(project_id.clone(), "artifact-1");
+    let run_id = h.create_run(project_id, agent_id, context_id, "go");
+
+    let err = h
+        .call(
+            Capability::AgentRunComplete,
+            RequestBody::AgentRunComplete {
+                run_id,
+                expected_revision: 1,
+            },
+        )
+        .unwrap_err();
+    assert!(matches!(err, AuthorityError::Conflict { .. }));
+}
+
+#[test]
+fn run_history_is_filterable_by_status() {
+    let mut h = Harness::setup("history-filter");
+    let project_id = h.project("agent-project");
+    let pack_id = h.install_fixture_pack();
+    let agent_id = h.register_identity(project_id.clone(), pack_id);
+    let context_id = h.create_context(project_id.clone(), "artifact-1");
+
+    let pending_run = h.create_run(
+        project_id.clone(),
+        agent_id.clone(),
+        context_id.clone(),
+        "stays pending",
+    );
+    let cancelled_run = h.create_run(
+        project_id.clone(),
+        agent_id.clone(),
+        context_id.clone(),
+        "gets cancelled",
+    );
+    h.call(
+        Capability::AgentRunCancel,
+        RequestBody::AgentRunCancel {
+            run_id: cancelled_run.clone(),
+            expected_revision: 1,
+        },
+    )
+    .expect("cancel");
+
+    let resp = h
+        .call(
+            Capability::AgentRunRead,
+            RequestBody::AgentRunList {
+                project_id: project_id.clone(),
+                agent_id: None,
+                status: Some(AgentRunState::Cancelled),
+                limit: None,
+            },
+        )
+        .expect("list cancelled");
+    match resp {
+        ResponseBody::MedAgentRunList { runs } => {
+            assert_eq!(runs.len(), 1);
+            assert_eq!(runs[0].header.id, cancelled_run);
+        }
+        other => panic!("{other:?}"),
+    }
+
+    let resp = h
+        .call(
+            Capability::AgentRunRead,
+            RequestBody::AgentRunList {
+                project_id: project_id.clone(),
+                agent_id: None,
+                status: Some(AgentRunState::Pending),
+                limit: None,
+            },
+        )
+        .expect("list pending");
+    match resp {
+        ResponseBody::MedAgentRunList { runs } => {
+            assert_eq!(runs.len(), 1);
+            assert_eq!(runs[0].header.id, pending_run);
+        }
+        other => panic!("{other:?}"),
+    }
+
+    let resp = h
+        .call(
+            Capability::AgentRunRead,
+            RequestBody::AgentRunList {
+                project_id,
+                agent_id: None,
+                status: None,
+                limit: None,
+            },
+        )
+        .expect("list all");
+    match resp {
+        ResponseBody::MedAgentRunList { runs } => assert_eq!(runs.len(), 2),
+        other => panic!("{other:?}"),
+    }
+}

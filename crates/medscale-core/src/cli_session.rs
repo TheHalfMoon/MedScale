@@ -1536,6 +1536,7 @@ impl CliSession {
         &mut self,
         project_id: OpaqueId,
         agent_id: Option<OpaqueId>,
+        status: Option<medscale_contracts::medagent::AgentRunState>,
         limit: Option<u32>,
     ) -> Result<Vec<medscale_contracts::medagent::AgentRun>, AuthorityError> {
         let resp = self.dispatch(
@@ -1543,6 +1544,7 @@ impl CliSession {
             RequestBody::AgentRunList {
                 project_id,
                 agent_id,
+                status,
                 limit,
             },
         )?;
@@ -1602,6 +1604,70 @@ impl CliSession {
                 expected_revision,
             },
         )?;
+        let ResponseBody::MedAgentRunTerminal { run, receipt } = resp else {
+            return Err(AuthorityError::InvalidArgument {
+                message: "expected medagent run terminal".to_owned(),
+            });
+        };
+        Ok((*run, *receipt))
+    }
+
+    /// Marks a `Running` run `Completed`.
+    pub fn medagent_run_complete(
+        &mut self,
+        run_id: OpaqueId,
+        expected_revision: u64,
+    ) -> Result<
+        (
+            medscale_contracts::medagent::AgentRun,
+            medscale_contracts::medagent::RunReceipt,
+        ),
+        AuthorityError,
+    > {
+        let resp = self.dispatch(
+            Capability::AgentRunComplete,
+            RequestBody::AgentRunComplete {
+                run_id,
+                expected_revision,
+            },
+        )?;
+        Self::expect_medagent_run_terminal(resp)
+    }
+
+    /// Marks a `Running` run `Failed` with a bounded, human-readable
+    /// reason.
+    pub fn medagent_run_fail(
+        &mut self,
+        run_id: OpaqueId,
+        expected_revision: u64,
+        failure_reason: String,
+    ) -> Result<
+        (
+            medscale_contracts::medagent::AgentRun,
+            medscale_contracts::medagent::RunReceipt,
+        ),
+        AuthorityError,
+    > {
+        let resp = self.dispatch(
+            Capability::AgentRunFail,
+            RequestBody::AgentRunFail {
+                run_id,
+                expected_revision,
+                failure_reason,
+            },
+        )?;
+        Self::expect_medagent_run_terminal(resp)
+    }
+
+    fn expect_medagent_run_terminal(
+        resp: ResponseBody,
+    ) -> Result<
+        (
+            medscale_contracts::medagent::AgentRun,
+            medscale_contracts::medagent::RunReceipt,
+        ),
+        AuthorityError,
+    > {
         let ResponseBody::MedAgentRunTerminal { run, receipt } = resp else {
             return Err(AuthorityError::InvalidArgument {
                 message: "expected medagent run terminal".to_owned(),
