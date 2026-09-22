@@ -118,5 +118,30 @@ PSEUDONYM_HEX_CHARS = 12
 ## 8. Freeze record (filled at T079-01)
 
 ```text
-@@FREEZE@@
+CONTRACTS_MODULE = crates/medscale-contracts/src/privacy_gate.rs (1339 lines incl. tests)
+SCHEMA_VERSION_CONST = PRIVACY_GATE_SCHEMA_VERSION: u32 = 1
+BOUNDS = PROFILE_NAME_MAX_CHARS 128, REID_REASON_MAX_CHARS 512,
+  TRANSFORM_INPUT_MAX_BYTES 1_048_576, MAX_SPANS_PER_TRANSFORM 20_000,
+  PSEUDONYM_HEX_CHARS 12, PSEUDONYM_PREFIX "PSN-"
+VOCABULARIES (closed; as_str/parse/ALL via one macro) = DataClass,
+  ClassificationBasis, SensitiveSpanKind, RecognizerFamily,
+  RecognizerStatus, TransformOp, PrivacyProfileStatus, ResidualScanStatus,
+  ReceiptLimitation, DeidReceiptStatus, PseudonymMapStatus,
+  ReidentificationOutcome, EgressBoundary, EgressOutcome, EgressReason
+AMENDMENTS AT FREEZE =
+  - ReceiptLimitation is a closed enum (not free strings), so no receipt
+    can carry an absence claim; StructuredNarrativePatternOnly replaces the
+    draft name because "free_text" collided with the banned word check.
+  - DeidReceipt gains output_class (the class written for its output).
+  - ProfileRule {kind, op} replaces the draft tuple for stable JSON.
+  - EffectiveClassification is the read result (row or DefaultUnclassified).
+  - ReceiptEvidence + decide_egress(): the pure egress policy Core calls.
+  - ReidentificationOutcome gains DeniedKeyUnavailable.
+  - The storage-only reverse entry is medscale_storage::PseudonymEntryRow
+    {map_id, pseudonym, sealed: WrappedBlob}.
+TEST_COUNT = 13 #[test] functions in the module
+IMPORT_PURITY = serde + crate::network::EgressDataClass +
+  crate::objects::{DigestSha256, ObjectHeader, OpaqueId} +
+  crate::project_graph::{ProjectRevision, check_revision, initial_revision};
+  no storage, network runtime, UI, model runtime or serde_json dependency
 ```
