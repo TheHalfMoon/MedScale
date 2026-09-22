@@ -1,6 +1,6 @@
 # Tasks — Spec 077 MedAgent Workbench
 
-**Execution state:** `PROMOTED_IMPLEMENTATION_AUTHORIZED` (not yet implemented)
+**Execution state:** `CLOSED_CANONICAL` (see `evidence/077-medagent-workbench/CLOSURE.md`)
 
 Check a task only when its implementation, tests and required evidence are
 real on the branch. Do not pre-check future work.
@@ -455,10 +455,22 @@ non-empty, no-payload-leak status string. See
       gives a different explicit instruction).
 - [x] Run exact-head required CI; merge only when green and governance
       permits.
-- [ ] Verify post-merge main CI; update queue/status to `CLOSED_CANONICAL`
+- [x] Verify post-merge main CI; update queue/status to `CLOSED_CANONICAL`
       only with real post-main evidence.
-- [ ] Recompute the next eligible unit; do not implement 078+ without
+- [x] Recompute the next eligible unit; do not implement 078+ without
       separate promotion.
+
+**Closed (this session):** PR #133 merged as `ce8a40da88a78a0478039e5cfe8a0d4c5b058f34`.
+Post-merge main CI: run 35738904685, conclusion `success`, 6/6. `docs/
+planning/BUILD_QUEUE.md`'s 077 row updated to `CLOSED_CANONICAL` with
+this evidence; its "Next eligible" footer corrected (it had gone stale
+during 076's own implementation, still naming 076 as
+`PROMOTED_IMPLEMENTATION_AUTHORIZED`/`NEXT_PROMOTED_SPEC` after 076 had
+already closed -- fixed forward, not just for 077). See
+`evidence/077-medagent-workbench/CLOSURE.md`. No spec is currently
+promoted; candidates 078+ (Model Fleet + Compare next per the Research OS
+roadmap) remain `DEFERRED_BY_CANONICAL_DESIGN` pending a fresh, separate
+promotion package -- not implemented as part of this closure.
 
 **Acceptance:** all frozen acceptance requirements mapped to exact-head
 proof.
