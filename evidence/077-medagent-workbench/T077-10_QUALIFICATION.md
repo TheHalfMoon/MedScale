@@ -215,5 +215,12 @@ FIX HEAD = 90589fc6e64833d05d0888007d099df4d14aaf32
 POST-FIX REVIEW RESULT = 0 findings (ReportFindings, empty array)
 ```
 
-Exact-head CI for this head is recorded in the closure section below once
-observed.
+```text
+POST-FIX EXACT-HEAD CI = run 35732678400, conclusion success, 6/6
+  (supply-chain policy present, cargo-deny, perf delivery-plan scale
+  (windows), rust (ubuntu-latest), rust (macos-latest),
+  rust (windows-latest))
+```
+
+`90589fc6e64833d05d0888007d099df4d14aaf32` is qualified for merge:
+`reviewed_head == merge_candidate_head`, review clean, CI green.
