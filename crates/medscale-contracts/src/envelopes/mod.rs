@@ -27,6 +27,7 @@ use crate::medagent::{
     ContextManifest, RunReceipt, ToolInvocation, ToolKind, ToolReceipt,
 };
 use crate::mesc::{MescArtifactAdmitRequest, MescArtifactVerifyRequest, MescVerifyReport};
+use crate::model_fleet::{AgentLane, AgentLaneStatus};
 use crate::network::{EgressAllowlistEntry, NetworkBrokerRequest, NetworkBrokerResult};
 use crate::objects::{AmendmentKind, DigestSha256, EffectState, MedicalTime, OpaqueId, VaultId};
 use crate::online_packs::OnlinePackAcquireRequest;
@@ -177,6 +178,10 @@ pub enum Capability {
     // Spec 077 T077-08 slice.
     AgentRunComplete,
     AgentRunFail,
+    // Spec 078: Model Fleet + Compare (T078-03 slice: AgentLane).
+    AgentLaneCreate,
+    AgentLaneRead,
+    AgentLaneRetire,
 }
 
 impl Capability {
@@ -226,6 +231,7 @@ impl Capability {
                 | Self::AgentIdentityRead
                 | Self::ContextManifestRead
                 | Self::AgentRunRead
+                | Self::AgentLaneRead
         )
     }
 
@@ -354,6 +360,9 @@ impl Capability {
             Self::AgentRunExecute,
             Self::AgentRunComplete,
             Self::AgentRunFail,
+            Self::AgentLaneCreate,
+            Self::AgentLaneRead,
+            Self::AgentLaneRetire,
         ]
     }
 }
@@ -970,6 +979,31 @@ pub enum RequestBody {
         expected_revision: u64,
         failure_reason: String,
     },
+    // Spec 078 T078-03 slice: AgentLane + LanePolicy.
+    AgentLaneCreate {
+        project_id: OpaqueId,
+        agent_identity_id: OpaqueId,
+        context_manifest_id: OpaqueId,
+        role_label: String,
+        /// `None` inherits the identity's full grant; `Some` must be a
+        /// non-empty subset (`security.md` T2).
+        granted_tool_kinds: Option<Vec<ToolKind>>,
+        /// `None` inherits the full context manifest; `Some` must be a
+        /// non-empty subset (`security.md` T2).
+        context_artifact_ids: Option<Vec<OpaqueId>>,
+    },
+    AgentLaneGet {
+        lane_id: OpaqueId,
+    },
+    AgentLaneList {
+        project_id: OpaqueId,
+        status: Option<AgentLaneStatus>,
+        limit: Option<u32>,
+    },
+    AgentLaneRetire {
+        lane_id: OpaqueId,
+        expected_revision: u64,
+    },
 }
 
 impl RequestBody {
@@ -1325,6 +1359,13 @@ pub enum ResponseBody {
     MedAgentRunExecuted {
         turn: Box<AgentTurn>,
         proposal: Box<AgentProposal>,
+    },
+    // Spec 078: Model Fleet + Compare typed results (T078-03 slice).
+    ModelFleetLane {
+        lane: Box<AgentLane>,
+    },
+    ModelFleetLaneList {
+        lanes: Vec<AgentLane>,
     },
 }
 

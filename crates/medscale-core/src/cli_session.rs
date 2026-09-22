@@ -1352,6 +1352,97 @@ impl CliSession {
     // Spec 077: MedAgent Workbench (T077-03 slice)
     // ---------------------------------------------------------------------
 
+    // ---------------------------------------------------------------------
+    // Spec 078: Model Fleet + Compare (T078-03 slice: AgentLane)
+    // ---------------------------------------------------------------------
+
+    fn expect_model_fleet_lane(
+        resp: ResponseBody,
+    ) -> Result<medscale_contracts::model_fleet::AgentLane, AuthorityError> {
+        let ResponseBody::ModelFleetLane { lane } = resp else {
+            return Err(AuthorityError::InvalidArgument {
+                message: "expected model fleet lane".to_owned(),
+            });
+        };
+        Ok(*lane)
+    }
+
+    /// Creates an agent lane over an existing identity/context pair; the
+    /// optional policy subsets may only narrow the underlying grants.
+    pub fn model_fleet_lane_create(
+        &mut self,
+        project_id: OpaqueId,
+        agent_identity_id: OpaqueId,
+        context_manifest_id: OpaqueId,
+        role_label: String,
+        granted_tool_kinds: Option<Vec<medscale_contracts::medagent::ToolKind>>,
+        context_artifact_ids: Option<Vec<OpaqueId>>,
+    ) -> Result<medscale_contracts::model_fleet::AgentLane, AuthorityError> {
+        let resp = self.dispatch(
+            Capability::AgentLaneCreate,
+            RequestBody::AgentLaneCreate {
+                project_id,
+                agent_identity_id,
+                context_manifest_id,
+                role_label,
+                granted_tool_kinds,
+                context_artifact_ids,
+            },
+        )?;
+        Self::expect_model_fleet_lane(resp)
+    }
+
+    /// Reads one agent lane through Core.
+    pub fn model_fleet_lane_get(
+        &mut self,
+        lane_id: OpaqueId,
+    ) -> Result<medscale_contracts::model_fleet::AgentLane, AuthorityError> {
+        let resp = self.dispatch(
+            Capability::AgentLaneRead,
+            RequestBody::AgentLaneGet { lane_id },
+        )?;
+        Self::expect_model_fleet_lane(resp)
+    }
+
+    /// Lists agent lanes in one Project, optionally by status.
+    pub fn model_fleet_lane_list(
+        &mut self,
+        project_id: OpaqueId,
+        status: Option<medscale_contracts::model_fleet::AgentLaneStatus>,
+        limit: Option<u32>,
+    ) -> Result<Vec<medscale_contracts::model_fleet::AgentLane>, AuthorityError> {
+        let resp = self.dispatch(
+            Capability::AgentLaneRead,
+            RequestBody::AgentLaneList {
+                project_id,
+                status,
+                limit,
+            },
+        )?;
+        let ResponseBody::ModelFleetLaneList { lanes } = resp else {
+            return Err(AuthorityError::InvalidArgument {
+                message: "expected model fleet lane list".to_owned(),
+            });
+        };
+        Ok(lanes)
+    }
+
+    /// Retires an agent lane (status tombstone).
+    pub fn model_fleet_lane_retire(
+        &mut self,
+        lane_id: OpaqueId,
+        expected_revision: u64,
+    ) -> Result<medscale_contracts::model_fleet::AgentLane, AuthorityError> {
+        let resp = self.dispatch(
+            Capability::AgentLaneRetire,
+            RequestBody::AgentLaneRetire {
+                lane_id,
+                expected_revision,
+            },
+        )?;
+        Self::expect_model_fleet_lane(resp)
+    }
+
     /// Registers a new `AgentIdentity` bound to `pack_id` (must already be
     /// admitted locally; a non-admitted pack fails closed).
     pub fn medagent_identity_register(

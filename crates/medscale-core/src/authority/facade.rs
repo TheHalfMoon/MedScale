@@ -271,6 +271,44 @@ impl CoreFacade {
         })
     }
 
+    /// Runs one Spec 078 Model Fleet operation with lease enforcement and
+    /// vault-meta/pack-store access, exactly like `medagent`. Surfaces never
+    /// touch storage: this is the only path from request to model_fleet rows.
+    fn model_fleet<R>(
+        &self,
+        vault_id: &medscale_contracts::objects::VaultId,
+        realm: medscale_contracts::objects::RealmId,
+        scope: medscale_contracts::objects::AuthorityScopeId,
+        session_id: Option<medscale_contracts::objects::OpaqueId>,
+        op: impl FnOnce(super::model_fleet::ModelFleet<'_>) -> Result<R, AuthorityError>,
+    ) -> Result<R, AuthorityError> {
+        self.require_lease(vault_id)?;
+        let vault_guard = self.vault();
+        let enc_guard = self.encrypted();
+        let meta = if let Some(enc) = enc_guard.as_ref() {
+            &enc.meta
+        } else if let Some(vault) = vault_guard.as_ref() {
+            &vault.meta
+        } else {
+            return Err(AuthorityError::VaultRequired);
+        };
+        let mut store = self.store();
+        let store_ref: &mut InMemoryAuthorityStore = &mut store;
+        let packs_guard = self.packs();
+        let packs_ref: &medscale_pack::PackStore = &packs_guard;
+        op(super::model_fleet::ModelFleet {
+            store: store_ref,
+            meta,
+            packs: packs_ref,
+            sessions: &self.sessions,
+            leases: &self.leases,
+            vault_id,
+            realm,
+            scope,
+            session_id,
+        })
+    }
+
     fn allowlist(&self) -> std::sync::MutexGuard<'_, Vec<EgressAllowlistEntry>> {
         self.allowlist
             .lock()
@@ -2625,6 +2663,77 @@ impl CoreFacade {
             // Core authority paths. Surfaces never write medagent storage
             // directly. T077-03 slice only (AgentIdentity +
             // AgentCapabilityManifest).
+            // Spec 078 Model Fleet + Compare: every mutation flows through
+            // Core authority paths. T078-03 slice (AgentLane).
+            RequestBody::AgentLaneCreate {
+                project_id,
+                agent_identity_id,
+                context_manifest_id,
+                role_label,
+                granted_tool_kinds,
+                context_artifact_ids,
+            } => {
+                let lane = self.model_fleet(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut fleet| {
+                        fleet.create_agent_lane(
+                            project_id,
+                            agent_identity_id,
+                            context_manifest_id,
+                            role_label,
+                            granted_tool_kinds,
+                            context_artifact_ids,
+                        )
+                    },
+                )?;
+                Ok(ResponseBody::ModelFleetLane {
+                    lane: Box::new(lane),
+                })
+            }
+            RequestBody::AgentLaneGet { lane_id } => {
+                let lane = self.model_fleet(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |fleet| fleet.get_agent_lane(&lane_id),
+                )?;
+                Ok(ResponseBody::ModelFleetLane {
+                    lane: Box::new(lane),
+                })
+            }
+            RequestBody::AgentLaneList {
+                project_id,
+                status,
+                limit,
+            } => {
+                let lanes = self.model_fleet(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |fleet| fleet.list_agent_lanes(&project_id, status, limit.unwrap_or(100)),
+                )?;
+                Ok(ResponseBody::ModelFleetLaneList { lanes })
+            }
+            RequestBody::AgentLaneRetire {
+                lane_id,
+                expected_revision,
+            } => {
+                let lane = self.model_fleet(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut fleet| fleet.retire_agent_lane(&lane_id, expected_revision),
+                )?;
+                Ok(ResponseBody::ModelFleetLane {
+                    lane: Box::new(lane),
+                })
+            }
             RequestBody::AgentIdentityRegister {
                 project_id,
                 pack_id,
@@ -3306,6 +3415,16 @@ fn capability_matches(cap: &Capability, body: &RequestBody) -> bool {
                 RequestBody::AgentRunComplete { .. }
             )
             | (Capability::AgentRunFail, RequestBody::AgentRunFail { .. })
+            | (
+                Capability::AgentLaneCreate,
+                RequestBody::AgentLaneCreate { .. }
+            )
+            | (Capability::AgentLaneRead, RequestBody::AgentLaneGet { .. })
+            | (Capability::AgentLaneRead, RequestBody::AgentLaneList { .. })
+            | (
+                Capability::AgentLaneRetire,
+                RequestBody::AgentLaneRetire { .. }
+            )
     )
 }
 
