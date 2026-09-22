@@ -364,6 +364,12 @@ impl MedAgent<'_> {
     /// resolving any artifact content; there is no second, unchecked read
     /// path for agent-run code. Returns the manifest itself on success so
     /// the caller never needs a second, separately-scoped fetch.
+    ///
+    /// No production caller exists yet: T077-06's tool dispatch is the
+    /// first one, and lands in a later commit. Proven directly by this
+    /// module's own tests in the meantime (`#[allow(dead_code)]` is
+    /// temporary and must be removed the moment T077-06 adds its caller).
+    #[allow(dead_code)]
     pub fn require_artifact_in_context(
         &self,
         context_id: &OpaqueId,
@@ -383,6 +389,7 @@ mod tests {
     use super::*;
     use medscale_contracts::project_graph::Project;
 
+    #[allow(clippy::too_many_arguments)]
     fn harness<'a>(
         meta: &'a SqliteMetaStore,
         store: &'a mut InMemoryAuthorityStore,
