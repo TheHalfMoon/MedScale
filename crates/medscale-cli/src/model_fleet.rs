@@ -1,7 +1,8 @@
 //! Spec 078 Model Fleet + Compare commands (CLI vertical slice through Core).
 //!
 //! T078-03 scope: `AgentLane` create/show/list/retire. T078-04 scope:
-//! `FleetRun` create/show/list/dispatch/execute-lane/cancel. Every command opens
+//! `FleetRun` create/show/list/dispatch/execute-lane/cancel. T078-05/06:
+//! comparison compute/list. Every command opens
 //! the session scope, dispatches one typed Core request via `CliSession`,
 //! and renders the typed result as human lines or stable JSON. The CLI never
 //! reads or writes model_fleet storage directly.
@@ -12,7 +13,7 @@ use clap::Subcommand;
 use medscale_contracts::envelopes::AuthorityError;
 use medscale_contracts::medagent::{AgentProposal, AgentRun, ToolKind};
 use medscale_contracts::model_fleet::{
-    AgentLane, AgentLaneStatus, FleetRun, FleetRunState, LaneRunRef,
+    AgentLane, AgentLaneStatus, ComparisonReport, FleetRun, FleetRunState, LaneRunRef,
 };
 use medscale_contracts::objects::OpaqueId;
 use medscale_core::CliSession;
@@ -134,6 +135,30 @@ fn print_fleet(run: FleetRun, lane_run_refs: Vec<LaneRunRef>, json: bool) -> any
         print_fleet_human(&run, &lane_run_refs);
     }
     Ok(())
+}
+
+fn print_report_human(report: &ComparisonReport) {
+    println!("report_id: {}", report.header.id.as_str());
+    println!("fleet_run_id: {}", report.fleet_run_id.as_str());
+    let ids = |ids: &[OpaqueId]| {
+        ids.iter()
+            .map(OpaqueId::as_str)
+            .collect::<Vec<_>>()
+            .join(",")
+    };
+    println!(
+        "participating_lanes: {}",
+        ids(&report.participating_lane_ids)
+    );
+    println!("excluded_lanes: {}", ids(&report.excluded_lane_ids));
+    for observation in &report.observations {
+        println!(
+            "{}\t[{}]\t{}",
+            observation.kind.as_str(),
+            ids(&observation.participating_lane_ids),
+            observation.detail.escape_debug()
+        );
+    }
 }
 
 /// Spec 078 Model Fleet + Compare commands.
@@ -279,6 +304,29 @@ pub enum ModelFleetCmd {
         pack_dir: PathBuf,
         #[arg(long, default_value_t = 64)]
         max_tokens: usize,
+        #[arg(long)]
+        json: bool,
+    },
+    /// Compute a new comparison report over a completed or partially
+    /// failed fleet run (factual observations only; never a ranking).
+    CompareRun {
+        #[arg(long)]
+        vault_id: String,
+        #[arg(long)]
+        vault_root: PathBuf,
+        #[arg(long)]
+        fleet_run_id: String,
+        #[arg(long)]
+        json: bool,
+    },
+    /// List every comparison report computed over one fleet run.
+    CompareList {
+        #[arg(long)]
+        vault_id: String,
+        #[arg(long)]
+        vault_root: PathBuf,
+        #[arg(long)]
+        fleet_run_id: String,
         #[arg(long)]
         json: bool,
     },
@@ -517,6 +565,42 @@ pub fn run_model_fleet(action: ModelFleetCmd) -> anyhow::Result<()> {
             }
             Ok(())
         }
+        ModelFleetCmd::CompareRun {
+            vault_id,
+            vault_root,
+            fleet_run_id,
+            json,
+        } => {
+            let mut session = open_fleet_session(&vault_id, &vault_root, json)?;
+            let report = session
+                .model_fleet_compare(OpaqueId::new(fleet_run_id))
+                .map_err(|err| fleet_fail(&err, json))?;
+            if json {
+                print_json_or_debug(&report, true)?;
+            } else {
+                print_report_human(&report);
+            }
+            Ok(())
+        }
+        ModelFleetCmd::CompareList {
+            vault_id,
+            vault_root,
+            fleet_run_id,
+            json,
+        } => {
+            let mut session = open_fleet_session(&vault_id, &vault_root, json)?;
+            let reports = session
+                .model_fleet_compare_list(OpaqueId::new(fleet_run_id))
+                .map_err(|err| fleet_fail(&err, json))?;
+            if json {
+                print_json_or_debug(&reports, true)?;
+            } else {
+                for report in &reports {
+                    print_report_human(report);
+                }
+            }
+            Ok(())
+        }
         ModelFleetCmd::FleetCancel {
             vault_id,
             vault_root,
@@ -671,7 +755,7 @@ mod tests {
             .open_synthetic_vault(&root.display().to_string())
             .unwrap();
         let retired = session
-            .model_fleet_lane_get(OpaqueId::new(lane_id))
+            .model_fleet_lane_get(OpaqueId::new(lane_id.clone()))
             .unwrap();
         assert_eq!(retired.status, AgentLaneStatus::Retired);
         assert_eq!(retired.revision, 2);
@@ -777,5 +861,26 @@ mod tests {
             .unwrap();
         assert_eq!(fleet.status, FleetRunState::Cancelled);
         assert_eq!(refs.len(), 2);
+        drop(session);
+
+        assert!(
+            run_model_fleet(ModelFleetCmd::CompareRun {
+                vault_id: VAULT.to_owned(),
+                vault_root: root.clone(),
+                fleet_run_id: fleet.header.id.as_str().to_owned(),
+                json: true,
+            })
+            .is_err(),
+            "a cancelled fleet has no comparable output"
+        );
+        for json in [true, false] {
+            run_model_fleet(ModelFleetCmd::CompareList {
+                vault_id: VAULT.to_owned(),
+                vault_root: root.clone(),
+                fleet_run_id: fleet.header.id.as_str().to_owned(),
+                json,
+            })
+            .expect("compare list");
+        }
     }
 }

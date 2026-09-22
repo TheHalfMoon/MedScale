@@ -12,6 +12,10 @@
 //! local ONNX execution, the frozen state machine incl. partial failure and
 //! cancel semantics, dispatch refusals, T3 lane isolation, the lane-policy
 //! guard on Spec 077's direct tool path, the real-PHI gate, and reopen.
+//!
+//! T078-05/06 scope: comparison over two real, independent ONNX lane runs,
+//! partial-failure exclusion, refusal for non-comparable fleets, append-only
+//! recompute with no side effect on lane runs, and report history.
 
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -23,7 +27,8 @@ use medscale_contracts::medagent::{
     AgentProposal, AgentRun, AgentRunState, ToolInvocation, ToolInvocationStatus, ToolKind,
 };
 use medscale_contracts::model_fleet::{
-    AgentLane, AgentLaneStatus, FleetRun, FleetRunState, LaneRunRef, ROLE_LABEL_MAX_CHARS,
+    AgentLane, AgentLaneStatus, ComparisonObservation, ComparisonObservationKind, ComparisonReport,
+    FleetRun, FleetRunState, LaneRunRef, ROLE_LABEL_MAX_CHARS,
 };
 use medscale_contracts::objects::{AuthorityScopeId, OpaqueId, RealmId, VaultId};
 use medscale_contracts::project_graph::{ArtifactDescriptor, ArtifactKind, ArtifactVersionBinding};
@@ -1430,4 +1435,257 @@ fn fleet_state_and_bindings_survive_reopen() {
         other => panic!("{other:?}"),
     };
     assert_eq!(listed, vec![done]);
+}
+
+// ===========================================================================
+// T078-05 / T078-06: comparison engine + history
+// ===========================================================================
+
+impl Harness {
+    fn compare(&mut self, fleet_id: &OpaqueId) -> Result<ComparisonReport, AuthorityError> {
+        self.call(
+            Capability::ComparisonCompute,
+            RequestBody::ComparisonCompute {
+                fleet_run_id: fleet_id.clone(),
+            },
+        )
+        .map(|resp| match resp {
+            ResponseBody::ModelFleetComparisonReport { report } => *report,
+            other => panic!("{other:?}"),
+        })
+    }
+
+    fn reports(&mut self, fleet_id: &OpaqueId) -> Vec<ComparisonReport> {
+        match self
+            .call(
+                Capability::ComparisonRead,
+                RequestBody::ComparisonReportList {
+                    fleet_run_id: fleet_id.clone(),
+                },
+            )
+            .expect("list reports")
+        {
+            ResponseBody::ModelFleetComparisonReportList { reports } => reports,
+            other => panic!("{other:?}"),
+        }
+    }
+
+    /// Dispatches `lanes`, executes every lane in `succeed` with the real
+    /// ONNX Pack and every other lane with a mismatched Pack (a real
+    /// execution failure), and returns the terminal fleet.
+    fn run_fleet(
+        &mut self,
+        project_id: &OpaqueId,
+        lanes: &[&AgentLane],
+        succeed: &[&AgentLane],
+    ) -> (FleetRun, Vec<LaneRunRef>) {
+        let fleet = self.create_fleet(project_id);
+        let ids: Vec<&OpaqueId> = lanes.iter().map(|l| &l.header.id).collect();
+        self.dispatch(&fleet.header.id, 1, &ids).expect("dispatch");
+        for lane in lanes {
+            let pack = if succeed.iter().any(|s| s.header.id == lane.header.id) {
+                onnx_fixture_pack()
+            } else {
+                fixture_pack()
+            };
+            self.execute_lane(&fleet.header.id, &lane.header.id, &pack, true)
+                .expect("execute lane");
+        }
+        self.get_fleet(&fleet.header.id)
+    }
+}
+
+fn of_kind(
+    report: &ComparisonReport,
+    kind: ComparisonObservationKind,
+) -> Vec<&ComparisonObservation> {
+    report
+        .observations
+        .iter()
+        .filter(|o| o.kind == kind)
+        .collect()
+}
+
+#[test]
+fn two_real_lanes_produce_a_factual_grounded_report() {
+    let mut h = Harness::setup("compare-real");
+    let f = fleet_fixture(&mut h);
+    let (fleet, refs) = h.run_fleet(
+        &f.project_id,
+        &[&f.lane_a, &f.lane_b],
+        &[&f.lane_a, &f.lane_b],
+    );
+    assert_eq!(fleet.status, FleetRunState::Completed);
+    let run_a = ref_for(&refs, &f.lane_a).agent_run_id.clone();
+    let run_b = ref_for(&refs, &f.lane_b).agent_run_id.clone();
+    assert_ne!(run_a, run_b, "two genuinely independent runs");
+
+    let report = h.compare(&fleet.header.id).expect("compare");
+    assert_eq!(report.fleet_run_id, fleet.header.id);
+    assert_eq!(
+        report.participating_lane_ids,
+        vec![f.lane_a.header.id.clone(), f.lane_b.header.id.clone()]
+    );
+    assert!(report.excluded_lane_ids.is_empty());
+    report.validate().expect("valid report");
+
+    // Same prompt through the same deterministic Pack: one Agreement over
+    // both lanes, and no Disagreement is invented.
+    let agreement = of_kind(&report, ComparisonObservationKind::Agreement);
+    assert_eq!(agreement.len(), 1);
+    assert_eq!(agreement[0].participating_lane_ids.len(), 2);
+    assert!(of_kind(&report, ComparisonObservationKind::Disagreement).is_empty());
+    assert_eq!(
+        of_kind(&report, ComparisonObservationKind::SchemaValidity).len(),
+        2
+    );
+    assert_eq!(
+        of_kind(&report, ComparisonObservationKind::ResourceRuntimeFact).len(),
+        2
+    );
+    // Disjoint lane contexts: no evidence overlap.
+    assert!(of_kind(&report, ComparisonObservationKind::EvidenceOverlap).is_empty());
+    // Lane a's policy narrows its context to a1, but Spec 077 cites the
+    // whole bound manifest (a1 + a2) as proposal evidence: reported as an
+    // out-of-policy citation, never silently accepted.
+    let unsupported = of_kind(&report, ComparisonObservationKind::UnsupportedClaim);
+    assert!(
+        unsupported.iter().any(
+            |o| o.participating_lane_ids == vec![f.lane_a.header.id.clone()]
+                && o.detail.contains(f.a2.as_str())
+        ),
+        "{unsupported:?}"
+    );
+    assert!(
+        unsupported
+            .iter()
+            .all(|o| o.participating_lane_ids != vec![f.lane_b.header.id.clone()]),
+        "lane b cites only its own context"
+    );
+
+    // Both lanes really executed the model (a ModelOutput turn each), and
+    // every observation is grounded and names only participating lanes.
+    for run_id in [&run_a, &run_b] {
+        let turns = match h
+            .call(
+                Capability::AgentRunRead,
+                RequestBody::AgentRunTurnList {
+                    run_id: run_id.clone(),
+                },
+            )
+            .unwrap()
+        {
+            ResponseBody::MedAgentTurnList { turns } => turns,
+            other => panic!("{other:?}"),
+        };
+        assert!(turns.iter().any(|t| t.kind.as_str() == "model_output"));
+    }
+    for observation in &report.observations {
+        assert!(!observation.evidence_refs.is_empty(), "{observation:?}");
+        for lane_id in &observation.participating_lane_ids {
+            assert!(report.participating_lane_ids.contains(lane_id));
+        }
+    }
+    let serialized = serde_json::to_string(&report).unwrap().to_lowercase();
+    for forbidden in ["score", "rank", "winner", "confidence", "best"] {
+        assert!(
+            !serialized.contains(forbidden),
+            "report must carry no `{forbidden}`: {serialized}"
+        );
+    }
+}
+
+#[test]
+fn partial_failure_reports_name_the_excluded_lane_and_bad_states_are_refused() {
+    let mut h = Harness::setup("compare-partial");
+    let f = fleet_fixture(&mut h);
+    let (fleet, _) = h.run_fleet(&f.project_id, &[&f.lane_a, &f.lane_b], &[&f.lane_a]);
+    assert_eq!(fleet.status, FleetRunState::PartiallyFailed);
+    let report = h.compare(&fleet.header.id).expect("compare partial");
+    assert_eq!(
+        report.participating_lane_ids,
+        vec![f.lane_a.header.id.clone()]
+    );
+    assert_eq!(report.excluded_lane_ids, vec![f.lane_b.header.id.clone()]);
+    assert!(of_kind(&report, ComparisonObservationKind::Agreement).is_empty());
+    for observation in &report.observations {
+        assert!(
+            !observation
+                .participating_lane_ids
+                .contains(&f.lane_b.header.id)
+        );
+    }
+
+    // Failed, cancelled, pending and running fleets have nothing to compare.
+    let (failed, _) = h.run_fleet(&f.project_id, &[&f.lane_a, &f.lane_b], &[]);
+    assert_eq!(failed.status, FleetRunState::Failed);
+    let pending = h.create_fleet(&f.project_id);
+    let running = h.create_fleet(&f.project_id);
+    h.dispatch(
+        &running.header.id,
+        1,
+        &[&f.lane_a.header.id, &f.lane_b.header.id],
+    )
+    .unwrap();
+    let cancelled = h.create_fleet(&f.project_id);
+    h.cancel_fleet(&cancelled.header.id, 1).unwrap();
+    for id in [
+        &failed.header.id,
+        &pending.header.id,
+        &running.header.id,
+        &cancelled.header.id,
+    ] {
+        assert!(
+            matches!(h.compare(id), Err(AuthorityError::InvalidArgument { .. })),
+            "fleet {} must not be comparable",
+            id.as_str()
+        );
+        assert!(h.reports(id).is_empty());
+    }
+    assert!(matches!(
+        h.compare(&OpaqueId::new("fleet-missing")),
+        Err(AuthorityError::NotFound)
+    ));
+}
+
+#[test]
+fn recompute_appends_a_new_report_and_never_touches_lane_runs() {
+    let mut h = Harness::setup("compare-history");
+    let f = fleet_fixture(&mut h);
+    let (fleet, refs) = h.run_fleet(
+        &f.project_id,
+        &[&f.lane_a, &f.lane_b],
+        &[&f.lane_a, &f.lane_b],
+    );
+    let runs_before: Vec<AgentRun> = refs.iter().map(|r| h.agent_run(&r.agent_run_id)).collect();
+    let fleet_before = h.get_fleet(&fleet.header.id);
+
+    let first = h.compare(&fleet.header.id).unwrap();
+    let second = h.compare(&fleet.header.id).unwrap();
+    assert_ne!(first.header.id, second.header.id);
+    assert_eq!(
+        first.observations, second.observations,
+        "same committed input, same facts"
+    );
+    assert_eq!(
+        h.reports(&fleet.header.id),
+        vec![first.clone(), second.clone()]
+    );
+
+    // security.md T1: comparison writes only its own report row.
+    let runs_after: Vec<AgentRun> = refs.iter().map(|r| h.agent_run(&r.agent_run_id)).collect();
+    assert_eq!(runs_before, runs_after);
+    assert_eq!(h.get_fleet(&fleet.header.id), fleet_before);
+
+    // History survives reopen, oldest first, exactly as written.
+    let mut h = h.reopen();
+    assert_eq!(h.reports(&fleet.header.id), vec![first, second]);
+    let foreign = h.call_in(
+        "scope-b",
+        Capability::ComparisonRead,
+        RequestBody::ComparisonReportList {
+            fleet_run_id: fleet.header.id.clone(),
+        },
+    );
+    assert!(foreign.is_err(), "reports are scope-checked: {foreign:?}");
 }

@@ -27,7 +27,9 @@ use crate::medagent::{
     ContextManifest, RunReceipt, ToolInvocation, ToolKind, ToolReceipt,
 };
 use crate::mesc::{MescArtifactAdmitRequest, MescArtifactVerifyRequest, MescVerifyReport};
-use crate::model_fleet::{AgentLane, AgentLaneStatus, FleetRun, FleetRunState, LaneRunRef};
+use crate::model_fleet::{
+    AgentLane, AgentLaneStatus, ComparisonReport, FleetRun, FleetRunState, LaneRunRef,
+};
 use crate::network::{EgressAllowlistEntry, NetworkBrokerRequest, NetworkBrokerResult};
 use crate::objects::{AmendmentKind, DigestSha256, EffectState, MedicalTime, OpaqueId, VaultId};
 use crate::online_packs::OnlinePackAcquireRequest;
@@ -188,6 +190,9 @@ pub enum Capability {
     FleetRunDispatch,
     FleetRunExecuteLane,
     FleetRunCancel,
+    // Spec 078 T078-05/06 slice: comparison + history.
+    ComparisonCompute,
+    ComparisonRead,
 }
 
 impl Capability {
@@ -239,6 +244,7 @@ impl Capability {
                 | Self::AgentRunRead
                 | Self::AgentLaneRead
                 | Self::FleetRunRead
+                | Self::ComparisonRead
         )
     }
 
@@ -375,6 +381,8 @@ impl Capability {
             Self::FleetRunDispatch,
             Self::FleetRunExecuteLane,
             Self::FleetRunCancel,
+            Self::ComparisonCompute,
+            Self::ComparisonRead,
         ]
     }
 }
@@ -1047,6 +1055,13 @@ pub enum RequestBody {
         fleet_run_id: OpaqueId,
         expected_revision: u64,
     },
+    // Spec 078 T078-05/06 slice: comparison + history.
+    ComparisonCompute {
+        fleet_run_id: OpaqueId,
+    },
+    ComparisonReportList {
+        fleet_run_id: OpaqueId,
+    },
 }
 
 impl RequestBody {
@@ -1421,6 +1436,12 @@ pub enum ResponseBody {
         run: Box<FleetRun>,
         lane_run: Box<AgentRun>,
         proposal: Option<Box<AgentProposal>>,
+    },
+    ModelFleetComparisonReport {
+        report: Box<ComparisonReport>,
+    },
+    ModelFleetComparisonReportList {
+        reports: Vec<ComparisonReport>,
     },
 }
 

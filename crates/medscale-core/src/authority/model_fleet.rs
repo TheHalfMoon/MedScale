@@ -4,6 +4,8 @@
 //! T078-04 scope: `FleetRun` create/get/list/dispatch/execute-lane/cancel,
 //! `LaneRunRef` binding, `FleetRunState` aggregation, and the lane-policy
 //! guard on Spec 077's direct tool path.
+//! T078-05/06 scope: `ComparisonReport` compute (over committed lane output,
+//! see `model_fleet_compare`) and per-fleet report history.
 //!
 //! A lane is a policy wrapper around an existing, unmodified Spec 077
 //! `AgentIdentity`/`ContextManifest` pair. Every Spec 077 object this module
@@ -25,14 +27,15 @@ use medscale_contracts::medagent::{
     AgentIdentityStatus, AgentProposal, AgentRun, AgentRunState, ToolKind,
 };
 use medscale_contracts::model_fleet::{
-    AgentLane, AgentLaneStatus, FLEET_RUN_MAX_LANES, FleetRun, FleetRunState, LanePolicy,
-    LaneRunRef, MODEL_FLEET_SCHEMA_VERSION,
+    AgentLane, AgentLaneStatus, ComparisonReport, FLEET_RUN_MAX_LANES, FleetRun, FleetRunState,
+    LanePolicy, LaneRunRef, MODEL_FLEET_SCHEMA_VERSION,
 };
 use medscale_contracts::objects::{AuthorityScopeId, ObjectHeader, OpaqueId, RealmId, VaultId};
 use medscale_storage::{MetaError, SqliteMetaStore};
 
 use super::medagent::MedAgent;
-use super::store::{InMemoryAuthorityStore, StoredObject};
+use super::model_fleet_compare::{LaneOutput, LaneProposal, compute_observations};
+use super::store::{InMemoryAuthorityStore, ScopeError, StoredObject};
 use crate::process::{LeaseRegistry, SessionRegistry};
 
 fn meta_err(err: MetaError) -> AuthorityError {
@@ -674,6 +677,128 @@ impl ModelFleet<'_> {
         }
         Ok(())
     }
+    // ----- Comparison (T078-05) + history (T078-06) -----
+
+    /// Computes and persists one immutable `ComparisonReport` over a
+    /// `Completed`/`PartiallyFailed` fleet run (`contracts.md` section 4).
+    ///
+    /// A pure read of committed state: each completed lane's `RunReceipt`,
+    /// `AgentProposal` and `Proposal` (read-only, after the lane run is
+    /// scope-checked through Spec 077's public `get_agent_run`), plus the
+    /// lane's effective context. Failed/cancelled lanes are named in
+    /// `excluded_lane_ids`, never dropped. The only write is the new report
+    /// row; recomputation always creates a new report (`security.md` T1/T8).
+    pub fn compute_comparison(
+        &mut self,
+        fleet_run_id: &OpaqueId,
+    ) -> Result<ComparisonReport, AuthorityError> {
+        let fleet = self.scoped_fleet_run(fleet_run_id)?;
+        if !matches!(
+            fleet.status,
+            FleetRunState::Completed | FleetRunState::PartiallyFailed
+        ) {
+            return Err(invalid(format!(
+                "a {} fleet run has no comparable lane output",
+                fleet.status.as_str()
+            )));
+        }
+        let mut participating = Vec::new();
+        let mut excluded = Vec::new();
+        let mut outputs = Vec::new();
+        for (lane_run_ref, run) in self.bound_lane_runs(fleet_run_id)? {
+            match run.status {
+                AgentRunState::Completed => {}
+                AgentRunState::Failed | AgentRunState::Cancelled => {
+                    excluded.push(lane_run_ref.agent_lane_id);
+                    continue;
+                }
+                AgentRunState::Pending | AgentRunState::Running => {
+                    return Err(AuthorityError::Corrupt {
+                        message: "a terminal fleet run binds a non-terminal lane run".to_owned(),
+                    });
+                }
+            }
+            let lane = self.scoped_lane(&lane_run_ref.agent_lane_id)?;
+            let receipt = self
+                .meta
+                .get_run_receipt(&run.header.id)
+                .map_err(meta_err)?;
+            let proposal = match self
+                .meta
+                .get_agent_proposal_for_run(&run.header.id)
+                .map_err(meta_err)?
+            {
+                Some(agent_proposal) => {
+                    let proposal = self
+                        .store
+                        .get_proposal(&agent_proposal.proposal_id, &self.realm, &self.scope)
+                        .map_err(|err| match err {
+                            ScopeError::NotFound => AuthorityError::NotFound,
+                            ScopeError::WrongScope => AuthorityError::WrongScope,
+                        })?;
+                    Some(LaneProposal {
+                        agent_proposal_id: agent_proposal.header.id,
+                        payload: proposal.payload.clone(),
+                        evidence_refs: proposal.evidence_refs.clone(),
+                    })
+                }
+                None => None,
+            };
+            let effective_context = match &lane.policy.context_artifact_ids {
+                Some(ids) => ids.iter().cloned().collect(),
+                None => self
+                    .medagent()
+                    .get_context_manifest(&lane.context_manifest_id)?
+                    .0
+                    .selected_artifacts
+                    .into_iter()
+                    .map(|artifact| artifact.object_id)
+                    .collect(),
+            };
+            participating.push(lane.header.id.clone());
+            outputs.push(LaneOutput {
+                lane_id: lane.header.id,
+                run_receipt_id: receipt.header.id,
+                pack_id: receipt.pack_id,
+                pack_version: receipt.pack_version,
+                tool_invocation_count: receipt.tool_invocation_ids.len(),
+                proposal,
+                effective_context,
+            });
+        }
+        let id = self
+            .meta
+            .alloc_model_fleet_id("model-fleet-report-seq", "report")
+            .map_err(meta_err)?;
+        let report = ComparisonReport {
+            header: header(&self.realm, &self.scope, id.clone()),
+            fleet_run_id: fleet_run_id.clone(),
+            observations: compute_observations(&outputs),
+            participating_lane_ids: participating,
+            excluded_lane_ids: excluded,
+        };
+        report
+            .validate()
+            .map_err(|message| AuthorityError::Internal {
+                message: format!("comparison produced an invalid report: {message}"),
+            })?;
+        self.meta
+            .insert_comparison_report(&report)
+            .map_err(meta_err)?;
+        self.audit("model_fleet_comparison.compute", vec![id])?;
+        Ok(report)
+    }
+
+    /// Every comparison report computed over one fleet run, oldest first.
+    pub fn list_comparison_reports(
+        &self,
+        fleet_run_id: &OpaqueId,
+    ) -> Result<Vec<ComparisonReport>, AuthorityError> {
+        self.scoped_fleet_run(fleet_run_id)?;
+        self.meta
+            .list_comparison_reports(fleet_run_id)
+            .map_err(meta_err)
+    }
 }
 
 #[cfg(test)]
@@ -682,22 +807,29 @@ mod tests {
     /// proposal promotion, amendment, effects, or external actions.
     #[test]
     fn module_has_no_path_to_promotion_amendment_effects_or_actions() {
-        let source = include_str!("model_fleet.rs");
-        let production = source.split("#[cfg(test)]").next().expect("module source");
-        for forbidden in [
-            "promote::",
-            "amend::",
-            "actions::",
-            "PromoteProposal",
-            "TransitionEffect",
-            "ExternalActionIntent",
-            "Outbox",
-            "ClinicalAssertion",
+        for (name, source) in [
+            ("model_fleet", include_str!("model_fleet.rs")),
+            (
+                "model_fleet_compare",
+                include_str!("model_fleet_compare.rs"),
+            ),
         ] {
-            assert!(
-                !production.contains(forbidden),
-                "authority::model_fleet must not reference `{forbidden}`"
-            );
+            let production = source.split("#[cfg(test)]").next().expect("module source");
+            for forbidden in [
+                "promote::",
+                "amend::",
+                "actions::",
+                "PromoteProposal",
+                "TransitionEffect",
+                "ExternalActionIntent",
+                "Outbox",
+                "ClinicalAssertion",
+            ] {
+                assert!(
+                    !production.contains(forbidden),
+                    "authority::{name} must not reference `{forbidden}`"
+                );
+            }
         }
     }
 }

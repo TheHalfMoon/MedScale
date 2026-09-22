@@ -1604,6 +1604,42 @@ impl CliSession {
         Self::expect_model_fleet_run(resp)
     }
 
+    // Spec 078 T078-05/06 slice: comparison + history.
+
+    /// Computes and persists a new comparison report over a fleet run.
+    pub fn model_fleet_compare(
+        &mut self,
+        fleet_run_id: OpaqueId,
+    ) -> Result<medscale_contracts::model_fleet::ComparisonReport, AuthorityError> {
+        let resp = self.dispatch(
+            Capability::ComparisonCompute,
+            RequestBody::ComparisonCompute { fleet_run_id },
+        )?;
+        let ResponseBody::ModelFleetComparisonReport { report } = resp else {
+            return Err(AuthorityError::InvalidArgument {
+                message: "expected comparison report".to_owned(),
+            });
+        };
+        Ok(*report)
+    }
+
+    /// Lists every comparison report computed over one fleet run.
+    pub fn model_fleet_compare_list(
+        &mut self,
+        fleet_run_id: OpaqueId,
+    ) -> Result<Vec<medscale_contracts::model_fleet::ComparisonReport>, AuthorityError> {
+        let resp = self.dispatch(
+            Capability::ComparisonRead,
+            RequestBody::ComparisonReportList { fleet_run_id },
+        )?;
+        let ResponseBody::ModelFleetComparisonReportList { reports } = resp else {
+            return Err(AuthorityError::InvalidArgument {
+                message: "expected comparison report list".to_owned(),
+            });
+        };
+        Ok(reports)
+    }
+
     /// Registers a new `AgentIdentity` bound to `pack_id` (must already be
     /// admitted locally; a non-admitted pack fails closed).
     pub fn medagent_identity_register(

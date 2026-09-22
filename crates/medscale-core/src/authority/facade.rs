@@ -2665,6 +2665,28 @@ impl CoreFacade {
             // AgentCapabilityManifest).
             // Spec 078 Model Fleet + Compare: every mutation flows through
             // Core authority paths. T078-03 slice (AgentLane).
+            RequestBody::ComparisonCompute { fleet_run_id } => {
+                let report = self.model_fleet(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut fleet| fleet.compute_comparison(&fleet_run_id),
+                )?;
+                Ok(ResponseBody::ModelFleetComparisonReport {
+                    report: Box::new(report),
+                })
+            }
+            RequestBody::ComparisonReportList { fleet_run_id } => {
+                let reports = self.model_fleet(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |fleet| fleet.list_comparison_reports(&fleet_run_id),
+                )?;
+                Ok(ResponseBody::ModelFleetComparisonReportList { reports })
+            }
             RequestBody::FleetRunCreate {
                 project_id,
                 task_prompt,
@@ -3558,6 +3580,14 @@ fn capability_matches(cap: &Capability, body: &RequestBody) -> bool {
             | (
                 Capability::FleetRunCancel,
                 RequestBody::FleetRunCancel { .. }
+            )
+            | (
+                Capability::ComparisonCompute,
+                RequestBody::ComparisonCompute { .. }
+            )
+            | (
+                Capability::ComparisonRead,
+                RequestBody::ComparisonReportList { .. }
             )
     )
 }
