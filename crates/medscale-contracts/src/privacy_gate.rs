@@ -198,6 +198,44 @@ impl ArtifactClassification {
     }
 }
 
+/// What Core reports for an artifact in a Project: the stored row when one
+/// exists, else `LocalPhi` with basis `DefaultUnclassified` (fail closed).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct EffectiveClassification {
+    pub project_id: OpaqueId,
+    pub artifact_id: OpaqueId,
+    pub data_class: DataClass,
+    pub basis: ClassificationBasis,
+    pub classification: Option<ArtifactClassification>,
+}
+
+impl EffectiveClassification {
+    #[must_use]
+    pub fn of(
+        project_id: OpaqueId,
+        artifact_id: OpaqueId,
+        row: Option<ArtifactClassification>,
+    ) -> Self {
+        match row {
+            Some(row) => Self {
+                project_id,
+                artifact_id,
+                data_class: row.data_class,
+                basis: row.basis,
+                classification: Some(row),
+            },
+            None => Self {
+                project_id,
+                artifact_id,
+                data_class: DataClass::LocalPhi,
+                basis: ClassificationBasis::DefaultUnclassified,
+                classification: None,
+            },
+        }
+    }
+}
+
 // ---------------------------------------------------------------------------
 // Detection
 // ---------------------------------------------------------------------------

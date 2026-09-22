@@ -19,6 +19,7 @@ mod medagent_workspace;
 mod model_fleet_workspace;
 mod patient_workspace;
 mod population_insights;
+mod privacy_workspace;
 mod product_intelligence;
 mod project_workspace;
 mod utility_surfaces;
@@ -540,6 +541,67 @@ fn open_model_fleet(ui: &AppWindow, session: &Rc<RefCell<CliSession>>, fleet_id:
     }
 }
 
+fn refresh_privacy(ui: &AppWindow, session: &Rc<RefCell<CliSession>>) {
+    let project_id = ui.get_project_active_id().to_string();
+    if project_id.is_empty() {
+        ui.set_privacy_status("Open a project to inspect its privacy state".into());
+        ui.set_privacy_classifications(ModelRc::new(VecModel::from(Vec::new())));
+        ui.set_privacy_receipts(ModelRc::new(VecModel::from(Vec::new())));
+        ui.set_privacy_decisions(ModelRc::new(VecModel::from(Vec::new())));
+        return;
+    }
+    match privacy_workspace::refresh(&mut session.borrow_mut(), &project_id) {
+        Ok(overview) => {
+            ui.set_privacy_status(
+                format!(
+                    "{} classified · {} receipt{} · {} egress decision{} · unclassified artifacts are local_phi · Core-backed",
+                    overview.classifications.len(),
+                    overview.receipts.len(),
+                    if overview.receipts.len() == 1 { "" } else { "s" },
+                    overview.decisions.len(),
+                    if overview.decisions.len() == 1 { "" } else { "s" }
+                )
+                .into(),
+            );
+            ui.set_privacy_classifications(ModelRc::new(VecModel::from_iter(
+                overview
+                    .classifications
+                    .iter()
+                    .map(|row| PrivacyClassificationRowItem {
+                        artifact_id: row.artifact_id.clone().into(),
+                        data_class: row.data_class.clone().into(),
+                        basis: row.basis.clone().into(),
+                        revision: row.revision.to_string().into(),
+                    }),
+            )));
+            ui.set_privacy_receipts(ModelRc::new(VecModel::from_iter(
+                overview.receipts.iter().map(|row| PrivacyReceiptRowItem {
+                    id: row.id.clone().into(),
+                    source: row.source.clone().into(),
+                    output: row.output.clone().into(),
+                    status: row.status.clone().into(),
+                    residual: row.residual.clone().into(),
+                    revision: row.revision.to_string().into(),
+                }),
+            )));
+            ui.set_privacy_decisions(ModelRc::new(VecModel::from_iter(
+                overview.decisions.iter().map(|row| PrivacyDecisionRowItem {
+                    artifact_id: row.artifact_id.clone().into(),
+                    boundary: row.boundary.clone().into(),
+                    outcome: row.outcome.clone().into(),
+                    reason: row.reason.clone().into(),
+                }),
+            )));
+        }
+        Err(err) => {
+            ui.set_privacy_classifications(ModelRc::new(VecModel::from(Vec::new())));
+            ui.set_privacy_receipts(ModelRc::new(VecModel::from(Vec::new())));
+            ui.set_privacy_decisions(ModelRc::new(VecModel::from(Vec::new())));
+            ui.set_privacy_status(privacy_workspace::status_message(&err).into());
+        }
+    }
+}
+
 fn validated_model_pack_path(raw: &str) -> Result<&str, &'static str> {
     let path = raw.trim();
     if path.is_empty() {
@@ -595,6 +657,7 @@ fn evidence_route_override() -> Option<&'static str> {
         "Exports" => Some("Exports"),
         "Integrations" => Some("Integrations"),
         "Model Fleet" => Some("Model Fleet"),
+        "Privacy" => Some("Privacy"),
         "Settings" => Some("Settings"),
         "About" => Some("About"),
         _ => None,
@@ -1492,6 +1555,69 @@ fn main() -> ExitCode {
             match compared {
                 Ok(report) => show_fleet_report(&ui, Some(&report)),
                 Err(err) => ui.set_fleet_status(model_fleet_workspace::status_message(&err).into()),
+            }
+            return;
+        }
+        // Spec 079 Privacy Gate actions (Core-backed; profiles, transforms
+        // and re-identification stay CLI-only in this slice).
+        if action == "privacy-refresh" {
+            if let Some(session) = &project_session_for_actions {
+                refresh_privacy(&ui, session);
+            } else {
+                ui.set_privacy_status("Privacy state unavailable: no Core session".into());
+            }
+            return;
+        }
+        if action == "privacy-egress-check" {
+            let Some(session) = &project_session_for_actions else {
+                ui.set_privacy_status("Privacy state unavailable: no Core session".into());
+                return;
+            };
+            let project_id = ui.get_project_active_id().to_string();
+            if project_id.is_empty() {
+                ui.set_privacy_status("Invalid: open a project first".into());
+                return;
+            }
+            let artifact = ui.get_privacy_artifact_input().to_string();
+            let boundary = ui.get_privacy_boundary_input().to_string();
+            let checked = privacy_workspace::check_egress(
+                &mut session.borrow_mut(),
+                &project_id,
+                &artifact,
+                &boundary,
+            );
+            match checked {
+                Ok(row) => {
+                    refresh_privacy(&ui, session);
+                    ui.set_privacy_last_decision(
+                        format!("{} → {}: {} ({})", row.artifact_id, row.boundary, row.outcome, row.reason).into(),
+                    );
+                }
+                Err(err) => ui.set_privacy_status(privacy_workspace::status_message(&err).into()),
+            }
+            return;
+        }
+        if let Some(rest) = action.strip_prefix("privacy-receipt-revoke:") {
+            let Some(session) = &project_session_for_actions else {
+                ui.set_privacy_status("Privacy state unavailable: no Core session".into());
+                return;
+            };
+            let Some((receipt_id, revision)) = rest.rsplit_once(':') else {
+                ui.set_privacy_status("Invalid: malformed revoke action".into());
+                return;
+            };
+            let Ok(expected_revision) = revision.parse::<u64>() else {
+                ui.set_privacy_status("Invalid: receipt has no revision".into());
+                return;
+            };
+            let revoked = privacy_workspace::revoke_receipt(
+                &mut session.borrow_mut(),
+                receipt_id,
+                expected_revision,
+            );
+            match revoked {
+                Ok(_) => refresh_privacy(&ui, session),
+                Err(err) => ui.set_privacy_status(privacy_workspace::status_message(&err).into()),
             }
             return;
         }

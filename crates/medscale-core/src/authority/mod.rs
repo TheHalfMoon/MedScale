@@ -15,6 +15,8 @@ mod medagent;
 mod model_fleet;
 mod model_fleet_compare;
 mod presentation;
+mod privacy_gate;
+mod privacy_recognizers;
 mod project_graph;
 mod promote;
 mod retrieval;

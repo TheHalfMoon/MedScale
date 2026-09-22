@@ -64,8 +64,16 @@ pub fn unseal(key: &[u8], blob: &WrappedBlob, aad: &[u8]) -> Result<Vec<u8>, Sea
         .map_err(|_| SealError::Aead)
 }
 
+/// Generates a fresh random 32-byte key (for example a Spec 079 pseudonym
+/// map key). The caller stores it only in a `KeyStore`.
+#[must_use]
+pub fn generate_key32() -> [u8; 32] {
+    let mut key = [0u8; 32];
+    rand::thread_rng().fill_bytes(&mut key);
+    key
+}
+
 /// Zeroize helper for owned key bytes.
-#[allow(dead_code)]
 pub fn zeroize_key(key: &mut [u8]) {
     key.zeroize();
 }
