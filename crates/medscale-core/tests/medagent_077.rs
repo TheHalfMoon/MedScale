@@ -302,7 +302,7 @@ fn capability_manifest_is_immutable_and_registration_is_scoped_to_its_project() 
         .call(
             Capability::AgentIdentityRegister,
             RequestBody::AgentIdentityRegister {
-                project_id: project_id.clone(),
+                project_id,
                 pack_id: pack_id.clone(),
                 display_name: "Agent One".to_owned(),
                 granted_tool_kinds: vec![ToolKind::ReadContextArtifact],
@@ -383,10 +383,14 @@ fn agent_identity_survives_vault_reopen() {
         }
         other => panic!("{other:?}"),
     };
-    let dir = h.dir.clone();
-    drop(h);
+    // Close through the real capability path (matches durable_restart_016.rs's
+    // two-process precedent) rather than relying on Drop timing.
+    h.call(Capability::CloseVault, RequestBody::CloseVault)
+        .expect("close vault");
+    let dir = h.dir;
 
-    // Fresh facade/session/vault-open against the same on-disk root.
+    // Fresh facade/session/vault-open against the same on-disk root,
+    // simulating a real process restart.
     let facade = CoreFacade::new();
     let lease = facade
         .dispatch(base_req(
