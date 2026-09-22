@@ -1,17 +1,19 @@
 //! Spec 077 MedAgent Workbench commands (CLI vertical slice through Core).
 //!
-//! T077-03/T077-04 scope: `AgentIdentity` + `AgentCapabilityManifest`
-//! register/show/list/revoke, and `ContextManifest` create/show. Every
-//! command opens the session scope, dispatches one typed Core request via
-//! `CliSession`, and renders the typed result as human lines or stable
-//! JSON. The CLI never writes medagent storage directly.
+//! T077-03/T077-04/T077-05 scope: `AgentIdentity` + `AgentCapabilityManifest`
+//! register/show/list/revoke, `ContextManifest` create/show, and `AgentRun`
+//! create/show/list/start/cancel/turns. Every command opens the session
+//! scope, dispatches one typed Core request via `CliSession`, and renders
+//! the typed result as human lines or stable JSON. The CLI never writes
+//! medagent storage directly.
 
 use std::path::PathBuf;
 
 use clap::Subcommand;
 use medscale_contracts::envelopes::AuthorityError;
 use medscale_contracts::medagent::{
-    AgentCapabilityManifest, AgentIdentity, ContextManifest, ToolKind,
+    AgentCapabilityManifest, AgentIdentity, AgentRun, AgentTurn, ContextManifest, RunReceipt,
+    ToolKind,
 };
 use medscale_contracts::objects::OpaqueId;
 use medscale_contracts::project_graph::{
@@ -84,6 +86,35 @@ fn parse_artifact_spec(spec: &str) -> Result<ArtifactDescriptor, String> {
     })
 }
 
+fn print_run_human(run: &AgentRun) {
+    println!("run_id: {}", run.header.id.as_str());
+    println!("project_id: {}", run.project_id.as_str());
+    println!("agent_identity_id: {}", run.agent_identity_id.as_str());
+    println!("context_manifest_id: {}", run.context_manifest_id.as_str());
+    println!("status: {}", run.status.as_str());
+    println!("revision: {}", run.revision);
+    println!("prompt: {}", run.prompt);
+}
+
+fn print_run_receipt_human(receipt: &RunReceipt) {
+    println!("run_id: {}", receipt.run_id.as_str());
+    println!("final_state: {}", receipt.final_state.as_str());
+    println!("pack_id: {}", receipt.pack_id.as_str());
+    println!("pack_version: {}", receipt.pack_version);
+    if let Some(reason) = &receipt.failure_reason {
+        println!("failure_reason: {reason}");
+    }
+}
+
+fn print_turn_human(turn: &AgentTurn) {
+    println!(
+        "seq={} kind={} payload={}",
+        turn.seq,
+        turn.kind.as_str(),
+        turn.payload
+    );
+}
+
 fn print_context_human(manifest: &ContextManifest, resolutions: &[ReferenceResolution]) {
     println!("context_id: {}", manifest.header.id.as_str());
     println!("project_id: {}", manifest.project_id.as_str());
@@ -125,7 +156,20 @@ struct ContextJson {
     resolutions: Vec<ReferenceResolution>,
 }
 
-/// Spec 077 MedAgent Workbench commands (agent identity + context manifest).
+#[derive(Debug, serde::Serialize)]
+struct RunStartedJson {
+    run: AgentRun,
+    turn: AgentTurn,
+}
+
+#[derive(Debug, serde::Serialize)]
+struct RunTerminalJson {
+    run: AgentRun,
+    receipt: RunReceipt,
+}
+
+/// Spec 077 MedAgent Workbench commands (agent identity + context manifest
+/// + agent run).
 #[derive(Debug, Subcommand)]
 pub enum MedAgentCmd {
     /// Register a new agent identity bound to an admitted local model Pack.
@@ -205,6 +249,86 @@ pub enum MedAgentCmd {
         vault_root: PathBuf,
         #[arg(long)]
         context_id: String,
+        #[arg(long)]
+        json: bool,
+    },
+    /// Create a new Pending AgentRun.
+    RunCreate {
+        #[arg(long)]
+        vault_id: String,
+        #[arg(long)]
+        vault_root: PathBuf,
+        #[arg(long)]
+        project_id: String,
+        #[arg(long)]
+        agent_id: String,
+        #[arg(long)]
+        context_id: String,
+        #[arg(long)]
+        prompt: String,
+        #[arg(long)]
+        json: bool,
+    },
+    /// Show one AgentRun.
+    RunShow {
+        #[arg(long)]
+        vault_id: String,
+        #[arg(long)]
+        vault_root: PathBuf,
+        #[arg(long)]
+        run_id: String,
+        #[arg(long)]
+        json: bool,
+    },
+    /// List AgentRuns in one Project, optionally filtered by agent identity.
+    RunList {
+        #[arg(long)]
+        vault_id: String,
+        #[arg(long)]
+        vault_root: PathBuf,
+        #[arg(long)]
+        project_id: String,
+        #[arg(long)]
+        agent_id: Option<String>,
+        #[arg(long)]
+        limit: Option<u32>,
+        #[arg(long)]
+        json: bool,
+    },
+    /// Start a Pending run (Pending -> Running).
+    RunStart {
+        #[arg(long)]
+        vault_id: String,
+        #[arg(long)]
+        vault_root: PathBuf,
+        #[arg(long)]
+        run_id: String,
+        #[arg(long)]
+        expected_revision: u64,
+        #[arg(long)]
+        json: bool,
+    },
+    /// Cancel a Pending or Running run.
+    RunCancel {
+        #[arg(long)]
+        vault_id: String,
+        #[arg(long)]
+        vault_root: PathBuf,
+        #[arg(long)]
+        run_id: String,
+        #[arg(long)]
+        expected_revision: u64,
+        #[arg(long)]
+        json: bool,
+    },
+    /// List one run's turns in seq order.
+    RunTurns {
+        #[arg(long)]
+        vault_id: String,
+        #[arg(long)]
+        vault_root: PathBuf,
+        #[arg(long)]
+        run_id: String,
         #[arg(long)]
         json: bool,
     },
@@ -367,6 +491,135 @@ pub fn run_medagent(action: MedAgentCmd) -> anyhow::Result<()> {
                 )?;
             } else {
                 print_context_human(&manifest, &resolutions);
+            }
+            Ok(())
+        }
+        MedAgentCmd::RunCreate {
+            vault_id,
+            vault_root,
+            project_id,
+            agent_id,
+            context_id,
+            prompt,
+            json,
+        } => {
+            let mut session = open_medagent_session(&vault_id, &vault_root, json)?;
+            let run = session
+                .medagent_run_create(
+                    OpaqueId::new(project_id),
+                    OpaqueId::new(agent_id),
+                    OpaqueId::new(context_id),
+                    prompt,
+                )
+                .map_err(|err| medagent_fail(&err, json))?;
+            if json {
+                print_json_or_debug(&run, true)?;
+            } else {
+                print_run_human(&run);
+            }
+            Ok(())
+        }
+        MedAgentCmd::RunShow {
+            vault_id,
+            vault_root,
+            run_id,
+            json,
+        } => {
+            let mut session = open_medagent_session(&vault_id, &vault_root, json)?;
+            let run = session
+                .medagent_run_get(OpaqueId::new(run_id))
+                .map_err(|err| medagent_fail(&err, json))?;
+            if json {
+                print_json_or_debug(&run, true)?;
+            } else {
+                print_run_human(&run);
+            }
+            Ok(())
+        }
+        MedAgentCmd::RunList {
+            vault_id,
+            vault_root,
+            project_id,
+            agent_id,
+            limit,
+            json,
+        } => {
+            let mut session = open_medagent_session(&vault_id, &vault_root, json)?;
+            let runs = session
+                .medagent_run_list(
+                    OpaqueId::new(project_id),
+                    agent_id.map(OpaqueId::new),
+                    limit,
+                )
+                .map_err(|err| medagent_fail(&err, json))?;
+            if json {
+                print_json_or_debug(&runs, true)?;
+            } else {
+                for run in &runs {
+                    println!(
+                        "{}\t{}\t{}",
+                        run.header.id.as_str(),
+                        run.status.as_str(),
+                        run.revision
+                    );
+                }
+            }
+            Ok(())
+        }
+        MedAgentCmd::RunStart {
+            vault_id,
+            vault_root,
+            run_id,
+            expected_revision,
+            json,
+        } => {
+            let mut session = open_medagent_session(&vault_id, &vault_root, json)?;
+            let (run, turn) = session
+                .medagent_run_start(OpaqueId::new(run_id), expected_revision)
+                .map_err(|err| medagent_fail(&err, json))?;
+            if json {
+                print_json_or_debug(&RunStartedJson { run, turn }, true)?;
+            } else {
+                print_run_human(&run);
+                print_turn_human(&turn);
+            }
+            Ok(())
+        }
+        MedAgentCmd::RunCancel {
+            vault_id,
+            vault_root,
+            run_id,
+            expected_revision,
+            json,
+        } => {
+            let mut session = open_medagent_session(&vault_id, &vault_root, json)?;
+            let (run, receipt) = session
+                .medagent_run_cancel(OpaqueId::new(run_id), expected_revision)
+                .map_err(|err| medagent_fail(&err, json))?;
+            if json {
+                print_json_or_debug(&RunTerminalJson { run, receipt }, true)?;
+            } else {
+                print_run_human(&run);
+                print_run_receipt_human(&receipt);
+            }
+            Ok(())
+        }
+        MedAgentCmd::RunTurns {
+            vault_id,
+            vault_root,
+            run_id,
+            json,
+        } => {
+            let mut session = open_medagent_session(&vault_id, &vault_root, json)?;
+            let turns = session
+                .medagent_run_turns(OpaqueId::new(run_id))
+                .map_err(|err| medagent_fail(&err, json))?;
+            if json {
+                print_json_or_debug(&turns, true)?;
+            } else {
+                for turn in &turns {
+                    print_turn_human(turn);
+                }
             }
             Ok(())
         }

@@ -2724,6 +2724,100 @@ impl CoreFacade {
                     resolutions,
                 })
             }
+            RequestBody::AgentRunCreate {
+                project_id,
+                agent_identity_id,
+                context_manifest_id,
+                prompt,
+            } => {
+                let run = self.medagent(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut medagent| {
+                        medagent.create_agent_run(
+                            project_id,
+                            agent_identity_id,
+                            context_manifest_id,
+                            prompt,
+                        )
+                    },
+                )?;
+                Ok(ResponseBody::MedAgentRun { run: Box::new(run) })
+            }
+            RequestBody::AgentRunGet { run_id } => {
+                let run = self.medagent(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |medagent| medagent.get_agent_run(&run_id),
+                )?;
+                Ok(ResponseBody::MedAgentRun { run: Box::new(run) })
+            }
+            RequestBody::AgentRunList {
+                project_id,
+                agent_id,
+                limit,
+            } => {
+                let runs = self.medagent(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |medagent| {
+                        medagent.list_agent_runs(
+                            &project_id,
+                            agent_id.as_ref(),
+                            limit.unwrap_or(100),
+                        )
+                    },
+                )?;
+                Ok(ResponseBody::MedAgentRunList { runs })
+            }
+            RequestBody::AgentRunStart {
+                run_id,
+                expected_revision,
+            } => {
+                let (run, turn) = self.medagent(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut medagent| medagent.start_agent_run(&run_id, expected_revision),
+                )?;
+                Ok(ResponseBody::MedAgentRunStarted {
+                    run: Box::new(run),
+                    turn: Box::new(turn),
+                })
+            }
+            RequestBody::AgentRunCancel {
+                run_id,
+                expected_revision,
+            } => {
+                let (run, receipt) = self.medagent(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut medagent| medagent.cancel_agent_run(&run_id, expected_revision),
+                )?;
+                Ok(ResponseBody::MedAgentRunTerminal {
+                    run: Box::new(run),
+                    receipt: Box::new(receipt),
+                })
+            }
+            RequestBody::AgentRunTurnList { run_id } => {
+                let turns = self.medagent(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |medagent| medagent.list_agent_turns(&run_id),
+                )?;
+                Ok(ResponseBody::MedAgentTurnList { turns })
+            }
         }
     }
 }
@@ -3105,6 +3199,21 @@ fn capability_matches(cap: &Capability, body: &RequestBody) -> bool {
             | (
                 Capability::ContextManifestRead,
                 RequestBody::ContextManifestGet { .. }
+            )
+            | (
+                Capability::AgentRunCreate,
+                RequestBody::AgentRunCreate { .. }
+            )
+            | (Capability::AgentRunRead, RequestBody::AgentRunGet { .. })
+            | (Capability::AgentRunRead, RequestBody::AgentRunList { .. })
+            | (Capability::AgentRunStart, RequestBody::AgentRunStart { .. })
+            | (
+                Capability::AgentRunCancel,
+                RequestBody::AgentRunCancel { .. }
+            )
+            | (
+                Capability::AgentRunRead,
+                RequestBody::AgentRunTurnList { .. }
             )
     )
 }

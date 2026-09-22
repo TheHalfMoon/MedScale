@@ -1,10 +1,26 @@
 //! MedAgent Workbench Core authority paths (Spec 077).
 //!
-//! T077-03/T077-04 scope: `AgentIdentity` + `AgentCapabilityManifest`
-//! register/get/list/revoke, and `ContextManifest` create/get plus the
-//! single read-boundary check (`require_artifact_in_context`) every future
-//! tool-dispatch path (T077-06) must call. `AgentRun`/tool invocation/
-//! receipt/proposal Core paths land in T077-05 through T077-08.
+//! T077-03/T077-04/T077-05 scope: `AgentIdentity` + `AgentCapabilityManifest`
+//! register/get/list/revoke, `ContextManifest` create/get plus the single
+//! read-boundary check (`require_artifact_in_context`) every future
+//! tool-dispatch path (T077-06) must call, and the full `AgentRun`/
+//! `AgentTurn` lifecycle. Tool invocation/receipt/proposal Core paths land
+//! in T077-06 through T077-08.
+//!
+//! `AgentTurn`s are never externally appendable: `PromptSubmitted` is
+//! appended automatically, once, by `start_agent_run` (the run's own
+//! `prompt` field is already known at creation, so no caller input is
+//! trusted); `ToolRequested`/`ToolResult` (T077-06) and `ModelOutput`
+//! (T077-07) turns will likewise be Core-internal side effects of their
+//! own dispatch paths, never a directly callable "append arbitrary turn"
+//! capability -- that would let an external caller fabricate conversation
+//! history.
+//!
+//! `AgentIdentity.status`/admitted-Pack state is re-checked on every
+//! `create_agent_run` and `start_agent_run` call, never cached across a
+//! run's lifetime (`security.md` T5): a revoked identity or an
+//! un-admitted Pack refuses both starting a new run and advancing an
+//! existing `Pending` one.
 //!
 //! `pack_version` is never client-supplied: it is captured here from the
 //! currently admitted `PackManifestV0` for the given `pack_id`, so a caller
@@ -27,8 +43,8 @@
 
 use medscale_contracts::envelopes::AuthorityError;
 use medscale_contracts::medagent::{
-    AgentCapabilityManifest, AgentIdentity, AgentIdentityStatus, ContextManifest,
-    MEDAGENT_SCHEMA_VERSION, ToolKind,
+    AgentCapabilityManifest, AgentIdentity, AgentIdentityStatus, AgentRun, AgentRunState,
+    AgentTurn, AgentTurnKind, ContextManifest, MEDAGENT_SCHEMA_VERSION, RunReceipt, ToolKind,
 };
 use medscale_contracts::objects::{AuthorityScopeId, ObjectHeader, OpaqueId, RealmId, VaultId};
 use medscale_contracts::project_graph::{
@@ -380,6 +396,187 @@ impl MedAgent<'_> {
             return Err(AuthorityError::Unauthorized);
         }
         Ok(context)
+    }
+
+    // ----- AgentRun + AgentTurn -----
+
+    fn scoped_agent_run(&self, id: &OpaqueId) -> Result<AgentRun, AuthorityError> {
+        let run = self.meta.get_agent_run(id).map_err(meta_err)?;
+        if run.header.realm_id != self.realm || run.header.authority_scope_id != self.scope {
+            return Err(AuthorityError::WrongScope);
+        }
+        Ok(run)
+    }
+
+    /// Re-checks `agent_id`'s identity is `Active` and its captured
+    /// `pack_version` still matches the currently admitted Pack -- never
+    /// cached across a run's lifetime (`security.md` T5). Called by both
+    /// `create_agent_run` and `start_agent_run`.
+    fn require_active_identity(
+        &self,
+        agent_id: &OpaqueId,
+    ) -> Result<AgentIdentity, AuthorityError> {
+        let identity = self.scoped_agent_identity(agent_id)?;
+        if identity.status != AgentIdentityStatus::Active {
+            return Err(AuthorityError::Unauthorized);
+        }
+        let admitted = self
+            .packs
+            .get(&identity.pack_id)
+            .ok_or(AuthorityError::Unauthorized)?;
+        if admitted.version != identity.pack_version {
+            return Err(AuthorityError::Unauthorized);
+        }
+        Ok(identity)
+    }
+
+    /// Creates a new `Pending` `AgentRun`. `agent_identity_id` and
+    /// `context_manifest_id` must both already belong to `project_id`
+    /// (never merely to the caller's realm/scope) -- an identity or
+    /// context from a different Project is refused, not silently
+    /// cross-wired.
+    pub fn create_agent_run(
+        &mut self,
+        project_id: OpaqueId,
+        agent_identity_id: OpaqueId,
+        context_manifest_id: OpaqueId,
+        prompt: String,
+    ) -> Result<AgentRun, AuthorityError> {
+        self.scoped_project(&project_id)?;
+        let identity = self.require_active_identity(&agent_identity_id)?;
+        if identity.project_id != project_id {
+            return Err(AuthorityError::InvalidArgument {
+                message: "agent identity does not belong to this project".to_owned(),
+            });
+        }
+        let context = self.scoped_context_manifest(&context_manifest_id)?;
+        if context.project_id != project_id {
+            return Err(AuthorityError::InvalidArgument {
+                message: "context manifest does not belong to this project".to_owned(),
+            });
+        }
+        let id = self
+            .meta
+            .alloc_medagent_id("medagent-run-seq", "run")
+            .map_err(meta_err)?;
+        let run = AgentRun::new(
+            header(&self.realm, &self.scope, id.clone()),
+            project_id,
+            agent_identity_id,
+            context_manifest_id,
+            prompt,
+        )
+        .map_err(|message| AuthorityError::InvalidArgument { message })?;
+        self.meta.insert_agent_run(&run).map_err(meta_err)?;
+        self.audit("medagent_run.create", vec![id])?;
+        Ok(run)
+    }
+
+    /// Scoped run read.
+    pub fn get_agent_run(&self, id: &OpaqueId) -> Result<AgentRun, AuthorityError> {
+        self.scoped_agent_run(id)
+    }
+
+    /// Lists runs in one Project, optionally filtered by agent identity.
+    pub fn list_agent_runs(
+        &self,
+        project_id: &OpaqueId,
+        agent_id: Option<&OpaqueId>,
+        limit: u32,
+    ) -> Result<Vec<AgentRun>, AuthorityError> {
+        self.scoped_project(project_id)?;
+        self.meta
+            .list_agent_runs(project_id, agent_id, limit)
+            .map_err(meta_err)
+    }
+
+    /// Transitions a `Pending` run to `Running` and appends its initial
+    /// `PromptSubmitted` turn in the same call (the prompt is already
+    /// known from the run's own record; no caller input is trusted for
+    /// turn content). Re-checks the bound identity is still `Active` and
+    /// its Pack still admitted (`security.md` T5) before starting.
+    pub fn start_agent_run(
+        &mut self,
+        id: &OpaqueId,
+        expected_revision: u64,
+    ) -> Result<(AgentRun, AgentTurn), AuthorityError> {
+        let current = self.scoped_agent_run(id)?;
+        current
+            .check_transition(AgentRunState::Running)
+            .map_err(|message| AuthorityError::Conflict { message })?;
+        self.require_active_identity(&current.agent_identity_id)?;
+        let updated = self
+            .meta
+            .set_agent_run_running(id, expected_revision)
+            .map_err(meta_err)?;
+        let turn_id = self
+            .meta
+            .alloc_medagent_id("medagent-turn-id-seq", "turn")
+            .map_err(meta_err)?;
+        let turn = self
+            .meta
+            .insert_agent_turn(
+                header(&self.realm, &self.scope, turn_id),
+                id,
+                AgentTurnKind::PromptSubmitted,
+                &serde_json::json!({ "prompt": updated.prompt }),
+            )
+            .map_err(meta_err)?;
+        self.audit("medagent_run.start", vec![id.clone()])?;
+        Ok((updated, turn))
+    }
+
+    /// Cancels a `Pending` or `Running` run, committing its `RunReceipt`
+    /// atomically with the terminal transition. No tool invocations exist
+    /// yet at T077-05, so `tool_invocation_ids` is always empty here;
+    /// T077-06/T077-08 thread real invocation ids through once tool
+    /// dispatch exists.
+    pub fn cancel_agent_run(
+        &mut self,
+        id: &OpaqueId,
+        expected_revision: u64,
+    ) -> Result<(AgentRun, RunReceipt), AuthorityError> {
+        let current = self.scoped_agent_run(id)?;
+        current
+            .check_transition(AgentRunState::Cancelled)
+            .map_err(|message| AuthorityError::Conflict { message })?;
+        let identity = self.scoped_agent_identity(&current.agent_identity_id)?;
+        let context = self.scoped_context_manifest(&current.context_manifest_id)?;
+        let receipt_id = self
+            .meta
+            .alloc_medagent_id("medagent-receipt-id-seq", "receipt")
+            .map_err(meta_err)?;
+        let receipt = RunReceipt {
+            header: header(&self.realm, &self.scope, receipt_id),
+            run_id: id.clone(),
+            pack_id: identity.pack_id,
+            pack_version: identity.pack_version,
+            context_manifest_id: current.context_manifest_id,
+            context_manifest_revision: context.revision,
+            tool_invocation_ids: Vec::new(),
+            final_state: AgentRunState::Cancelled,
+            failure_reason: None,
+        };
+        receipt
+            .validate()
+            .map_err(|message| AuthorityError::InvalidArgument { message })?;
+        let (updated_run, stored_receipt) = self
+            .meta
+            .commit_terminal_transition_with_receipt(
+                id,
+                expected_revision,
+                AgentRunState::Cancelled,
+                &receipt,
+            )
+            .map_err(meta_err)?;
+        self.audit("medagent_run.cancel", vec![id.clone()])?;
+        Ok((updated_run, stored_receipt))
+    }
+
+    /// Lists a run's turns in `seq` order.
+    pub fn list_agent_turns(&self, run_id: &OpaqueId) -> Result<Vec<AgentTurn>, AuthorityError> {
+        self.scoped_agent_run(run_id)?;
+        self.meta.list_agent_turns(run_id).map_err(meta_err)
     }
 }
 

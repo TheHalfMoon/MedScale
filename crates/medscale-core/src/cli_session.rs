@@ -1499,6 +1499,145 @@ impl CliSession {
         Ok((*manifest, resolutions))
     }
 
+    /// Creates a new `Pending` `AgentRun`.
+    pub fn medagent_run_create(
+        &mut self,
+        project_id: OpaqueId,
+        agent_identity_id: OpaqueId,
+        context_manifest_id: OpaqueId,
+        prompt: String,
+    ) -> Result<medscale_contracts::medagent::AgentRun, AuthorityError> {
+        let resp = self.dispatch(
+            Capability::AgentRunCreate,
+            RequestBody::AgentRunCreate {
+                project_id,
+                agent_identity_id,
+                context_manifest_id,
+                prompt,
+            },
+        )?;
+        Self::expect_medagent_run(resp)
+    }
+
+    /// Reads one `AgentRun`.
+    pub fn medagent_run_get(
+        &mut self,
+        run_id: OpaqueId,
+    ) -> Result<medscale_contracts::medagent::AgentRun, AuthorityError> {
+        let resp = self.dispatch(
+            Capability::AgentRunRead,
+            RequestBody::AgentRunGet { run_id },
+        )?;
+        Self::expect_medagent_run(resp)
+    }
+
+    /// Lists runs in one Project, optionally filtered by agent identity.
+    pub fn medagent_run_list(
+        &mut self,
+        project_id: OpaqueId,
+        agent_id: Option<OpaqueId>,
+        limit: Option<u32>,
+    ) -> Result<Vec<medscale_contracts::medagent::AgentRun>, AuthorityError> {
+        let resp = self.dispatch(
+            Capability::AgentRunRead,
+            RequestBody::AgentRunList {
+                project_id,
+                agent_id,
+                limit,
+            },
+        )?;
+        let ResponseBody::MedAgentRunList { runs } = resp else {
+            return Err(AuthorityError::InvalidArgument {
+                message: "expected medagent run list".to_owned(),
+            });
+        };
+        Ok(runs)
+    }
+
+    /// Starts a `Pending` run (`Pending -> Running`), returning the run
+    /// plus its auto-appended initial `PromptSubmitted` turn.
+    pub fn medagent_run_start(
+        &mut self,
+        run_id: OpaqueId,
+        expected_revision: u64,
+    ) -> Result<
+        (
+            medscale_contracts::medagent::AgentRun,
+            medscale_contracts::medagent::AgentTurn,
+        ),
+        AuthorityError,
+    > {
+        let resp = self.dispatch(
+            Capability::AgentRunStart,
+            RequestBody::AgentRunStart {
+                run_id,
+                expected_revision,
+            },
+        )?;
+        let ResponseBody::MedAgentRunStarted { run, turn } = resp else {
+            return Err(AuthorityError::InvalidArgument {
+                message: "expected medagent run started".to_owned(),
+            });
+        };
+        Ok((*run, *turn))
+    }
+
+    /// Cancels a `Pending` or `Running` run, returning it plus its
+    /// committed `RunReceipt`.
+    pub fn medagent_run_cancel(
+        &mut self,
+        run_id: OpaqueId,
+        expected_revision: u64,
+    ) -> Result<
+        (
+            medscale_contracts::medagent::AgentRun,
+            medscale_contracts::medagent::RunReceipt,
+        ),
+        AuthorityError,
+    > {
+        let resp = self.dispatch(
+            Capability::AgentRunCancel,
+            RequestBody::AgentRunCancel {
+                run_id,
+                expected_revision,
+            },
+        )?;
+        let ResponseBody::MedAgentRunTerminal { run, receipt } = resp else {
+            return Err(AuthorityError::InvalidArgument {
+                message: "expected medagent run terminal".to_owned(),
+            });
+        };
+        Ok((*run, *receipt))
+    }
+
+    /// Lists a run's turns in `seq` order.
+    pub fn medagent_run_turns(
+        &mut self,
+        run_id: OpaqueId,
+    ) -> Result<Vec<medscale_contracts::medagent::AgentTurn>, AuthorityError> {
+        let resp = self.dispatch(
+            Capability::AgentRunRead,
+            RequestBody::AgentRunTurnList { run_id },
+        )?;
+        let ResponseBody::MedAgentTurnList { turns } = resp else {
+            return Err(AuthorityError::InvalidArgument {
+                message: "expected medagent turn list".to_owned(),
+            });
+        };
+        Ok(turns)
+    }
+
+    fn expect_medagent_run(
+        resp: ResponseBody,
+    ) -> Result<medscale_contracts::medagent::AgentRun, AuthorityError> {
+        let ResponseBody::MedAgentRun { run } = resp else {
+            return Err(AuthorityError::InvalidArgument {
+                message: "expected medagent run".to_owned(),
+            });
+        };
+        Ok(*run)
+    }
+
     fn expect_medagent_identity(
         resp: ResponseBody,
     ) -> Result<

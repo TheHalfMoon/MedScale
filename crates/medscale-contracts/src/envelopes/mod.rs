@@ -22,7 +22,10 @@ use crate::documents::{
 };
 use crate::evidence::{LexicalRetrieveRequest, LexicalRetrieveResult};
 use crate::ingest::{BackupManifest, IngestReceipt};
-use crate::medagent::{AgentCapabilityManifest, AgentIdentity, ContextManifest, ToolKind};
+use crate::medagent::{
+    AgentCapabilityManifest, AgentIdentity, AgentRun, AgentTurn, ContextManifest, RunReceipt,
+    ToolKind,
+};
 use crate::mesc::{MescArtifactAdmitRequest, MescArtifactVerifyRequest, MescVerifyReport};
 use crate::network::{EgressAllowlistEntry, NetworkBrokerRequest, NetworkBrokerResult};
 use crate::objects::{AmendmentKind, DigestSha256, EffectState, MedicalTime, OpaqueId, VaultId};
@@ -162,6 +165,11 @@ pub enum Capability {
     // Spec 077 T077-04 slice.
     ContextManifestCreate,
     ContextManifestRead,
+    // Spec 077 T077-05 slice.
+    AgentRunCreate,
+    AgentRunRead,
+    AgentRunStart,
+    AgentRunCancel,
 }
 
 impl Capability {
@@ -210,6 +218,7 @@ impl Capability {
                 | Self::ActivityRead
                 | Self::AgentIdentityRead
                 | Self::ContextManifestRead
+                | Self::AgentRunRead
         )
     }
 
@@ -330,6 +339,10 @@ impl Capability {
             Self::AgentIdentityRevoke,
             Self::ContextManifestCreate,
             Self::ContextManifestRead,
+            Self::AgentRunCreate,
+            Self::AgentRunRead,
+            Self::AgentRunStart,
+            Self::AgentRunCancel,
         ]
     }
 }
@@ -890,6 +903,32 @@ pub enum RequestBody {
     ContextManifestGet {
         context_id: OpaqueId,
     },
+    // Spec 077 T077-05 slice.
+    AgentRunCreate {
+        project_id: OpaqueId,
+        agent_identity_id: OpaqueId,
+        context_manifest_id: OpaqueId,
+        prompt: String,
+    },
+    AgentRunGet {
+        run_id: OpaqueId,
+    },
+    AgentRunList {
+        project_id: OpaqueId,
+        agent_id: Option<OpaqueId>,
+        limit: Option<u32>,
+    },
+    AgentRunStart {
+        run_id: OpaqueId,
+        expected_revision: u64,
+    },
+    AgentRunCancel {
+        run_id: OpaqueId,
+        expected_revision: u64,
+    },
+    AgentRunTurnList {
+        run_id: OpaqueId,
+    },
 }
 
 impl RequestBody {
@@ -1214,6 +1253,27 @@ pub enum ResponseBody {
         /// Live-recomputed, never cached (`migration.md` section 4); same
         /// order as `manifest.selected_artifacts`.
         resolutions: Vec<ReferenceResolution>,
+    },
+    MedAgentRun {
+        run: Box<AgentRun>,
+    },
+    MedAgentRunList {
+        runs: Vec<AgentRun>,
+    },
+    /// `start_agent_run`'s result: the now-`Running` run plus its
+    /// auto-appended initial `PromptSubmitted` turn.
+    MedAgentRunStarted {
+        run: Box<AgentRun>,
+        turn: Box<AgentTurn>,
+    },
+    /// A terminal transition's result: the run plus its committed
+    /// `RunReceipt`.
+    MedAgentRunTerminal {
+        run: Box<AgentRun>,
+        receipt: Box<RunReceipt>,
+    },
+    MedAgentTurnList {
+        turns: Vec<AgentTurn>,
     },
 }
 

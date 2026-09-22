@@ -11,8 +11,9 @@ use std::path::PathBuf;
 use medscale_contracts::envelopes::{
     AuthorityError, AuthorityRequest, Capability, RequestBody, ResponseBody,
 };
-use medscale_contracts::medagent::ToolKind;
+use medscale_contracts::medagent::{AgentRunState, AgentTurnKind, ToolKind};
 use medscale_contracts::objects::{AuthorityScopeId, OpaqueId, RealmId, VaultId};
+use medscale_contracts::project_graph::{ArtifactDescriptor, ArtifactKind, ArtifactVersionBinding};
 use medscale_core::CoreFacade;
 
 fn tmp_dir(name: &str) -> std::path::PathBuf {
@@ -161,6 +162,68 @@ impl Harness {
                 assert!(result.admitted, "fixture pack must admit cleanly");
                 result.pack_id.expect("admitted pack carries a pack_id")
             }
+            other => panic!("{other:?}"),
+        }
+    }
+
+    fn register_identity(&mut self, project_id: OpaqueId, pack_id: OpaqueId) -> OpaqueId {
+        match self
+            .call(
+                Capability::AgentIdentityRegister,
+                RequestBody::AgentIdentityRegister {
+                    project_id,
+                    pack_id,
+                    display_name: "Research Assistant".to_owned(),
+                    granted_tool_kinds: vec![ToolKind::ReadContextArtifact],
+                },
+            )
+            .expect("register identity")
+        {
+            ResponseBody::MedAgentIdentity { identity, .. } => identity.header.id,
+            other => panic!("{other:?}"),
+        }
+    }
+
+    fn create_context(&mut self, project_id: OpaqueId, artifact_id: &str) -> OpaqueId {
+        match self
+            .call(
+                Capability::ContextManifestCreate,
+                RequestBody::ContextManifestCreate {
+                    project_id,
+                    selected_artifacts: vec![ArtifactDescriptor {
+                        object_id: OpaqueId::new(artifact_id),
+                        kind: ArtifactKind::SourceRecord,
+                        binding: ArtifactVersionBinding::IdentityOnly,
+                    }],
+                },
+            )
+            .expect("create context")
+        {
+            ResponseBody::MedAgentContextManifest { manifest, .. } => manifest.header.id,
+            other => panic!("{other:?}"),
+        }
+    }
+
+    fn create_run(
+        &mut self,
+        project_id: OpaqueId,
+        agent_id: OpaqueId,
+        context_id: OpaqueId,
+        prompt: &str,
+    ) -> OpaqueId {
+        match self
+            .call(
+                Capability::AgentRunCreate,
+                RequestBody::AgentRunCreate {
+                    project_id,
+                    agent_identity_id: agent_id,
+                    context_manifest_id: context_id,
+                    prompt: prompt.to_owned(),
+                },
+            )
+            .expect("create run")
+        {
+            ResponseBody::MedAgentRun { run } => run.header.id,
             other => panic!("{other:?}"),
         }
     }
@@ -443,4 +506,337 @@ fn agent_identity_survives_vault_reopen() {
         }
         other => panic!("{other:?}"),
     }
+}
+
+// ---------------------------------------------------------------------------
+// T077-05: AgentRun lifecycle
+// ---------------------------------------------------------------------------
+
+#[test]
+fn full_run_lifecycle_start_then_cancel_through_core() {
+    let mut h = Harness::setup("run-lifecycle");
+    let project_id = h.project("agent-project");
+    let pack_id = h.install_fixture_pack();
+    let agent_id = h.register_identity(project_id.clone(), pack_id);
+    let context_id = h.create_context(project_id.clone(), "artifact-1");
+    let run_id = h.create_run(
+        project_id,
+        agent_id,
+        context_id,
+        "summarize the bound context",
+    );
+
+    let resp = h
+        .call(
+            Capability::AgentRunRead,
+            RequestBody::AgentRunGet {
+                run_id: run_id.clone(),
+            },
+        )
+        .expect("get pending run");
+    match resp {
+        ResponseBody::MedAgentRun { run } => {
+            assert_eq!(run.status, AgentRunState::Pending);
+            assert_eq!(run.revision, 1);
+        }
+        other => panic!("{other:?}"),
+    }
+
+    // Starting appends the initial PromptSubmitted turn automatically --
+    // no caller-supplied turn content is ever trusted.
+    let resp = h
+        .call(
+            Capability::AgentRunStart,
+            RequestBody::AgentRunStart {
+                run_id: run_id.clone(),
+                expected_revision: 1,
+            },
+        )
+        .expect("start run");
+    match resp {
+        ResponseBody::MedAgentRunStarted { run, turn } => {
+            assert_eq!(run.status, AgentRunState::Running);
+            assert_eq!(run.revision, 2);
+            assert_eq!(turn.kind, AgentTurnKind::PromptSubmitted);
+            assert_eq!(turn.seq, 1);
+            assert_eq!(
+                turn.payload.get("prompt").and_then(|v| v.as_str()),
+                Some("summarize the bound context")
+            );
+        }
+        other => panic!("{other:?}"),
+    }
+
+    let resp = h
+        .call(
+            Capability::AgentRunRead,
+            RequestBody::AgentRunTurnList {
+                run_id: run_id.clone(),
+            },
+        )
+        .expect("list turns");
+    match resp {
+        ResponseBody::MedAgentTurnList { turns } => assert_eq!(turns.len(), 1),
+        other => panic!("{other:?}"),
+    }
+
+    // Cancel a Running run: terminal transition + RunReceipt committed
+    // atomically, with no tool invocations yet (T077-06 threads real ones).
+    let resp = h
+        .call(
+            Capability::AgentRunCancel,
+            RequestBody::AgentRunCancel {
+                run_id: run_id.clone(),
+                expected_revision: 2,
+            },
+        )
+        .expect("cancel run");
+    match resp {
+        ResponseBody::MedAgentRunTerminal { run, receipt } => {
+            assert_eq!(run.status, AgentRunState::Cancelled);
+            assert_eq!(run.revision, 3);
+            assert_eq!(receipt.run_id, run_id);
+            assert_eq!(receipt.final_state, AgentRunState::Cancelled);
+            assert!(receipt.failure_reason.is_none());
+            assert!(receipt.tool_invocation_ids.is_empty());
+        }
+        other => panic!("{other:?}"),
+    }
+}
+
+#[test]
+fn pending_run_can_be_cancelled_directly_without_starting() {
+    let mut h = Harness::setup("cancel-pending");
+    let project_id = h.project("agent-project");
+    let pack_id = h.install_fixture_pack();
+    let agent_id = h.register_identity(project_id.clone(), pack_id);
+    let context_id = h.create_context(project_id.clone(), "artifact-1");
+    let run_id = h.create_run(project_id, agent_id, context_id, "go");
+
+    let resp = h
+        .call(
+            Capability::AgentRunCancel,
+            RequestBody::AgentRunCancel {
+                run_id: run_id.clone(),
+                expected_revision: 1,
+            },
+        )
+        .expect("cancel pending run");
+    match resp {
+        ResponseBody::MedAgentRunTerminal { run, .. } => {
+            assert_eq!(run.status, AgentRunState::Cancelled);
+        }
+        other => panic!("{other:?}"),
+    }
+
+    // No turns were ever appended for a run cancelled before starting.
+    let resp = h
+        .call(
+            Capability::AgentRunRead,
+            RequestBody::AgentRunTurnList { run_id },
+        )
+        .expect("list turns");
+    match resp {
+        ResponseBody::MedAgentTurnList { turns } => assert!(turns.is_empty()),
+        other => panic!("{other:?}"),
+    }
+}
+
+/// Cancellation race: two callers who both observed the run at revision 1
+/// (e.g. a UI cancel click racing an operator's CLI cancel) both submit a
+/// cancel request. Only one may win; the other must fail closed on the now
+/// -stale revision, never silently re-apply or double-commit a second
+/// `RunReceipt` (`plan.md` 077-E gate: "no transition outside the frozen
+/// table is reachable").
+#[test]
+fn cancellation_race_only_one_request_wins() {
+    let mut h = Harness::setup("cancel-race");
+    let project_id = h.project("agent-project");
+    let pack_id = h.install_fixture_pack();
+    let agent_id = h.register_identity(project_id.clone(), pack_id);
+    let context_id = h.create_context(project_id.clone(), "artifact-1");
+    let run_id = h.create_run(project_id, agent_id, context_id, "go");
+
+    let first = h.call(
+        Capability::AgentRunCancel,
+        RequestBody::AgentRunCancel {
+            run_id: run_id.clone(),
+            expected_revision: 1,
+        },
+    );
+    let second = h.call(
+        Capability::AgentRunCancel,
+        RequestBody::AgentRunCancel {
+            run_id: run_id.clone(),
+            expected_revision: 1,
+        },
+    );
+    let results = [first, second];
+    let wins = results.iter().filter(|r| r.is_ok()).count();
+    let conflicts = results
+        .iter()
+        .filter(|r| matches!(r, Err(AuthorityError::Conflict { .. })))
+        .count();
+    assert_eq!(wins, 1, "exactly one cancel request must win the race");
+    assert_eq!(
+        conflicts, 1,
+        "the loser must fail closed with Conflict, never silently re-apply"
+    );
+
+    // The run itself shows exactly one terminal transition (revision 2,
+    // not 3): the loser never mutated anything.
+    let resp = h
+        .call(
+            Capability::AgentRunRead,
+            RequestBody::AgentRunGet { run_id },
+        )
+        .expect("get after race");
+    match resp {
+        ResponseBody::MedAgentRun { run } => {
+            assert_eq!(run.status, AgentRunState::Cancelled);
+            assert_eq!(run.revision, 2);
+        }
+        other => panic!("{other:?}"),
+    }
+}
+
+#[test]
+fn illegal_transitions_are_rejected() {
+    let mut h = Harness::setup("illegal-transitions");
+    let project_id = h.project("agent-project");
+    let pack_id = h.install_fixture_pack();
+    let agent_id = h.register_identity(project_id.clone(), pack_id);
+    let context_id = h.create_context(project_id.clone(), "artifact-1");
+    let run_id = h.create_run(project_id, agent_id, context_id, "go");
+
+    h.call(
+        Capability::AgentRunCancel,
+        RequestBody::AgentRunCancel {
+            run_id: run_id.clone(),
+            expected_revision: 1,
+        },
+    )
+    .expect("cancel");
+
+    // Cancelled -> Running is not in the frozen table.
+    let err = h
+        .call(
+            Capability::AgentRunStart,
+            RequestBody::AgentRunStart {
+                run_id: run_id.clone(),
+                expected_revision: 2,
+            },
+        )
+        .unwrap_err();
+    assert!(matches!(err, AuthorityError::Conflict { .. }));
+
+    // Cancelled -> Cancelled again is not in the frozen table either.
+    let err = h
+        .call(
+            Capability::AgentRunCancel,
+            RequestBody::AgentRunCancel {
+                run_id,
+                expected_revision: 2,
+            },
+        )
+        .unwrap_err();
+    assert!(matches!(err, AuthorityError::Conflict { .. }));
+}
+
+#[test]
+fn run_creation_rejects_cross_project_identity_and_context() {
+    let mut h = Harness::setup("cross-project");
+    let project_a = h.project("project-a");
+    let project_b = h.project("project-b");
+    let pack_id = h.install_fixture_pack();
+    let agent_id = h.register_identity(project_a.clone(), pack_id);
+    let context_id = h.create_context(project_a.clone(), "artifact-1");
+
+    // agent_id belongs to project_a, but the run is created against
+    // project_b.
+    let err = h
+        .call(
+            Capability::AgentRunCreate,
+            RequestBody::AgentRunCreate {
+                project_id: project_b.clone(),
+                agent_identity_id: agent_id.clone(),
+                context_manifest_id: context_id.clone(),
+                prompt: "go".to_owned(),
+            },
+        )
+        .unwrap_err();
+    assert!(matches!(err, AuthorityError::InvalidArgument { .. }));
+
+    // context_id also belongs to project_a; naming project_a correctly for
+    // the identity but pairing it with a context from a different project
+    // must fail too (build a second context under project_b to prove it's
+    // the context check, not just the identity check, that fires).
+    let context_b = h.create_context(project_b.clone(), "artifact-2");
+    let err = h
+        .call(
+            Capability::AgentRunCreate,
+            RequestBody::AgentRunCreate {
+                project_id: project_a,
+                agent_identity_id: agent_id,
+                context_manifest_id: context_b,
+                prompt: "go".to_owned(),
+            },
+        )
+        .unwrap_err();
+    assert!(matches!(err, AuthorityError::InvalidArgument { .. }));
+}
+
+/// `security.md` T5: a revoked identity must refuse both starting a new
+/// run and (via `create_agent_run`'s own re-check) creating one -- the
+/// check is never cached across the run's lifetime.
+#[test]
+fn revoked_identity_fails_closed_at_create_and_at_start() {
+    let mut h = Harness::setup("revoked-identity");
+    let project_id = h.project("agent-project");
+    let pack_id = h.install_fixture_pack();
+    let agent_id = h.register_identity(project_id.clone(), pack_id);
+    let context_id = h.create_context(project_id.clone(), "artifact-1");
+
+    // A run created while the identity is still Active, then the identity
+    // is revoked before the run ever starts.
+    let run_id = h.create_run(
+        project_id.clone(),
+        agent_id.clone(),
+        context_id.clone(),
+        "go",
+    );
+    h.call(
+        Capability::AgentIdentityRevoke,
+        RequestBody::AgentIdentityRevoke {
+            agent_id: agent_id.clone(),
+            expected_revision: 1,
+        },
+    )
+    .expect("revoke");
+
+    let err = h
+        .call(
+            Capability::AgentRunStart,
+            RequestBody::AgentRunStart {
+                run_id,
+                expected_revision: 1,
+            },
+        )
+        .unwrap_err();
+    assert!(matches!(err, AuthorityError::Unauthorized));
+
+    // A brand new run creation attempt against the now-revoked identity is
+    // refused at create time too.
+    let err = h
+        .call(
+            Capability::AgentRunCreate,
+            RequestBody::AgentRunCreate {
+                project_id,
+                agent_identity_id: agent_id,
+                context_manifest_id: context_id,
+                prompt: "go".to_owned(),
+            },
+        )
+        .unwrap_err();
+    assert!(matches!(err, AuthorityError::Unauthorized));
 }

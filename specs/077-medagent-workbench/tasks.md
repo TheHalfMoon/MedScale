@@ -167,12 +167,41 @@ and `require_artifact_in_context`. CLI: `medagent context-create`/
 
 ## T077-05 — AgentRun lifecycle
 
-- [ ] Implement `AgentRun` create/get/list and the full frozen state
+- [x] Implement `AgentRun` create/get/list and the full frozen state
       machine including cancel/interrupt.
-- [ ] Implement `AgentTurn` as the append-only per-step record.
+- [x] Implement `AgentTurn` as the append-only per-step record.
 
 **Acceptance:** full lifecycle proven end to end including a cancellation
 race test; no transition outside the frozen table is reachable.
+
+**Implemented (this session):** `Capability::AgentRunCreate/Read/Start/
+Cancel` + matching `RequestBody`/`ResponseBody` variants; `MedAgent::
+create_agent_run/get_agent_run/list_agent_runs/start_agent_run/
+cancel_agent_run/list_agent_turns` in `medagent.rs` (Core). `AgentTurn`s
+are never externally appendable -- `start_agent_run` auto-appends the
+initial `PromptSubmitted` turn from the run's own already-known `prompt`
+field (no caller-supplied turn content is ever trusted); `ToolRequested`/
+`ToolResult` (T077-06) and `ModelOutput` (T077-07) turns will likewise be
+Core-internal side effects of their own dispatch paths. `create_agent_run`
+and `start_agent_run` both re-check the bound `AgentIdentity` is `Active`
+and its captured `pack_version` still matches the currently admitted Pack
+(`security.md` T5, never cached). `create_agent_run` also refuses an
+identity or context manifest that does not belong to the run's own
+`project_id` (cross-project cross-wiring). `cancel_agent_run` commits a
+`RunReceipt` atomically with the terminal transition
+(`tool_invocation_ids` is empty until T077-06 exists). CLI: `medagent
+run-create/run-show/run-list/run-start/run-cancel/run-turns`.
+
+Tests (`crates/medscale-core/tests/medagent_077.rs`, 6 new): full
+start-then-cancel lifecycle through real `CoreFacade::dispatch` (proving
+the auto-appended turn and its exact payload), cancelling a still-`Pending`
+run directly, a cancellation race (two callers submit the same
+`expected_revision`; exactly one wins, the other fails closed with
+`Conflict`, and the run shows exactly one terminal transition -- not two),
+illegal transitions (`Cancelled -> Running`, `Cancelled -> Cancelled`)
+rejected, cross-project identity/context rejection, and a revoked identity
+failing closed at both create and start. See
+`evidence/077-medagent-workbench/T077-05_IMPLEMENTATION.md`.
 
 ## T077-06 — Tool invocation
 
@@ -182,6 +211,12 @@ race test; no transition outside the frozen table is reachable.
 
 **Acceptance:** an ungranted tool kind is refused before execution and
 recorded as a refusal.
+
+**Note for whoever implements this:** `MedAgent::require_artifact_in_context`
+(added in T077-04) currently carries `#[allow(dead_code)]` because it has
+no production caller yet -- remove that attribute the moment this task's
+tool-dispatch path calls it. That call must happen before any artifact
+content is read; there is no second, unchecked read path.
 
 ## T077-07 — Model Pack lane + AgentProposal
 
