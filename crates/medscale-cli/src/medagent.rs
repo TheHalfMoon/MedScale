@@ -89,7 +89,7 @@ struct IdentityJson {
 #[derive(Debug, Subcommand)]
 pub enum MedAgentCmd {
     /// Register a new agent identity bound to an admitted local model Pack.
-    IdentityRegister {
+    Register {
         #[arg(long)]
         vault_id: String,
         #[arg(long)]
@@ -107,7 +107,7 @@ pub enum MedAgentCmd {
         json: bool,
     },
     /// Show one agent identity.
-    IdentityShow {
+    Show {
         #[arg(long)]
         vault_id: String,
         #[arg(long)]
@@ -118,7 +118,7 @@ pub enum MedAgentCmd {
         json: bool,
     },
     /// List agent identities in one Project.
-    IdentityList {
+    List {
         #[arg(long)]
         vault_id: String,
         #[arg(long)]
@@ -131,7 +131,7 @@ pub enum MedAgentCmd {
         json: bool,
     },
     /// Revoke an agent identity.
-    IdentityRevoke {
+    Revoke {
         #[arg(long)]
         vault_id: String,
         #[arg(long)]
@@ -147,7 +147,7 @@ pub enum MedAgentCmd {
 
 pub fn run_medagent(action: MedAgentCmd) -> anyhow::Result<()> {
     match action {
-        MedAgentCmd::IdentityRegister {
+        MedAgentCmd::Register {
             vault_id,
             vault_root,
             project_id,
@@ -180,7 +180,7 @@ pub fn run_medagent(action: MedAgentCmd) -> anyhow::Result<()> {
             }
             Ok(())
         }
-        MedAgentCmd::IdentityShow {
+        MedAgentCmd::Show {
             vault_id,
             vault_root,
             agent_id,
@@ -203,7 +203,7 @@ pub fn run_medagent(action: MedAgentCmd) -> anyhow::Result<()> {
             }
             Ok(())
         }
-        MedAgentCmd::IdentityList {
+        MedAgentCmd::List {
             vault_id,
             vault_root,
             project_id,
@@ -229,7 +229,7 @@ pub fn run_medagent(action: MedAgentCmd) -> anyhow::Result<()> {
             }
             Ok(())
         }
-        MedAgentCmd::IdentityRevoke {
+        MedAgentCmd::Revoke {
             vault_id,
             vault_root,
             agent_id,
