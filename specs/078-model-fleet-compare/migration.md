@@ -111,6 +111,34 @@ fails (refused before any lane-run side effect), so that one lane's
 dispatch failure never leaves a different lane's already-dispatched run in
 a half-recorded state.
 
+**T078-02 reconciliation (binding).** The per-lane "one transaction"
+wording above cannot hold literally together with this spec's other hard
+rule that the lane's run is created through Spec 077's *unmodified*
+`create_agent_run` (`plan.md` 078-D, `security.md` section 1): that
+function commits its own `AgentRun` insert, and its id allocator
+(`alloc_medagent_id`) opens its own SQLite transaction, which SQLite cannot
+nest inside an outer one. Wrapping it would require modifying a Spec 077
+Core/storage function, which this spec forbids. The frozen dispatch order
+is therefore:
+
+```text
+1. re-validate lane policy against the live identity/context (T2)
+2. Spec 077 create_agent_run            -> commits AgentRun (Pending)
+3. insert_lane_run_ref                  -> commits LaneRunRef (unique agent_run_id, T4)
+4. Spec 077 start_agent_run / execute_agent_run, only after step 3 committed
+```
+
+The invariant this preserves is the one the atomicity rule exists for: a
+lane run is never *started* unless its binding is durable, so a fleet can
+never be missing a lane that actually ran. A crash or refusal between
+steps 2 and 3 leaves at most one never-started, unbound `Pending` Spec 077
+run -- a state Spec 077 already treats as valid (a `Pending` run carries
+no `RunReceipt`) -- and never touches a sibling lane's committed binding.
+Core makes a best-effort compensating `cancel_agent_run` on that unbound
+run when step 3 is refused in-process. Proven by
+`crates/medscale-storage/tests/model_fleet_078.rs::failed_lane_binding_leaves_sibling_intact_and_only_an_unstarted_unbound_run`
+(storage half) and the T078-04 Core tests (ordering half).
+
 ### Fleet run state transition
 
 One transaction per transition contains the fleet-run row's state/revision
@@ -144,7 +172,9 @@ Tests must exercise or deterministically simulate at least:
 4. before an agent-lane insert transaction commits;
 5. before a fleet-run creation transaction commits;
 6. before one lane's dispatch transaction commits (proving a sibling
-   lane's already-committed dispatch is unaffected);
+   lane's already-committed dispatch is unaffected; per the section 5
+   reconciliation, "dispatch" is the `LaneRunRef` commit that must
+   precede any start of the lane's run);
 7. before a fleet-run state-transition (including terminal/partial-failure
    transitions) commits;
 8. before a `ComparisonReport` commits;
@@ -296,11 +326,33 @@ Before T078-02 is declared complete, update:
 
 ```text
 MIGRATION_CONTRACT = FROZEN_FOR_078
-CURRENT_STORAGE_VERSION = <live value, expect 6>
-078_STORAGE_VERSION = <new value, expect 7>
-MIGRATION_CODE_PATH = <exact path>
-BACKUP_CODE_PATH = <exact path>
-MODEL_FLEET_TABLES = <exact names>
-INDEXES = <exact names/queries>
-ROLLBACK_METHOD = <verified method>
+CURRENT_STORAGE_VERSION = 6 (live value on base ff2e677, set by Spec 077)
+078_STORAGE_VERSION = 7
+MIGRATION_CODE_PATH = crates/medscale-storage/src/sqlite_meta.rs
+  (SqliteMetaStore::migrate, `finished_version < 7` step executing
+  crates/medscale-storage/src/model_fleet.rs::V7_DDL inside
+  begin_migration(7)/finish_migration(7))
+BACKUP_CODE_PATH = crates/medscale-storage/src/backup.rs
+  (backup manifest schema_version 7; restore_v7 -> restore_v6 chain, then
+  SqliteMetaStore::verify_model_fleet_consistency) and
+  crates/medscale-storage/src/sqlite_meta.rs::snapshot_bytes
+  (snapshot schema_version 7 + four model_fleet_* families)
+MODEL_FLEET_TABLES = model_fleet_lanes, model_fleet_runs,
+  model_fleet_lane_run_refs, model_fleet_comparison_reports
+INDEXES =
+  idx_model_fleet_lanes_project (project_id, status)  -- lane list by Project [+ status]
+  idx_model_fleet_lanes_identity (agent_identity_id)  -- lane list by bound identity
+  idx_model_fleet_runs_project (project_id, status)   -- fleet list by Project [+ state]
+  idx_model_fleet_lane_run_refs_fleet (fleet_run_id)  -- refs by fleet run
+  idx_model_fleet_lane_run_refs_lane (agent_lane_id)  -- refs by agent lane
+  idx_model_fleet_lane_run_refs_agent_run UNIQUE (agent_run_id) -- security.md T4
+  idx_model_fleet_comparison_reports_fleet (fleet_run_id) -- reports by fleet run (list, not 1:1)
+FOREIGN_KEYS = none (verified: pragma_foreign_key_list is empty for all four tables)
+ROLLBACK_METHOD = restore the verified pre-migration (v6) backup via
+  restore_vault; verified by
+  crates/medscale-storage/tests/model_fleet_078.rs::pre_078_v6_backup_restores_with_empty_078_tables
+  and ::crash_mid_migration_fails_closed_and_pre_migration_backup_recovers.
+  Post-checkpoint 078 changes are discarded. Because restore always opens
+  the destination with the current (v7) binary, the recovered vault's 078
+  tables exist but are empty -- never half-populated.
 ```

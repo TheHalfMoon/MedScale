@@ -54,7 +54,7 @@ pub fn backup_vault(vault: &SyntheticVault, dest: &Path) -> Result<BackupManifes
     }
 
     let manifest = BackupManifest {
-        schema_version: 6,
+        schema_version: 7,
         vault_id: vault.vault_id.clone(),
         created_at: "1970-01-01T00:00:00Z".to_owned(),
         metadata_snapshot_digest: snapshot_digest,
@@ -106,7 +106,9 @@ pub fn restore_vault(src: &Path, dest_vault_root: &Path) -> Result<(u64, u64), S
     let snapshot_schema = snapshot_value
         .get("schema_version")
         .and_then(|v| v.as_u64());
-    if snapshot_schema == Some(6) {
+    if snapshot_schema == Some(7) {
+        restore_v7(&vault, &snapshot_value, &mut sources)?;
+    } else if snapshot_schema == Some(6) {
         restore_v6(&vault, &snapshot_value, &mut sources)?;
     } else if snapshot_schema == Some(5) {
         restore_v5(&vault, &snapshot_value, &mut sources)?;
@@ -580,6 +582,94 @@ fn restore_v5(
                 .map_err(|e| e.to_string())?;
         }
     }
+    Ok(())
+}
+
+fn restore_v7(
+    vault: &SyntheticVault,
+    snapshot: &serde_json::Value,
+    sources: &mut u64,
+) -> Result<(), String> {
+    restore_v6(vault, snapshot, sources)?;
+    // Spec 078 rows replay exactly (ids/revisions preserved) through the
+    // plain-INSERT restore paths, so a duplicate id or a second binding of
+    // one agent run fails closed. Shape is re-validated per row where the
+    // contract exposes a validator; the cross-row invariants are
+    // re-verified after every family is replayed.
+    if let Some(entries) = snapshot.get("model_fleet_lanes").and_then(|v| v.as_array()) {
+        for value in entries {
+            let lane: medscale_contracts::model_fleet::AgentLane =
+                serde_json::from_value(value.clone()).map_err(|e| e.to_string())?;
+            // Re-run the constructor's shape checks (role label bound,
+            // non-empty policy subsets) on the restored values.
+            medscale_contracts::model_fleet::LanePolicy::new(
+                lane.policy.granted_tool_kinds.clone(),
+                lane.policy.context_artifact_ids.clone(),
+            )?;
+            medscale_contracts::model_fleet::AgentLane::new(
+                lane.header.clone(),
+                lane.project_id.clone(),
+                lane.agent_identity_id.clone(),
+                lane.context_manifest_id.clone(),
+                lane.role_label.clone(),
+                lane.policy.clone(),
+            )?;
+            vault
+                .meta
+                .restore_agent_lane_row(&lane)
+                .map_err(|e| e.to_string())?;
+        }
+    }
+    if let Some(entries) = snapshot.get("model_fleet_runs").and_then(|v| v.as_array()) {
+        for value in entries {
+            let run: medscale_contracts::model_fleet::FleetRun =
+                serde_json::from_value(value.clone()).map_err(|e| e.to_string())?;
+            medscale_contracts::model_fleet::FleetRun::new(
+                run.header.clone(),
+                run.project_id.clone(),
+                run.task_prompt.clone(),
+            )?;
+            vault
+                .meta
+                .restore_fleet_run_row(&run)
+                .map_err(|e| e.to_string())?;
+        }
+    }
+    if let Some(entries) = snapshot
+        .get("model_fleet_lane_run_refs")
+        .and_then(|v| v.as_array())
+    {
+        for value in entries {
+            let lane_run_ref: medscale_contracts::model_fleet::LaneRunRef =
+                serde_json::from_value(value.clone()).map_err(|e| e.to_string())?;
+            vault
+                .meta
+                .restore_lane_run_ref_row(&lane_run_ref)
+                .map_err(|e| e.to_string())?;
+        }
+    }
+    if let Some(entries) = snapshot
+        .get("model_fleet_comparison_reports")
+        .and_then(|v| v.as_array())
+    {
+        for value in entries {
+            let report: medscale_contracts::model_fleet::ComparisonReport =
+                serde_json::from_value(value.clone()).map_err(|e| e.to_string())?;
+            report.validate()?;
+            vault
+                .meta
+                .restore_comparison_report_row(&report)
+                .map_err(|e| e.to_string())?;
+        }
+    }
+    // migration.md sections 6/11: a terminal fleet run whose bound lane
+    // runs do not match its state, a lane run ref naming a missing run, or
+    // a comparison report naming a lane outside its fleet run is a
+    // corruption signal. Re-verify at restore time, not only at insert.
+    vault
+        .meta
+        .verify_model_fleet_consistency()
+        .map_err(|e| e.to_string())?;
     Ok(())
 }
 
