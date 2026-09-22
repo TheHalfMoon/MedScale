@@ -330,7 +330,10 @@ fn migration_v3_to_v4_preserves_old_rows() {
     meta.insert_data_source(&manifest("dsrc-1")).unwrap();
     let journal = meta.migration_journal().unwrap();
     // Forward-fixed for Spec 077 (v5 -> v6).
-    assert_eq!(journal.finished_version, 7);
+    assert_eq!(
+        journal.finished_version,
+        medscale_storage::CURRENT_META_SCHEMA_VERSION
+    );
     // Reopen is safe (idempotent migration).
     drop(meta);
     let meta = open_meta(&root);
@@ -351,7 +354,10 @@ fn backup_restore_roundtrips_fabric_rows() {
     let dest = root.join("backup");
     let manifest_out = backup_vault(&vault, &dest).unwrap();
     // Forward-fixed for Spec 077 (v5 -> v6).
-    assert_eq!(manifest_out.schema_version, 7);
+    assert_eq!(
+        manifest_out.schema_version,
+        medscale_storage::CURRENT_META_SCHEMA_VERSION
+    );
 
     let restore_root = root.join("restored");
     let (sources, _) = restore_vault(&dest, &restore_root).unwrap();

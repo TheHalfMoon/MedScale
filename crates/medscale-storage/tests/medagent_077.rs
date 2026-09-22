@@ -160,7 +160,10 @@ fn migration_v5_to_v6_preserves_pre_077_rows_and_adds_medagent_tables() {
         .unwrap();
 
     let journal = meta.migration_journal().unwrap();
-    assert_eq!(journal.finished_version, 7);
+    assert_eq!(
+        journal.finished_version,
+        medscale_storage::CURRENT_META_SCHEMA_VERSION
+    );
 
     // Reopen must be safe (idempotent migration) and preserve every row
     // across both the pre-077 and the 077 families.
@@ -168,7 +171,8 @@ fn migration_v5_to_v6_preserves_pre_077_rows_and_adds_medagent_tables() {
     let meta = open_meta(&root);
     let journal_again = meta.migration_journal().unwrap();
     assert_eq!(
-        journal_again.finished_version, 7,
+        journal_again.finished_version,
+        medscale_storage::CURRENT_META_SCHEMA_VERSION,
         "repeat open must be a no-op, not a re-migration"
     );
 
@@ -203,7 +207,10 @@ fn repeated_open_and_repeated_migration_is_safe() {
     for _ in 0..5 {
         let meta = open_meta(&root);
         let journal = meta.migration_journal().unwrap();
-        assert_eq!(journal.finished_version, 7);
+        assert_eq!(
+            journal.finished_version,
+            medscale_storage::CURRENT_META_SCHEMA_VERSION
+        );
         let read = meta.get_agent_identity(&OpaqueId::new("agent-1")).unwrap();
         assert_eq!(read.revision, 1);
     }
@@ -543,7 +550,10 @@ fn backup_restore_roundtrips_medagent_rows_and_reverifies_run_receipt_consistenc
 
     let dest = root.join("backup-out");
     let manifest_out = backup_vault(&vault, &dest).unwrap();
-    assert_eq!(manifest_out.schema_version, 7);
+    assert_eq!(
+        manifest_out.schema_version,
+        medscale_storage::CURRENT_META_SCHEMA_VERSION
+    );
 
     let restore_root = root.join("restored");
     let _ = restore_vault(&dest, &restore_root).unwrap();
