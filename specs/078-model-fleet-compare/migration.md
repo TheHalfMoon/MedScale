@@ -29,11 +29,10 @@ compare layer is opt-in capability layered on top.
 
 ```text
 model_fleet_lanes
-model_fleet_lane_policies
-  (LanePolicy travels as validated JSON on the lane row, mirroring Spec
-  077's medagent_context_manifests.selected_artifacts_json precedent --
-  no separate child table; there is exactly one policy row per lane,
-  never a partially-visible list)
+  (LanePolicy travels as a validated JSON column on this same row,
+  mirroring Spec 077's medagent_context_manifests.selected_artifacts_json
+  precedent -- no separate model_fleet_lane_policies table; there is
+  exactly one policy per lane, never a partially-visible list)
 model_fleet_runs
 model_fleet_lane_run_refs
 model_fleet_comparison_reports

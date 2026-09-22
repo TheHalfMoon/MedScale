@@ -114,15 +114,15 @@ impl LanePolicy {
         granted_tool_kinds: Option<Vec<ToolKind>>,
         context_artifact_ids: Option<Vec<OpaqueId>>,
     ) -> Result<Self, String> {
-        if let Some(kinds) = &granted_tool_kinds {
-            if kinds.is_empty() {
-                return Err("granted_tool_kinds, when present, must not be empty".to_owned());
-            }
+        if let Some(kinds) = &granted_tool_kinds
+            && kinds.is_empty()
+        {
+            return Err("granted_tool_kinds, when present, must not be empty".to_owned());
         }
-        if let Some(ids) = &context_artifact_ids {
-            if ids.is_empty() {
-                return Err("context_artifact_ids, when present, must not be empty".to_owned());
-            }
+        if let Some(ids) = &context_artifact_ids
+            && ids.is_empty()
+        {
+            return Err("context_artifact_ids, when present, must not be empty".to_owned());
         }
         Ok(Self {
             granted_tool_kinds,
