@@ -28,6 +28,20 @@ fn fixture_pack() -> PathBuf {
         .join("../../evidence/008-local-ai-capability-fabric/fixtures/pack-fixture-ner-v0")
 }
 
+/// The Spec 069 fixture pack, `runtime_requirements:
+/// tract_onnx_token_classification_v1` -- the only pack in this repository
+/// admitted for real local model execution (`OnnxTokenClassifierRuntime`).
+/// `fixture_pack()` above (Spec 008's `pack-fixture-ner-v0`) declares
+/// `runtime_requirements: fixture_runtime_v0` and carries no ONNX
+/// model/tokenizer/labels artifacts at all -- it is admissible for
+/// identity registration but cannot be executed as a real model, which is
+/// exactly why T077-07 uses this pack instead.
+fn onnx_fixture_pack() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(
+        "../../evidence/069-real-local-model-runtime-hf-pack-path/fixtures/pack-tiny-token-classifier-v0",
+    )
+}
+
 const REALM: &str = "realm-a";
 const SCOPE: &str = "scope-a";
 const VAULT: &str = "vault-1";
@@ -160,6 +174,24 @@ impl Harness {
         {
             ResponseBody::PackAdmit { result } => {
                 assert!(result.admitted, "fixture pack must admit cleanly");
+                result.pack_id.expect("admitted pack carries a pack_id")
+            }
+            other => panic!("{other:?}"),
+        }
+    }
+
+    /// Installs the Spec 069 ONNX-runtime-admitted fixture pack.
+    fn install_onnx_fixture_pack(&mut self) -> OpaqueId {
+        let path = onnx_fixture_pack().display().to_string();
+        match self
+            .call(
+                Capability::PacksInstallLocal,
+                RequestBody::PacksInstallLocal { local_path: path },
+            )
+            .expect("onnx pack install")
+        {
+            ResponseBody::PackAdmit { result } => {
+                assert!(result.admitted, "onnx fixture pack must admit cleanly");
                 result.pack_id.expect("admitted pack carries a pack_id")
             }
             other => panic!("{other:?}"),
@@ -1138,6 +1170,186 @@ fn tool_invocation_on_a_non_running_run_is_refused_closed() {
                 run_id,
                 kind: ToolKind::ReadContextArtifact,
                 arguments: serde_json::json!({ "object_id": source_id.as_str() }),
+            },
+        )
+        .unwrap_err();
+    assert!(matches!(err, AuthorityError::Conflict { .. }));
+}
+
+// ---------------------------------------------------------------------------
+// T077-07: Model Pack lane + AgentProposal
+// ---------------------------------------------------------------------------
+
+/// Sets up a Running run bound to the real ONNX-admitted fixture pack,
+/// with `prompt` short enough to fit the fixture's `fixed_sequence_length
+/// == 4` token budget (matches `real_local_model_runtime_069.rs`'s own
+/// input exactly, a known-good value for this fixture's tokenizer).
+fn running_run_on_onnx_pack(h: &mut Harness) -> OpaqueId {
+    let project_id = h.project("agent-project");
+    let pack_id = h.install_onnx_fixture_pack();
+    let source_id = h.source_record(b"synthetic clinical note");
+    let agent_id = h.register_identity(project_id.clone(), pack_id);
+    let context_id = h.create_context(project_id.clone(), source_id.as_str());
+    let run_id = h.create_run(
+        project_id,
+        agent_id,
+        context_id,
+        "alice visited clinic today",
+    );
+    h.start_run(run_id.clone());
+    run_id
+}
+
+#[test]
+fn real_local_model_execution_produces_agent_proposal() {
+    let mut h = Harness::setup("model-execute-ok");
+    let run_id = running_run_on_onnx_pack(&mut h);
+
+    let resp = h
+        .call(
+            Capability::AgentRunExecute,
+            RequestBody::AgentRunExecute {
+                run_id: run_id.clone(),
+                local_path: onnx_fixture_pack().display().to_string(),
+                max_tokens: 4,
+                synthetic_only: true,
+            },
+        )
+        .expect("execute run");
+    let (turn, proposal) = match resp {
+        ResponseBody::MedAgentRunExecuted { turn, proposal } => (turn, proposal),
+        other => panic!("{other:?}"),
+    };
+    assert_eq!(turn.kind.as_str(), "model_output");
+    assert_eq!(
+        turn.payload.get("runtime").and_then(|v| v.as_str()),
+        Some("tract_onnx_token_classification_v1")
+    );
+    assert_eq!(proposal.run_id, run_id);
+
+    // The reused Proposal object itself carries producer =
+    // ProducerKind::Agent(agent_identity_id) -- contracts.md section 7's
+    // whole reason for existing.
+    let resp = h
+        .call(
+            Capability::ReadObject,
+            RequestBody::ReadObject {
+                object_id: proposal.proposal_id.clone(),
+            },
+        )
+        .expect("read proposal object");
+    match resp {
+        ResponseBody::Object { value } => {
+            assert_eq!(
+                value.get("claim_kind").and_then(|v| v.as_str()),
+                Some("medagent_run_output")
+            );
+            // ProducerKind carries #[serde(rename_all = "snake_case")], so
+            // the Agent(OpaqueId) variant serializes as {"agent": "<id>"}.
+            assert!(
+                value.get("producer").and_then(|p| p.get("agent")).is_some(),
+                "expected producer: agent(..), got {value:?}"
+            );
+            assert!(
+                value
+                    .get("evidence_refs")
+                    .and_then(|v| v.as_array())
+                    .is_some_and(|refs| !refs.is_empty()),
+                "expected non-empty evidence_refs linking the run's bound context artifacts"
+            );
+        }
+        other => panic!("{other:?}"),
+    }
+
+    // The turn sequence: prompt_submitted (from start), model_output.
+    let resp = h
+        .call(
+            Capability::AgentRunRead,
+            RequestBody::AgentRunTurnList { run_id },
+        )
+        .expect("list turns");
+    match resp {
+        ResponseBody::MedAgentTurnList { turns } => {
+            assert_eq!(turns.len(), 2);
+            assert_eq!(turns[0].kind.as_str(), "prompt_submitted");
+            assert_eq!(turns[1].kind.as_str(), "model_output");
+        }
+        other => panic!("{other:?}"),
+    }
+}
+
+/// `RELEASE_READY`/real-PHI claims require an explicit gate this spec does
+/// not grant; `synthetic_only: false` must refuse before touching the
+/// runtime at all.
+#[test]
+fn non_synthetic_execution_is_refused_closed() {
+    let mut h = Harness::setup("model-execute-real-phi-gate");
+    let run_id = running_run_on_onnx_pack(&mut h);
+
+    let err = h
+        .call(
+            Capability::AgentRunExecute,
+            RequestBody::AgentRunExecute {
+                run_id,
+                local_path: onnx_fixture_pack().display().to_string(),
+                max_tokens: 4,
+                synthetic_only: false,
+            },
+        )
+        .unwrap_err();
+    assert!(matches!(err, AuthorityError::ExternalGateRequired { .. }));
+}
+
+/// Exact model Pack identity: a `local_path` pointing to a *different*,
+/// really-admitted pack than the one this run's `AgentIdentity` was
+/// registered against must fail closed, never silently execute against
+/// the wrong model.
+#[test]
+fn execution_against_mismatched_pack_directory_fails_closed() {
+    let mut h = Harness::setup("model-execute-mismatch");
+    let run_id = running_run_on_onnx_pack(&mut h);
+    // A second, real, admitted pack -- but not the one this identity is
+    // bound to.
+    h.install_fixture_pack();
+
+    let err = h
+        .call(
+            Capability::AgentRunExecute,
+            RequestBody::AgentRunExecute {
+                run_id,
+                local_path: fixture_pack().display().to_string(),
+                max_tokens: 4,
+                synthetic_only: true,
+            },
+        )
+        .unwrap_err();
+    assert!(matches!(err, AuthorityError::DigestMismatch));
+}
+
+#[test]
+fn execution_on_a_non_running_run_is_refused_closed() {
+    let mut h = Harness::setup("model-execute-not-running");
+    let project_id = h.project("agent-project");
+    let pack_id = h.install_onnx_fixture_pack();
+    let source_id = h.source_record(b"synthetic clinical note");
+    let agent_id = h.register_identity(project_id.clone(), pack_id);
+    let context_id = h.create_context(project_id.clone(), source_id.as_str());
+    // Pending, never started.
+    let run_id = h.create_run(
+        project_id,
+        agent_id,
+        context_id,
+        "alice visited clinic today",
+    );
+
+    let err = h
+        .call(
+            Capability::AgentRunExecute,
+            RequestBody::AgentRunExecute {
+                run_id,
+                local_path: onnx_fixture_pack().display().to_string(),
+                max_tokens: 4,
+                synthetic_only: true,
             },
         )
         .unwrap_err();

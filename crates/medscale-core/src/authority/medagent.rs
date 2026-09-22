@@ -53,11 +53,13 @@
 
 use medscale_contracts::envelopes::AuthorityError;
 use medscale_contracts::medagent::{
-    AgentCapabilityManifest, AgentIdentity, AgentIdentityStatus, AgentRun, AgentRunState,
-    AgentTurn, AgentTurnKind, ContextManifest, MEDAGENT_SCHEMA_VERSION, RunReceipt,
+    AgentCapabilityManifest, AgentIdentity, AgentIdentityStatus, AgentProposal, AgentRun,
+    AgentRunState, AgentTurn, AgentTurnKind, ContextManifest, MEDAGENT_SCHEMA_VERSION, RunReceipt,
     TOOL_ARGUMENT_MAX_BYTES, TOOL_RESULT_MAX_BYTES, ToolInvocation, ToolKind, ToolReceipt,
 };
-use medscale_contracts::objects::{AuthorityScopeId, ObjectHeader, OpaqueId, RealmId, VaultId};
+use medscale_contracts::objects::{
+    AuthorityScopeId, ObjectHeader, OpaqueId, ProducerKind, Proposal, RealmId, VaultId,
+};
 use medscale_contracts::project_graph::{
     ArtifactDescriptor, ArtifactKind, ArtifactVersionBinding, ReferenceResolution,
 };
@@ -871,6 +873,136 @@ impl MedAgent<'_> {
             "query": args.query,
             "matches": matches,
         }))
+    }
+
+    // ----- Model Pack lane + AgentProposal -----
+
+    /// Runs a `Running` run's `prompt` through the exact admitted local
+    /// model Pack its `AgentIdentity` is bound to (zero network), appends
+    /// the `ModelOutput` turn, and persists the result as an
+    /// `AgentProposal` linking to a real `Proposal` row with
+    /// `producer: ProducerKind::Agent(agent_identity_id)`.
+    ///
+    /// `local_path` is caller-supplied on every call, exactly like
+    /// `RequestBody::PacksEvaluateLocal` -- `PackManifestV0` is purely
+    /// content-addressed and never stores an on-disk path, so there is no
+    /// path to cache here either. This method never keeps a prepared
+    /// model session across calls (`OnnxTokenClassifierRuntime::run`'s own
+    /// "convenience one-shot path" -- a run's model execution happens once,
+    /// not in a hot loop, so the `CoreFacade`-level prepared-model cache
+    /// `PacksEvaluateLocal` uses is a deliberately out-of-scope
+    /// optimization here, not an oversight).
+    pub fn execute_agent_run(
+        &mut self,
+        run_id: &OpaqueId,
+        local_path: &str,
+        max_tokens: usize,
+        synthetic_only: bool,
+    ) -> Result<(AgentTurn, AgentProposal), AuthorityError> {
+        // Mirrors PacksEvaluateLocal's exact same gate (facade.rs): real
+        // PHI flowing through a local model runtime requires a later,
+        // explicit authority this spec does not grant. MedAgent runs are
+        // Project-grounded synthetic/test data only until that exists.
+        if !synthetic_only {
+            return Err(AuthorityError::ExternalGateRequired {
+                gate: "REAL_PHI_MODEL_RUNTIME".to_owned(),
+            });
+        }
+        let run = self.scoped_agent_run(run_id)?;
+        if run.status != AgentRunState::Running {
+            return Err(AuthorityError::Conflict {
+                message: "run is not Running".to_owned(),
+            });
+        }
+        let identity = self.require_active_identity(&run.agent_identity_id)?;
+
+        let path = std::path::Path::new(local_path);
+        let manifest =
+            medscale_pack::admit_pack_dir(path).map_err(|err| AuthorityError::InvalidArgument {
+                message: format!("pack admission failed: {err}"),
+            })?;
+        // Exact model Pack identity/version: the directory at `local_path`
+        // must be precisely the Pack this identity was registered against,
+        // never merely "a" pack with a matching id.
+        if manifest.pack_id != identity.pack_id || manifest.version != identity.pack_version {
+            return Err(AuthorityError::DigestMismatch);
+        }
+        // Exact runtime identity: the directory must also match what is
+        // actually admitted in this vault's PackStore right now, not a
+        // caller-supplied directory merely claiming the same identity.
+        let admitted = self
+            .packs
+            .get(&manifest.pack_id)
+            .ok_or(AuthorityError::Unauthorized)?;
+        if admitted.content_digest != manifest.content_digest
+            || admitted.pack_epoch != manifest.pack_epoch
+            || admitted.version != manifest.version
+        {
+            return Err(AuthorityError::DigestMismatch);
+        }
+
+        let runtime =
+            medscale_pack::OnnxTokenClassifierRuntime::new(max_tokens).map_err(|err| {
+                AuthorityError::InvalidArgument {
+                    message: format!("pack runtime configuration denied: {err}"),
+                }
+            })?;
+        let evaluation = runtime.run(path, &manifest, &run.prompt).map_err(|err| {
+            AuthorityError::InvalidArgument {
+                message: format!("pack runtime evaluation failed: {err}"),
+            }
+        })?;
+
+        let turn = self.append_turn(
+            run_id,
+            AgentTurnKind::ModelOutput,
+            evaluation.output.proposal_payload.clone(),
+        )?;
+
+        // The actual claim content lives in the reused Proposal object
+        // (contracts.md section 6); AgentProposal is a thin 077-owned
+        // linking record. Constructed directly here (not through
+        // RequestBody::CreateProposal) because that capability's frozen
+        // request shape has no way to carry `producer:
+        // ProducerKind::Agent(..)` -- it always sets `ProducerKind::Rule`
+        // (facade.rs's CreateProposal arm) -- so this mirrors that arm's
+        // exact construction pattern with the one field this spec's own
+        // contracts.md section 7 addition exists to carry.
+        let context = self.scoped_context_manifest(&run.context_manifest_id)?;
+        let evidence_refs: Vec<OpaqueId> = context
+            .selected_artifacts
+            .iter()
+            .map(|artifact| artifact.object_id.clone())
+            .collect();
+        let proposal_id = self.store.alloc_id("proposal");
+        let proposal = Proposal {
+            header: ObjectHeader {
+                id: proposal_id.clone(),
+                schema_version: medscale_contracts::AUTHORITY_SCHEMA_VERSION,
+                realm_id: self.realm.clone(),
+                authority_scope_id: self.scope.clone(),
+            },
+            subject_ref: None,
+            claim_kind: "medagent_run_output".to_owned(),
+            payload: evaluation.output.proposal_payload,
+            confidence: None,
+            evidence_refs,
+            producer: ProducerKind::Agent(run.agent_identity_id.clone()),
+        };
+        self.store.insert(StoredObject::Proposal(proposal));
+
+        let agent_proposal_header =
+            self.next_medagent_header("medagent-proposal-id-seq", "agent-proposal")?;
+        let agent_proposal = AgentProposal {
+            header: agent_proposal_header,
+            run_id: run_id.clone(),
+            proposal_id,
+        };
+        self.meta
+            .insert_agent_proposal(&agent_proposal)
+            .map_err(meta_err)?;
+        self.audit("medagent_run.execute", vec![run_id.clone()])?;
+        Ok((turn, agent_proposal))
     }
 }
 

@@ -2835,6 +2835,30 @@ impl CoreFacade {
                     receipt: receipt.map(Box::new),
                 })
             }
+            RequestBody::AgentRunExecute {
+                run_id,
+                local_path,
+                max_tokens,
+                synthetic_only,
+            } => {
+                let max_tokens =
+                    usize::try_from(max_tokens).map_err(|_| AuthorityError::InvalidArgument {
+                        message: "max_tokens is not representable".to_owned(),
+                    })?;
+                let (turn, proposal) = self.medagent(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut medagent| {
+                        medagent.execute_agent_run(&run_id, &local_path, max_tokens, synthetic_only)
+                    },
+                )?;
+                Ok(ResponseBody::MedAgentRunExecuted {
+                    turn: Box::new(turn),
+                    proposal: Box::new(proposal),
+                })
+            }
         }
     }
 }
@@ -3235,6 +3259,10 @@ fn capability_matches(cap: &Capability, body: &RequestBody) -> bool {
             | (
                 Capability::AgentToolInvoke,
                 RequestBody::AgentToolInvoke { .. }
+            )
+            | (
+                Capability::AgentRunExecute,
+                RequestBody::AgentRunExecute { .. }
             )
     )
 }

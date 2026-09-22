@@ -23,8 +23,8 @@ use crate::documents::{
 use crate::evidence::{LexicalRetrieveRequest, LexicalRetrieveResult};
 use crate::ingest::{BackupManifest, IngestReceipt};
 use crate::medagent::{
-    AgentCapabilityManifest, AgentIdentity, AgentRun, AgentTurn, ContextManifest, RunReceipt,
-    ToolInvocation, ToolKind, ToolReceipt,
+    AgentCapabilityManifest, AgentIdentity, AgentProposal, AgentRun, AgentTurn, ContextManifest,
+    RunReceipt, ToolInvocation, ToolKind, ToolReceipt,
 };
 use crate::mesc::{MescArtifactAdmitRequest, MescArtifactVerifyRequest, MescVerifyReport};
 use crate::network::{EgressAllowlistEntry, NetworkBrokerRequest, NetworkBrokerResult};
@@ -172,6 +172,8 @@ pub enum Capability {
     AgentRunCancel,
     // Spec 077 T077-06 slice.
     AgentToolInvoke,
+    // Spec 077 T077-07 slice.
+    AgentRunExecute,
 }
 
 impl Capability {
@@ -346,6 +348,7 @@ impl Capability {
             Self::AgentRunStart,
             Self::AgentRunCancel,
             Self::AgentToolInvoke,
+            Self::AgentRunExecute,
         ]
     }
 }
@@ -938,6 +941,19 @@ pub enum RequestBody {
         kind: ToolKind,
         arguments: Value,
     },
+    // Spec 077 T077-07 slice.
+    AgentRunExecute {
+        run_id: OpaqueId,
+        /// Local pack directory path; never persisted (`PackManifestV0` is
+        /// purely content-addressed), so it is caller-supplied on every
+        /// call, exactly like `PacksEvaluateLocal`.
+        local_path: String,
+        max_tokens: u32,
+        /// Mirrors `PackEvaluationRequest.synthetic_only`: real PHI
+        /// flowing through this local model runtime requires a later,
+        /// explicit gate this spec does not grant.
+        synthetic_only: bool,
+    },
 }
 
 impl RequestBody {
@@ -1289,6 +1305,10 @@ pub enum ResponseBody {
     MedAgentToolInvocation {
         invocation: Box<ToolInvocation>,
         receipt: Option<Box<ToolReceipt>>,
+    },
+    MedAgentRunExecuted {
+        turn: Box<AgentTurn>,
+        proposal: Box<AgentProposal>,
     },
 }
 

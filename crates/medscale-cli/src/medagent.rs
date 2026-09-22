@@ -12,8 +12,8 @@ use std::path::PathBuf;
 use clap::Subcommand;
 use medscale_contracts::envelopes::AuthorityError;
 use medscale_contracts::medagent::{
-    AgentCapabilityManifest, AgentIdentity, AgentRun, AgentTurn, ContextManifest, RunReceipt,
-    ToolInvocation, ToolKind, ToolReceipt,
+    AgentCapabilityManifest, AgentIdentity, AgentProposal, AgentRun, AgentTurn, ContextManifest,
+    RunReceipt, ToolInvocation, ToolKind, ToolReceipt,
 };
 use medscale_contracts::objects::OpaqueId;
 use medscale_contracts::project_graph::{
@@ -127,6 +127,12 @@ fn print_tool_invocation_human(invocation: &ToolInvocation, receipt: Option<&Too
     }
 }
 
+fn print_run_executed_human(turn: &AgentTurn, proposal: &AgentProposal) {
+    print_turn_human(turn);
+    println!("agent_proposal_id: {}", proposal.header.id.as_str());
+    println!("proposal_id: {}", proposal.proposal_id.as_str());
+}
+
 fn print_context_human(manifest: &ContextManifest, resolutions: &[ReferenceResolution]) {
     println!("context_id: {}", manifest.header.id.as_str());
     println!("project_id: {}", manifest.project_id.as_str());
@@ -184,6 +190,12 @@ struct RunTerminalJson {
 struct ToolInvocationJson {
     invocation: ToolInvocation,
     receipt: Option<ToolReceipt>,
+}
+
+#[derive(Debug, serde::Serialize)]
+struct RunExecutedJson {
+    turn: AgentTurn,
+    proposal: AgentProposal,
 }
 
 fn parse_tool_kind(value: &str) -> Result<ToolKind, String> {
@@ -367,6 +379,28 @@ pub enum MedAgentCmd {
         /// Raw JSON arguments, e.g. `{"object_id":"src-1"}`.
         #[arg(long)]
         arguments: String,
+        #[arg(long)]
+        json: bool,
+    },
+    /// Run a Running run's prompt through its bound admitted local model
+    /// Pack (zero network) and persist the result as an AgentProposal.
+    RunExecute {
+        #[arg(long)]
+        vault_id: String,
+        #[arg(long)]
+        vault_root: PathBuf,
+        #[arg(long)]
+        run_id: String,
+        /// Local directory of the admitted model Pack (never persisted by
+        /// Core; supplied fresh on every call).
+        #[arg(long)]
+        local_path: String,
+        #[arg(long, default_value_t = 512)]
+        max_tokens: u32,
+        /// Must be explicitly acknowledged: real PHI through this runtime
+        /// requires a later, explicit gate this spec does not grant.
+        #[arg(long)]
+        synthetic_only: bool,
         #[arg(long)]
         json: bool,
     },
@@ -686,6 +720,31 @@ pub fn run_medagent(action: MedAgentCmd) -> anyhow::Result<()> {
                 )?;
             } else {
                 print_tool_invocation_human(&invocation, receipt.as_ref());
+            }
+            Ok(())
+        }
+        MedAgentCmd::RunExecute {
+            vault_id,
+            vault_root,
+            run_id,
+            local_path,
+            max_tokens,
+            synthetic_only,
+            json,
+        } => {
+            let mut session = open_medagent_session(&vault_id, &vault_root, json)?;
+            let (turn, proposal) = session
+                .medagent_run_execute(
+                    OpaqueId::new(run_id),
+                    local_path,
+                    max_tokens,
+                    synthetic_only,
+                )
+                .map_err(|err| medagent_fail(&err, json))?;
+            if json {
+                print_json_or_debug(&RunExecutedJson { turn, proposal }, true)?;
+            } else {
+                print_run_executed_human(&turn, &proposal);
             }
             Ok(())
         }

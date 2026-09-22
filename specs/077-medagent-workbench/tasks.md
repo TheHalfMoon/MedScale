@@ -250,16 +250,63 @@ with `Conflict`. See `evidence/077-medagent-workbench/T077-06_IMPLEMENTATION.md`
 
 ## T077-07 — Model Pack lane + AgentProposal
 
-- [ ] Wire a real text-prompt-in/proposal-out run against the existing
+- [x] Wire a real text-prompt-in/proposal-out run against the existing
       `medscale-pack` runtime; record exactly which admitted
       `PackRuntimeAdapter` this spec uses and why.
-- [ ] Persist the run's output as an `AgentProposal`, submitted through
+- [x] Persist the run's output as an `AgentProposal`, submitted through
       the existing `Proposal`/`CreateProposal` path.
-- [ ] Structurally prove no call path from this module into
+- [x] Structurally prove no call path from this module into
       `authority::promote`, `authority::amend`, or `contracts::actions`.
 
 **Acceptance:** a real local Project-grounded run (zero network) completes
 and produces a persisted, evidence-only `AgentProposal`.
+
+**Implemented (this session):** `Capability::AgentRunExecute` +
+`RequestBody::AgentRunExecute{run_id,local_path,max_tokens,synthetic_only}`
++ `ResponseBody::MedAgentRunExecuted{turn,proposal}`; `MedAgent::
+execute_agent_run` in `medagent.rs` (Core). **Runtime used:
+`medscale_pack::OnnxTokenClassifierRuntime`** (`tract_onnx_token_
+classification_v1`), the only `PackRuntimeAdapter` in this repository
+genuinely admitted for real local model execution -- `FixtureRuntime` is
+explicitly documented in its own source as "no native model engine," a
+stub, not a real model. Exercised against the Spec 069 fixture pack
+(`pack-tiny-token-classifier-v0`); the Spec 008 `pack-fixture-ner-v0` used
+throughout T077-03..T077-06 declares `runtime_requirements:
+fixture_runtime_v0` and carries no ONNX artifacts at all, so it cannot be
+used for T077-07's real-execution requirement. `local_path` is
+caller-supplied on every call (mirrors `PacksEvaluateLocal` exactly --
+`PackManifestV0` is purely content-addressed and never stores an on-disk
+path). `execute_agent_run` verifies the supplied directory's manifest
+matches BOTH the run's bound `AgentIdentity.pack_id`/`pack_version` AND
+the currently admitted `PackStore` entry's digest/epoch/version (exact
+model Pack identity + exact runtime identity), gates on
+`synthetic_only: true` (mirrors `PackEvaluationRequest.synthetic_only` --
+real PHI through this runtime requires a later, explicit gate this spec
+does not grant), appends the `ModelOutput` turn, and constructs the
+`Proposal` object directly with `producer: ProducerKind::Agent(
+agent_identity_id)` (not through `RequestBody::CreateProposal`, whose
+frozen shape always sets `ProducerKind::Rule` with no way to override it --
+this mirrors that same dispatch arm's exact construction pattern instead).
+`AgentProposal`'s `evidence_refs` link to every artifact named by the
+run's bound `ContextManifest`. No prepared-model cache reuse (a deliberate
+v1 simplification: a run's model execution happens once, not in a hot
+loop, unlike interactive pack evaluation).
+
+**Structural proof (T3):** `grep -n "authority::promote\|authority::amend\|contracts::actions\|super::promote\|super::amend\|::actions::" crates/medscale-core/src/authority/medagent.rs`
+returns no matches -- zero references to any of those paths anywhere in
+this spec's Core module.
+
+Tests (`crates/medscale-core/tests/medagent_077.rs`, 4 new, through real
+`CoreFacade::dispatch` against the real Spec 069 ONNX fixture pack): a
+real local model execution produces a `ModelOutput` turn and an
+`AgentProposal`, whose underlying `Proposal` object (read back via
+`Capability::ReadObject`) carries `producer: agent(..)` and non-empty
+`evidence_refs`; `synthetic_only: false` refuses with
+`ExternalGateRequired` before touching the runtime; a `local_path`
+pointing at a different, really-admitted pack than the one the identity
+is bound to fails closed with `DigestMismatch`; execution against a
+non-`Running` run fails closed with `Conflict`. See
+`evidence/077-medagent-workbench/T077-07_IMPLEMENTATION.md`.
 
 ## T077-08 — RunReceipt + run history
 

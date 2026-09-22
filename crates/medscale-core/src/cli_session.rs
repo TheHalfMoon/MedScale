@@ -1671,6 +1671,39 @@ impl CliSession {
         Ok((*invocation, receipt.map(|r| *r)))
     }
 
+    /// Runs a `Running` run's prompt through its bound admitted local
+    /// model Pack (zero network) and persists the result as an
+    /// `AgentProposal`.
+    pub fn medagent_run_execute(
+        &mut self,
+        run_id: OpaqueId,
+        local_path: String,
+        max_tokens: u32,
+        synthetic_only: bool,
+    ) -> Result<
+        (
+            medscale_contracts::medagent::AgentTurn,
+            medscale_contracts::medagent::AgentProposal,
+        ),
+        AuthorityError,
+    > {
+        let resp = self.dispatch(
+            Capability::AgentRunExecute,
+            RequestBody::AgentRunExecute {
+                run_id,
+                local_path,
+                max_tokens,
+                synthetic_only,
+            },
+        )?;
+        let ResponseBody::MedAgentRunExecuted { turn, proposal } = resp else {
+            return Err(AuthorityError::InvalidArgument {
+                message: "expected medagent run executed".to_owned(),
+            });
+        };
+        Ok((*turn, *proposal))
+    }
+
     fn expect_medagent_identity(
         resp: ResponseBody,
     ) -> Result<

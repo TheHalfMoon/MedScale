@@ -137,5 +137,15 @@ precedent for this exact helper):
 
 No local compile/test run was possible (MSVC linker absent, same
 constraint as every prior spec). `cargo fmt --check` is clean across the
-whole workspace after this change. Real qualification is the next
-exact-head CI run.
+whole workspace after this change.
+
+## Exact-head CI qualification
+
+Green on the first push, no fixes needed (the char-boundary bug above was
+caught by this session's own review before pushing, not by CI):
+
+```text
+HEAD 9b92f1b -> SUCCESS, run 35717841248, 6/6.
+```
+
+T077-06 is qualified at exact head `9b92f1be6f39a7e4d3ef9ed4942242eeff2f42bb`.
