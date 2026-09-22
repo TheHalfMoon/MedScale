@@ -93,4 +93,28 @@ membership-gated) and the real Spec 008 fixture pack
 No local compile/test run was possible on this workstation (MSVC linker
 absent, the same constraint every prior spec in this repository has
 recorded); `cargo fmt --check` is clean across the whole workspace after
-this change. Real qualification is the next exact-head CI run.
+this change.
+
+## Exact-head CI qualification
+
+Three CI iterations were required before green (all findings genuine
+compiler/clippy errors, not flakiness -- each fixed forward with a new
+commit, never by suppressing the check):
+
+```text
+HEAD 925b6f6 -> FAILED: matches!() does not accept a third format-string
+  argument (that belongs to assert!()) in medagent_077.rs storage test
+  (run 35705130450).
+HEAD 8b097fe -> not separately CI-qualified (superseded before its run
+  completed by the next fix, pushed after local review caught two more
+  issues: redundant .clone() calls and an unproven two-facade drop-timing
+  assumption in the reopen test).
+HEAD 970c395 -> FAILED: clippy::enum_variant_names -- all 4 MedAgentCmd
+  variants shared the "Identity" prefix (run 35705694772).
+HEAD af00d34 -> SUCCESS, run 35706622805, 6/6
+  (supply-chain policy present, cargo-deny, perf delivery-plan scale
+  (windows), rust (ubuntu-latest), rust (macos-latest),
+  rust (windows-latest)).
+```
+
+T077-03 is qualified at exact head `af00d344360adc4f3e6a26aecdb1590e9ed34d06`.

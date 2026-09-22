@@ -131,12 +131,39 @@ project-scoping proof, and vault-reopen durability. See
 
 ## T077-04 — ContextManifest
 
-- [ ] Implement context-manifest create/get from an explicit artifact
+- [x] Implement context-manifest create/get from an explicit artifact
       list.
-- [ ] Implement the single, consulted-everywhere read-boundary check.
+- [x] Implement the single, consulted-everywhere read-boundary check.
 
 **Acceptance:** an agent run cannot resolve an artifact outside its bound
 `ContextManifest` through any exposed Core path.
+
+**Implemented (this session):** `Capability::ContextManifestCreate/Read` +
+`RequestBody::ContextManifestCreate/Get` + `ResponseBody::
+MedAgentContextManifest{manifest, resolutions}` in `envelopes/mod.rs`;
+`MedAgent::create_context_manifest`/`get_context_manifest` in
+`medagent.rs` (Core); `MedAgent::require_artifact_in_context` -- **the**
+single Core-internal boundary check every future tool-dispatch path
+(T077-06) must call, returning `Unauthorized` for any object not named by
+the bound `ContextManifest`, `WrongScope` for a cross-realm/scope context
+id. `resolve_context_artifact` duplicates `project_graph::
+ProjectGraph::resolve_descriptor`'s logic (per this spec's module-
+independence convention) so every selected artifact's `ReferenceResolution`
+is recomputed live on every read, never cached (`migration.md` section 4)
+-- shape is validated at write time only (`ArtifactDescriptor::validate`),
+so a manifest may legitimately name an artifact that does not exist yet or
+has since gone stale; this is by design, not a gap.
+
+Tests (inline `#[cfg(test)] mod tests` in `medagent.rs`, mirroring
+`project_graph.rs`'s own precedent, since `MedAgent` is not exported for
+external integration tests): resolution matrix (Current/Missing/
+UnsupportedKind), create+get roundtrip proving live (not creation-time)
+resolution including a not-yet-existing artifact resolving `Missing`,
+`require_artifact_in_context` allowing the named artifact and refusing
+both a real-but-unnamed artifact and a fabricated id (`security.md` T4's
+core primitive), and cross-scope isolation for both `get_context_manifest`
+and `require_artifact_in_context`. CLI: `medagent context-create`/
+`context-show`. See `evidence/077-medagent-workbench/T077-04_IMPLEMENTATION.md`.
 
 ## T077-05 — AgentRun lifecycle
 

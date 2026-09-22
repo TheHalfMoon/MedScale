@@ -1,17 +1,22 @@
 //! Spec 077 MedAgent Workbench commands (CLI vertical slice through Core).
 //!
-//! T077-03 scope only: `AgentIdentity` + `AgentCapabilityManifest`
-//! register/show/list/revoke. Every command opens the session scope,
-//! dispatches one typed Core request via `CliSession`, and renders the
-//! typed result as human lines or stable JSON. The CLI never writes
-//! medagent storage directly.
+//! T077-03/T077-04 scope: `AgentIdentity` + `AgentCapabilityManifest`
+//! register/show/list/revoke, and `ContextManifest` create/show. Every
+//! command opens the session scope, dispatches one typed Core request via
+//! `CliSession`, and renders the typed result as human lines or stable
+//! JSON. The CLI never writes medagent storage directly.
 
 use std::path::PathBuf;
 
 use clap::Subcommand;
 use medscale_contracts::envelopes::AuthorityError;
-use medscale_contracts::medagent::{AgentCapabilityManifest, AgentIdentity, ToolKind};
+use medscale_contracts::medagent::{
+    AgentCapabilityManifest, AgentIdentity, ContextManifest, ToolKind,
+};
 use medscale_contracts::objects::OpaqueId;
+use medscale_contracts::project_graph::{
+    ArtifactDescriptor, ArtifactVersionBinding, ReferenceResolution,
+};
 use medscale_core::CliSession;
 
 use super::{fail_json, print_json_or_debug};
@@ -63,6 +68,35 @@ fn parse_tool_kinds(value: &str) -> Result<Vec<ToolKind>, String> {
         .collect()
 }
 
+/// Parses one `object_id:kind` artifact spec into an `IdentityOnly`-bound
+/// descriptor (CLI scope simplification -- mirrors `collaboration.rs`'s own
+/// `simple_anchor` precedent; a full `ArtifactVersionBinding` is a Core
+/// capability, not a CLI-operator-surface requirement).
+fn parse_artifact_spec(spec: &str) -> Result<ArtifactDescriptor, String> {
+    let (object_id, kind) = spec
+        .split_once(':')
+        .ok_or_else(|| format!("expected object_id:kind, got {spec}"))?;
+    let kind = crate::project::parse_kind(kind)?;
+    Ok(ArtifactDescriptor {
+        object_id: OpaqueId::new(object_id),
+        kind,
+        binding: ArtifactVersionBinding::IdentityOnly,
+    })
+}
+
+fn print_context_human(manifest: &ContextManifest, resolutions: &[ReferenceResolution]) {
+    println!("context_id: {}", manifest.header.id.as_str());
+    println!("project_id: {}", manifest.project_id.as_str());
+    println!("revision: {}", manifest.revision);
+    for (artifact, resolution) in manifest.selected_artifacts.iter().zip(resolutions) {
+        println!(
+            "artifact: {} kind={:?} resolution={resolution:?}",
+            artifact.object_id.as_str(),
+            artifact.kind
+        );
+    }
+}
+
 fn print_identity_human(identity: &AgentIdentity, capabilities: &AgentCapabilityManifest) {
     println!("agent_id: {}", identity.header.id.as_str());
     println!("project_id: {}", identity.project_id.as_str());
@@ -85,11 +119,17 @@ struct IdentityJson {
     capabilities: AgentCapabilityManifest,
 }
 
-/// Spec 077 MedAgent Workbench commands (T077-03: agent identity only).
+#[derive(Debug, serde::Serialize)]
+struct ContextJson {
+    manifest: ContextManifest,
+    resolutions: Vec<ReferenceResolution>,
+}
+
+/// Spec 077 MedAgent Workbench commands (agent identity + context manifest).
 #[derive(Debug, Subcommand)]
 pub enum MedAgentCmd {
     /// Register a new agent identity bound to an admitted local model Pack.
-    Register {
+    IdentityRegister {
         #[arg(long)]
         vault_id: String,
         #[arg(long)]
@@ -107,7 +147,7 @@ pub enum MedAgentCmd {
         json: bool,
     },
     /// Show one agent identity.
-    Show {
+    IdentityShow {
         #[arg(long)]
         vault_id: String,
         #[arg(long)]
@@ -118,7 +158,7 @@ pub enum MedAgentCmd {
         json: bool,
     },
     /// List agent identities in one Project.
-    List {
+    IdentityList {
         #[arg(long)]
         vault_id: String,
         #[arg(long)]
@@ -131,7 +171,7 @@ pub enum MedAgentCmd {
         json: bool,
     },
     /// Revoke an agent identity.
-    Revoke {
+    IdentityRevoke {
         #[arg(long)]
         vault_id: String,
         #[arg(long)]
@@ -143,11 +183,36 @@ pub enum MedAgentCmd {
         #[arg(long)]
         json: bool,
     },
+    /// Create a ContextManifest from an explicit artifact list.
+    ContextCreate {
+        #[arg(long)]
+        vault_id: String,
+        #[arg(long)]
+        vault_root: PathBuf,
+        #[arg(long)]
+        project_id: String,
+        /// Repeatable `object_id:kind` artifact spec (IdentityOnly binding).
+        #[arg(long = "artifact", required = true)]
+        artifacts: Vec<String>,
+        #[arg(long)]
+        json: bool,
+    },
+    /// Show one ContextManifest, with each artifact's live resolution.
+    ContextShow {
+        #[arg(long)]
+        vault_id: String,
+        #[arg(long)]
+        vault_root: PathBuf,
+        #[arg(long)]
+        context_id: String,
+        #[arg(long)]
+        json: bool,
+    },
 }
 
 pub fn run_medagent(action: MedAgentCmd) -> anyhow::Result<()> {
     match action {
-        MedAgentCmd::Register {
+        MedAgentCmd::IdentityRegister {
             vault_id,
             vault_root,
             project_id,
@@ -180,7 +245,7 @@ pub fn run_medagent(action: MedAgentCmd) -> anyhow::Result<()> {
             }
             Ok(())
         }
-        MedAgentCmd::Show {
+        MedAgentCmd::IdentityShow {
             vault_id,
             vault_root,
             agent_id,
@@ -203,7 +268,7 @@ pub fn run_medagent(action: MedAgentCmd) -> anyhow::Result<()> {
             }
             Ok(())
         }
-        MedAgentCmd::List {
+        MedAgentCmd::IdentityList {
             vault_id,
             vault_root,
             project_id,
@@ -229,7 +294,7 @@ pub fn run_medagent(action: MedAgentCmd) -> anyhow::Result<()> {
             }
             Ok(())
         }
-        MedAgentCmd::Revoke {
+        MedAgentCmd::IdentityRevoke {
             vault_id,
             vault_root,
             agent_id,
@@ -250,6 +315,58 @@ pub fn run_medagent(action: MedAgentCmd) -> anyhow::Result<()> {
                 )?;
             } else {
                 print_identity_human(&identity, &capabilities);
+            }
+            Ok(())
+        }
+        MedAgentCmd::ContextCreate {
+            vault_id,
+            vault_root,
+            project_id,
+            artifacts,
+            json,
+        } => {
+            let selected_artifacts = artifacts
+                .iter()
+                .map(|spec| parse_artifact_spec(spec))
+                .collect::<Result<Vec<_>, _>>()
+                .map_err(|m| invalid(m, json))?;
+            let mut session = open_medagent_session(&vault_id, &vault_root, json)?;
+            let (manifest, resolutions) = session
+                .medagent_context_create(OpaqueId::new(project_id), selected_artifacts)
+                .map_err(|err| medagent_fail(&err, json))?;
+            if json {
+                print_json_or_debug(
+                    &ContextJson {
+                        manifest,
+                        resolutions,
+                    },
+                    true,
+                )?;
+            } else {
+                print_context_human(&manifest, &resolutions);
+            }
+            Ok(())
+        }
+        MedAgentCmd::ContextShow {
+            vault_id,
+            vault_root,
+            context_id,
+            json,
+        } => {
+            let mut session = open_medagent_session(&vault_id, &vault_root, json)?;
+            let (manifest, resolutions) = session
+                .medagent_context_get(OpaqueId::new(context_id))
+                .map_err(|err| medagent_fail(&err, json))?;
+            if json {
+                print_json_or_debug(
+                    &ContextJson {
+                        manifest,
+                        resolutions,
+                    },
+                    true,
+                )?;
+            } else {
+                print_context_human(&manifest, &resolutions);
             }
             Ok(())
         }

@@ -22,7 +22,7 @@ use crate::documents::{
 };
 use crate::evidence::{LexicalRetrieveRequest, LexicalRetrieveResult};
 use crate::ingest::{BackupManifest, IngestReceipt};
-use crate::medagent::{AgentCapabilityManifest, AgentIdentity, ToolKind};
+use crate::medagent::{AgentCapabilityManifest, AgentIdentity, ContextManifest, ToolKind};
 use crate::mesc::{MescArtifactAdmitRequest, MescArtifactVerifyRequest, MescVerifyReport};
 use crate::network::{EgressAllowlistEntry, NetworkBrokerRequest, NetworkBrokerResult};
 use crate::objects::{AmendmentKind, DigestSha256, EffectState, MedicalTime, OpaqueId, VaultId};
@@ -159,6 +159,9 @@ pub enum Capability {
     AgentIdentityRegister,
     AgentIdentityRead,
     AgentIdentityRevoke,
+    // Spec 077 T077-04 slice.
+    ContextManifestCreate,
+    ContextManifestRead,
 }
 
 impl Capability {
@@ -206,6 +209,7 @@ impl Capability {
                 | Self::ApprovalRequestRead
                 | Self::ActivityRead
                 | Self::AgentIdentityRead
+                | Self::ContextManifestRead
         )
     }
 
@@ -324,6 +328,8 @@ impl Capability {
             Self::AgentIdentityRegister,
             Self::AgentIdentityRead,
             Self::AgentIdentityRevoke,
+            Self::ContextManifestCreate,
+            Self::ContextManifestRead,
         ]
     }
 }
@@ -876,6 +882,14 @@ pub enum RequestBody {
         agent_id: OpaqueId,
         expected_revision: u64,
     },
+    // Spec 077 T077-04 slice.
+    ContextManifestCreate {
+        project_id: OpaqueId,
+        selected_artifacts: Vec<ArtifactDescriptor>,
+    },
+    ContextManifestGet {
+        context_id: OpaqueId,
+    },
 }
 
 impl RequestBody {
@@ -1194,6 +1208,12 @@ pub enum ResponseBody {
     },
     MedAgentIdentityList {
         identities: Vec<AgentIdentity>,
+    },
+    MedAgentContextManifest {
+        manifest: Box<ContextManifest>,
+        /// Live-recomputed, never cached (`migration.md` section 4); same
+        /// order as `manifest.selected_artifacts`.
+        resolutions: Vec<ReferenceResolution>,
     },
 }
 

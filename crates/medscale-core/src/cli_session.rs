@@ -1437,6 +1437,68 @@ impl CliSession {
         Self::expect_medagent_identity(resp)
     }
 
+    /// Creates a new `ContextManifest` from an explicit artifact list.
+    pub fn medagent_context_create(
+        &mut self,
+        project_id: OpaqueId,
+        selected_artifacts: Vec<medscale_contracts::project_graph::ArtifactDescriptor>,
+    ) -> Result<
+        (
+            medscale_contracts::medagent::ContextManifest,
+            Vec<medscale_contracts::project_graph::ReferenceResolution>,
+        ),
+        AuthorityError,
+    > {
+        let resp = self.dispatch(
+            Capability::ContextManifestCreate,
+            RequestBody::ContextManifestCreate {
+                project_id,
+                selected_artifacts,
+            },
+        )?;
+        Self::expect_medagent_context(resp)
+    }
+
+    /// Reads one `ContextManifest`, with every selected artifact's
+    /// `ReferenceResolution` recomputed live.
+    pub fn medagent_context_get(
+        &mut self,
+        context_id: OpaqueId,
+    ) -> Result<
+        (
+            medscale_contracts::medagent::ContextManifest,
+            Vec<medscale_contracts::project_graph::ReferenceResolution>,
+        ),
+        AuthorityError,
+    > {
+        let resp = self.dispatch(
+            Capability::ContextManifestRead,
+            RequestBody::ContextManifestGet { context_id },
+        )?;
+        Self::expect_medagent_context(resp)
+    }
+
+    fn expect_medagent_context(
+        resp: ResponseBody,
+    ) -> Result<
+        (
+            medscale_contracts::medagent::ContextManifest,
+            Vec<medscale_contracts::project_graph::ReferenceResolution>,
+        ),
+        AuthorityError,
+    > {
+        let ResponseBody::MedAgentContextManifest {
+            manifest,
+            resolutions,
+        } = resp
+        else {
+            return Err(AuthorityError::InvalidArgument {
+                message: "expected medagent context manifest".to_owned(),
+            });
+        };
+        Ok((*manifest, resolutions))
+    }
+
     fn expect_medagent_identity(
         resp: ResponseBody,
     ) -> Result<

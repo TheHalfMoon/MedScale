@@ -2689,6 +2689,41 @@ impl CoreFacade {
                     capabilities: Box::new(capabilities),
                 })
             }
+            RequestBody::ContextManifestCreate {
+                project_id,
+                selected_artifacts,
+            } => {
+                let (manifest, resolutions) = self.medagent(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut medagent| {
+                        let manifest =
+                            medagent.create_context_manifest(project_id, selected_artifacts)?;
+                        let (manifest, resolutions) =
+                            medagent.get_context_manifest(&manifest.header.id)?;
+                        Ok((manifest, resolutions))
+                    },
+                )?;
+                Ok(ResponseBody::MedAgentContextManifest {
+                    manifest: Box::new(manifest),
+                    resolutions,
+                })
+            }
+            RequestBody::ContextManifestGet { context_id } => {
+                let (manifest, resolutions) = self.medagent(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |medagent| medagent.get_context_manifest(&context_id),
+                )?;
+                Ok(ResponseBody::MedAgentContextManifest {
+                    manifest: Box::new(manifest),
+                    resolutions,
+                })
+            }
         }
     }
 }
@@ -3062,6 +3097,14 @@ fn capability_matches(cap: &Capability, body: &RequestBody) -> bool {
             | (
                 Capability::AgentIdentityRevoke,
                 RequestBody::AgentIdentityRevoke { .. }
+            )
+            | (
+                Capability::ContextManifestCreate,
+                RequestBody::ContextManifestCreate { .. }
+            )
+            | (
+                Capability::ContextManifestRead,
+                RequestBody::ContextManifestGet { .. }
             )
     )
 }
