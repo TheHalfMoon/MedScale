@@ -85,5 +85,23 @@ evidence/077-medagent-workbench/T077-04_IMPLEMENTATION.md (this file)
 
 No local compile/test run was possible (MSVC linker absent, same
 constraint as every prior spec). `cargo fmt --check` is clean across the
-whole workspace after this change. Real qualification is the next
-exact-head CI run.
+whole workspace after this change.
+
+## Exact-head CI qualification
+
+Three iterations to green, all genuine findings fixed forward:
+
+```text
+HEAD 334fbd4 -> FAILED (run 35709355030): clippy dead_code on
+  require_artifact_in_context (no production caller yet -- T077-06 is its
+  first one) and too_many_arguments (8/7) on the inline test harness()
+  (realm/scope parameters needed for the cross-scope test, unlike
+  project_graph.rs's simpler 6-arg harness).
+HEAD 787deb6 -> FAILED (run 35709884342): clippy clean, but 3 inline tests
+  panicked with LeaseRequired -- create_context_manifest's audit() call
+  resolves the actor via session or lease holder, and the tests never
+  acquired a lease.
+HEAD b331477 -> SUCCESS, run 35710883996, 6/6.
+```
+
+T077-04 is qualified at exact head `b331477808212a490b5bafdc0df54f62a81b3a17`.
