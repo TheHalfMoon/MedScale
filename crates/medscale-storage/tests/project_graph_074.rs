@@ -163,14 +163,18 @@ fn interrupted_migration_fails_closed_on_reopen() {
         // would be invisible to the fail-closed check once a newer version
         // has finished (a higher finished_version already exists). The
         // interruption must be simulated at the current live top version
-        // (6, established by Spec 077's v5->v6 step) to stay meaningful.
-        assert_eq!(meta.migration_journal().unwrap().finished_version, 7);
-        meta.begin_migration(6).unwrap();
+        // (7 since Spec 078's v6->v7 step) to stay meaningful. It is read
+        // from the journal rather than pinned, so a later version bump
+        // cannot silently turn this into a no-op check again.
+        let top = meta.migration_journal().unwrap().finished_version;
+        assert_eq!(top, 7);
+        meta.begin_migration(top).unwrap();
         // Drop without finish: simulated crash mid-migration.
     }
+    let top = 7;
     let err = SqliteMetaStore::open_at(&root.join("meta.sqlite3")).unwrap_err();
     assert!(
-        matches!(err, MetaError::MigrationIncomplete(6)),
+        matches!(err, MetaError::MigrationIncomplete(v) if v == top),
         "interrupted migration must fail closed, got {err:?}"
     );
 }

@@ -84,8 +84,10 @@ worktree was mirrored into the WSL2 `Ubuntu` distro (rustc/cargo 1.97.1,
 `x86_64-unknown-linux-gnu`) and run there:
 
 ```text
-cargo test -p medscale-storage            -> every suite green, including the pre-existing
-                                             074/075/076/077/005/023/017/048 suites at v7
+cargo test -p medscale-storage            -> the suites whose output was captured were green
+                                             (lib, 076, 075, 005, 077, 048, 078); the captured
+                                             output was truncated (`head -150`) before
+                                             project_graph_074, so that suite was NOT observed
 cargo test -p medscale-storage --test model_fleet_078  -> 14 passed, 0 failed
 cargo clippy -p medscale-storage --all-targets -D warnings -> one type_complexity lint, fixed
 ```
@@ -98,6 +100,18 @@ Honest limits of that local run:
   during a cold workspace-wide Clippy build, and recovering it needs
   `wsl --shutdown`, which would also stop the founder's running
   `docker-desktop` distro, so that was not done unattended.
+
+Correction found by exact-head CI run `35765069726` (head `7d44400`):
+`project_graph_074.rs::interrupted_migration_fails_closed_on_reopen`
+failed on ubuntu and macOS. The 6 -> 7 fix-forward had updated its
+`finished_version` assertion but not its `begin_migration(6)` /
+`MigrationIncomplete(6)` pair, which must name the live top version. Once
+v7 finishes, a v6 `started` row is superseded and invisible to the
+fail-closed check. Fixed forward: the test now reads the top version from
+the journal instead of pinning it (the `migration_recovery_048.rs` idiom),
+so a later bump cannot silently weaken it again. `cargo test --workspace`
+stops at the first failing test binary, so that run gives no signal for
+later binaries; the rerun on the fixed head is the qualification.
 
 So workspace Clippy/test were not completed locally. The exact-head CI run
 recorded in `tasks.md` is the authoritative qualification for this task.
