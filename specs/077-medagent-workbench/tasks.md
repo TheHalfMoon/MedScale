@@ -360,19 +360,84 @@ states. See `evidence/077-medagent-workbench/T077-08_IMPLEMENTATION.md`.
 
 ## T077-09 — Native Desktop and CLI parity
 
-- [ ] Add MedAgent navigation through current native Slint composition,
+- [x] Add MedAgent navigation through current native Slint composition,
       backed exclusively by Core: split-pane run list/detail, context
       selection, prompt submission, cancel/interrupt controls.
-- [ ] Preserve design system, keyboard/focus/accessibility, light/dark
+- [x] Preserve design system, keyboard/focus/accessibility, light/dark
       parity.
-- [ ] Complete CLI vertical slice with human + JSON output.
-- [ ] Add an in-module real-Core-session test for every new Desktop
+- [x] Complete CLI vertical slice with human + JSON output.
+- [x] Add an in-module real-Core-session test for every new Desktop
       view-model function (mirroring Spec 075/076's precedent, and
       specifically checking any session-holder-identity assumption the way
       Spec 076's own such test caught a real bug).
 
 **Acceptance:** CLI vertical slice complete and CI-green; Desktop panel
 implemented and genuinely Core-backed.
+
+**Implemented (this session):** `crates/medscale-desktop/src/
+medagent_workspace.rs` (new, mirrors `collaboration_workspace.rs`'s exact
+pattern: plain Rust functions over a real `&mut CliSession`, never
+storage, mapped to view-model row structs plus an explicit
+`status_message`). New Slint nav item ("MedAgent", under OPERATIONS,
+alongside Collaboration), root properties
+(`medagent-status/runs/agent-id-input/context-id-input/prompt-input/
+active-run-id/active-run-revision/turns`), and a content panel: an
+`AgentRunRowItem` list (prompt, id, revision, a status pill colored by
+terminal/non-terminal state), a create-and-start form (agent id + context
+id + prompt text fields -- CLI-parity text entry, not a picker widget,
+mirroring `collab-thread-artifact-input`'s own precedent, since identity
+registration and context-manifest creation remain CLI-only in this
+slice, exactly like Spec 076's Notes/Approvals), per-run "Open"
+(turns)/"Cancel" (only shown for `pending`/`running` rows -- the
+"interrupt" control) actions, and a turn list for the selected run.
+Wired into `main.rs` via the same single-string `ui-action(...)` dispatch
+convention every other panel uses (`medagent-runs-refresh`,
+`medagent-run-create-start`, `medagent-run-select:<id>:<rev>`,
+`medagent-run-cancel:<id>:<rev>`) -- no direct storage or model-runtime
+call from the UI layer, and no duplicated authority logic in the
+view-model (every mutation is a single `CliSession` call whose result is
+mapped directly to row structs). Keyboard/focus/accessibility/light-dark
+parity is inherited for free: every control reuses the exact same
+`HonestyPanel`/`AdaptiveLineEdit`/`ToolbarAction`/`QuickAction`/
+`StatusPill`/accessible-role/accessible-label components every other
+panel already uses, none of which this change touches.
+
+**Session-holder-identity assumption, checked and found not applicable:**
+Spec 076's own such test caught a real bug because Collaboration requires
+a caller to self-register a `ParticipantIdentity` tied to the session's
+real holder id before any room/thread/message/task action
+(`ensure_self_participant`), and a wrong holder id there would silently
+break every subsequent call. MedAgent has no analogous
+"register-yourself-as-a-participant" step: its authority model is
+Project/`AgentIdentity`-scoped, not holder-registration-scoped, so there
+is no equivalent assumption for this slice to get wrong. Recorded here as
+a checked-and-ruled-out consideration, not skipped.
+
+**CLI vertical slice** was already complete by T077-08 (`medagent
+identity-register/identity-show/identity-list/identity-revoke/
+context-create/context-show/run-create/run-show/run-list/run-start/
+run-cancel/run-complete/run-fail/run-turns/tool-invoke/run-execute`, all
+with `--json`); this task added no new CLI surface, only verified it
+against the Desktop panel's own action set.
+
+**Rendered Desktop evidence:** none captured, honestly, matching
+Spec 076's own recorded residual
+(`RENDERED_DESKTOP_EVIDENCE = none exists ... no CI rendering step, no
+headless AppWindow test harness in this codebase`,
+`evidence/077-medagent-workbench/LIVE_TRUTH.md`). This workstation cannot
+compile the Slint UI locally (MSVC absent) and CI has no rendering step
+either; the Desktop data path is proven by the real-`CliSession` test
+below instead, exactly like every other Desktop panel in this repository.
+
+Tests (`crates/medscale-desktop/src/medagent_workspace.rs`, inline
+`#[cfg(test)]`, mirroring `collaboration_workspace.rs`'s own precedent):
+`medagent_workspace_flows_through_real_core_session` exercises the full
+real path -- project create, pack install, identity register, context
+create, run create, list, start (asserts the auto-appended
+`prompt_submitted` turn), cancel -- through a real `CliSession`, and
+`status_message_never_empty` proves every error class maps to a
+non-empty, no-payload-leak status string. See
+`evidence/077-medagent-workbench/T077-09_IMPLEMENTATION.md`.
 
 ## T077-10 — Qualification and closure
 
