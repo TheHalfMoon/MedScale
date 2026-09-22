@@ -56,8 +56,12 @@ Before material code changes:
   genuine gap, recorded in `contracts.md`.
 - Decide and record (frozen at T078-01) `LaneTransform`'s exact variant set
   (expected: zero variants, a closed-empty enum, unless a genuine minimal
-  need appears) and which existing classification/data-class type
-  `ComparisonReport.classification` reuses.
+  need appears) and whether an existing classification/data-class type
+  exists to reuse for `ComparisonReport`. **Resolved at T078-01:** no such
+  primitive exists anywhere in this repository; `classification` is dropped
+  from `ComparisonReport`'s v1 shape rather than fabricated (`contracts.md`
+  section 4 reconciliation note, `SPEC_078_PROMOTION.md` constraint 6
+  amendment).
 
 ### Gate
 

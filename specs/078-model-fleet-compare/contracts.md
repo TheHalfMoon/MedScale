@@ -226,16 +226,33 @@ ComparisonReport {
                                              // (failed/cancelled lanes;
                                              // named explicitly, never
                                              // silently dropped)
-  classification: DataClassification,      // most-restrictive-inherits;
-                                             // reuses whatever
-                                             // classification primitive
-                                             // Spec 074/077 context
-                                             // artifacts already carry --
-                                             // exact type named at T078-01
-                                             // against real source, not a
-                                             // new type invented here
 }
 ```
+
+**T078-01 reconciliation:** the pre-implementation sketch above (and
+`SPEC_078_PROMOTION.md` constraint 6) named a `classification:
+DataClassification` field that would inherit the most restrictive
+classification among participating lanes' contexts. Live inspection during
+T078-01 (`grep -rn "Sensitivity\|DataClass\|privacy\|Privacy" crates/
+medscale-contracts/src`) found **no existing data-classification/privacy-
+sensitivity primitive anywhere in this repository** -- `RealmId`/
+`AuthorityScopeId` are authorization-scope identifiers, not a
+sensitivity/classification taxonomy, and no `DataClass`-shaped type exists
+before Spec 079 (Privacy Gate), which is this repository's actual owner of
+that contract (`RESEARCH_OS_V2_SPEC_IMPLEMENTATION_CONTRACTS.md`'s 079
+entry: `DataClass`). Building even a minimal classification enum here would
+be exactly the out-of-scope "new data-class/egress policy engine" the
+promotion's "Explicitly not authorized" list forbids. Per the same
+reconciliation discipline Spec 077's own `contracts.md` used for
+`AgentRun.started_at_seq`/`ToolReceipt.resolution` (real gaps found and
+fixed during implementation, not silently carried forward), the
+`classification` field is dropped from `ComparisonReport`'s v1 frozen
+shape. `SPEC_078_PROMOTION.md`'s mandatory architecture constraint 6 is
+amended accordingly (see that document's own T078-01 amendment note): a
+`ComparisonReport` in this spec's scope carries no classification field at
+all, rather than a fabricated or misapplied one; a future spec (Spec 079,
+or a dedicated classification-primitive addition) may add it back
+additively once a real classification primitive exists to inherit from.
 
 A `ComparisonReport` is computed once per completed comparison request and
 persisted immutably; re-running a comparison over the same `FleetRun`
@@ -260,20 +277,52 @@ spec cannot guarantee.
 ## 6. Freeze record (T078-01, to be filled in against real Rust source)
 
 ```text
-CONTRACTS_MODULE = <exact path, expected crates/medscale-contracts/src/model_fleet.rs>
-SCHEMA_VERSION_CONST = <exact const, expected MODEL_FLEET_SCHEMA_VERSION: u32 = 1>
-BOUND_CONSTANTS = <exact names/values for role_label, task_prompt,
-  observation detail, and any other bounded free-text field>
-ENUM_VOCABULARIES = <exact Rust enum definitions once frozen>
-VALIDATION_HELPERS = <reused-vs-reimplemented decision, mirroring 077's
-  T077-01 "deliberately re-implemented, not imported" convention if this
-  module should stay independent of medagent.rs's own private helpers>
-LANETRANSFORM_VARIANT_COUNT = <0 unless T078-01 finds a genuine minimal
-  need, per section 2 above>
-CLASSIFICATION_TYPE_REUSED = <exact type name/path>
-TEST_COUNT = <exact count and names once written>
-IMPORT_PURITY = <exact use-block audit once written; expected: only serde/
-  serde_json + crate::objects + crate::project_graph + crate::medagent
-  (Spec 077's own frozen contracts module) -- no storage/network/UI/
-  model-runtime dependency>
+CONTRACTS_MODULE = crates/medscale-contracts/src/model_fleet.rs (771 lines)
+SCHEMA_VERSION_CONST = MODEL_FLEET_SCHEMA_VERSION: u32 = 1
+BOUND_CONSTANTS = ROLE_LABEL_MAX_CHARS = 128, TASK_PROMPT_MAX_BYTES =
+  32_768, OBSERVATION_DETAIL_MAX_CHARS = 2_048, FLEET_RUN_MAX_LANES = 8
+  (enforced by Core, not a struct field), COMPARISON_REPORT_MAX_OBSERVATIONS
+  = 512
+ENUM_VOCABULARIES = AgentLaneStatus {Active, Retired}, FleetRunState
+  {Pending, Running, Completed, PartiallyFailed, Failed, Cancelled},
+  ComparisonObservationKind {Agreement, Disagreement,
+  ContradictionCandidate, EvidenceOverlap, UnsupportedClaim, Abstention,
+  SchemaValidity, ResourceRuntimeFact}. Every enum: const as_str() +
+  parse(&str) closed-vocabulary round trip (contracts.md convention,
+  mirrors medagent.rs).
+VALIDATION_HELPERS = bounded_text/bounded_bytes, deliberately
+  re-implemented in this module (not imported from medagent.rs), mirroring
+  medagent.rs's own T077-01 convention of staying independent of
+  collaboration.rs's private helpers -- this module stays independent of
+  medagent.rs's private helpers the same way, even though it imports
+  medagent.rs's public types directly (AgentCapabilityManifest,
+  AgentRunState, ContextManifest, ToolKind).
+LANETRANSFORM_VARIANT_COUNT = 0 (closed-empty enum, `pub enum
+  LaneTransform {}`; proven uninhabited at the type level by
+  lane_transform_is_closed_empty(), not merely documented in prose)
+CLASSIFICATION_TYPE_REUSED = none -- see the T078-01 reconciliation note
+  above section 6: no classification/privacy-sensitivity primitive exists
+  anywhere in this repository yet (verified by grep); the `classification`
+  field was dropped from `ComparisonReport`'s frozen shape rather than
+  fabricated or misapplied.
+TEST_COUNT = 12 (#[test] functions in crates/medscale-contracts/src/
+  model_fleet.rs: agent_lane_status_round_trips,
+  lane_transform_is_closed_empty, fleet_run_state_transition_table_is_frozen,
+  fleet_run_state_terminal_classification,
+  fleet_run_aggregate_state_covers_every_case,
+  lane_policy_validate_within_rejects_superset_tool_kind,
+  lane_policy_validate_within_rejects_out_of_manifest_artifact,
+  agent_lane_new_validates_role_label,
+  fleet_run_new_rejects_empty_and_oversized_prompt,
+  comparison_observation_kind_requires_multiple_lanes_is_correct,
+  comparison_observation_validate_enforces_multi_lane_kinds,
+  comparison_report_validate_rejects_lane_in_both_lists)
+IMPORT_PURITY = only serde + crate::medagent::{AgentCapabilityManifest,
+  AgentRunState, ContextManifest, ToolKind} (Spec 077's own frozen
+  contracts, reused unmodified) + crate::objects::{ObjectHeader, OpaqueId}
+  + crate::project_graph::{ProjectRevision, check_revision,
+  initial_revision} -- no storage/network/UI/model-runtime dependency,
+  and no serde_json dependency in this module (no Value-typed field, unlike
+  medagent.rs's AgentTurn/ToolInvocation/ToolReceipt payloads) -- verified
+  by inspection of the `use` block, this session.
 ```

@@ -186,6 +186,25 @@ BASELINE_PRE_EXISTING_FAILURES = none observed on main CI (last confirmed
   linkage unavailable (recorded, not suppressed).
 ```
 
+## Promotion-commit exact-head CI qualification (T078-00 checkpoint)
+
+```text
+PROMOTION_COMMIT = 58c4cd8fa71741e32eb1197b8387692fd6946769
+  ("docs: promote Spec 078 Model Fleet + Compare", PR #135, docs-only)
+PROMOTION_COMMIT_CI = run 35750689882, conclusion success, 6/6
+  (cargo-deny, supply-chain policy present, perf delivery-plan scale
+  (windows), rust (ubuntu-latest), rust (macos-latest),
+  rust (windows-latest)) -- confirmed live via
+  `gh run view 35750689882 --json conclusion,headSha,jobs`, matching the
+  head SHA of the promotion commit exactly.
+```
+
+Per this promotion's own "Promotion-mechanics precedent correction," T078-01
+implementation now proceeds on this same branch/PR (`spec/078-model-fleet-
+compare`, PR #135), continuing from this verified-green checkpoint rather
+than merging a standalone promotion-only PR (which has no precedent in this
+repository's actual history).
+
 ## Worktrees
 
 ```text

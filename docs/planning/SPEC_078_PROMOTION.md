@@ -261,11 +261,18 @@ This promotion does **not** authorize implementation of:
    cancelled while others complete is a distinct, inspectable
    `FleetRunState`, never silently presented as a full comparison or
    silently excluded without record.
-6. Comparison privacy inheritance: a `ComparisonReport` inherits the most
-   restrictive classification among its participating lanes' contexts,
-   unless a typed privacy transform proves otherwise (out of this spec's
-   authority to build; if no such transform exists yet, the report simply
-   inherits the most restrictive classification with no transform applied).
+6. Comparison privacy inheritance: **amended at T078-01** (see
+   `specs/078-model-fleet-compare/contracts.md` section 4's reconciliation
+   note). Live inspection found no data-classification/privacy-sensitivity
+   primitive anywhere in this repository (`RealmId`/`AuthorityScopeId` are
+   authorization-scope identifiers, not a sensitivity taxonomy; `DataClass`
+   is Spec 079's own future contract). Building one here to satisfy this
+   constraint would itself be the out-of-scope "new data-class/egress
+   policy engine" section "Explicitly not authorized" forbids. The
+   constraint is therefore narrowed to: `ComparisonReport` carries **no**
+   classification field in this spec's v1 frozen shape, rather than a
+   fabricated or misapplied one; a future spec adds it back additively once
+   a real classification primitive exists to inherit from.
 7. CLI and Desktop must use the same Core command/query semantics. No
    direct storage/model-runtime access from UI.
 8. Local/offline operation is mandatory: with network egress disabled,

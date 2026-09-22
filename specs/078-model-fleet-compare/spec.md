@@ -67,11 +67,14 @@ leakage between lanes, and zero modification to Spec 077's own contracts.
 6. Lane A's run cannot read Lane B's context, tools, or in-flight results at
    any point, even though both belong to the same `FleetRun` — refused
    structurally, not merely untested.
-7. A `ComparisonReport`'s classification inherits the most restrictive
-   classification among its participating lanes' `ContextManifest`
-   selections; no code path downgrades this inheritance without a typed
-   privacy transform (none exists yet in this repository — out of this
-   spec's authority to build).
+7. **Amended at T078-01:** no data-classification/privacy-sensitivity
+   primitive exists anywhere in this repository yet (`DataClass` is Spec
+   079's own future contract); a `ComparisonReport` therefore carries no
+   classification field in this spec's v1 shape at all, rather than a
+   fabricated or misapplied one (`contracts.md` section 4's reconciliation
+   note). This scenario is retained here as a forward-looking statement of
+   intent for whichever later spec adds a real classification primitive,
+   not as a v1 requirement.
 8. No code path in this spec calls `PromoteProposal`, `TransitionEffect`,
    or any controlled-action capability from `FleetRun`/`ComparisonReport`
    output, and no code path automatically resolves a lane disagreement into
@@ -199,10 +202,12 @@ Spec 078 MUST NOT implement:
   policy of the Project and lanes it runs against; 078 introduces no new
   rights/license model.
 - **Privacy:** no new egress is introduced; lane policy, fleet task text,
-  and comparison payloads never leave the local vault in 078; a
-  `ComparisonReport` inherits the most restrictive participating lane
-  classification, with no downgrade absent a typed privacy transform this
-  spec does not build.
+  and comparison payloads never leave the local vault in 078. No
+  classification-inheritance behavior is implemented in v1: no
+  classification primitive exists yet in this repository (Spec 079's
+  future `DataClass`), so there is nothing for a `ComparisonReport` to
+  inherit; see the T078-01 amendment to scenario 7 and `contracts.md`
+  section 4.
 - **Provenance:** every `FleetRun` binds exact lane identities/policies and
   every `LaneRunRef` to the real underlying `AgentRun`/`RunReceipt` it
   drove; a `ComparisonReport` binds exact source `AgentProposal`/

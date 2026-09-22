@@ -1,47 +1,78 @@
 # Tasks — Spec 078 Model Fleet + Compare
 
-**Execution state:** `PROMOTED_IMPLEMENTATION_AUTHORIZED` (not yet started)
+**Execution state:** `T078-00/T078-01 IN PROGRESS`
 
 Check a task only when its implementation, tests and required evidence are
 real on the branch. Do not pre-check future work.
 
 ## T078-00 — Live truth and baseline
 
-- [ ] Verify branch/base/main/PR state and repository cleanliness.
-- [ ] Read mandatory governance + Research OS V2 + Spec 078 authority chain.
-- [ ] Inspect current contracts/Core/storage/network/key/CLI/Desktop
+- [x] Verify branch/base/main/PR state and repository cleanliness.
+- [x] Read mandatory governance + Research OS V2 + Spec 078 authority chain.
+- [x] Inspect current contracts/Core/storage/network/key/CLI/Desktop
       ownership paths, and the full Spec 077 contract/Core surface this
       spec drives (`AgentIdentity`, `AgentCapabilityManifest`,
       `ContextManifest`, `AgentRun`/`AgentRunState`/`AgentTurn`,
       `ToolInvocation`/`ToolReceipt`, `RunReceipt`, `AgentProposal`,
       `MedAgent::{create_agent_run, start_agent_run, execute_agent_run,
       cancel_agent_run, get_agent_run, list_agent_runs}`).
-- [ ] Confirm no live Spec 078 collision/superseding authority; prove
+- [x] Confirm no live Spec 078 collision/superseding authority; prove
       numbering is free.
-- [ ] Verify Spec 077 closure and post-main evidence.
-- [ ] Record baseline focused/full gate state and any pre-existing
+- [x] Verify Spec 077 closure and post-main evidence.
+- [x] Record baseline focused/full gate state and any pre-existing
       failures.
-- [ ] Create initial evidence/live-truth record.
+- [x] Create initial evidence/live-truth record.
+
+**Verified (this session):** `evidence/078-model-fleet-compare/LIVE_TRUTH.md`
+records live-reverified Spec 077 closure (PR #133/#134 SHAs and CI run ids,
+including a correction of one inaccurate run id an earlier self-generated
+continuation prompt had cited), numbering-free proof, the live lane-plurality
+inventory (exactly one real ONNX-backed Pack fixture), and the
+promotion-commit's own exact-head CI qualification (run `35750689882`,
+head `58c4cd8`, 6/6, re-verified via `gh run view ... --json
+conclusion,headSha,jobs`).
 
 **Gate:** no code mutation before T078-00 is complete.
 
 ## T078-01 — Freeze contracts/data model
 
-- [ ] Freeze exact field-level `AgentLane`/`LanePolicy`/`LaneTransform`/
+- [x] Freeze exact field-level `AgentLane`/`LanePolicy`/`LaneTransform`/
       `AgentLaneStatus`/`FleetRun`/`FleetRunState`/`LaneRunRef`/
       `ComparisonRequest`/`ComparisonObservation`/
       `ComparisonObservationKind`/`ComparisonReport` contracts in
       `contracts.md`.
-- [ ] Reuse `OpaqueId`, `ObjectHeader`, `DigestSha256`, `ProjectRevision`,
+- [x] Reuse `OpaqueId`, `ObjectHeader`, `DigestSha256`, `ProjectRevision`,
       and Spec 077's frozen `medagent` contracts where semantically valid;
       zero modification to `crates/medscale-contracts/src/medagent.rs`.
-- [ ] Freeze the `FleetRunState` transition table explicitly; reject
+- [x] Freeze the `FleetRunState` transition table explicitly; reject
       unsafe/unknown states via a closed-vocabulary parse pattern.
-- [ ] Freeze revision/precondition behavior for mutable rows.
-- [ ] Freeze `LaneTransform`'s exact variant set (expected: zero variants)
-      and record the reused classification type for
-      `ComparisonReport.classification`.
-- [ ] Add serialization/validation/invariant tests.
+- [x] Freeze revision/precondition behavior for mutable rows.
+- [x] Freeze `LaneTransform`'s exact variant set (zero variants, proven
+      uninhabited at the type level) and resolve the classification-type
+      question (no such primitive exists in this repository; dropped from
+      `ComparisonReport`'s v1 shape, see `contracts.md` section 4).
+- [x] Add serialization/validation/invariant tests.
+
+**Verified (this session):** `crates/medscale-contracts/src/model_fleet.rs`
+(771 lines) is import-clean (only `serde` + `crate::medagent::
+{AgentCapabilityManifest, AgentRunState, ContextManifest, ToolKind}`
+(Spec 077's own frozen contracts, reused unmodified) + internal `objects`/
+`project_graph` -- no storage/network/UI/model-runtime dependency, no
+`serde_json`), carries 12 `#[test]` cases (status/kind round-trips,
+`FleetRunState` transition-table legality and terminal classification,
+`FleetRun::aggregate_state` covering every lane-state combination,
+`LanePolicy::validate_within` rejecting both a superset tool-kind grant and
+an out-of-manifest artifact, bound checks, and `ComparisonReport`/
+`ComparisonObservation` shape validation including the multi-lane-kind
+enforcement and the participating/excluded-overlap rejection).
+`crates/medscale-contracts/src/lib.rs` registers `pub mod model_fleet;`
+alphabetically between `mobile` and `mesc`/`network`. `cargo fmt --check`
+clean; local `cargo check`/`test` cannot link on this workstation (known
+constraint) -- exact-head CI is the qualification path (T078-08).
+`grep -rn "Sensitivity\|DataClass\|privacy\|Privacy" crates/
+medscale-contracts/src` found no existing classification primitive,
+confirming the `ComparisonReport.classification` field-drop decision was a
+real finding, not an assumption.
 
 **Acceptance:** contract tests pass; no storage/network/UI/model-runtime
 dependency enters contracts; no Spec 077 contract file is modified.
