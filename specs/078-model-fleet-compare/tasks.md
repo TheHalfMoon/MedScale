@@ -261,16 +261,16 @@ access from CLI/Desktop.
       `OCR_ENGINE_LLM_ENDPOINT` blocker) is revoked. No external semantic
       reviewer is required and none is substituted. The earlier wording is
       kept in git history; the OCR delegate preview log remains historical.
-- [ ] Run exact-head required CI (6/6).
-- [ ] Create/update `evidence/078-model-fleet-compare/` with exact
+- [x] Run exact-head required CI (6/6).
+- [x] Create/update `evidence/078-model-fleet-compare/` with exact
       commands, platform, SHAs, fixtures and results.
-- [ ] Open/update the Spec 078 PR with real evidence.
-- [ ] Merge only after exact-head required gates pass.
-- [ ] Verify post-merge `main` CI.
-- [ ] Update canonical status/queue to `CLOSED_CANONICAL` only after the
+- [x] Open/update the Spec 078 PR with real evidence.
+- [x] Merge only after exact-head required gates pass.
+- [x] Verify post-merge `main` CI.
+- [x] Update canonical status/queue to `CLOSED_CANONICAL` only after the
       post-main evidence exists (two-PR closure-bookkeeping pattern,
       mirroring Spec 074/075/076/077).
-- [ ] Recompute the next eligible unit; do not implement 079+ without
+- [x] Recompute the next eligible unit; do not implement 079+ without
       separate promotion.
 
 **Progress (this session):** the six checked items are proven on code
@@ -287,6 +287,12 @@ earlier "OCR engine review" open item was removed by the 2026-09-22
 review-policy amendment. Still open: fresh exact-head CI on the final
 candidate head, merge, post-main verification, closure bookkeeping.
 
+**Closure (2026-09-22):** final head `bd06f6d` passed exact-head run
+`35777530037` (6/6); PR #135 merged as `bf400e8`; post-merge main run
+`35793707525` passed 6/6. See `evidence/078-model-fleet-compare/CLOSURE.md`
+and `POST_MERGE_VERIFICATION.md`. Next eligible unit recomputed: Spec 079
+Privacy Gate (hard dependency 074 + 077), promoted separately.
+
 **Acceptance:** all Spec 078 acceptance criteria in
-`docs/planning/SPEC_078_PROMOTION.md` proven on the exact reviewed head,
+`docs/planning/SPEC_078_PROMOTION.md` proven on the exact candidate head,
 required CI green, PR merged, post-merge main verification recorded.
