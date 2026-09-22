@@ -195,6 +195,31 @@ export struct AgentRunRowItem {
     prompt: string,
 }
 
+export struct FleetLaneRowItem {
+    id: string,
+    role: string,
+    status: string,
+    revision: string,
+}
+
+export struct FleetRunRowItem {
+    id: string,
+    status: string,
+    revision: string,
+}
+
+export struct FleetLaneRunRowItem {
+    lane-id: string,
+    run-id: string,
+    run-status: string,
+}
+
+export struct FleetObservationRowItem {
+    kind: string,
+    lanes: string,
+    detail: string,
+}
+
 export struct AgentTurnRowItem {
     seq: string,
     kind: string,
@@ -315,6 +340,18 @@ export component AppWindow inherits Window {
     in-out property <string> medagent-active-run-id: "";
     in-out property <string> medagent-active-run-revision: "";
     in property <[AgentTurnRowItem]> medagent-turns;
+    in-out property <string> fleet-status: "Fleet runs not loaded";
+    in property <[FleetLaneRowItem]> fleet-lanes;
+    in property <[FleetRunRowItem]> fleet-runs;
+    in-out property <string> fleet-prompt-input: "";
+    in-out property <string> fleet-lane-ids-input: "";
+    in-out property <string> fleet-pack-dir-input: "";
+    in-out property <string> fleet-active-id: "";
+    in-out property <string> fleet-active-status: "";
+    in-out property <string> fleet-active-revision: "";
+    in property <[FleetLaneRunRowItem]> fleet-lane-runs;
+    in-out property <string> fleet-report-summary: "";
+    in property <[FleetObservationRowItem]> fleet-observations;
     callback ui-action(string);
 
     forward-focus: global-keys;
@@ -444,6 +481,7 @@ export component AppWindow inherits Window {
                     NavItem { label: "Messages"; selected: root.active-route == "Messages"; activated => { root.active-route = "Messages"; } }
                     NavItem { label: "Collaboration"; selected: root.active-route == "Collaboration"; activated => { root.active-route = "Collaboration"; } }
                     NavItem { label: "MedAgent"; selected: root.active-route == "MedAgent"; activated => { root.active-route = "MedAgent"; } }
+                    NavItem { label: "Model Fleet"; selected: root.active-route == "Model Fleet"; activated => { root.active-route = "Model Fleet"; } }
 
                     Rectangle { height: 4px; background: transparent; }
                     Text { text: "GOVERNANCE"; color: Theme.ink-quiet; font-size: 11px; letter-spacing: 1.05px; }
@@ -550,7 +588,7 @@ export component AppWindow inherits Window {
                             VerticalLayout {
                                 spacing: 2px;
                                 Text { text: root.active-route == "Home" ? "Clinical Workspace" : root.active-route == "Patients" ? root.patient-name : root.active-route; color: Theme.ink; font-size: 28px; font-weight: 720; letter-spacing: -0.4px; }
-                                Text { text: root.active-route == "Home" ? "Trusted local clinical intelligence · evidence before authority" : root.active-route == "Patients" ? "Trusted longitudinal workspace · Synthetic demo" : root.active-route == "Insights" ? "Evidence-aware population view · Synthetic demo" : root.active-route == "Models" ? "Local model fabric · provenance, runtime and benchmark state" : root.active-route == "Evidence" ? "Pinned OpenMed evidence · measured claims only · limitations explicit" : root.active-route == "Workflows" ? "Review-first controlled-action studio · Synthetic demo" : root.active-route == "Tasks" ? "Derived outbox review queue · No second task authority" : root.active-route == "Messages" ? "Local review previews · No external transport claim" : root.active-route == "Documents" ? "Bounded document intake posture · Custody is not understanding" : root.active-route == "Projects" ? "Project and artifact organization · Core-backed references, never payload copies" : root.active-route == "Data" ? "Governed datasets · immutable snapshots, saved views and deterministic transforms" : root.active-route == "Collaboration" ? "Local-first rooms, threads and tasks · Core-backed, membership-gated" : root.active-route == "MedAgent" ? "Governed agent runs · bound context, typed tools, evidence-only proposals" : root.active-route == "Audit Trail" ? "Synthetic disclosure history · Core Host remains canonical" : root.active-route == "Exports" ? "Loss-aware FHIR support · No full conformance claim" : root.active-route == "Settings" ? "Doctor truth and evidence-gated readiness" : root.active-route == "Integrations" ? "Brokered integration posture · Default deny" : root.active-route == "About" ? "Native product and attribution details" : "Unrecognized route"; color: Theme.ink-subtle; font-size: 13px; }
+                                Text { text: root.active-route == "Home" ? "Trusted local clinical intelligence · evidence before authority" : root.active-route == "Patients" ? "Trusted longitudinal workspace · Synthetic demo" : root.active-route == "Insights" ? "Evidence-aware population view · Synthetic demo" : root.active-route == "Models" ? "Local model fabric · provenance, runtime and benchmark state" : root.active-route == "Evidence" ? "Pinned OpenMed evidence · measured claims only · limitations explicit" : root.active-route == "Workflows" ? "Review-first controlled-action studio · Synthetic demo" : root.active-route == "Tasks" ? "Derived outbox review queue · No second task authority" : root.active-route == "Messages" ? "Local review previews · No external transport claim" : root.active-route == "Documents" ? "Bounded document intake posture · Custody is not understanding" : root.active-route == "Projects" ? "Project and artifact organization · Core-backed references, never payload copies" : root.active-route == "Data" ? "Governed datasets · immutable snapshots, saved views and deterministic transforms" : root.active-route == "Collaboration" ? "Local-first rooms, threads and tasks · Core-backed, membership-gated" : root.active-route == "MedAgent" ? "Governed agent runs · bound context, typed tools, evidence-only proposals" : root.active-route == "Model Fleet" ? "Independent agent lanes on one task · factual comparison, never a ranking" : root.active-route == "Audit Trail" ? "Synthetic disclosure history · Core Host remains canonical" : root.active-route == "Exports" ? "Loss-aware FHIR support · No full conformance claim" : root.active-route == "Settings" ? "Doctor truth and evidence-gated readiness" : root.active-route == "Integrations" ? "Brokered integration posture · Default deny" : root.active-route == "About" ? "Native product and attribution details" : "Unrecognized route"; color: Theme.ink-subtle; font-size: 13px; }
                             }
                             Rectangle { horizontal-stretch: 1; background: transparent; }
                             if root.active-route == "Home": Text {
@@ -1071,6 +1109,121 @@ export component AppWindow inherits Window {
                                         Text { width: 40px; text: item.seq; color: Theme.ink-subtle; font-size: 11px; }
                                         Text { width: 120px; text: item.kind; color: Theme.ink-subtle; font-size: 11px; }
                                         Text { horizontal-stretch: 1; text: item.payload; color: Theme.ink; font-size: 11px; wrap: word-wrap; }
+                                    }
+                                }
+                            }
+                        }
+
+                        if root.active-route == "Model Fleet": VerticalLayout {
+                            spacing: 14px;
+                            HonestyPanel { title: "Model Fleet boundary"; body: "Each lane runs its own governed MedAgent run under its bound identity, context and narrower lane policy · lanes never read each other's context · a comparison states facts grounded in lane receipts and proposals, never a score, rank or winner, and never promotes or acts on any output"; accent: Theme.success; }
+
+                            Rectangle {
+                                min-height: 120px;
+                                border-radius: Theme.radius-compact;
+                                border-width: 1px;
+                                border-color: Theme.border;
+                                background: Theme.surface;
+                                accessible-role: groupbox;
+                                accessible-label: "Fleet runs. " + root.fleet-status;
+                                VerticalLayout {
+                                    padding-left: 10px;
+                                    padding-right: 10px;
+                                    padding-top: 8px;
+                                    padding-bottom: 8px;
+                                    spacing: 6px;
+                                    Text { text: "New fleet run follows the active project · lanes are created with the CLI"; color: Theme.ink; font-size: 12px; font-weight: 680; }
+                                    Text { text: root.fleet-status; color: Theme.ink-quiet; font-size: 11px; wrap: word-wrap; }
+                                    HorizontalLayout {
+                                        spacing: 8px;
+                                        AdaptiveLineEdit { horizontal-stretch: 1; text <=> root.fleet-prompt-input; placeholder: "Task prompt for every lane"; accessible-name: "Fleet task prompt"; }
+                                        ToolbarAction { label: "Create"; activated => { root.ui-action("fleet-create"); } }
+                                        ToolbarAction { label: "Refresh"; activated => { root.ui-action("fleet-refresh"); } }
+                                    }
+                                    HorizontalLayout {
+                                        spacing: 8px;
+                                        AdaptiveLineEdit { horizontal-stretch: 1; text <=> root.fleet-lane-ids-input; placeholder: "Lane ids, comma-separated (2 to 8)"; accessible-name: "Fleet lane ids"; }
+                                        AdaptiveLineEdit { horizontal-stretch: 1; text <=> root.fleet-pack-dir-input; placeholder: "Absolute admitted Pack directory"; accessible-name: "Local Pack directory for fleet lanes"; }
+                                    }
+                                }
+                            }
+
+                            Text { text: "Lanes"; color: Theme.ink; font-size: 14px; font-weight: 680; }
+                            for item in root.fleet-lanes: Rectangle {
+                                min-height: 40px;
+                                border-width: 1px;
+                                border-color: Theme.border;
+                                background: Theme.surface;
+                                accessible-role: text;
+                                accessible-label: "Lane " + item.id + ", " + item.role + ", " + item.status;
+                                HorizontalLayout {
+                                    padding-left: 10px;
+                                    padding-right: 10px;
+                                    spacing: 12px;
+                                    Text { horizontal-stretch: 1; vertical-alignment: center; text: item.role; color: Theme.ink; font-size: 12px; font-weight: 680; wrap: word-wrap; }
+                                    Text { vertical-alignment: center; text: item.id + " · rev " + item.revision; color: Theme.ink-quiet; font-size: 11px; }
+                                    StatusPill { label: item.status; accent: item.status == "active" ? Theme.success : Theme.ink-quiet; }
+                                }
+                            }
+
+                            Text { text: "Fleet runs"; color: Theme.ink; font-size: 14px; font-weight: 680; }
+                            for item in root.fleet-runs: Rectangle {
+                                min-height: 56px;
+                                border-width: 1px;
+                                border-color: Theme.border;
+                                background: Theme.surface;
+                                accessible-role: groupbox;
+                                accessible-label: "Fleet run " + item.id + ", " + item.status + ", revision " + item.revision;
+                                HorizontalLayout {
+                                    padding-left: 10px;
+                                    padding-right: 10px;
+                                    spacing: 12px;
+                                    Text { horizontal-stretch: 1; vertical-alignment: center; text: item.id + " · rev " + item.revision; color: Theme.ink; font-size: 12px; font-weight: 680; }
+                                    StatusPill { label: item.status; accent: item.status == "completed" ? Theme.success : item.status == "partially_failed" ? Theme.warning : item.status == "failed" || item.status == "cancelled" ? Theme.danger : Theme.signal; }
+                                    QuickAction { width: 100px; title: "Open"; subtitle: "Lanes"; glyph: ""; accent: Theme.signal; activated => { root.ui-action("fleet-open:" + item.id); } }
+                                    if item.status == "pending": QuickAction { width: 100px; title: "Dispatch"; subtitle: "Lane ids"; glyph: ""; accent: Theme.success; activated => { root.ui-action("fleet-dispatch:" + item.id + ":" + item.revision); } }
+                                    if item.status == "pending" || item.status == "running": QuickAction { width: 100px; title: "Cancel"; subtitle: "Every lane"; glyph: ""; accent: Theme.danger; activated => { root.ui-action("fleet-cancel:" + item.id + ":" + item.revision); } }
+                                }
+                            }
+
+                            if root.fleet-active-id != "": VerticalLayout {
+                                spacing: 8px;
+                                HorizontalLayout {
+                                    spacing: 8px;
+                                    Text { horizontal-stretch: 1; vertical-alignment: center; text: "Lanes of " + root.fleet-active-id + " · " + root.fleet-active-status; color: Theme.ink; font-size: 14px; font-weight: 680; }
+                                    if root.fleet-active-status == "completed" || root.fleet-active-status == "partially_failed": ToolbarAction { label: "Compare"; activated => { root.ui-action("fleet-compare:" + root.fleet-active-id); } }
+                                }
+                                for item in root.fleet-lane-runs: Rectangle {
+                                    min-height: 48px;
+                                    border-width: 1px;
+                                    border-color: Theme.border;
+                                    background: Theme.surface;
+                                    accessible-role: groupbox;
+                                    accessible-label: "Lane " + item.lane-id + ", run " + item.run-id + ", " + item.run-status;
+                                    HorizontalLayout {
+                                        padding-left: 10px;
+                                        padding-right: 10px;
+                                        spacing: 12px;
+                                        Text { horizontal-stretch: 1; vertical-alignment: center; text: item.lane-id + " → " + item.run-id; color: Theme.ink; font-size: 12px; }
+                                        StatusPill { label: item.run-status; accent: item.run-status == "completed" ? Theme.success : item.run-status == "failed" || item.run-status == "cancelled" ? Theme.danger : Theme.warning; }
+                                        if item.run-status == "running": QuickAction { width: 100px; title: "Execute"; subtitle: "Local Pack"; glyph: ""; accent: Theme.signal; activated => { root.ui-action("fleet-execute:" + root.fleet-active-id + ":" + item.lane-id); } }
+                                    }
+                                }
+                                if root.fleet-report-summary != "": Text { text: root.fleet-report-summary; color: Theme.ink-subtle; font-size: 12px; wrap: word-wrap; }
+                                for item in root.fleet-observations: Rectangle {
+                                    min-height: 40px;
+                                    border-width: 1px;
+                                    border-color: Theme.border;
+                                    background: Theme.surface;
+                                    accessible-role: text;
+                                    accessible-label: "Observation " + item.kind + " for " + item.lanes + ": " + item.detail;
+                                    HorizontalLayout {
+                                        padding-left: 10px;
+                                        padding-right: 10px;
+                                        spacing: 8px;
+                                        Text { width: 170px; vertical-alignment: center; text: item.kind; color: Theme.ink-subtle; font-size: 11px; }
+                                        Text { width: 160px; vertical-alignment: center; text: item.lanes; color: Theme.ink-quiet; font-size: 11px; wrap: word-wrap; }
+                                        Text { horizontal-stretch: 1; vertical-alignment: center; text: item.detail; color: Theme.ink; font-size: 11px; wrap: word-wrap; }
                                     }
                                 }
                             }

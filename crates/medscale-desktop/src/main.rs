@@ -16,6 +16,7 @@ use slint::{ComponentHandle, ModelRc, VecModel};
 mod collaboration_workspace;
 mod data_workbench;
 mod medagent_workspace;
+mod model_fleet_workspace;
 mod patient_workspace;
 mod population_insights;
 mod product_intelligence;
@@ -430,6 +431,115 @@ fn select_medagent_run(
     refresh_medagent_turns(ui, session, run_id);
 }
 
+fn refresh_model_fleet(ui: &AppWindow, session: &Rc<RefCell<CliSession>>) {
+    let project_id = ui.get_project_active_id().to_string();
+    if project_id.is_empty() {
+        ui.set_fleet_status("Open a project to inspect its fleet runs".into());
+        ui.set_fleet_lanes(ModelRc::new(VecModel::from(Vec::new())));
+        ui.set_fleet_runs(ModelRc::new(VecModel::from(Vec::new())));
+        return;
+    }
+    let lanes = model_fleet_workspace::refresh_lanes(&mut session.borrow_mut(), &project_id);
+    let fleets = model_fleet_workspace::refresh_fleets(&mut session.borrow_mut(), &project_id);
+    match (lanes, fleets) {
+        (Ok(lanes), Ok(fleets)) => {
+            ui.set_fleet_status(
+                format!(
+                    "{} lane{} · {} fleet run{} · Core-backed",
+                    lanes.len(),
+                    if lanes.len() == 1 { "" } else { "s" },
+                    fleets.len(),
+                    if fleets.len() == 1 { "" } else { "s" }
+                )
+                .into(),
+            );
+            ui.set_fleet_lanes(ModelRc::new(VecModel::from_iter(lanes.iter().map(|row| {
+                FleetLaneRowItem {
+                    id: row.id.clone().into(),
+                    role: row.role_label.clone().into(),
+                    status: row.status.clone().into(),
+                    revision: row.revision.to_string().into(),
+                }
+            }))));
+            ui.set_fleet_runs(ModelRc::new(VecModel::from_iter(fleets.iter().map(
+                |row| FleetRunRowItem {
+                    id: row.id.clone().into(),
+                    status: row.status.clone().into(),
+                    revision: row.revision.to_string().into(),
+                },
+            ))));
+        }
+        (Err(err), _) | (_, Err(err)) => {
+            ui.set_fleet_lanes(ModelRc::new(VecModel::from(Vec::new())));
+            ui.set_fleet_runs(ModelRc::new(VecModel::from(Vec::new())));
+            ui.set_fleet_status(model_fleet_workspace::status_message(&err).into());
+        }
+    }
+}
+
+fn show_fleet_report(ui: &AppWindow, report: Option<&model_fleet_workspace::ReportVm>) {
+    match report {
+        Some(report) => {
+            ui.set_fleet_report_summary(
+                format!(
+                    "Comparison {} · participating: {} · excluded: {}",
+                    report.id,
+                    report.participating,
+                    if report.excluded.is_empty() {
+                        "none"
+                    } else {
+                        report.excluded.as_str()
+                    }
+                )
+                .into(),
+            );
+            ui.set_fleet_observations(ModelRc::new(VecModel::from_iter(
+                report.observations.iter().map(|o| FleetObservationRowItem {
+                    kind: o.kind.clone().into(),
+                    lanes: o.lanes.clone().into(),
+                    detail: o.detail.clone().into(),
+                }),
+            )));
+        }
+        None => {
+            ui.set_fleet_report_summary("".into());
+            ui.set_fleet_observations(ModelRc::new(VecModel::from(Vec::new())));
+        }
+    }
+}
+
+fn open_model_fleet(ui: &AppWindow, session: &Rc<RefCell<CliSession>>, fleet_id: &str) {
+    let detail = model_fleet_workspace::open_fleet(&mut session.borrow_mut(), fleet_id);
+    match detail {
+        Ok(detail) => {
+            ui.set_fleet_active_id(detail.fleet.id.clone().into());
+            ui.set_fleet_active_status(detail.fleet.status.clone().into());
+            ui.set_fleet_active_revision(detail.fleet.revision.to_string().into());
+            ui.set_fleet_lane_runs(ModelRc::new(VecModel::from_iter(detail.lanes.iter().map(
+                |row| FleetLaneRunRowItem {
+                    lane_id: row.lane_id.clone().into(),
+                    run_id: row.run_id.clone().into(),
+                    run_status: row.run_status.clone().into(),
+                },
+            ))));
+            let report = model_fleet_workspace::latest_report(&mut session.borrow_mut(), fleet_id);
+            match report {
+                Ok(report) => show_fleet_report(ui, report.as_ref()),
+                Err(err) => {
+                    show_fleet_report(ui, None);
+                    ui.set_fleet_status(model_fleet_workspace::status_message(&err).into());
+                }
+            }
+        }
+        Err(err) => {
+            ui.set_fleet_active_id("".into());
+            ui.set_fleet_lane_runs(ModelRc::new(VecModel::from(Vec::new())));
+            show_fleet_report(ui, None);
+            ui.set_fleet_status(model_fleet_workspace::status_message(&err).into());
+        }
+    }
+}
+
 fn validated_model_pack_path(raw: &str) -> Result<&str, &'static str> {
     let path = raw.trim();
     if path.is_empty() {
@@ -484,6 +594,7 @@ fn evidence_route_override() -> Option<&'static str> {
         "Audit Trail" => Some("Audit Trail"),
         "Exports" => Some("Exports"),
         "Integrations" => Some("Integrations"),
+        "Model Fleet" => Some("Model Fleet"),
         "Settings" => Some("Settings"),
         "About" => Some("About"),
         _ => None,
@@ -1235,6 +1346,152 @@ fn main() -> ExitCode {
                 Err(err) => {
                     ui.set_medagent_status(medagent_workspace::status_message(&err).into());
                 }
+            }
+            return;
+        }
+        // Spec 078 Model Fleet actions (Core-backed; lane creation stays
+        // CLI-only, like Spec 077's identity/context creation).
+        if action == "fleet-refresh" {
+            if let Some(session) = &project_session_for_actions {
+                refresh_model_fleet(&ui, session);
+            } else {
+                ui.set_fleet_status("Fleet runs unavailable: no Core session".into());
+            }
+            return;
+        }
+        if action == "fleet-create" {
+            let Some(session) = &project_session_for_actions else {
+                ui.set_fleet_status("Fleet runs unavailable: no Core session".into());
+                return;
+            };
+            let project_id = ui.get_project_active_id().to_string();
+            let prompt = ui.get_fleet_prompt_input().to_string();
+            if project_id.is_empty() || prompt.trim().is_empty() {
+                ui.set_fleet_status("Invalid: open a project and enter a task prompt".into());
+                return;
+            }
+            let created =
+                model_fleet_workspace::create_fleet(&mut session.borrow_mut(), &project_id, prompt);
+            match created {
+                Ok(_) => {
+                    ui.set_fleet_prompt_input("".into());
+                    refresh_model_fleet(&ui, session);
+                }
+                Err(err) => ui.set_fleet_status(model_fleet_workspace::status_message(&err).into()),
+            }
+            return;
+        }
+        if let Some(fleet_id) = action.strip_prefix("fleet-open:") {
+            if let Some(session) = &project_session_for_actions {
+                open_model_fleet(&ui, session, fleet_id);
+            } else {
+                ui.set_fleet_status("Fleet runs unavailable: no Core session".into());
+            }
+            return;
+        }
+        if let Some(rest) = action.strip_prefix("fleet-dispatch:") {
+            let Some(session) = &project_session_for_actions else {
+                ui.set_fleet_status("Fleet runs unavailable: no Core session".into());
+                return;
+            };
+            let Some((fleet_id, revision)) = rest.rsplit_once(':') else {
+                ui.set_fleet_status("Invalid: malformed dispatch action".into());
+                return;
+            };
+            let Ok(expected_revision) = revision.parse::<u64>() else {
+                ui.set_fleet_status("Invalid: fleet run has no revision".into());
+                return;
+            };
+            let raw_pack_dir = ui.get_fleet_pack_dir_input().to_string();
+            let pack_dir = match validated_model_pack_path(&raw_pack_dir) {
+                Ok(path) => path,
+                Err(message) => {
+                    ui.set_fleet_status(format!("Invalid: {message}").into());
+                    return;
+                }
+            };
+            let lane_ids = ui.get_fleet_lane_ids_input().to_string();
+            let dispatched = model_fleet_workspace::dispatch_fleet(
+                &mut session.borrow_mut(),
+                fleet_id,
+                expected_revision,
+                &lane_ids,
+                pack_dir,
+            );
+            match dispatched {
+                Ok(_) => {
+                    refresh_model_fleet(&ui, session);
+                    open_model_fleet(&ui, session, fleet_id);
+                }
+                Err(err) => ui.set_fleet_status(model_fleet_workspace::status_message(&err).into()),
+            }
+            return;
+        }
+        if let Some(rest) = action.strip_prefix("fleet-execute:") {
+            let Some(session) = &project_session_for_actions else {
+                ui.set_fleet_status("Fleet runs unavailable: no Core session".into());
+                return;
+            };
+            let Some((fleet_id, lane_id)) = rest.split_once(':') else {
+                ui.set_fleet_status("Invalid: malformed execute action".into());
+                return;
+            };
+            let raw_pack_dir = ui.get_fleet_pack_dir_input().to_string();
+            let pack_dir = match validated_model_pack_path(&raw_pack_dir) {
+                Ok(path) => path,
+                Err(message) => {
+                    ui.set_fleet_status(format!("Invalid: {message}").into());
+                    return;
+                }
+            };
+            let executed = model_fleet_workspace::execute_lane(
+                &mut session.borrow_mut(),
+                fleet_id,
+                lane_id,
+                pack_dir,
+            );
+            match executed {
+                Ok(_) => {
+                    refresh_model_fleet(&ui, session);
+                    open_model_fleet(&ui, session, fleet_id);
+                }
+                Err(err) => ui.set_fleet_status(model_fleet_workspace::status_message(&err).into()),
+            }
+            return;
+        }
+        if let Some(rest) = action.strip_prefix("fleet-cancel:") {
+            let Some(session) = &project_session_for_actions else {
+                ui.set_fleet_status("Fleet runs unavailable: no Core session".into());
+                return;
+            };
+            let Some((fleet_id, revision)) = rest.rsplit_once(':') else {
+                ui.set_fleet_status("Invalid: malformed cancel action".into());
+                return;
+            };
+            let Ok(expected_revision) = revision.parse::<u64>() else {
+                ui.set_fleet_status("Invalid: fleet run has no revision".into());
+                return;
+            };
+            let cancelled = model_fleet_workspace::cancel_fleet(
+                &mut session.borrow_mut(),
+                fleet_id,
+                expected_revision,
+            );
+            match cancelled {
+                Ok(_) => refresh_model_fleet(&ui, session),
+                Err(err) => ui.set_fleet_status(model_fleet_workspace::status_message(&err).into()),
+            }
+            return;
+        }
+        if let Some(fleet_id) = action.strip_prefix("fleet-compare:") {
+            let Some(session) = &project_session_for_actions else {
+                ui.set_fleet_status("Fleet runs unavailable: no Core session".into());
+                return;
+            };
+            let compared = model_fleet_workspace::compare_fleet(&mut session.borrow_mut(), fleet_id);
+            match compared {
+                Ok(report) => show_fleet_report(&ui, Some(&report)),
+                Err(err) => ui.set_fleet_status(model_fleet_workspace::status_message(&err).into()),
             }
             return;
         }
