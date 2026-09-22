@@ -121,6 +121,14 @@ was hand-verified for brace balance (`807` open, `807` close across the
 whole file) and cross-checked line-by-line against
 `collaboration_workspace.rs`'s/`app.slint`'s existing, already-compiling
 Collaboration block for syntax fidelity, since no local Slint compiler
-was available to check it directly. Real qualification is the next
-exact-head CI run (`rust (windows-latest)`'s job compiles the native
-Desktop binary, including the Slint UI).
+was available to check it directly. ## Exact-head CI qualification
+
+Green on the first push, no fixes needed -- including `rust
+(windows-latest)`'s job, which compiles the native Desktop binary and
+the hand-written `.slint` markup through the real Slint compiler:
+
+```text
+HEAD f1ba3d7 -> SUCCESS, run 35728751836, 6/6.
+```
+
+T077-09 is qualified at exact head `f1ba3d762c3049a34b8a2dce891d89e3d526c1e5`.
