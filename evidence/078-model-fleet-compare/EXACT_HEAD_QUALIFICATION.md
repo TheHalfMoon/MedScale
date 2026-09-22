@@ -19,9 +19,13 @@ This is CI evidence for **CODE_HEAD `547fb41` only**. The commit that adds
 this file and the `tasks.md` bookkeeping creates a new head. That docs head
 needs its own required CI run before it can be treated as exact-head
 qualified, and it is recorded below once it exists. Still pending on the
-final merge candidate: that fresh CI run, and the Alibaba Open Code Review
-exact-range review (blocked on `OCR_ENGINE_LLM_ENDPOINT`, see
-`EXTERNAL_GATES.md`).
+final merge candidate: that fresh CI run.
+
+Review policy (amended 2026-09-22): the Alibaba Open Code Review exact-range
+review that this file first listed as pending is no longer required
+(`docs/planning/FOUNDER_REVIEW_POLICY_AMENDMENT_2026-09-22.md`). It is replaced
+by the deterministic scope record in `EXACT_RANGE_REVIEW.md`. No external
+reviewer ran or is claimed.
 
 ## Required jobs on CODE_HEAD
 

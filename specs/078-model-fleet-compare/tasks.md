@@ -254,13 +254,13 @@ access from CLI/Desktop.
 - [x] Capture rendered Desktop evidence where the CI/toolchain allows it;
       otherwise record the same honest residual pattern Spec 075/076/077
       recorded.
-- [ ] Perform exact-range review of the full PR diff with Alibaba Open Code
-      Review's own engine (`ocr review --from <base> --to <final head>`) --
-      the sole accepted semantic/code reviewer. Founder directive
-      2026-09-22: delegation mode (host-agent reasoning) and Claude
-      self-review do not count; unsolicited Cubic/CodeRabbit/Copilot/Jev
-      output is non-authoritative. Blocked on `OCR_ENGINE_LLM_ENDPOINT`
-      (`EXTERNAL_GATES.md`) until the founder configures the provider.
+- [x] Record the deterministic exact-range scope record of the full PR diff
+      (`EXACT_RANGE_REVIEW.md`). Amended 2026-09-22 by
+      `docs/planning/FOUNDER_REVIEW_POLICY_AMENDMENT_2026-09-22.md`: the
+      earlier Alibaba Open Code Review engine-review requirement (and its
+      `OCR_ENGINE_LLM_ENDPOINT` blocker) is revoked. No external semantic
+      reviewer is required and none is substituted. The earlier wording is
+      kept in git history; the OCR delegate preview log remains historical.
 - [ ] Run exact-head required CI (6/6).
 - [ ] Create/update `evidence/078-model-fleet-compare/` with exact
       commands, platform, SHAs, fixtures and results.
@@ -280,9 +280,12 @@ Secret/content leakage: no new logging or print call in Core/storage, no
 secret markers in added lines, and a fixed, content-free failure reason
 (`SECURITY_ADVERSARIAL.md` T9). Log-capture leakage is still proven by
 inspection only, as in Specs 076/077. Rendered Desktop evidence: the
-honest residual is in `DESKTOP_QUALIFICATION.md`. Still open: OCR engine
-review, fresh exact-head CI on the final candidate head, merge, post-main
-verification, closure bookkeeping.
+honest residual is in `DESKTOP_QUALIFICATION.md`. The deterministic
+exact-range scope record is `EXACT_RANGE_REVIEW.md`, and the missing
+`CONTRACT_QUALIFICATION.md` and `NO_NETWORK_LOCAL_PATH.md` now exist. The
+earlier "OCR engine review" open item was removed by the 2026-09-22
+review-policy amendment. Still open: fresh exact-head CI on the final
+candidate head, merge, post-main verification, closure bookkeeping.
 
 **Acceptance:** all Spec 078 acceptance criteria in
 `docs/planning/SPEC_078_PROMOTION.md` proven on the exact reviewed head,

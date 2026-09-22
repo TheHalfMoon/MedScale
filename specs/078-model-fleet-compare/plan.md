@@ -207,12 +207,14 @@ Desktop.
 6. Capture rendered Desktop evidence where the CI/toolchain allows it; if
    not, record the same honest residual pattern Spec 075/076/077 recorded
    rather than fabricating a render.
-7. Perform exact-range review of the full PR diff using OpenCodeReview
-   (delegation mode), matching the discipline established in Spec 076/077,
-   unless the founder gives a different explicit instruction for this
-   spec. No other review tool/method is accepted (Cubic/CodeRabbit/GitHub
-   Copilot review/Claude self-review remain non-authoritative if they
-   auto-post).
+7. Record a deterministic exact-range scope record of the full PR diff
+   (changed files vs authorized scope, dependency manifests, unexpected
+   files, forbidden-surface greps) in `EXACT_RANGE_REVIEW.md`. Amended
+   2026-09-22 by `docs/planning/FOUNDER_REVIEW_POLICY_AMENDMENT_2026-09-22.md`:
+   no external semantic reviewer is required and none is substituted. This
+   supersedes the earlier text of this step (an OpenCodeReview
+   delegation-mode review; Cubic/CodeRabbit/GitHub Copilot/Claude
+   self-review non-authoritative), which is kept in git history.
 8. Run exact-head required CI.
 9. Create/update `evidence/078-model-fleet-compare/` with exact commands,
    platform, SHAs, fixtures and results.
