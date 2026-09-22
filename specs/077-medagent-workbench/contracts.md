@@ -102,10 +102,21 @@ AgentRun {
   context_manifest_id: OpaqueId,
   prompt: String,                 // bounded UTF-8
   status: AgentRunState,
-  started_at_seq: Option<u64>,    // set on Pending->Running
-  ended_at_seq: Option<u64>,      // set on any terminal transition
 }
 ```
+
+**T077-01 reconciliation:** `started_at_seq`/`ended_at_seq` from the
+pre-implementation sketch were dropped during the real T077-01 freeze
+(`crates/medscale-contracts/src/medagent.rs`) -- no acceptance requirement
+in `security.md` or `migration.md` names them, and run timing/ordering is
+already fully recoverable without them: `AgentTurn.seq` gives the exact
+in-run step order, and `RunReceipt` (section 6) is the durable marker of
+"this run reached a terminal state," committed atomically with the
+transition. Reintroducing them would be pure restatement of information
+the append-only `AgentTurn` stream and `RunReceipt` already carry. If a
+later task needs "seq at which Running began" specifically (as opposed to
+"the first `ToolRequested`/`ModelOutput` turn"), add it then as an
+additive field, not preemptively here.
 
 ### `AgentTurn`
 
@@ -168,13 +179,25 @@ ToolReceipt {
   header: ObjectHeader,
   invocation_id: OpaqueId,        // 1:1 with ToolInvocation once Executed
   result: Value,                  // typed per ToolKind
-  resolution: Option<ReferenceResolution>,  // for artifact-reading tool kinds
 }
 ```
 
 A `Refused` invocation never has a `ToolReceipt` (the refusal reason lives
 on `ToolInvocation` itself); an `Executed` invocation always has exactly
 one.
+
+**T077-01 reconciliation:** the pre-implementation sketch's
+`resolution: Option<ReferenceResolution>` was dropped during the real
+T077-01 freeze -- no acceptance requirement in `security.md` or
+`migration.md` names it, and section 1's reuse list only requires
+`ReferenceResolution` to be available where semantically valid, not that
+every 077 type carry one. `ReadContextArtifact`'s `result: Value` is free
+to embed whatever revision-binding evidence T077-06's real dispatch
+implementation needs (e.g. a `ReferenceResolution`-shaped value inside the
+typed result payload for that `ToolKind`) without a dedicated top-level
+field forcing every other `ToolKind`'s receipt to carry an always-`None`
+column. T077-06 must still decide, and record here, exactly what
+`ReadContextArtifact`'s result payload contains.
 
 ## 6. Receipt and proposal vocabulary
 
@@ -239,12 +262,41 @@ human-produced one where that distinction matters.
 ## 8. Freeze record (T077-01, filled in against real Rust source)
 
 ```text
-CONTRACTS_MODULE = <exact path, e.g. crates/medscale-contracts/src/medagent.rs>
-SCHEMA_VERSION_CONST = <exact name/value>
-ENUM_VOCABULARIES = AgentIdentityStatus, AgentRunState, AgentTurnKind,
-  ToolKind, ToolInvocationStatus
-VALIDATION_HELPERS = <exact bounded_text/bounded_bytes equivalents, or
-  reused from collaboration.rs if the repository convention favors a
-  shared helper module by T077-01>
-TEST_COUNT = <exact count>
+CONTRACTS_MODULE = crates/medscale-contracts/src/medagent.rs (799 lines)
+SCHEMA_VERSION_CONST = MEDAGENT_SCHEMA_VERSION: u32 = 1
+BOUND_CONSTANTS = AGENT_DISPLAY_NAME_MAX_CHARS = 128, PROMPT_MAX_BYTES =
+  32_768, TOOL_ARGUMENT_MAX_BYTES = 8_192, TOOL_RESULT_MAX_BYTES = 32_768,
+  FAILURE_REASON_MAX_CHARS = 1_024, CONTEXT_MANIFEST_MAX_ARTIFACTS = 64,
+  CAPABILITY_MANIFEST_MAX_TOOL_KINDS = 32
+ENUM_VOCABULARIES = AgentIdentityStatus {Active, Revoked}, AgentRunState
+  {Pending, Running, Cancelled, Completed, Failed}, AgentTurnKind
+  {PromptSubmitted, ToolRequested, ToolResult, ModelOutput}, ToolKind
+  {ReadContextArtifact, SearchContextArtifacts}, ToolInvocationStatus
+  {Refused, Executed}. Every enum: const as_str() + parse(&str) closed-
+  vocabulary round trip (contracts.md convention, mirrors collaboration.rs).
+VALIDATION_HELPERS = bounded_text/bounded_bytes/bounded_optional_text,
+  deliberately re-implemented in this module (not imported from
+  collaboration.rs) rather than factored into a shared helper module --
+  this spec's own convention, matching how storage/medagent.rs deliberately
+  duplicates its small helpers from collaboration.rs "so this module never
+  depends on Spec 076's closed file" (see that file's own header comment).
+FIELD_DRIFT_FROM_PRE_IMPLEMENTATION_SKETCH = AgentRun.started_at_seq/
+  ended_at_seq and ToolReceipt.resolution (sections 4 and 6 above) were
+  dropped during the real freeze; reconciled in-place above with rationale
+  (T077-01 reconciliation notes), found and fixed during this session's
+  T077-00-style re-verification rather than left silently stale.
+TEST_COUNT = 10 (#[test] functions in crates/medscale-contracts/src/medagent.rs:
+  agent_identity_status_round_trips, tool_kind_round_trips_and_rejects_unknown,
+  agent_run_state_transition_table_is_frozen,
+  agent_run_state_terminal_classification,
+  agent_identity_new_validates_display_name,
+  agent_capability_manifest_rejects_empty_grants,
+  context_manifest_rejects_empty_and_checks_membership,
+  agent_run_new_rejects_empty_and_oversized_prompt,
+  tool_invocation_validate_enforces_refusal_reason_pairing,
+  run_receipt_validate_requires_terminal_state_and_failure_reason_pairing)
+IMPORT_PURITY = only serde/serde_json + crate::objects::{ObjectHeader,
+  OpaqueId} + crate::project_graph::{ArtifactDescriptor, ProjectRevision,
+  check_revision, initial_revision} -- no storage/network/UI/model-runtime
+  dependency (verified by inspection of the `use` block, this session).
 ```
