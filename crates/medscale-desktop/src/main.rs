@@ -15,6 +15,7 @@ use slint::{ComponentHandle, ModelRc, VecModel};
 
 mod collaboration_workspace;
 mod data_workbench;
+mod medagent_workspace;
 mod patient_workspace;
 mod population_insights;
 mod product_intelligence;
@@ -361,6 +362,72 @@ fn select_collab_thread(ui: &AppWindow, session: &Rc<RefCell<CliSession>>, threa
             ui.set_collab_status(collaboration_workspace::status_message(&err).into());
         }
     }
+}
+
+fn medagent_run_row(row: &medagent_workspace::RunRowVm) -> AgentRunRowItem {
+    AgentRunRowItem {
+        id: row.id.clone().into(),
+        status: row.status.clone().into(),
+        revision: row.revision.to_string().into(),
+        prompt: row.prompt.clone().into(),
+    }
+}
+
+fn refresh_medagent_runs(ui: &AppWindow, session: &Rc<RefCell<CliSession>>) {
+    let project_id = ui.get_project_active_id().to_string();
+    if project_id.is_empty() {
+        ui.set_medagent_status("Open a project to inspect its runs".into());
+        ui.set_medagent_runs(ModelRc::new(VecModel::from(Vec::new())));
+        return;
+    }
+    match medagent_workspace::refresh_runs(&mut session.borrow_mut(), &project_id) {
+        Ok(rows) => {
+            ui.set_medagent_status(
+                format!(
+                    "{} run{} · Core-backed",
+                    rows.len(),
+                    if rows.len() == 1 { "" } else { "s" }
+                )
+                .into(),
+            );
+            ui.set_medagent_runs(ModelRc::new(VecModel::from_iter(
+                rows.iter().map(medagent_run_row),
+            )));
+        }
+        Err(err) => {
+            ui.set_medagent_runs(ModelRc::new(VecModel::from(Vec::new())));
+            ui.set_medagent_status(medagent_workspace::status_message(&err).into());
+        }
+    }
+}
+
+fn refresh_medagent_turns(ui: &AppWindow, session: &Rc<RefCell<CliSession>>, run_id: &str) {
+    match medagent_workspace::refresh_turns(&mut session.borrow_mut(), run_id) {
+        Ok(rows) => {
+            ui.set_medagent_turns(ModelRc::new(VecModel::from_iter(rows.iter().map(|row| {
+                AgentTurnRowItem {
+                    seq: row.seq.to_string().into(),
+                    kind: row.kind.clone().into(),
+                    payload: row.payload.clone().into(),
+                }
+            }))));
+        }
+        Err(err) => {
+            ui.set_medagent_turns(ModelRc::new(VecModel::from(Vec::new())));
+            ui.set_medagent_status(medagent_workspace::status_message(&err).into());
+        }
+    }
+}
+
+fn select_medagent_run(
+    ui: &AppWindow,
+    session: &Rc<RefCell<CliSession>>,
+    run_id: &str,
+    revision: &str,
+) {
+    ui.set_medagent_active_run_id(run_id.into());
+    ui.set_medagent_active_run_revision(revision.into());
+    refresh_medagent_turns(ui, session, run_id);
 }
 
 fn validated_model_pack_path(raw: &str) -> Result<&str, &'static str> {
@@ -1073,6 +1140,100 @@ fn main() -> ExitCode {
                 Ok(_) => refresh_collab_tasks(&ui, session, &room_id),
                 Err(err) => {
                     ui.set_collab_status(collaboration_workspace::status_message(&err).into());
+                }
+            }
+            return;
+        }
+        // Spec 077 MedAgent Workbench actions (Core-backed; identity
+        // registration and context-manifest creation remain CLI-only).
+        if action == "medagent-runs-refresh" {
+            if let Some(session) = &project_session_for_actions {
+                refresh_medagent_runs(&ui, session);
+            } else {
+                ui.set_medagent_status("Runs unavailable: no Core session".into());
+            }
+            return;
+        }
+        if action == "medagent-run-create-start" {
+            let Some(session) = &project_session_for_actions else {
+                ui.set_medagent_status("Runs unavailable: no Core session".into());
+                return;
+            };
+            let project_id = ui.get_project_active_id().to_string();
+            if project_id.is_empty() {
+                ui.set_medagent_status("Invalid: open a project first".into());
+                return;
+            }
+            let agent_id = ui.get_medagent_agent_id_input().to_string();
+            let context_id = ui.get_medagent_context_id_input().to_string();
+            let prompt = ui.get_medagent_prompt_input().to_string();
+            if agent_id.trim().is_empty() || context_id.trim().is_empty() || prompt.trim().is_empty()
+            {
+                ui.set_medagent_status(
+                    "Invalid: agent id, context id, and prompt are all required".into(),
+                );
+                return;
+            }
+            let created = medagent_workspace::create_run(
+                &mut session.borrow_mut(),
+                &project_id,
+                agent_id.trim(),
+                context_id.trim(),
+                prompt,
+            );
+            match created {
+                Ok(run) => {
+                    match medagent_workspace::start_run(
+                        &mut session.borrow_mut(),
+                        &run.id,
+                        run.revision,
+                    ) {
+                        Ok(_) => {
+                            ui.set_medagent_prompt_input("".into());
+                            refresh_medagent_runs(&ui, session);
+                        }
+                        Err(err) => {
+                            ui.set_medagent_status(medagent_workspace::status_message(&err).into());
+                            refresh_medagent_runs(&ui, session);
+                        }
+                    }
+                }
+                Err(err) => {
+                    ui.set_medagent_status(medagent_workspace::status_message(&err).into());
+                }
+            }
+            return;
+        }
+        if let Some(rest) = action.strip_prefix("medagent-run-select:") {
+            if let Some(session) = &project_session_for_actions {
+                if let Some((run_id, revision)) = rest.rsplit_once(':') {
+                    select_medagent_run(&ui, session, run_id, revision);
+                } else {
+                    ui.set_medagent_status("Invalid: malformed run selection".into());
+                }
+            } else {
+                ui.set_medagent_status("Runs unavailable: no Core session".into());
+            }
+            return;
+        }
+        if let Some(rest) = action.strip_prefix("medagent-run-cancel:") {
+            let Some(session) = &project_session_for_actions else {
+                ui.set_medagent_status("Runs unavailable: no Core session".into());
+                return;
+            };
+            let Some((run_id, revision_str)) = rest.rsplit_once(':') else {
+                ui.set_medagent_status("Invalid: malformed cancel action".into());
+                return;
+            };
+            let Ok(expected_revision) = revision_str.parse::<u64>() else {
+                ui.set_medagent_status("Invalid: run has no revision".into());
+                return;
+            };
+            match medagent_workspace::cancel_run(&mut session.borrow_mut(), run_id, expected_revision)
+            {
+                Ok(_) => refresh_medagent_runs(&ui, session),
+                Err(err) => {
+                    ui.set_medagent_status(medagent_workspace::status_message(&err).into());
                 }
             }
             return;

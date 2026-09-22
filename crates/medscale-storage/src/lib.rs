@@ -7,6 +7,7 @@ mod collaboration;
 mod data_sources;
 mod encrypted_vault;
 mod gc;
+mod medagent;
 mod migrate;
 mod privacy_probes;
 mod project_graph;

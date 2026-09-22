@@ -54,7 +54,7 @@ pub fn backup_vault(vault: &SyntheticVault, dest: &Path) -> Result<BackupManifes
     }
 
     let manifest = BackupManifest {
-        schema_version: 5,
+        schema_version: 6,
         vault_id: vault.vault_id.clone(),
         created_at: "1970-01-01T00:00:00Z".to_owned(),
         metadata_snapshot_digest: snapshot_digest,
@@ -106,7 +106,9 @@ pub fn restore_vault(src: &Path, dest_vault_root: &Path) -> Result<(u64, u64), S
     let snapshot_schema = snapshot_value
         .get("schema_version")
         .and_then(|v| v.as_u64());
-    if snapshot_schema == Some(5) {
+    if snapshot_schema == Some(6) {
+        restore_v6(&vault, &snapshot_value, &mut sources)?;
+    } else if snapshot_schema == Some(5) {
         restore_v5(&vault, &snapshot_value, &mut sources)?;
     } else if snapshot_schema == Some(4) {
         restore_v4(&vault, &snapshot_value, &mut sources)?;
@@ -578,6 +580,163 @@ fn restore_v5(
                 .map_err(|e| e.to_string())?;
         }
     }
+    Ok(())
+}
+
+fn restore_v6(
+    vault: &SyntheticVault,
+    snapshot: &serde_json::Value,
+    sources: &mut u64,
+) -> Result<(), String> {
+    restore_v5(vault, snapshot, sources)?;
+    // Spec 077 rows replay exactly (ids/revisions/seqs preserved); every
+    // row is re-validated where a standalone validator exists, or via an
+    // inline bound check otherwise, so a tampered snapshot fails closed.
+    // Identities restore first: every other 077 family references one.
+    if let Some(entries) = snapshot
+        .get("medagent_identities")
+        .and_then(|v| v.as_array())
+    {
+        for value in entries {
+            let identity: medscale_contracts::medagent::AgentIdentity =
+                serde_json::from_value(value.clone()).map_err(|e| e.to_string())?;
+            if identity.revision < 1 {
+                return Err("tampered agent identity revision".to_owned());
+            }
+            vault
+                .meta
+                .restore_agent_identity_row(&identity)
+                .map_err(|e| e.to_string())?;
+        }
+    }
+    if let Some(entries) = snapshot
+        .get("medagent_capability_manifests")
+        .and_then(|v| v.as_array())
+    {
+        for value in entries {
+            let pair: (String, String) =
+                serde_json::from_value(value.clone()).map_err(|e| e.to_string())?;
+            let kinds_str: Vec<String> =
+                serde_json::from_str(&pair.1).map_err(|e| e.to_string())?;
+            let granted_tool_kinds = kinds_str
+                .iter()
+                .map(|s| medscale_contracts::medagent::ToolKind::parse(s))
+                .collect::<Result<Vec<_>, _>>()
+                .map_err(|e| e.to_string())?;
+            let manifest = medscale_contracts::medagent::AgentCapabilityManifest::new(
+                medscale_contracts::objects::OpaqueId::new(pair.0),
+                granted_tool_kinds,
+            )
+            .map_err(|e| e.to_string())?;
+            vault
+                .meta
+                .restore_capability_manifest_row(&manifest)
+                .map_err(|e| e.to_string())?;
+        }
+    }
+    if let Some(entries) = snapshot
+        .get("medagent_context_manifests")
+        .and_then(|v| v.as_array())
+    {
+        for value in entries {
+            let manifest: medscale_contracts::medagent::ContextManifest =
+                serde_json::from_value(value.clone()).map_err(|e| e.to_string())?;
+            if manifest.revision < 1 {
+                return Err("tampered context manifest revision".to_owned());
+            }
+            vault
+                .meta
+                .restore_context_manifest_row(&manifest)
+                .map_err(|e| e.to_string())?;
+        }
+    }
+    if let Some(entries) = snapshot.get("medagent_runs").and_then(|v| v.as_array()) {
+        for value in entries {
+            let run: medscale_contracts::medagent::AgentRun =
+                serde_json::from_value(value.clone()).map_err(|e| e.to_string())?;
+            if run.revision < 1 {
+                return Err("tampered agent run revision".to_owned());
+            }
+            vault
+                .meta
+                .restore_agent_run_row(&run)
+                .map_err(|e| e.to_string())?;
+        }
+    }
+    if let Some(entries) = snapshot.get("medagent_turns").and_then(|v| v.as_array()) {
+        for value in entries {
+            let turn: medscale_contracts::medagent::AgentTurn =
+                serde_json::from_value(value.clone()).map_err(|e| e.to_string())?;
+            vault
+                .meta
+                .restore_agent_turn_row(&turn)
+                .map_err(|e| e.to_string())?;
+        }
+    }
+    if let Some(entries) = snapshot
+        .get("medagent_tool_invocations")
+        .and_then(|v| v.as_array())
+    {
+        for value in entries {
+            let invocation: medscale_contracts::medagent::ToolInvocation =
+                serde_json::from_value(value.clone()).map_err(|e| e.to_string())?;
+            invocation.validate().map_err(|e| e.to_string())?;
+            vault
+                .meta
+                .restore_tool_invocation_row(&invocation)
+                .map_err(|e| e.to_string())?;
+        }
+    }
+    if let Some(entries) = snapshot
+        .get("medagent_tool_receipts")
+        .and_then(|v| v.as_array())
+    {
+        for value in entries {
+            let receipt: medscale_contracts::medagent::ToolReceipt =
+                serde_json::from_value(value.clone()).map_err(|e| e.to_string())?;
+            receipt.validate().map_err(|e| e.to_string())?;
+            vault
+                .meta
+                .restore_tool_receipt_row(&receipt)
+                .map_err(|e| e.to_string())?;
+        }
+    }
+    if let Some(entries) = snapshot
+        .get("medagent_run_receipts")
+        .and_then(|v| v.as_array())
+    {
+        for value in entries {
+            let receipt: medscale_contracts::medagent::RunReceipt =
+                serde_json::from_value(value.clone()).map_err(|e| e.to_string())?;
+            receipt.validate().map_err(|e| e.to_string())?;
+            vault
+                .meta
+                .restore_run_receipt_row(&receipt)
+                .map_err(|e| e.to_string())?;
+        }
+    }
+    if let Some(entries) = snapshot
+        .get("medagent_proposals")
+        .and_then(|v| v.as_array())
+    {
+        for value in entries {
+            let proposal: medscale_contracts::medagent::AgentProposal =
+                serde_json::from_value(value.clone()).map_err(|e| e.to_string())?;
+            vault
+                .meta
+                .restore_agent_proposal_row(&proposal)
+                .map_err(|e| e.to_string())?;
+        }
+    }
+    // migration.md section 5 / security.md T11: a terminal run never
+    // exists without its RunReceipt, and a RunReceipt never exists without
+    // a matching run. Re-verify this explicitly at restore time -- the
+    // exact class of gap Spec 076's own exact-range review found missing
+    // from its restore path (evidence/076-collaboration-substrate/EXACT_RANGE_REVIEW.md).
+    vault
+        .meta
+        .verify_run_receipt_consistency()
+        .map_err(|e| e.to_string())?;
     Ok(())
 }
 

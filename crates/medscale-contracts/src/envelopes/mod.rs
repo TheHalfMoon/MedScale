@@ -22,6 +22,10 @@ use crate::documents::{
 };
 use crate::evidence::{LexicalRetrieveRequest, LexicalRetrieveResult};
 use crate::ingest::{BackupManifest, IngestReceipt};
+use crate::medagent::{
+    AgentCapabilityManifest, AgentIdentity, AgentProposal, AgentRun, AgentRunState, AgentTurn,
+    ContextManifest, RunReceipt, ToolInvocation, ToolKind, ToolReceipt,
+};
 use crate::mesc::{MescArtifactAdmitRequest, MescArtifactVerifyRequest, MescVerifyReport};
 use crate::network::{EgressAllowlistEntry, NetworkBrokerRequest, NetworkBrokerResult};
 use crate::objects::{AmendmentKind, DigestSha256, EffectState, MedicalTime, OpaqueId, VaultId};
@@ -152,6 +156,27 @@ pub enum Capability {
     ApprovalDecide,
     ApprovalWithdraw,
     ActivityRead,
+    // Spec 077: MedAgent Workbench (T077-03 slice: AgentIdentity +
+    // AgentCapabilityManifest only; ContextManifest/AgentRun/tool/receipt/
+    // proposal capabilities land in later slices).
+    AgentIdentityRegister,
+    AgentIdentityRead,
+    AgentIdentityRevoke,
+    // Spec 077 T077-04 slice.
+    ContextManifestCreate,
+    ContextManifestRead,
+    // Spec 077 T077-05 slice.
+    AgentRunCreate,
+    AgentRunRead,
+    AgentRunStart,
+    AgentRunCancel,
+    // Spec 077 T077-06 slice.
+    AgentToolInvoke,
+    // Spec 077 T077-07 slice.
+    AgentRunExecute,
+    // Spec 077 T077-08 slice.
+    AgentRunComplete,
+    AgentRunFail,
 }
 
 impl Capability {
@@ -198,6 +223,9 @@ impl Capability {
                 | Self::NoteRead
                 | Self::ApprovalRequestRead
                 | Self::ActivityRead
+                | Self::AgentIdentityRead
+                | Self::ContextManifestRead
+                | Self::AgentRunRead
         )
     }
 
@@ -313,6 +341,19 @@ impl Capability {
             Self::ApprovalDecide,
             Self::ApprovalWithdraw,
             Self::ActivityRead,
+            Self::AgentIdentityRegister,
+            Self::AgentIdentityRead,
+            Self::AgentIdentityRevoke,
+            Self::ContextManifestCreate,
+            Self::ContextManifestRead,
+            Self::AgentRunCreate,
+            Self::AgentRunRead,
+            Self::AgentRunStart,
+            Self::AgentRunCancel,
+            Self::AgentToolInvoke,
+            Self::AgentRunExecute,
+            Self::AgentRunComplete,
+            Self::AgentRunFail,
         ]
     }
 }
@@ -844,6 +885,91 @@ pub enum RequestBody {
         limit: Option<u32>,
         after_seq: Option<u64>,
     },
+    // Spec 077: MedAgent Workbench. Every mutation flows through Core
+    // authority paths; surfaces never write medagent storage directly.
+    // T077-03 slice only (AgentIdentity + AgentCapabilityManifest);
+    // ContextManifest/AgentRun/tool/receipt/proposal land in later slices.
+    AgentIdentityRegister {
+        project_id: OpaqueId,
+        pack_id: OpaqueId,
+        display_name: String,
+        granted_tool_kinds: Vec<ToolKind>,
+    },
+    AgentIdentityGet {
+        agent_id: OpaqueId,
+    },
+    AgentIdentityList {
+        project_id: OpaqueId,
+        limit: Option<u32>,
+    },
+    AgentIdentityRevoke {
+        agent_id: OpaqueId,
+        expected_revision: u64,
+    },
+    // Spec 077 T077-04 slice.
+    ContextManifestCreate {
+        project_id: OpaqueId,
+        selected_artifacts: Vec<ArtifactDescriptor>,
+    },
+    ContextManifestGet {
+        context_id: OpaqueId,
+    },
+    // Spec 077 T077-05 slice.
+    AgentRunCreate {
+        project_id: OpaqueId,
+        agent_identity_id: OpaqueId,
+        context_manifest_id: OpaqueId,
+        prompt: String,
+    },
+    AgentRunGet {
+        run_id: OpaqueId,
+    },
+    AgentRunList {
+        project_id: OpaqueId,
+        agent_id: Option<OpaqueId>,
+        status: Option<AgentRunState>,
+        limit: Option<u32>,
+    },
+    AgentRunStart {
+        run_id: OpaqueId,
+        expected_revision: u64,
+    },
+    AgentRunCancel {
+        run_id: OpaqueId,
+        expected_revision: u64,
+    },
+    AgentRunTurnList {
+        run_id: OpaqueId,
+    },
+    // Spec 077 T077-06 slice.
+    AgentToolInvoke {
+        run_id: OpaqueId,
+        kind: ToolKind,
+        arguments: Value,
+    },
+    // Spec 077 T077-07 slice.
+    AgentRunExecute {
+        run_id: OpaqueId,
+        /// Local pack directory path; never persisted (`PackManifestV0` is
+        /// purely content-addressed), so it is caller-supplied on every
+        /// call, exactly like `PacksEvaluateLocal`.
+        local_path: String,
+        max_tokens: u32,
+        /// Mirrors `PackEvaluationRequest.synthetic_only`: real PHI
+        /// flowing through this local model runtime requires a later,
+        /// explicit gate this spec does not grant.
+        synthetic_only: bool,
+    },
+    // Spec 077 T077-08 slice.
+    AgentRunComplete {
+        run_id: OpaqueId,
+        expected_revision: u64,
+    },
+    AgentRunFail {
+        run_id: OpaqueId,
+        expected_revision: u64,
+        failure_reason: String,
+    },
 }
 
 impl RequestBody {
@@ -1154,6 +1280,51 @@ pub enum ResponseBody {
     },
     CollabActivityList {
         records: Vec<ActivityRecord>,
+    },
+    // Spec 077: MedAgent Workbench typed results. T077-03 slice only.
+    MedAgentIdentity {
+        identity: Box<AgentIdentity>,
+        capabilities: Box<AgentCapabilityManifest>,
+    },
+    MedAgentIdentityList {
+        identities: Vec<AgentIdentity>,
+    },
+    MedAgentContextManifest {
+        manifest: Box<ContextManifest>,
+        /// Live-recomputed, never cached (`migration.md` section 4); same
+        /// order as `manifest.selected_artifacts`.
+        resolutions: Vec<ReferenceResolution>,
+    },
+    MedAgentRun {
+        run: Box<AgentRun>,
+    },
+    MedAgentRunList {
+        runs: Vec<AgentRun>,
+    },
+    /// `start_agent_run`'s result: the now-`Running` run plus its
+    /// auto-appended initial `PromptSubmitted` turn.
+    MedAgentRunStarted {
+        run: Box<AgentRun>,
+        turn: Box<AgentTurn>,
+    },
+    /// A terminal transition's result: the run plus its committed
+    /// `RunReceipt`.
+    MedAgentRunTerminal {
+        run: Box<AgentRun>,
+        receipt: Box<RunReceipt>,
+    },
+    MedAgentTurnList {
+        turns: Vec<AgentTurn>,
+    },
+    /// `receipt` is `None` for a `Refused` invocation, `Some` for
+    /// `Executed`.
+    MedAgentToolInvocation {
+        invocation: Box<ToolInvocation>,
+        receipt: Option<Box<ToolReceipt>>,
+    },
+    MedAgentRunExecuted {
+        turn: Box<AgentTurn>,
+        proposal: Box<AgentProposal>,
     },
 }
 

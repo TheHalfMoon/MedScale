@@ -11,6 +11,7 @@ mod facade;
 mod handles;
 mod identity;
 mod ingest_ops;
+mod medagent;
 mod presentation;
 mod project_graph;
 mod promote;

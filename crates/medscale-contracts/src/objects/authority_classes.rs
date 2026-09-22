@@ -12,6 +12,12 @@ pub enum ProducerKind {
     Human,
     Rule,
     WorkerStub,
+    /// A Spec 077 `AgentIdentity` (by id) produced this proposal. Added
+    /// additively for MedAgent Workbench; carries no clinical/research
+    /// authority beyond any other `Proposal`, and this variant alone never
+    /// implies promotion to `ClinicalAssertion` (`security.md` T1 in
+    /// `specs/077-medagent-workbench/`).
+    Agent(OpaqueId),
     Other(String),
 }
 

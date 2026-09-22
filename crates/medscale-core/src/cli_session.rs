@@ -1348,6 +1348,449 @@ impl CliSession {
         Self::expect_participant(resp)
     }
 
+    // ---------------------------------------------------------------------
+    // Spec 077: MedAgent Workbench (T077-03 slice)
+    // ---------------------------------------------------------------------
+
+    /// Registers a new `AgentIdentity` bound to `pack_id` (must already be
+    /// admitted locally; a non-admitted pack fails closed).
+    pub fn medagent_identity_register(
+        &mut self,
+        project_id: OpaqueId,
+        pack_id: OpaqueId,
+        display_name: String,
+        granted_tool_kinds: Vec<medscale_contracts::medagent::ToolKind>,
+    ) -> Result<
+        (
+            medscale_contracts::medagent::AgentIdentity,
+            medscale_contracts::medagent::AgentCapabilityManifest,
+        ),
+        AuthorityError,
+    > {
+        let resp = self.dispatch(
+            Capability::AgentIdentityRegister,
+            RequestBody::AgentIdentityRegister {
+                project_id,
+                pack_id,
+                display_name,
+                granted_tool_kinds,
+            },
+        )?;
+        Self::expect_medagent_identity(resp)
+    }
+
+    /// Reads one agent identity + its capability manifest through Core.
+    pub fn medagent_identity_get(
+        &mut self,
+        agent_id: OpaqueId,
+    ) -> Result<
+        (
+            medscale_contracts::medagent::AgentIdentity,
+            medscale_contracts::medagent::AgentCapabilityManifest,
+        ),
+        AuthorityError,
+    > {
+        let resp = self.dispatch(
+            Capability::AgentIdentityRead,
+            RequestBody::AgentIdentityGet { agent_id },
+        )?;
+        Self::expect_medagent_identity(resp)
+    }
+
+    /// Lists agent identities in one Project.
+    pub fn medagent_identity_list(
+        &mut self,
+        project_id: OpaqueId,
+        limit: Option<u32>,
+    ) -> Result<Vec<medscale_contracts::medagent::AgentIdentity>, AuthorityError> {
+        let resp = self.dispatch(
+            Capability::AgentIdentityRead,
+            RequestBody::AgentIdentityList { project_id, limit },
+        )?;
+        let ResponseBody::MedAgentIdentityList { identities } = resp else {
+            return Err(AuthorityError::InvalidArgument {
+                message: "expected medagent identity list".to_owned(),
+            });
+        };
+        Ok(identities)
+    }
+
+    /// Revokes an agent identity (status only).
+    pub fn medagent_identity_revoke(
+        &mut self,
+        agent_id: OpaqueId,
+        expected_revision: u64,
+    ) -> Result<
+        (
+            medscale_contracts::medagent::AgentIdentity,
+            medscale_contracts::medagent::AgentCapabilityManifest,
+        ),
+        AuthorityError,
+    > {
+        let resp = self.dispatch(
+            Capability::AgentIdentityRevoke,
+            RequestBody::AgentIdentityRevoke {
+                agent_id,
+                expected_revision,
+            },
+        )?;
+        Self::expect_medagent_identity(resp)
+    }
+
+    /// Creates a new `ContextManifest` from an explicit artifact list.
+    pub fn medagent_context_create(
+        &mut self,
+        project_id: OpaqueId,
+        selected_artifacts: Vec<medscale_contracts::project_graph::ArtifactDescriptor>,
+    ) -> Result<
+        (
+            medscale_contracts::medagent::ContextManifest,
+            Vec<medscale_contracts::project_graph::ReferenceResolution>,
+        ),
+        AuthorityError,
+    > {
+        let resp = self.dispatch(
+            Capability::ContextManifestCreate,
+            RequestBody::ContextManifestCreate {
+                project_id,
+                selected_artifacts,
+            },
+        )?;
+        Self::expect_medagent_context(resp)
+    }
+
+    /// Reads one `ContextManifest`, with every selected artifact's
+    /// `ReferenceResolution` recomputed live.
+    pub fn medagent_context_get(
+        &mut self,
+        context_id: OpaqueId,
+    ) -> Result<
+        (
+            medscale_contracts::medagent::ContextManifest,
+            Vec<medscale_contracts::project_graph::ReferenceResolution>,
+        ),
+        AuthorityError,
+    > {
+        let resp = self.dispatch(
+            Capability::ContextManifestRead,
+            RequestBody::ContextManifestGet { context_id },
+        )?;
+        Self::expect_medagent_context(resp)
+    }
+
+    fn expect_medagent_context(
+        resp: ResponseBody,
+    ) -> Result<
+        (
+            medscale_contracts::medagent::ContextManifest,
+            Vec<medscale_contracts::project_graph::ReferenceResolution>,
+        ),
+        AuthorityError,
+    > {
+        let ResponseBody::MedAgentContextManifest {
+            manifest,
+            resolutions,
+        } = resp
+        else {
+            return Err(AuthorityError::InvalidArgument {
+                message: "expected medagent context manifest".to_owned(),
+            });
+        };
+        Ok((*manifest, resolutions))
+    }
+
+    /// Creates a new `Pending` `AgentRun`.
+    pub fn medagent_run_create(
+        &mut self,
+        project_id: OpaqueId,
+        agent_identity_id: OpaqueId,
+        context_manifest_id: OpaqueId,
+        prompt: String,
+    ) -> Result<medscale_contracts::medagent::AgentRun, AuthorityError> {
+        let resp = self.dispatch(
+            Capability::AgentRunCreate,
+            RequestBody::AgentRunCreate {
+                project_id,
+                agent_identity_id,
+                context_manifest_id,
+                prompt,
+            },
+        )?;
+        Self::expect_medagent_run(resp)
+    }
+
+    /// Reads one `AgentRun`.
+    pub fn medagent_run_get(
+        &mut self,
+        run_id: OpaqueId,
+    ) -> Result<medscale_contracts::medagent::AgentRun, AuthorityError> {
+        let resp = self.dispatch(
+            Capability::AgentRunRead,
+            RequestBody::AgentRunGet { run_id },
+        )?;
+        Self::expect_medagent_run(resp)
+    }
+
+    /// Lists runs in one Project, optionally filtered by agent identity.
+    pub fn medagent_run_list(
+        &mut self,
+        project_id: OpaqueId,
+        agent_id: Option<OpaqueId>,
+        status: Option<medscale_contracts::medagent::AgentRunState>,
+        limit: Option<u32>,
+    ) -> Result<Vec<medscale_contracts::medagent::AgentRun>, AuthorityError> {
+        let resp = self.dispatch(
+            Capability::AgentRunRead,
+            RequestBody::AgentRunList {
+                project_id,
+                agent_id,
+                status,
+                limit,
+            },
+        )?;
+        let ResponseBody::MedAgentRunList { runs } = resp else {
+            return Err(AuthorityError::InvalidArgument {
+                message: "expected medagent run list".to_owned(),
+            });
+        };
+        Ok(runs)
+    }
+
+    /// Starts a `Pending` run (`Pending -> Running`), returning the run
+    /// plus its auto-appended initial `PromptSubmitted` turn.
+    pub fn medagent_run_start(
+        &mut self,
+        run_id: OpaqueId,
+        expected_revision: u64,
+    ) -> Result<
+        (
+            medscale_contracts::medagent::AgentRun,
+            medscale_contracts::medagent::AgentTurn,
+        ),
+        AuthorityError,
+    > {
+        let resp = self.dispatch(
+            Capability::AgentRunStart,
+            RequestBody::AgentRunStart {
+                run_id,
+                expected_revision,
+            },
+        )?;
+        let ResponseBody::MedAgentRunStarted { run, turn } = resp else {
+            return Err(AuthorityError::InvalidArgument {
+                message: "expected medagent run started".to_owned(),
+            });
+        };
+        Ok((*run, *turn))
+    }
+
+    /// Cancels a `Pending` or `Running` run, returning it plus its
+    /// committed `RunReceipt`.
+    pub fn medagent_run_cancel(
+        &mut self,
+        run_id: OpaqueId,
+        expected_revision: u64,
+    ) -> Result<
+        (
+            medscale_contracts::medagent::AgentRun,
+            medscale_contracts::medagent::RunReceipt,
+        ),
+        AuthorityError,
+    > {
+        let resp = self.dispatch(
+            Capability::AgentRunCancel,
+            RequestBody::AgentRunCancel {
+                run_id,
+                expected_revision,
+            },
+        )?;
+        let ResponseBody::MedAgentRunTerminal { run, receipt } = resp else {
+            return Err(AuthorityError::InvalidArgument {
+                message: "expected medagent run terminal".to_owned(),
+            });
+        };
+        Ok((*run, *receipt))
+    }
+
+    /// Marks a `Running` run `Completed`.
+    pub fn medagent_run_complete(
+        &mut self,
+        run_id: OpaqueId,
+        expected_revision: u64,
+    ) -> Result<
+        (
+            medscale_contracts::medagent::AgentRun,
+            medscale_contracts::medagent::RunReceipt,
+        ),
+        AuthorityError,
+    > {
+        let resp = self.dispatch(
+            Capability::AgentRunComplete,
+            RequestBody::AgentRunComplete {
+                run_id,
+                expected_revision,
+            },
+        )?;
+        Self::expect_medagent_run_terminal(resp)
+    }
+
+    /// Marks a `Running` run `Failed` with a bounded, human-readable
+    /// reason.
+    pub fn medagent_run_fail(
+        &mut self,
+        run_id: OpaqueId,
+        expected_revision: u64,
+        failure_reason: String,
+    ) -> Result<
+        (
+            medscale_contracts::medagent::AgentRun,
+            medscale_contracts::medagent::RunReceipt,
+        ),
+        AuthorityError,
+    > {
+        let resp = self.dispatch(
+            Capability::AgentRunFail,
+            RequestBody::AgentRunFail {
+                run_id,
+                expected_revision,
+                failure_reason,
+            },
+        )?;
+        Self::expect_medagent_run_terminal(resp)
+    }
+
+    fn expect_medagent_run_terminal(
+        resp: ResponseBody,
+    ) -> Result<
+        (
+            medscale_contracts::medagent::AgentRun,
+            medscale_contracts::medagent::RunReceipt,
+        ),
+        AuthorityError,
+    > {
+        let ResponseBody::MedAgentRunTerminal { run, receipt } = resp else {
+            return Err(AuthorityError::InvalidArgument {
+                message: "expected medagent run terminal".to_owned(),
+            });
+        };
+        Ok((*run, *receipt))
+    }
+
+    /// Lists a run's turns in `seq` order.
+    pub fn medagent_run_turns(
+        &mut self,
+        run_id: OpaqueId,
+    ) -> Result<Vec<medscale_contracts::medagent::AgentTurn>, AuthorityError> {
+        let resp = self.dispatch(
+            Capability::AgentRunRead,
+            RequestBody::AgentRunTurnList { run_id },
+        )?;
+        let ResponseBody::MedAgentTurnList { turns } = resp else {
+            return Err(AuthorityError::InvalidArgument {
+                message: "expected medagent turn list".to_owned(),
+            });
+        };
+        Ok(turns)
+    }
+
+    fn expect_medagent_run(
+        resp: ResponseBody,
+    ) -> Result<medscale_contracts::medagent::AgentRun, AuthorityError> {
+        let ResponseBody::MedAgentRun { run } = resp else {
+            return Err(AuthorityError::InvalidArgument {
+                message: "expected medagent run".to_owned(),
+            });
+        };
+        Ok(*run)
+    }
+
+    /// Dispatches one typed tool invocation for a `Running` run.
+    pub fn medagent_tool_invoke(
+        &mut self,
+        run_id: OpaqueId,
+        kind: medscale_contracts::medagent::ToolKind,
+        arguments: serde_json::Value,
+    ) -> Result<
+        (
+            medscale_contracts::medagent::ToolInvocation,
+            Option<medscale_contracts::medagent::ToolReceipt>,
+        ),
+        AuthorityError,
+    > {
+        let resp = self.dispatch(
+            Capability::AgentToolInvoke,
+            RequestBody::AgentToolInvoke {
+                run_id,
+                kind,
+                arguments,
+            },
+        )?;
+        let ResponseBody::MedAgentToolInvocation {
+            invocation,
+            receipt,
+        } = resp
+        else {
+            return Err(AuthorityError::InvalidArgument {
+                message: "expected medagent tool invocation".to_owned(),
+            });
+        };
+        Ok((*invocation, receipt.map(|r| *r)))
+    }
+
+    /// Runs a `Running` run's prompt through its bound admitted local
+    /// model Pack (zero network) and persists the result as an
+    /// `AgentProposal`.
+    pub fn medagent_run_execute(
+        &mut self,
+        run_id: OpaqueId,
+        local_path: String,
+        max_tokens: u32,
+        synthetic_only: bool,
+    ) -> Result<
+        (
+            medscale_contracts::medagent::AgentTurn,
+            medscale_contracts::medagent::AgentProposal,
+        ),
+        AuthorityError,
+    > {
+        let resp = self.dispatch(
+            Capability::AgentRunExecute,
+            RequestBody::AgentRunExecute {
+                run_id,
+                local_path,
+                max_tokens,
+                synthetic_only,
+            },
+        )?;
+        let ResponseBody::MedAgentRunExecuted { turn, proposal } = resp else {
+            return Err(AuthorityError::InvalidArgument {
+                message: "expected medagent run executed".to_owned(),
+            });
+        };
+        Ok((*turn, *proposal))
+    }
+
+    fn expect_medagent_identity(
+        resp: ResponseBody,
+    ) -> Result<
+        (
+            medscale_contracts::medagent::AgentIdentity,
+            medscale_contracts::medagent::AgentCapabilityManifest,
+        ),
+        AuthorityError,
+    > {
+        let ResponseBody::MedAgentIdentity {
+            identity,
+            capabilities,
+        } = resp
+        else {
+            return Err(AuthorityError::InvalidArgument {
+                message: "expected medagent identity".to_owned(),
+            });
+        };
+        Ok((*identity, *capabilities))
+    }
+
     fn expect_participant(
         resp: ResponseBody,
     ) -> Result<medscale_contracts::collaboration::ParticipantIdentity, AuthorityError> {

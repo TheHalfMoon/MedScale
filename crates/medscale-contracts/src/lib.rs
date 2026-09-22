@@ -12,6 +12,7 @@ pub mod fhir;
 pub mod fixture_ui;
 pub mod ingest;
 pub mod legal;
+pub mod medagent;
 pub mod mesc;
 pub mod mobile;
 pub mod network;

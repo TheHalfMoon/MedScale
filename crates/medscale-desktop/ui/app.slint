@@ -188,6 +188,19 @@ export struct TaskRowItem {
     revision: string,
 }
 
+export struct AgentRunRowItem {
+    id: string,
+    status: string,
+    revision: string,
+    prompt: string,
+}
+
+export struct AgentTurnRowItem {
+    seq: string,
+    kind: string,
+    payload: string,
+}
+
 export component AppWindow inherits Window {
     title: "MedScale";
     preferred-width: 1440px;
@@ -294,6 +307,14 @@ export component AppWindow inherits Window {
     in-out property <string> collab-message-input: "";
     in property <[TaskRowItem]> collab-tasks;
     in-out property <string> collab-task-title-input: "";
+    in-out property <string> medagent-status: "Runs not loaded";
+    in property <[AgentRunRowItem]> medagent-runs;
+    in-out property <string> medagent-agent-id-input: "";
+    in-out property <string> medagent-context-id-input: "";
+    in-out property <string> medagent-prompt-input: "";
+    in-out property <string> medagent-active-run-id: "";
+    in-out property <string> medagent-active-run-revision: "";
+    in property <[AgentTurnRowItem]> medagent-turns;
     callback ui-action(string);
 
     forward-focus: global-keys;
@@ -422,6 +443,7 @@ export component AppWindow inherits Window {
                     NavItem { label: "Tasks"; selected: root.active-route == "Tasks"; activated => { root.active-route = "Tasks"; } }
                     NavItem { label: "Messages"; selected: root.active-route == "Messages"; activated => { root.active-route = "Messages"; } }
                     NavItem { label: "Collaboration"; selected: root.active-route == "Collaboration"; activated => { root.active-route = "Collaboration"; } }
+                    NavItem { label: "MedAgent"; selected: root.active-route == "MedAgent"; activated => { root.active-route = "MedAgent"; } }
 
                     Rectangle { height: 4px; background: transparent; }
                     Text { text: "GOVERNANCE"; color: Theme.ink-quiet; font-size: 11px; letter-spacing: 1.05px; }
@@ -528,7 +550,7 @@ export component AppWindow inherits Window {
                             VerticalLayout {
                                 spacing: 2px;
                                 Text { text: root.active-route == "Home" ? "Clinical Workspace" : root.active-route == "Patients" ? root.patient-name : root.active-route; color: Theme.ink; font-size: 28px; font-weight: 720; letter-spacing: -0.4px; }
-                                Text { text: root.active-route == "Home" ? "Trusted local clinical intelligence · evidence before authority" : root.active-route == "Patients" ? "Trusted longitudinal workspace · Synthetic demo" : root.active-route == "Insights" ? "Evidence-aware population view · Synthetic demo" : root.active-route == "Models" ? "Local model fabric · provenance, runtime and benchmark state" : root.active-route == "Evidence" ? "Pinned OpenMed evidence · measured claims only · limitations explicit" : root.active-route == "Workflows" ? "Review-first controlled-action studio · Synthetic demo" : root.active-route == "Tasks" ? "Derived outbox review queue · No second task authority" : root.active-route == "Messages" ? "Local review previews · No external transport claim" : root.active-route == "Documents" ? "Bounded document intake posture · Custody is not understanding" : root.active-route == "Projects" ? "Project and artifact organization · Core-backed references, never payload copies" : root.active-route == "Data" ? "Governed datasets · immutable snapshots, saved views and deterministic transforms" : root.active-route == "Collaboration" ? "Local-first rooms, threads and tasks · Core-backed, membership-gated" : root.active-route == "Audit Trail" ? "Synthetic disclosure history · Core Host remains canonical" : root.active-route == "Exports" ? "Loss-aware FHIR support · No full conformance claim" : root.active-route == "Settings" ? "Doctor truth and evidence-gated readiness" : root.active-route == "Integrations" ? "Brokered integration posture · Default deny" : root.active-route == "About" ? "Native product and attribution details" : "Unrecognized route"; color: Theme.ink-subtle; font-size: 13px; }
+                                Text { text: root.active-route == "Home" ? "Trusted local clinical intelligence · evidence before authority" : root.active-route == "Patients" ? "Trusted longitudinal workspace · Synthetic demo" : root.active-route == "Insights" ? "Evidence-aware population view · Synthetic demo" : root.active-route == "Models" ? "Local model fabric · provenance, runtime and benchmark state" : root.active-route == "Evidence" ? "Pinned OpenMed evidence · measured claims only · limitations explicit" : root.active-route == "Workflows" ? "Review-first controlled-action studio · Synthetic demo" : root.active-route == "Tasks" ? "Derived outbox review queue · No second task authority" : root.active-route == "Messages" ? "Local review previews · No external transport claim" : root.active-route == "Documents" ? "Bounded document intake posture · Custody is not understanding" : root.active-route == "Projects" ? "Project and artifact organization · Core-backed references, never payload copies" : root.active-route == "Data" ? "Governed datasets · immutable snapshots, saved views and deterministic transforms" : root.active-route == "Collaboration" ? "Local-first rooms, threads and tasks · Core-backed, membership-gated" : root.active-route == "MedAgent" ? "Governed agent runs · bound context, typed tools, evidence-only proposals" : root.active-route == "Audit Trail" ? "Synthetic disclosure history · Core Host remains canonical" : root.active-route == "Exports" ? "Loss-aware FHIR support · No full conformance claim" : root.active-route == "Settings" ? "Doctor truth and evidence-gated readiness" : root.active-route == "Integrations" ? "Brokered integration posture · Default deny" : root.active-route == "About" ? "Native product and attribution details" : "Unrecognized route"; color: Theme.ink-subtle; font-size: 13px; }
                             }
                             Rectangle { horizontal-stretch: 1; background: transparent; }
                             if root.active-route == "Home": Text {
@@ -971,6 +993,84 @@ export component AppWindow inherits Window {
                                         }
                                         StatusPill { label: item.status; accent: item.status == "Done" ? Theme.success : item.status == "Cancelled" ? Theme.danger : Theme.warning; }
                                         QuickAction { width: 100px; title: "Complete"; subtitle: "Mark done"; glyph: ""; accent: Theme.signal; activated => { root.ui-action("collab-task-complete:" + item.id + ":" + item.revision); } }
+                                    }
+                                }
+                            }
+                        }
+
+                        if root.active-route == "MedAgent": VerticalLayout {
+                            spacing: 14px;
+                            HonestyPanel { title: "MedAgent authority boundary"; body: "A run may only read what its bound ContextManifest names · tool dispatch is refused before execution when ungranted · output is always an evidence-only AgentProposal, never a ClinicalAssertion or canonical effect"; accent: Theme.success; }
+
+                            Rectangle {
+                                min-height: 96px;
+                                border-radius: Theme.radius-compact;
+                                border-width: 1px;
+                                border-color: Theme.border;
+                                background: Theme.surface;
+                                accessible-role: groupbox;
+                                accessible-label: "Runs. " + root.medagent-status;
+                                VerticalLayout {
+                                    padding-left: 10px;
+                                    padding-right: 10px;
+                                    padding-top: 8px;
+                                    padding-bottom: 8px;
+                                    spacing: 6px;
+                                    Text { text: "New run follows the active project"; color: Theme.ink; font-size: 12px; font-weight: 680; }
+                                    Text { text: root.medagent-status; color: Theme.ink-quiet; font-size: 11px; wrap: word-wrap; }
+                                    HorizontalLayout {
+                                        spacing: 8px;
+                                        AdaptiveLineEdit { horizontal-stretch: 1; text <=> root.medagent-agent-id-input; placeholder: "Agent identity id"; accessible-name: "Agent identity id"; }
+                                        AdaptiveLineEdit { horizontal-stretch: 1; text <=> root.medagent-context-id-input; placeholder: "Context manifest id"; accessible-name: "Context manifest id"; }
+                                    }
+                                    HorizontalLayout {
+                                        spacing: 8px;
+                                        AdaptiveLineEdit { horizontal-stretch: 1; text <=> root.medagent-prompt-input; placeholder: "Prompt"; accessible-name: "Run prompt"; }
+                                        ToolbarAction { label: "Create + start"; activated => { root.ui-action("medagent-run-create-start"); } }
+                                        ToolbarAction { label: "Refresh"; activated => { root.ui-action("medagent-runs-refresh"); } }
+                                    }
+                                }
+                            }
+
+                            Text { text: "Runs"; color: Theme.ink; font-size: 14px; font-weight: 680; }
+                            for item in root.medagent-runs: Rectangle {
+                                min-height: 56px;
+                                border-width: 1px;
+                                border-color: Theme.border;
+                                background: Theme.surface;
+                                accessible-role: groupbox;
+                                accessible-label: "Run " + item.id + ", " + item.status + ", revision " + item.revision;
+                                HorizontalLayout {
+                                    padding-left: 10px;
+                                    padding-right: 10px;
+                                    spacing: 12px;
+                                    VerticalLayout { horizontal-stretch: 1; alignment: center; spacing: 2px;
+                                        Text { text: item.prompt; color: Theme.ink; font-size: 12px; font-weight: 680; wrap: word-wrap; }
+                                        Text { text: item.id + " · rev " + item.revision; color: Theme.ink-quiet; font-size: 11px; }
+                                    }
+                                    StatusPill { label: item.status; accent: item.status == "completed" ? Theme.success : item.status == "cancelled" || item.status == "failed" ? Theme.danger : Theme.warning; }
+                                    QuickAction { width: 100px; title: "Open"; subtitle: "Turns"; glyph: ""; accent: Theme.signal; activated => { root.ui-action("medagent-run-select:" + item.id + ":" + item.revision); } }
+                                    if item.status == "pending" || item.status == "running": QuickAction { width: 100px; title: "Cancel"; subtitle: "Interrupt"; glyph: ""; accent: Theme.danger; activated => { root.ui-action("medagent-run-cancel:" + item.id + ":" + item.revision); } }
+                                }
+                            }
+
+                            if root.medagent-active-run-id != "": VerticalLayout {
+                                spacing: 8px;
+                                Text { text: "Turns · " + root.medagent-active-run-id; color: Theme.ink; font-size: 14px; font-weight: 680; }
+                                for item in root.medagent-turns: Rectangle {
+                                    min-height: 40px;
+                                    border-width: 1px;
+                                    border-color: Theme.border;
+                                    background: Theme.surface;
+                                    accessible-role: text;
+                                    accessible-label: "Turn " + item.seq + ", " + item.kind;
+                                    HorizontalLayout {
+                                        padding-left: 10px;
+                                        padding-right: 10px;
+                                        spacing: 8px;
+                                        Text { width: 40px; text: item.seq; color: Theme.ink-subtle; font-size: 11px; }
+                                        Text { width: 120px; text: item.kind; color: Theme.ink-subtle; font-size: 11px; }
+                                        Text { horizontal-stretch: 1; text: item.payload; color: Theme.ink; font-size: 11px; wrap: word-wrap; }
                                     }
                                 }
                             }
