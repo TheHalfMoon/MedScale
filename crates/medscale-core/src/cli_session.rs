@@ -1348,6 +1348,116 @@ impl CliSession {
         Self::expect_participant(resp)
     }
 
+    // ---------------------------------------------------------------------
+    // Spec 077: MedAgent Workbench (T077-03 slice)
+    // ---------------------------------------------------------------------
+
+    /// Registers a new `AgentIdentity` bound to `pack_id` (must already be
+    /// admitted locally; a non-admitted pack fails closed).
+    pub fn medagent_identity_register(
+        &mut self,
+        project_id: OpaqueId,
+        pack_id: OpaqueId,
+        display_name: String,
+        granted_tool_kinds: Vec<medscale_contracts::medagent::ToolKind>,
+    ) -> Result<
+        (
+            medscale_contracts::medagent::AgentIdentity,
+            medscale_contracts::medagent::AgentCapabilityManifest,
+        ),
+        AuthorityError,
+    > {
+        let resp = self.dispatch(
+            Capability::AgentIdentityRegister,
+            RequestBody::AgentIdentityRegister {
+                project_id,
+                pack_id,
+                display_name,
+                granted_tool_kinds,
+            },
+        )?;
+        Self::expect_medagent_identity(resp)
+    }
+
+    /// Reads one agent identity + its capability manifest through Core.
+    pub fn medagent_identity_get(
+        &mut self,
+        agent_id: OpaqueId,
+    ) -> Result<
+        (
+            medscale_contracts::medagent::AgentIdentity,
+            medscale_contracts::medagent::AgentCapabilityManifest,
+        ),
+        AuthorityError,
+    > {
+        let resp = self.dispatch(
+            Capability::AgentIdentityRead,
+            RequestBody::AgentIdentityGet { agent_id },
+        )?;
+        Self::expect_medagent_identity(resp)
+    }
+
+    /// Lists agent identities in one Project.
+    pub fn medagent_identity_list(
+        &mut self,
+        project_id: OpaqueId,
+        limit: Option<u32>,
+    ) -> Result<Vec<medscale_contracts::medagent::AgentIdentity>, AuthorityError> {
+        let resp = self.dispatch(
+            Capability::AgentIdentityRead,
+            RequestBody::AgentIdentityList { project_id, limit },
+        )?;
+        let ResponseBody::MedAgentIdentityList { identities } = resp else {
+            return Err(AuthorityError::InvalidArgument {
+                message: "expected medagent identity list".to_owned(),
+            });
+        };
+        Ok(identities)
+    }
+
+    /// Revokes an agent identity (status only).
+    pub fn medagent_identity_revoke(
+        &mut self,
+        agent_id: OpaqueId,
+        expected_revision: u64,
+    ) -> Result<
+        (
+            medscale_contracts::medagent::AgentIdentity,
+            medscale_contracts::medagent::AgentCapabilityManifest,
+        ),
+        AuthorityError,
+    > {
+        let resp = self.dispatch(
+            Capability::AgentIdentityRevoke,
+            RequestBody::AgentIdentityRevoke {
+                agent_id,
+                expected_revision,
+            },
+        )?;
+        Self::expect_medagent_identity(resp)
+    }
+
+    fn expect_medagent_identity(
+        resp: ResponseBody,
+    ) -> Result<
+        (
+            medscale_contracts::medagent::AgentIdentity,
+            medscale_contracts::medagent::AgentCapabilityManifest,
+        ),
+        AuthorityError,
+    > {
+        let ResponseBody::MedAgentIdentity {
+            identity,
+            capabilities,
+        } = resp
+        else {
+            return Err(AuthorityError::InvalidArgument {
+                message: "expected medagent identity".to_owned(),
+            });
+        };
+        Ok((*identity, *capabilities))
+    }
+
     fn expect_participant(
         resp: ResponseBody,
     ) -> Result<medscale_contracts::collaboration::ParticipantIdentity, AuthorityError> {

@@ -100,16 +100,34 @@ mutation path unchanged. See `evidence/077-medagent-workbench/T077-02_GAP_CLOSUR
 
 ## T077-03 — AgentIdentity + capability manifest
 
-- [ ] Implement agent identity registration (bound to one admitted local
+- [x] Implement agent identity registration (bound to one admitted local
       model Pack), get/list, revoke.
-- [ ] Implement `AgentCapabilityManifest` as immutable-once-set.
-- [ ] Wire 077 `Capability`/`RequestBody`/`ResponseBody` variants into
+- [x] Implement `AgentCapabilityManifest` as immutable-once-set.
+- [x] Wire 077 `Capability`/`RequestBody`/`ResponseBody` variants into
       `envelopes/mod.rs`, plus a `medagent()` facade helper and dispatch
       arms in `facade.rs` (mirrors the `pg`/`ds`/`collab` pattern exactly).
-- [ ] CLI inspect for agent identity.
+- [x] CLI inspect for agent identity.
 
 **Acceptance:** identity vertical slice complete and CI-green; reopen
 durability proven; registration against a non-admitted Pack is refused.
+
+**Implemented (this session):** `Capability::AgentIdentityRegister/Read/
+Revoke` + matching `RequestBody`/`ResponseBody` variants in
+`envelopes/mod.rs`; `crates/medscale-core/src/authority/medagent.rs`
+(`MedAgent` struct, mirrors `Collab`'s exact pattern, including the same
+scope-level `ActionAuditRecord` audit-trail convention); a `medagent()`
+facade helper + 4 dispatch arms + `capability_matches` pairs in
+`facade.rs`; `CliSession::medagent_identity_{register,get,list,revoke}` in
+`cli_session.rs`; a full `medagent identity {register,show,list,revoke}`
+CLI vertical slice in `crates/medscale-cli/src/medagent.rs` wired into
+`main.rs`. `pack_version` is Core-derived from the admitted
+`PackManifestV0`, never caller-supplied (contracts.md T077-03 decision
+note). Tests: `crates/medscale-core/tests/medagent_077.rs` (4 tests) --
+full register/get/list/revoke roundtrip through real `CoreFacade::dispatch`
+using the Spec 008 fixture pack, non-admitted-pack registration refusal
+(`security.md` T5), capability-manifest immutability +
+project-scoping proof, and vault-reopen durability. See
+`evidence/077-medagent-workbench/T077-03_IMPLEMENTATION.md`.
 
 ## T077-04 — ContextManifest
 

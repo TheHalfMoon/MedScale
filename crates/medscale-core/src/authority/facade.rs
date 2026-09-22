@@ -230,6 +230,47 @@ impl CoreFacade {
         })
     }
 
+    /// Runs one Spec 077 MedAgent Workbench operation with lease enforcement
+    /// and vault-meta/pack-store access (synthetic or encrypted). Surfaces
+    /// never touch storage: this is the only path from request to medagent
+    /// rows.
+    fn medagent<R>(
+        &self,
+        vault_id: &medscale_contracts::objects::VaultId,
+        realm: medscale_contracts::objects::RealmId,
+        scope: medscale_contracts::objects::AuthorityScopeId,
+        session_id: Option<medscale_contracts::objects::OpaqueId>,
+        op: impl FnOnce(super::medagent::MedAgent<'_>) -> Result<R, AuthorityError>,
+    ) -> Result<R, AuthorityError> {
+        self.require_lease(vault_id)?;
+        // Lock order vault -> store matches the existing multi-lock arms and
+        // keeps no new lock ordering in the lane.
+        let vault_guard = self.vault();
+        let enc_guard = self.encrypted();
+        let meta = if let Some(enc) = enc_guard.as_ref() {
+            &enc.meta
+        } else if let Some(vault) = vault_guard.as_ref() {
+            &vault.meta
+        } else {
+            return Err(AuthorityError::VaultRequired);
+        };
+        let mut store = self.store();
+        let store_ref: &mut InMemoryAuthorityStore = &mut store;
+        let packs_guard = self.packs();
+        let packs_ref: &medscale_pack::PackStore = &packs_guard;
+        op(super::medagent::MedAgent {
+            store: store_ref,
+            meta,
+            packs: packs_ref,
+            sessions: &self.sessions,
+            leases: &self.leases,
+            vault_id,
+            realm,
+            scope,
+            session_id,
+        })
+    }
+
     fn allowlist(&self) -> std::sync::MutexGuard<'_, Vec<EgressAllowlistEntry>> {
         self.allowlist
             .lock()
@@ -2580,6 +2621,74 @@ impl CoreFacade {
                 )?;
                 Ok(ResponseBody::CollabActivityList { records })
             }
+            // Spec 077 MedAgent Workbench: every mutation flows through
+            // Core authority paths. Surfaces never write medagent storage
+            // directly. T077-03 slice only (AgentIdentity +
+            // AgentCapabilityManifest).
+            RequestBody::AgentIdentityRegister {
+                project_id,
+                pack_id,
+                display_name,
+                granted_tool_kinds,
+            } => {
+                let (identity, capabilities) = self.medagent(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut medagent| {
+                        medagent.register_agent_identity(
+                            project_id,
+                            pack_id,
+                            display_name,
+                            granted_tool_kinds,
+                        )
+                    },
+                )?;
+                Ok(ResponseBody::MedAgentIdentity {
+                    identity: Box::new(identity),
+                    capabilities: Box::new(capabilities),
+                })
+            }
+            RequestBody::AgentIdentityGet { agent_id } => {
+                let (identity, capabilities) = self.medagent(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |medagent| medagent.get_agent_identity(&agent_id),
+                )?;
+                Ok(ResponseBody::MedAgentIdentity {
+                    identity: Box::new(identity),
+                    capabilities: Box::new(capabilities),
+                })
+            }
+            RequestBody::AgentIdentityList { project_id, limit } => {
+                let identities = self.medagent(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |medagent| medagent.list_agent_identities(&project_id, limit.unwrap_or(100)),
+                )?;
+                Ok(ResponseBody::MedAgentIdentityList { identities })
+            }
+            RequestBody::AgentIdentityRevoke {
+                agent_id,
+                expected_revision,
+            } => {
+                let (identity, capabilities) = self.medagent(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut medagent| medagent.revoke_agent_identity(&agent_id, expected_revision),
+                )?;
+                Ok(ResponseBody::MedAgentIdentity {
+                    identity: Box::new(identity),
+                    capabilities: Box::new(capabilities),
+                })
+            }
         }
     }
 }
@@ -2938,6 +3047,22 @@ fn capability_matches(cap: &Capability, body: &RequestBody) -> bool {
                 RequestBody::ApprovalDecisionList { .. }
             )
             | (Capability::ActivityRead, RequestBody::ActivityList { .. })
+            | (
+                Capability::AgentIdentityRegister,
+                RequestBody::AgentIdentityRegister { .. }
+            )
+            | (
+                Capability::AgentIdentityRead,
+                RequestBody::AgentIdentityGet { .. }
+            )
+            | (
+                Capability::AgentIdentityRead,
+                RequestBody::AgentIdentityList { .. }
+            )
+            | (
+                Capability::AgentIdentityRevoke,
+                RequestBody::AgentIdentityRevoke { .. }
+            )
     )
 }
 

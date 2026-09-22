@@ -46,6 +46,16 @@ version it was registered against (no silent upgrade). A run against an
 identity whose captured version no longer matches the currently admitted
 Pack fails closed (T5, `security.md`).
 
+**T077-03 implementation decision:** `pack_version` is never accepted as
+caller input on `AgentIdentityRegister` -- the request carries only
+`pack_id`; Core (`MedAgent::register_agent_identity`) resolves the
+currently admitted `PackManifestV0` for that `pack_id` via
+`PackStore::get` and captures its real `version` field. A `pack_id` the
+local `PackStore` does not recognize (not admitted) fails closed with
+`InvalidArgument` before any row is written. This closes an otherwise
+open spoofing vector: a caller cannot claim a `pack_version` string that
+does not match what is actually admitted.
+
 ### `AgentCapabilityManifest`
 
 ```text

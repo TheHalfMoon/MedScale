@@ -348,11 +348,13 @@ fn revoke_and_run_transitions_are_stale_revision_safe() {
     ));
     meta.set_agent_run_running(&OpaqueId::new("run-1"), 1)
         .unwrap();
-    assert!(matches!(
-        meta.set_agent_run_running(&OpaqueId::new("run-1"), 1),
-        Err(MetaError::Conflict(_)),
+    assert!(
+        matches!(
+            meta.set_agent_run_running(&OpaqueId::new("run-1"), 1),
+            Err(MetaError::Conflict(_))
+        ),
         "double transition on a stale revision must not silently re-apply"
-    ));
+    );
 }
 
 #[test]

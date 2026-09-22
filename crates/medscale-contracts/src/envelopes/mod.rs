@@ -22,6 +22,7 @@ use crate::documents::{
 };
 use crate::evidence::{LexicalRetrieveRequest, LexicalRetrieveResult};
 use crate::ingest::{BackupManifest, IngestReceipt};
+use crate::medagent::{AgentCapabilityManifest, AgentIdentity, ToolKind};
 use crate::mesc::{MescArtifactAdmitRequest, MescArtifactVerifyRequest, MescVerifyReport};
 use crate::network::{EgressAllowlistEntry, NetworkBrokerRequest, NetworkBrokerResult};
 use crate::objects::{AmendmentKind, DigestSha256, EffectState, MedicalTime, OpaqueId, VaultId};
@@ -152,6 +153,12 @@ pub enum Capability {
     ApprovalDecide,
     ApprovalWithdraw,
     ActivityRead,
+    // Spec 077: MedAgent Workbench (T077-03 slice: AgentIdentity +
+    // AgentCapabilityManifest only; ContextManifest/AgentRun/tool/receipt/
+    // proposal capabilities land in later slices).
+    AgentIdentityRegister,
+    AgentIdentityRead,
+    AgentIdentityRevoke,
 }
 
 impl Capability {
@@ -198,6 +205,7 @@ impl Capability {
                 | Self::NoteRead
                 | Self::ApprovalRequestRead
                 | Self::ActivityRead
+                | Self::AgentIdentityRead
         )
     }
 
@@ -313,6 +321,9 @@ impl Capability {
             Self::ApprovalDecide,
             Self::ApprovalWithdraw,
             Self::ActivityRead,
+            Self::AgentIdentityRegister,
+            Self::AgentIdentityRead,
+            Self::AgentIdentityRevoke,
         ]
     }
 }
@@ -844,6 +855,27 @@ pub enum RequestBody {
         limit: Option<u32>,
         after_seq: Option<u64>,
     },
+    // Spec 077: MedAgent Workbench. Every mutation flows through Core
+    // authority paths; surfaces never write medagent storage directly.
+    // T077-03 slice only (AgentIdentity + AgentCapabilityManifest);
+    // ContextManifest/AgentRun/tool/receipt/proposal land in later slices.
+    AgentIdentityRegister {
+        project_id: OpaqueId,
+        pack_id: OpaqueId,
+        display_name: String,
+        granted_tool_kinds: Vec<ToolKind>,
+    },
+    AgentIdentityGet {
+        agent_id: OpaqueId,
+    },
+    AgentIdentityList {
+        project_id: OpaqueId,
+        limit: Option<u32>,
+    },
+    AgentIdentityRevoke {
+        agent_id: OpaqueId,
+        expected_revision: u64,
+    },
 }
 
 impl RequestBody {
@@ -1154,6 +1186,14 @@ pub enum ResponseBody {
     },
     CollabActivityList {
         records: Vec<ActivityRecord>,
+    },
+    // Spec 077: MedAgent Workbench typed results. T077-03 slice only.
+    MedAgentIdentity {
+        identity: Box<AgentIdentity>,
+        capabilities: Box<AgentCapabilityManifest>,
+    },
+    MedAgentIdentityList {
+        identities: Vec<AgentIdentity>,
     },
 }
 

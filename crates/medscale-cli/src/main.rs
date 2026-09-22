@@ -16,6 +16,7 @@ use serde::Serialize;
 
 mod collaboration;
 mod data_source;
+mod medagent;
 mod project;
 
 #[derive(Debug, Parser)]
