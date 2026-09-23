@@ -3274,4 +3274,284 @@ impl CliSession {
             _ => Err(Self::unexpected("browse session")),
         }
     }
+
+    // ---------------------------------------------------------------------
+    // Spec 081: AudioFlow Foundation
+    // ---------------------------------------------------------------------
+
+    /// Installs the labelled fixture speech engine (hermetic demos/tests).
+    /// It does not recognize speech; receipts say so.
+    pub fn use_fixture_asr(&mut self) {
+        self.facade
+            .set_asr_engine(Box::new(crate::authority::FixtureAsrEngine));
+    }
+
+    /// A synthetic WAV file (440 Hz tone and silence parts, never speech)
+    /// for fixtures and demos.
+    #[must_use]
+    pub fn synthetic_wav(
+        format: medscale_contracts::audio::PcmFormat,
+        parts: &[(u32, bool)],
+    ) -> Vec<u8> {
+        crate::authority::build_wav(format, &crate::authority::synthetic_pcm(format, parts))
+    }
+
+    /// Synthetic PCM frames (no WAV header) for scripted capture.
+    #[must_use]
+    pub fn synthetic_pcm(
+        format: medscale_contracts::audio::PcmFormat,
+        parts: &[(u32, bool)],
+    ) -> Vec<u8> {
+        crate::authority::synthetic_pcm(format, parts)
+    }
+
+    pub fn audio_import(
+        &mut self,
+        project_id: OpaqueId,
+        label: String,
+        wav: Vec<u8>,
+    ) -> Result<medscale_contracts::audio::AudioSource, AuthorityError> {
+        match self.dispatch(
+            Capability::AudioImport,
+            RequestBody::AudioImport {
+                project_id,
+                label,
+                wav,
+            },
+        )? {
+            ResponseBody::AudioSource { source } => Ok(*source),
+            _ => Err(Self::unexpected("audio source")),
+        }
+    }
+
+    pub fn audio_source_get(
+        &mut self,
+        source_id: OpaqueId,
+    ) -> Result<medscale_contracts::audio::AudioSource, AuthorityError> {
+        match self.dispatch(
+            Capability::AudioRead,
+            RequestBody::AudioSourceGet { source_id },
+        )? {
+            ResponseBody::AudioSource { source } => Ok(*source),
+            _ => Err(Self::unexpected("audio source")),
+        }
+    }
+
+    pub fn audio_source_list(
+        &mut self,
+        project_id: OpaqueId,
+    ) -> Result<Vec<medscale_contracts::audio::AudioSource>, AuthorityError> {
+        match self.dispatch(
+            Capability::AudioRead,
+            RequestBody::AudioSourceList { project_id },
+        )? {
+            ResponseBody::AudioSources { sources } => Ok(sources),
+            _ => Err(Self::unexpected("audio source list")),
+        }
+    }
+
+    pub fn audio_capture_start(
+        &mut self,
+        project_id: OpaqueId,
+        label: String,
+        backend: medscale_contracts::audio::CaptureBackendKind,
+        format: medscale_contracts::audio::PcmFormat,
+    ) -> Result<medscale_contracts::audio::AudioSession, AuthorityError> {
+        match self.dispatch(
+            Capability::AudioCapture,
+            RequestBody::AudioCaptureStart {
+                project_id,
+                label,
+                backend,
+                format,
+            },
+        )? {
+            ResponseBody::AudioCapture { session } => Ok(*session),
+            _ => Err(Self::unexpected("capture session")),
+        }
+    }
+
+    pub fn audio_capture_append(
+        &mut self,
+        session_id: OpaqueId,
+        expected_revision: u64,
+        frames: Vec<u8>,
+    ) -> Result<medscale_contracts::audio::AudioSession, AuthorityError> {
+        match self.dispatch(
+            Capability::AudioCapture,
+            RequestBody::AudioCaptureAppend {
+                session_id,
+                expected_revision,
+                frames,
+            },
+        )? {
+            ResponseBody::AudioCapture { session } => Ok(*session),
+            _ => Err(Self::unexpected("capture session")),
+        }
+    }
+
+    pub fn audio_capture_transition(
+        &mut self,
+        session_id: OpaqueId,
+        expected_revision: u64,
+        to: medscale_contracts::audio::CaptureState,
+    ) -> Result<medscale_contracts::audio::AudioSession, AuthorityError> {
+        match self.dispatch(
+            Capability::AudioCapture,
+            RequestBody::AudioCaptureTransition {
+                session_id,
+                expected_revision,
+                to,
+            },
+        )? {
+            ResponseBody::AudioCapture { session } => Ok(*session),
+            _ => Err(Self::unexpected("capture session")),
+        }
+    }
+
+    pub fn audio_capture_stop(
+        &mut self,
+        session_id: OpaqueId,
+        expected_revision: u64,
+    ) -> Result<
+        (
+            medscale_contracts::audio::AudioSession,
+            medscale_contracts::audio::AudioSource,
+        ),
+        AuthorityError,
+    > {
+        match self.dispatch(
+            Capability::AudioCapture,
+            RequestBody::AudioCaptureStop {
+                session_id,
+                expected_revision,
+            },
+        )? {
+            ResponseBody::AudioCaptureStopped { session, source } => Ok((*session, *source)),
+            _ => Err(Self::unexpected("stopped capture")),
+        }
+    }
+
+    pub fn audio_capture_get(
+        &mut self,
+        session_id: OpaqueId,
+    ) -> Result<medscale_contracts::audio::AudioSession, AuthorityError> {
+        match self.dispatch(
+            Capability::AudioRead,
+            RequestBody::AudioCaptureGet { session_id },
+        )? {
+            ResponseBody::AudioCapture { session } => Ok(*session),
+            _ => Err(Self::unexpected("capture session")),
+        }
+    }
+
+    pub fn audio_capture_list(
+        &mut self,
+        project_id: OpaqueId,
+    ) -> Result<Vec<medscale_contracts::audio::AudioSession>, AuthorityError> {
+        match self.dispatch(
+            Capability::AudioRead,
+            RequestBody::AudioCaptureList { project_id },
+        )? {
+            ResponseBody::AudioCaptures { sessions } => Ok(sessions),
+            _ => Err(Self::unexpected("capture session list")),
+        }
+    }
+
+    pub fn audio_routes(
+        &mut self,
+    ) -> Result<Vec<medscale_contracts::audio::AudioRouteStatus>, AuthorityError> {
+        match self.dispatch(Capability::AudioRead, RequestBody::AudioRouteList)? {
+            ResponseBody::AudioRoutes { routes } => Ok(routes),
+            _ => Err(Self::unexpected("audio routes")),
+        }
+    }
+
+    pub fn audio_transcribe(
+        &mut self,
+        request: medscale_contracts::audio::AudioRouteRequest,
+    ) -> Result<medscale_contracts::audio::TranscriptView, AuthorityError> {
+        match self.dispatch(
+            Capability::AudioTranscribe,
+            RequestBody::AudioTranscribe { request },
+        )? {
+            ResponseBody::AudioTranscript { view } => Ok(*view),
+            _ => Err(Self::unexpected("transcript")),
+        }
+    }
+
+    pub fn audio_transcript_list(
+        &mut self,
+        source_id: OpaqueId,
+    ) -> Result<Vec<medscale_contracts::audio::TranscriptRevision>, AuthorityError> {
+        match self.dispatch(
+            Capability::AudioRead,
+            RequestBody::AudioTranscriptList { source_id },
+        )? {
+            ResponseBody::AudioTranscripts { revisions } => Ok(revisions),
+            _ => Err(Self::unexpected("transcript list")),
+        }
+    }
+
+    pub fn audio_transcript_get(
+        &mut self,
+        revision_id: OpaqueId,
+    ) -> Result<medscale_contracts::audio::TranscriptRevision, AuthorityError> {
+        match self.dispatch(
+            Capability::AudioRead,
+            RequestBody::AudioTranscriptGet { revision_id },
+        )? {
+            ResponseBody::AudioTranscriptRevision { revision } => Ok(*revision),
+            _ => Err(Self::unexpected("transcript revision")),
+        }
+    }
+
+    pub fn audio_receipt_list(
+        &mut self,
+        source_id: OpaqueId,
+    ) -> Result<Vec<medscale_contracts::audio::TranscriptReceipt>, AuthorityError> {
+        match self.dispatch(
+            Capability::AudioRead,
+            RequestBody::AudioReceiptList { source_id },
+        )? {
+            ResponseBody::AudioReceipts { receipts } => Ok(receipts),
+            _ => Err(Self::unexpected("transcript receipts")),
+        }
+    }
+
+    pub fn audio_transcript_correct(
+        &mut self,
+        revision_id: OpaqueId,
+        edits: Vec<(u32, String)>,
+        reason: String,
+    ) -> Result<medscale_contracts::audio::TranscriptRevision, AuthorityError> {
+        match self.dispatch(
+            Capability::AudioCorrect,
+            RequestBody::AudioTranscriptCorrect {
+                revision_id,
+                edits,
+                reason,
+            },
+        )? {
+            ResponseBody::AudioTranscriptRevision { revision } => Ok(*revision),
+            _ => Err(Self::unexpected("transcript revision")),
+        }
+    }
+
+    pub fn audio_evidence(
+        &mut self,
+        revision_id: OpaqueId,
+        segment_seq: u32,
+    ) -> Result<medscale_contracts::audio::AudioEvidenceRef, AuthorityError> {
+        match self.dispatch(
+            Capability::AudioRead,
+            RequestBody::AudioEvidenceGet {
+                revision_id,
+                segment_seq,
+            },
+        )? {
+            ResponseBody::AudioEvidence { evidence } => Ok(evidence),
+            _ => Err(Self::unexpected("audio evidence")),
+        }
+    }
 }

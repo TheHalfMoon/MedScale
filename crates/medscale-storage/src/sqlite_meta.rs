@@ -252,6 +252,12 @@ impl SqliteMetaStore {
             self.conn.execute_batch(crate::browse::V9_DDL)?;
             self.finish_migration(9)?;
         }
+        let journal = self.migration_journal()?;
+        if journal.finished_version < 10 {
+            self.begin_migration(10)?;
+            self.conn.execute_batch(crate::audio::V10_DDL)?;
+            self.finish_migration(10)?;
+        }
         Ok(())
     }
 
@@ -543,6 +549,28 @@ impl SqliteMetaStore {
             (
                 "browse_receipts",
                 serde_json::to_value(self.list_all_browse_receipts()?),
+            ),
+            // Spec 081: AudioFlow rows (source audio and open-capture chunks
+            // as hex).
+            (
+                "audio_sources",
+                serde_json::to_value(self.list_all_audio_sources()?),
+            ),
+            (
+                "audio_capture_sessions",
+                serde_json::to_value(self.list_all_capture_sessions()?),
+            ),
+            (
+                "audio_capture_chunks",
+                serde_json::to_value(self.list_all_capture_chunks()?),
+            ),
+            (
+                "audio_transcripts",
+                serde_json::to_value(self.list_all_transcript_revisions()?),
+            ),
+            (
+                "audio_transcript_receipts",
+                serde_json::to_value(self.list_all_transcript_receipts()?),
             ),
         ];
         let mut payload = payload;

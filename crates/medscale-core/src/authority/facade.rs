@@ -46,6 +46,20 @@ pub struct CoreFacade {
     /// Spec 080: the only Browse egress path (public-only resolver, no
     /// redirects followed by the transport).
     browse_transport: BrowseTransportBox,
+    /// Spec 081: the installed local speech engine, if any (none by
+    /// default; hermetic tests and demos install the labelled fixture).
+    asr_engine: AsrEngineBox,
+    /// Spec 081: capture sessions started by this process.
+    live_captures: Mutex<std::collections::HashSet<String>>,
+}
+
+/// Speech engine holder. `Debug` prints no configuration.
+struct AsrEngineBox(Option<Box<dyn super::audio::AsrEngine>>);
+
+impl std::fmt::Debug for AsrEngineBox {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("AsrEngine(..)")
+    }
 }
 
 /// Browse transport holder. `Debug` prints no configuration.
@@ -91,6 +105,8 @@ impl CoreFacade {
             // with `set_privacy_key_store`.
             privacy_keys: PrivacyKeys(Box::new(medscale_keys::MemoryKeyStore::new())),
             browse_transport: BrowseTransportBox(Box::new(medscale_network::UreqBrowseTransport)),
+            asr_engine: AsrEngineBox(None),
+            live_captures: Mutex::new(std::collections::HashSet::new()),
         }
     }
 
@@ -122,6 +138,12 @@ impl CoreFacade {
     /// `medscale_network::ScriptedBrowseTransport`). Policy stays in Core.
     pub fn set_browse_transport(&mut self, transport: Box<dyn medscale_network::BrowseTransport>) {
         self.browse_transport = BrowseTransportBox(transport);
+    }
+
+    /// Installs a local speech engine for Spec 081 transcription. Route
+    /// policy stays in Core; there is never a remote engine.
+    pub fn set_asr_engine(&mut self, engine: Box<dyn super::audio::AsrEngine>) {
+        self.asr_engine = AsrEngineBox(Some(engine));
     }
 
     /// Active session enforcement mode (Spec 024).
@@ -414,6 +436,42 @@ impl CoreFacade {
             store: store_ref,
             meta,
             transport: self.browse_transport.0.as_ref(),
+            sessions: &self.sessions,
+            leases: &self.leases,
+            vault_id,
+            realm,
+            scope,
+            session_id,
+        })
+    }
+
+    /// Runs one Spec 081 AudioFlow operation with lease enforcement and
+    /// vault-meta access. Surfaces never reach storage or engines directly.
+    fn audio<R>(
+        &self,
+        vault_id: &medscale_contracts::objects::VaultId,
+        realm: medscale_contracts::objects::RealmId,
+        scope: medscale_contracts::objects::AuthorityScopeId,
+        session_id: Option<medscale_contracts::objects::OpaqueId>,
+        op: impl FnOnce(super::audio::Audio<'_>) -> Result<R, AuthorityError>,
+    ) -> Result<R, AuthorityError> {
+        self.require_lease(vault_id)?;
+        let vault_guard = self.vault();
+        let enc_guard = self.encrypted();
+        let meta = if let Some(enc) = enc_guard.as_ref() {
+            &enc.meta
+        } else if let Some(vault) = vault_guard.as_ref() {
+            &vault.meta
+        } else {
+            return Err(AuthorityError::VaultRequired);
+        };
+        let mut store = self.store();
+        let store_ref: &mut InMemoryAuthorityStore = &mut store;
+        op(super::audio::Audio {
+            store: store_ref,
+            meta,
+            engine: self.asr_engine.0.as_deref(),
+            live_captures: &self.live_captures,
             sessions: &self.sessions,
             leases: &self.leases,
             vault_id,
@@ -2905,6 +2963,213 @@ impl CoreFacade {
                     view: Box::new(view),
                 })
             }
+            // Spec 081 AudioFlow Foundation: local only; every operation
+            // runs in Core over vault storage.
+            RequestBody::AudioImport {
+                project_id,
+                label,
+                wav,
+            } => {
+                let value = self.audio(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut a| a.import(project_id, label, wav),
+                )?;
+                Ok(ResponseBody::AudioSource {
+                    source: Box::new(value),
+                })
+            }
+            RequestBody::AudioSourceGet { source_id } => {
+                let value = self.audio(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |a| a.get_source(&source_id),
+                )?;
+                Ok(ResponseBody::AudioSource {
+                    source: Box::new(value),
+                })
+            }
+            RequestBody::AudioSourceList { project_id } => {
+                let value = self.audio(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |a| a.list_sources(&project_id),
+                )?;
+                Ok(ResponseBody::AudioSources { sources: value })
+            }
+            RequestBody::AudioCaptureStart {
+                project_id,
+                label,
+                backend,
+                format,
+            } => {
+                let value = self.audio(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut a| a.capture_start(project_id, label, backend, format),
+                )?;
+                Ok(ResponseBody::AudioCapture {
+                    session: Box::new(value),
+                })
+            }
+            RequestBody::AudioCaptureAppend {
+                session_id,
+                expected_revision,
+                frames,
+            } => {
+                let value = self.audio(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut a| a.capture_append(&session_id, expected_revision, frames),
+                )?;
+                Ok(ResponseBody::AudioCapture {
+                    session: Box::new(value),
+                })
+            }
+            RequestBody::AudioCaptureTransition {
+                session_id,
+                expected_revision,
+                to,
+            } => {
+                let value = self.audio(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut a| a.capture_transition(&session_id, expected_revision, to),
+                )?;
+                Ok(ResponseBody::AudioCapture {
+                    session: Box::new(value),
+                })
+            }
+            RequestBody::AudioCaptureStop {
+                session_id,
+                expected_revision,
+            } => {
+                let value = self.audio(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut a| a.capture_stop(&session_id, expected_revision),
+                )?;
+                Ok(ResponseBody::AudioCaptureStopped {
+                    session: Box::new(value.0),
+                    source: Box::new(value.1),
+                })
+            }
+            RequestBody::AudioCaptureGet { session_id } => {
+                let value = self.audio(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut a| a.capture_get(&session_id),
+                )?;
+                Ok(ResponseBody::AudioCapture {
+                    session: Box::new(value),
+                })
+            }
+            RequestBody::AudioCaptureList { project_id } => {
+                let value = self.audio(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut a| a.capture_list(&project_id),
+                )?;
+                Ok(ResponseBody::AudioCaptures { sessions: value })
+            }
+            RequestBody::AudioRouteList => Ok(ResponseBody::AudioRoutes {
+                routes: super::audio::route_statuses(self.asr_engine.0.is_some()),
+            }),
+            RequestBody::AudioTranscribe { request } => {
+                let value = self.audio(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut a| a.transcribe(request),
+                )?;
+                Ok(ResponseBody::AudioTranscript {
+                    view: Box::new(value),
+                })
+            }
+            RequestBody::AudioTranscriptList { source_id } => {
+                let value = self.audio(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |a| a.transcripts(&source_id),
+                )?;
+                Ok(ResponseBody::AudioTranscripts { revisions: value })
+            }
+            RequestBody::AudioTranscriptGet { revision_id } => {
+                let value = self.audio(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |a| a.transcript(&revision_id),
+                )?;
+                Ok(ResponseBody::AudioTranscriptRevision {
+                    revision: Box::new(value),
+                })
+            }
+            RequestBody::AudioReceiptList { source_id } => {
+                let value = self.audio(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |a| a.receipts(&source_id),
+                )?;
+                Ok(ResponseBody::AudioReceipts { receipts: value })
+            }
+            RequestBody::AudioTranscriptCorrect {
+                revision_id,
+                edits,
+                reason,
+            } => {
+                let edits = edits
+                    .into_iter()
+                    .map(|(seq, text)| super::audio::SegmentEdit { seq, text })
+                    .collect();
+                let value = self.audio(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut a| a.correct(&revision_id, edits, reason),
+                )?;
+                Ok(ResponseBody::AudioTranscriptRevision {
+                    revision: Box::new(value),
+                })
+            }
+            RequestBody::AudioEvidenceGet {
+                revision_id,
+                segment_seq,
+            } => {
+                let value = self.audio(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |a| a.evidence(&revision_id, segment_seq),
+                )?;
+                Ok(ResponseBody::AudioEvidence { evidence: value })
+            }
             // Spec 079 Privacy Gate: every classification, transform,
             // pseudonym and egress decision flows through Core.
             RequestBody::PrivacyClassify {
@@ -4181,6 +4446,34 @@ fn capability_matches(cap: &Capability, body: &RequestBody) -> bool {
             | (
                 Capability::BrowseCancel,
                 RequestBody::BrowseSessionCancel { .. }
+            )
+            | (Capability::AudioImport, RequestBody::AudioImport { .. })
+            | (
+                Capability::AudioRead,
+                RequestBody::AudioSourceGet { .. }
+                    | RequestBody::AudioSourceList { .. }
+                    | RequestBody::AudioCaptureGet { .. }
+                    | RequestBody::AudioCaptureList { .. }
+                    | RequestBody::AudioRouteList
+                    | RequestBody::AudioTranscriptList { .. }
+                    | RequestBody::AudioTranscriptGet { .. }
+                    | RequestBody::AudioReceiptList { .. }
+                    | RequestBody::AudioEvidenceGet { .. }
+            )
+            | (
+                Capability::AudioCapture,
+                RequestBody::AudioCaptureStart { .. }
+                    | RequestBody::AudioCaptureAppend { .. }
+                    | RequestBody::AudioCaptureTransition { .. }
+                    | RequestBody::AudioCaptureStop { .. }
+            )
+            | (
+                Capability::AudioTranscribe,
+                RequestBody::AudioTranscribe { .. }
+            )
+            | (
+                Capability::AudioCorrect,
+                RequestBody::AudioTranscriptCorrect { .. }
             )
     )
 }
