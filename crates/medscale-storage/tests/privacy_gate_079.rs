@@ -116,6 +116,11 @@ const LATER_VERSION_TABLES: &[&str] = &[
     "browse_evidence",
     "browse_downloads",
     "browse_receipts",
+    "audio_sources",
+    "audio_capture_sessions",
+    "audio_capture_chunks",
+    "audio_transcripts",
+    "audio_transcript_receipts",
 ];
 
 /// Rewinds the file to exactly what a v7 build leaves on disk.
@@ -150,7 +155,9 @@ fn pre_079_view(meta: &SqliteMetaStore) -> serde_json::Value {
         serde_json::from_slice(&meta.snapshot_bytes().unwrap()).unwrap();
     let object = snapshot.as_object_mut().unwrap();
     object.remove("schema_version");
-    object.retain(|key, _| !key.starts_with("privacy_") && !key.starts_with("browse_"));
+    object.retain(|key, _| {
+        !key.starts_with("privacy_") && !key.starts_with("browse_") && !key.starts_with("audio_")
+    });
     snapshot
 }
 
@@ -684,7 +691,11 @@ fn pre_079_v7_backup_restores_with_empty_079_tables() {
     // Turn the snapshot into what a v7 build writes.
     tamper_backup(&dest, |s| {
         let object = s.as_object_mut().unwrap();
-        object.retain(|key, _| !key.starts_with("privacy_") && !key.starts_with("browse_"));
+        object.retain(|key, _| {
+            !key.starts_with("privacy_")
+                && !key.starts_with("browse_")
+                && !key.starts_with("audio_")
+        });
         object.insert("schema_version".to_owned(), serde_json::json!(7));
     });
     let restored_root = root.join("restored");

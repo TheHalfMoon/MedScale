@@ -323,6 +323,11 @@ const LATER_VERSION_TABLES: &[&str] = &[
     "browse_evidence",
     "browse_downloads",
     "browse_receipts",
+    "audio_sources",
+    "audio_capture_sessions",
+    "audio_capture_chunks",
+    "audio_transcripts",
+    "audio_transcript_receipts",
 ];
 
 fn table_exists(root: &Path, table: &str) -> bool {
@@ -347,6 +352,7 @@ fn pre_078_view(meta: &SqliteMetaStore) -> serde_json::Value {
         !key.starts_with("model_fleet_")
             && !key.starts_with("privacy_")
             && !key.starts_with("browse_")
+            && !key.starts_with("audio_")
     });
     snapshot
 }
@@ -1024,6 +1030,7 @@ fn pre_078_v6_backup_restores_with_empty_078_tables() {
             !key.starts_with("model_fleet_")
                 && !key.starts_with("privacy_")
                 && !key.starts_with("browse_")
+                && !key.starts_with("audio_")
         });
         object.insert("schema_version".to_owned(), 6.into());
     });

@@ -1,6 +1,7 @@
 //! Authority facade, store, promotion, and identity operations.
 
 mod amend;
+mod audio;
 mod browse;
 mod collaboration;
 mod corpus;
@@ -24,6 +25,10 @@ mod retrieval;
 mod source_ops;
 mod store;
 
+pub use audio::{
+    AsrEngine, FixtureAsrEngine, SegmentEdit, SignalAnalysis, analyze_pcm, build_wav, parse_wav,
+    synthetic_pcm,
+};
 pub use corpus::{
     DEFAULT_CORPUS_ID, DEFAULT_CORPUS_VERSION, SCALE_CORPUS_DOC_COUNT_10K, SCALE_CORPUS_ID,
     SCALE_CORPUS_VERSION_10K, admit_corpus_bytes, admit_corpus_dir,

@@ -106,7 +106,9 @@ pub fn restore_vault(src: &Path, dest_vault_root: &Path) -> Result<(u64, u64), S
     let snapshot_schema = snapshot_value
         .get("schema_version")
         .and_then(|v| v.as_u64());
-    if snapshot_schema == Some(9) {
+    if snapshot_schema == Some(10) {
+        restore_v10(&vault, &snapshot_value, &mut sources)?;
+    } else if snapshot_schema == Some(9) {
         restore_v9(&vault, &snapshot_value, &mut sources)?;
     } else if snapshot_schema == Some(8) {
         restore_v8(&vault, &snapshot_value, &mut sources)?;
@@ -601,6 +603,35 @@ fn restore_rows<T: serde::de::DeserializeOwned>(
             restore(&row).map_err(|e| e.to_string())?;
         }
     }
+    Ok(())
+}
+
+fn restore_v10(
+    vault: &SyntheticVault,
+    snapshot: &serde_json::Value,
+    sources: &mut u64,
+) -> Result<(), String> {
+    restore_v9(vault, snapshot, sources)?;
+    // Spec 081 rows replay through plain-INSERT paths; source audio bytes
+    // are re-checked against their digests; cross-row invariants are
+    // re-verified once every family is replayed.
+    let meta = &vault.meta;
+    restore_rows(snapshot, "audio_sources", |row| {
+        meta.restore_audio_source_row(row)
+    })?;
+    restore_rows(snapshot, "audio_capture_sessions", |row| {
+        meta.restore_capture_session_row(row)
+    })?;
+    restore_rows(snapshot, "audio_capture_chunks", |row| {
+        meta.restore_capture_chunk_row(row)
+    })?;
+    restore_rows(snapshot, "audio_transcripts", |row| {
+        meta.restore_transcript_row(row)
+    })?;
+    restore_rows(snapshot, "audio_transcript_receipts", |row| {
+        meta.restore_transcript_receipt_row(row)
+    })?;
+    meta.verify_audio_consistency().map_err(|e| e.to_string())?;
     Ok(())
 }
 

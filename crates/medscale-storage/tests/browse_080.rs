@@ -32,6 +32,15 @@ const BROWSE_TABLES: [&str; 5] = [
     "browse_receipts",
 ];
 
+/// Tables created by migrations after v9.
+const LATER_VERSION_TABLES: &[&str] = &[
+    "audio_sources",
+    "audio_capture_sessions",
+    "audio_capture_chunks",
+    "audio_transcripts",
+    "audio_transcript_receipts",
+];
+
 fn temp_root(name: &str) -> PathBuf {
     let p = std::env::temp_dir().join(format!("medscale-080-{name}-{}", std::process::id()));
     let _ = fs::remove_dir_all(&p);
@@ -74,6 +83,11 @@ fn rewind_to_v8(root: &Path) {
     for table in BROWSE_TABLES {
         conn.execute_batch(&format!("DROP TABLE {table};")).unwrap();
     }
+    // Later additive versions (Spec 081 v10, ...) are absent in a v8 build too.
+    for table in LATER_VERSION_TABLES {
+        conn.execute_batch(&format!("DROP TABLE IF EXISTS {table};"))
+            .unwrap();
+    }
     conn.execute("DELETE FROM migration_journal WHERE version >= 9", [])
         .unwrap();
 }
@@ -94,7 +108,7 @@ fn pre_080_view(meta: &SqliteMetaStore) -> serde_json::Value {
         serde_json::from_slice(&meta.snapshot_bytes().unwrap()).unwrap();
     let object = snapshot.as_object_mut().unwrap();
     object.remove("schema_version");
-    object.retain(|key, _| !key.starts_with("browse_"));
+    object.retain(|key, _| !key.starts_with("browse_") && !key.starts_with("audio_"));
     snapshot
 }
 
@@ -519,7 +533,7 @@ fn pre_080_v8_backup_restores_with_empty_browse_tables() {
     backup_vault(&vault, &dest).unwrap();
     tamper_backup(&dest, |s| {
         let o = s.as_object_mut().unwrap();
-        o.retain(|k, _| !k.starts_with("browse_"));
+        o.retain(|k, _| !k.starts_with("browse_") && !k.starts_with("audio_"));
         o.insert("schema_version".to_owned(), serde_json::json!(8));
     });
     restore_vault(&dest, &root.join("restored")).unwrap();

@@ -13,6 +13,7 @@ use std::time::Duration;
 
 use slint::{ComponentHandle, ModelRc, VecModel};
 
+mod audio_workspace;
 mod browse_workspace;
 mod collaboration_workspace;
 mod data_workbench;
@@ -542,6 +543,64 @@ fn open_model_fleet(ui: &AppWindow, session: &Rc<RefCell<CliSession>>, fleet_id:
     }
 }
 
+fn refresh_audio(ui: &AppWindow, session: &Rc<RefCell<CliSession>>) {
+    let project_id = ui.get_project_active_id().to_string();
+    if project_id.is_empty() {
+        ui.set_audio_status("Open a project to use AudioFlow".into());
+        ui.set_audio_sources(ModelRc::new(VecModel::from(Vec::new())));
+        ui.set_audio_captures(ModelRc::new(VecModel::from(Vec::new())));
+        return;
+    }
+    match audio_workspace::refresh(&mut session.borrow_mut(), &project_id) {
+        Ok(overview) => {
+            ui.set_audio_status(
+                format!(
+                    "{} source{} · {} capture{} · {} · Core-backed, local only",
+                    overview.sources.len(),
+                    if overview.sources.len() == 1 { "" } else { "s" },
+                    overview.captures.len(),
+                    if overview.captures.len() == 1 {
+                        ""
+                    } else {
+                        "s"
+                    },
+                    overview.routes
+                )
+                .into(),
+            );
+            ui.set_audio_native_capture(
+                format!(
+                    "Live microphone capture unavailable: {}",
+                    overview.native_capture
+                )
+                .into(),
+            );
+            ui.set_audio_sources(ModelRc::new(VecModel::from_iter(
+                overview.sources.iter().map(|row| AudioSourceRowItem {
+                    id: row.id.clone().into(),
+                    label: row.label.clone().into(),
+                    kind: row.kind.clone().into(),
+                    detail: row.detail.clone().into(),
+                    health: row.health.clone().into(),
+                }),
+            )));
+            ui.set_audio_captures(ModelRc::new(VecModel::from_iter(
+                overview.captures.iter().map(|row| AudioCaptureRowItem {
+                    id: row.id.clone().into(),
+                    label: row.label.clone().into(),
+                    state: row.state.clone().into(),
+                    detail: row.detail.clone().into(),
+                }),
+            )));
+        }
+        Err(err) => {
+            ui.set_audio_sources(ModelRc::new(VecModel::from(Vec::new())));
+            ui.set_audio_captures(ModelRc::new(VecModel::from(Vec::new())));
+            ui.set_audio_status(audio_workspace::status_message(&err).into());
+        }
+    }
+}
+
 fn refresh_browse(ui: &AppWindow, session: &Rc<RefCell<CliSession>>) {
     let project_id = ui.get_project_active_id().to_string();
     if project_id.is_empty() {
@@ -714,6 +773,7 @@ fn evidence_route_override() -> Option<&'static str> {
         "Model Fleet" => Some("Model Fleet"),
         "Privacy" => Some("Privacy"),
         "Browse" => Some("Browse"),
+        "Audio" => Some("Audio"),
         "Settings" => Some("Settings"),
         "About" => Some("About"),
         _ => None,
@@ -1616,6 +1676,37 @@ fn main() -> ExitCode {
         }
         // Spec 079 Privacy Gate actions (Core-backed; profiles, transforms
         // and re-identification stay CLI-only in this slice).
+        // Spec 081 AudioFlow actions (Core-backed; local only).
+        if action == "audio-refresh" {
+            if let Some(session) = &project_session_for_actions {
+                refresh_audio(&ui, session);
+            } else {
+                ui.set_audio_status("AudioFlow unavailable: no Core session".into());
+            }
+            return;
+        }
+        if let Some(source_id) = action.strip_prefix("audio-segment:") {
+            let Some(session) = &project_session_for_actions else {
+                ui.set_audio_status("AudioFlow unavailable: no Core session".into());
+                return;
+            };
+            let project_id = ui.get_project_active_id().to_string();
+            if project_id.is_empty() {
+                ui.set_audio_status("Invalid: open a project first".into());
+                return;
+            }
+            let segmented =
+                audio_workspace::segment(&mut session.borrow_mut(), &project_id, source_id);
+            match segmented {
+                Ok((summary, lines)) => {
+                    ui.set_audio_last_result(summary.into());
+                    ui.set_audio_transcript(lines.join("\n").into());
+                    refresh_audio(&ui, session);
+                }
+                Err(err) => ui.set_audio_status(audio_workspace::status_message(&err).into()),
+            }
+            return;
+        }
         // Spec 080 Governed Browse actions (Core-backed; the transport and
         // every policy check stay in Core).
         if action == "browse-refresh" {

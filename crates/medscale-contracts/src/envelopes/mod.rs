@@ -5,6 +5,11 @@ use serde_json::Value;
 
 use crate::AUTHORITY_SCHEMA_VERSION;
 use crate::actions::{CreateExternalActionIntentRequest, NphiesInvokeRequest, OutboxEntry};
+use crate::audio::{
+    AudioEvidenceRef, AudioRouteRequest, AudioRouteStatus, AudioSession, AudioSource,
+    CaptureBackendKind, CaptureState, PcmFormat, TranscriptReceipt, TranscriptRevision,
+    TranscriptView,
+};
 use crate::browse::{
     BrowseAllowlistEntry, BrowseRequest, BrowseRouteStatus, BrowseSession, BrowseSessionView,
 };
@@ -217,6 +222,12 @@ pub enum Capability {
     BrowseRead,
     BrowseRun,
     BrowseCancel,
+    // Spec 081: AudioFlow Foundation.
+    AudioImport,
+    AudioRead,
+    AudioCapture,
+    AudioTranscribe,
+    AudioCorrect,
 }
 
 impl Capability {
@@ -271,6 +282,7 @@ impl Capability {
                 | Self::ComparisonRead
                 | Self::PrivacyRead
                 | Self::BrowseRead
+                | Self::AudioRead
         )
     }
 
@@ -422,6 +434,11 @@ impl Capability {
             Self::BrowseRead,
             Self::BrowseRun,
             Self::BrowseCancel,
+            Self::AudioImport,
+            Self::AudioRead,
+            Self::AudioCapture,
+            Self::AudioTranscribe,
+            Self::AudioCorrect,
         ]
     }
 }
@@ -1212,6 +1229,72 @@ pub enum RequestBody {
         session_id: OpaqueId,
         expected_revision: u64,
     },
+    // Spec 081: AudioFlow Foundation (local only).
+    /// Imports a 16-bit PCM WAV file as an immutable source.
+    AudioImport {
+        project_id: OpaqueId,
+        label: String,
+        wav: Vec<u8>,
+    },
+    AudioSourceGet {
+        source_id: OpaqueId,
+    },
+    AudioSourceList {
+        project_id: OpaqueId,
+    },
+    /// Starts a capture. Only an explicit request starts one.
+    AudioCaptureStart {
+        project_id: OpaqueId,
+        label: String,
+        backend: CaptureBackendKind,
+        format: PcmFormat,
+    },
+    /// Pushes PCM frames into a recording scripted capture.
+    AudioCaptureAppend {
+        session_id: OpaqueId,
+        expected_revision: u64,
+        frames: Vec<u8>,
+    },
+    /// Pause (`paused`), resume (`recording`) or cancel (`cancelled`).
+    AudioCaptureTransition {
+        session_id: OpaqueId,
+        expected_revision: u64,
+        to: CaptureState,
+    },
+    AudioCaptureStop {
+        session_id: OpaqueId,
+        expected_revision: u64,
+    },
+    AudioCaptureGet {
+        session_id: OpaqueId,
+    },
+    AudioCaptureList {
+        project_id: OpaqueId,
+    },
+    AudioRouteList,
+    AudioTranscribe {
+        request: AudioRouteRequest,
+    },
+    AudioTranscriptList {
+        source_id: OpaqueId,
+    },
+    AudioTranscriptGet {
+        revision_id: OpaqueId,
+    },
+    AudioReceiptList {
+        source_id: OpaqueId,
+    },
+    /// Corrects segments of the latest revision into a new revision.
+    AudioTranscriptCorrect {
+        revision_id: OpaqueId,
+        /// `(segment seq, corrected text)`.
+        edits: Vec<(u32, String)>,
+        reason: String,
+    },
+    AudioEvidenceGet {
+        revision_id: OpaqueId,
+        segment_seq: u32,
+    },
 }
 
 impl RequestBody {
@@ -1650,6 +1733,41 @@ pub enum ResponseBody {
     },
     BrowseSessionList {
         sessions: Vec<BrowseSession>,
+    },
+    // Spec 081: AudioFlow typed results.
+    AudioSource {
+        source: Box<AudioSource>,
+    },
+    AudioSources {
+        sources: Vec<AudioSource>,
+    },
+    AudioCapture {
+        session: Box<AudioSession>,
+    },
+    AudioCaptureStopped {
+        session: Box<AudioSession>,
+        source: Box<AudioSource>,
+    },
+    AudioCaptures {
+        sessions: Vec<AudioSession>,
+    },
+    AudioRoutes {
+        routes: Vec<AudioRouteStatus>,
+    },
+    AudioTranscript {
+        view: Box<TranscriptView>,
+    },
+    AudioTranscriptRevision {
+        revision: Box<TranscriptRevision>,
+    },
+    AudioTranscripts {
+        revisions: Vec<TranscriptRevision>,
+    },
+    AudioReceipts {
+        receipts: Vec<TranscriptReceipt>,
+    },
+    AudioEvidence {
+        evidence: AudioEvidenceRef,
     },
 }
 
