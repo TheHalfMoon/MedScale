@@ -11,5 +11,6 @@ STORAGE SCHEMA     = v8 on base; this spec adds v9
 NETWORK POSTURE    = product runtime egress default-deny; the Spec 013 broker
                      live transport is hard-denied; ureq 3.4 is admitted
 REVIEW POLICY      = FOUNDER_REVIEW_POLICY_AMENDMENT_2026-09-22
-POST-MAIN RUN FOR BASE = 35819807088 (in progress at promotion time)
+POST-MAIN RUN FOR BASE = 35819807088 (push on 561f97f, 6/6 success)
+PROMOTION HEAD CI      = 35819965441 (pull_request on 231e0e1, 6/6 success)
 ```
