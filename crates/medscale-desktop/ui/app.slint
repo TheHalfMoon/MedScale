@@ -220,6 +220,29 @@ export struct FleetObservationRowItem {
     detail: string,
 }
 
+export struct PrivacyClassificationRowItem {
+    artifact-id: string,
+    data-class: string,
+    basis: string,
+    revision: string,
+}
+
+export struct PrivacyReceiptRowItem {
+    id: string,
+    source: string,
+    output: string,
+    status: string,
+    residual: string,
+    revision: string,
+}
+
+export struct PrivacyDecisionRowItem {
+    artifact-id: string,
+    boundary: string,
+    outcome: string,
+    reason: string,
+}
+
 export struct AgentTurnRowItem {
     seq: string,
     kind: string,
@@ -352,6 +375,13 @@ export component AppWindow inherits Window {
     in property <[FleetLaneRunRowItem]> fleet-lane-runs;
     in-out property <string> fleet-report-summary: "";
     in property <[FleetObservationRowItem]> fleet-observations;
+    in-out property <string> privacy-status: "Privacy state not loaded";
+    in property <[PrivacyClassificationRowItem]> privacy-classifications;
+    in property <[PrivacyReceiptRowItem]> privacy-receipts;
+    in property <[PrivacyDecisionRowItem]> privacy-decisions;
+    in-out property <string> privacy-artifact-input: "";
+    in-out property <string> privacy-boundary-input: "browse";
+    in-out property <string> privacy-last-decision: "";
     callback ui-action(string);
 
     forward-focus: global-keys;
@@ -485,6 +515,7 @@ export component AppWindow inherits Window {
 
                     Rectangle { height: 4px; background: transparent; }
                     Text { text: "GOVERNANCE"; color: Theme.ink-quiet; font-size: 11px; letter-spacing: 1.05px; }
+                    NavItem { label: "Privacy"; selected: root.active-route == "Privacy"; activated => { root.active-route = "Privacy"; } }
                     NavItem { label: "Audit Trail"; selected: root.active-route == "Audit Trail"; activated => { root.active-route = "Audit Trail"; } }
                     NavItem { label: "Exports"; selected: root.active-route == "Exports"; activated => { root.active-route = "Exports"; } }
                     NavItem { label: "Integrations"; selected: root.active-route == "Integrations"; activated => { root.active-route = "Integrations"; } }
@@ -588,7 +619,7 @@ export component AppWindow inherits Window {
                             VerticalLayout {
                                 spacing: 2px;
                                 Text { text: root.active-route == "Home" ? "Clinical Workspace" : root.active-route == "Patients" ? root.patient-name : root.active-route; color: Theme.ink; font-size: 28px; font-weight: 720; letter-spacing: -0.4px; }
-                                Text { text: root.active-route == "Home" ? "Trusted local clinical intelligence · evidence before authority" : root.active-route == "Patients" ? "Trusted longitudinal workspace · Synthetic demo" : root.active-route == "Insights" ? "Evidence-aware population view · Synthetic demo" : root.active-route == "Models" ? "Local model fabric · provenance, runtime and benchmark state" : root.active-route == "Evidence" ? "Pinned OpenMed evidence · measured claims only · limitations explicit" : root.active-route == "Workflows" ? "Review-first controlled-action studio · Synthetic demo" : root.active-route == "Tasks" ? "Derived outbox review queue · No second task authority" : root.active-route == "Messages" ? "Local review previews · No external transport claim" : root.active-route == "Documents" ? "Bounded document intake posture · Custody is not understanding" : root.active-route == "Projects" ? "Project and artifact organization · Core-backed references, never payload copies" : root.active-route == "Data" ? "Governed datasets · immutable snapshots, saved views and deterministic transforms" : root.active-route == "Collaboration" ? "Local-first rooms, threads and tasks · Core-backed, membership-gated" : root.active-route == "MedAgent" ? "Governed agent runs · bound context, typed tools, evidence-only proposals" : root.active-route == "Model Fleet" ? "Independent agent lanes on one task · factual comparison, never a ranking" : root.active-route == "Audit Trail" ? "Synthetic disclosure history · Core Host remains canonical" : root.active-route == "Exports" ? "Loss-aware FHIR support · No full conformance claim" : root.active-route == "Settings" ? "Doctor truth and evidence-gated readiness" : root.active-route == "Integrations" ? "Brokered integration posture · Default deny" : root.active-route == "About" ? "Native product and attribution details" : "Unrecognized route"; color: Theme.ink-subtle; font-size: 13px; }
+                                Text { text: root.active-route == "Home" ? "Trusted local clinical intelligence · evidence before authority" : root.active-route == "Patients" ? "Trusted longitudinal workspace · Synthetic demo" : root.active-route == "Insights" ? "Evidence-aware population view · Synthetic demo" : root.active-route == "Models" ? "Local model fabric · provenance, runtime and benchmark state" : root.active-route == "Evidence" ? "Pinned OpenMed evidence · measured claims only · limitations explicit" : root.active-route == "Workflows" ? "Review-first controlled-action studio · Synthetic demo" : root.active-route == "Tasks" ? "Derived outbox review queue · No second task authority" : root.active-route == "Messages" ? "Local review previews · No external transport claim" : root.active-route == "Documents" ? "Bounded document intake posture · Custody is not understanding" : root.active-route == "Projects" ? "Project and artifact organization · Core-backed references, never payload copies" : root.active-route == "Data" ? "Governed datasets · immutable snapshots, saved views and deterministic transforms" : root.active-route == "Collaboration" ? "Local-first rooms, threads and tasks · Core-backed, membership-gated" : root.active-route == "MedAgent" ? "Governed agent runs · bound context, typed tools, evidence-only proposals" : root.active-route == "Model Fleet" ? "Independent agent lanes on one task · factual comparison, never a ranking" : root.active-route == "Privacy" ? "Data classes, de-identification receipts and egress decisions · unclassified stays local" : root.active-route == "Audit Trail" ? "Synthetic disclosure history · Core Host remains canonical" : root.active-route == "Exports" ? "Loss-aware FHIR support · No full conformance claim" : root.active-route == "Settings" ? "Doctor truth and evidence-gated readiness" : root.active-route == "Integrations" ? "Brokered integration posture · Default deny" : root.active-route == "About" ? "Native product and attribution details" : "Unrecognized route"; color: Theme.ink-subtle; font-size: 13px; }
                             }
                             Rectangle { horizontal-stretch: 1; background: transparent; }
                             if root.active-route == "Home": Text {
@@ -1225,6 +1256,92 @@ export component AppWindow inherits Window {
                                         Text { width: 160px; vertical-alignment: center; text: item.lanes; color: Theme.ink-quiet; font-size: 11px; wrap: word-wrap; }
                                         Text { horizontal-stretch: 1; vertical-alignment: center; text: item.detail; color: Theme.ink; font-size: 11px; wrap: word-wrap; }
                                     }
+                                }
+                            }
+                        }
+
+                        if root.active-route == "Privacy": VerticalLayout {
+                            spacing: 14px;
+                            HonestyPanel { title: "Privacy Gate boundary"; body: "Unclassified artifacts are treated as local_phi and never leave · de-identified outputs are new artifacts with a receipt · automated recognition can miss values, so no receipt claims data is free of PHI · every egress decision is made and stored by Core; this screen sends nothing"; accent: Theme.success; }
+
+                            Rectangle {
+                                min-height: 110px;
+                                border-radius: Theme.radius-compact;
+                                border-width: 1px;
+                                border-color: Theme.border;
+                                background: Theme.surface;
+                                accessible-role: groupbox;
+                                accessible-label: "Egress check. " + root.privacy-status;
+                                VerticalLayout {
+                                    padding-left: 10px;
+                                    padding-right: 10px;
+                                    padding-top: 8px;
+                                    padding-bottom: 8px;
+                                    spacing: 6px;
+                                    Text { text: "Egress check follows the active project · profiles and transforms use the CLI"; color: Theme.ink; font-size: 12px; font-weight: 680; }
+                                    Text { text: root.privacy-status; color: Theme.ink-quiet; font-size: 11px; wrap: word-wrap; }
+                                    HorizontalLayout {
+                                        spacing: 8px;
+                                        AdaptiveLineEdit { horizontal-stretch: 1; text <=> root.privacy-artifact-input; placeholder: "Artifact id"; accessible-name: "Artifact id for egress check"; }
+                                        AdaptiveLineEdit { horizontal-stretch: 1; text <=> root.privacy-boundary-input; placeholder: "Boundary, e.g. browse or hub"; accessible-name: "Egress boundary"; }
+                                        ToolbarAction { label: "Check"; activated => { root.ui-action("privacy-egress-check"); } }
+                                        ToolbarAction { label: "Refresh"; activated => { root.ui-action("privacy-refresh"); } }
+                                    }
+                                    if root.privacy-last-decision != "": Text { text: root.privacy-last-decision; color: Theme.ink; font-size: 11px; wrap: word-wrap; accessible-role: text; accessible-label: "Last egress decision: " + root.privacy-last-decision; }
+                                }
+                            }
+
+                            Text { text: "Classifications"; color: Theme.ink; font-size: 14px; font-weight: 680; }
+                            for item in root.privacy-classifications: Rectangle {
+                                min-height: 40px;
+                                border-width: 1px;
+                                border-color: Theme.border;
+                                background: Theme.surface;
+                                accessible-role: text;
+                                accessible-label: "Artifact " + item.artifact-id + ", " + item.data-class + ", basis " + item.basis;
+                                HorizontalLayout {
+                                    padding-left: 10px;
+                                    padding-right: 10px;
+                                    spacing: 12px;
+                                    Text { horizontal-stretch: 1; vertical-alignment: center; text: item.artifact-id + " · rev " + item.revision; color: Theme.ink; font-size: 12px; }
+                                    Text { vertical-alignment: center; text: item.basis; color: Theme.ink-quiet; font-size: 11px; }
+                                    StatusPill { label: item.data-class; accent: item.data-class == "public" ? Theme.success : item.data-class == "local_phi" ? Theme.danger : Theme.warning; }
+                                }
+                            }
+
+                            Text { text: "De-identification receipts"; color: Theme.ink; font-size: 14px; font-weight: 680; }
+                            for item in root.privacy-receipts: Rectangle {
+                                min-height: 52px;
+                                border-width: 1px;
+                                border-color: Theme.border;
+                                background: Theme.surface;
+                                accessible-role: groupbox;
+                                accessible-label: "Receipt " + item.id + ", " + item.status + ", residual " + item.residual;
+                                HorizontalLayout {
+                                    padding-left: 10px;
+                                    padding-right: 10px;
+                                    spacing: 12px;
+                                    Text { horizontal-stretch: 1; vertical-alignment: center; text: item.source + " → " + item.output + " · " + item.residual; color: Theme.ink; font-size: 12px; wrap: word-wrap; }
+                                    StatusPill { label: item.status; accent: item.status == "valid" ? Theme.success : Theme.danger; }
+                                    if item.status == "valid": QuickAction { width: 100px; title: "Revoke"; subtitle: "Stops egress"; glyph: ""; accent: Theme.danger; activated => { root.ui-action("privacy-receipt-revoke:" + item.id + ":" + item.revision); } }
+                                }
+                            }
+
+                            Text { text: "Egress decisions (newest first)"; color: Theme.ink; font-size: 14px; font-weight: 680; }
+                            for item in root.privacy-decisions: Rectangle {
+                                min-height: 40px;
+                                border-width: 1px;
+                                border-color: Theme.border;
+                                background: Theme.surface;
+                                accessible-role: text;
+                                accessible-label: "Decision for " + item.artifact-id + " to " + item.boundary + ": " + item.outcome + ", " + item.reason;
+                                HorizontalLayout {
+                                    padding-left: 10px;
+                                    padding-right: 10px;
+                                    spacing: 12px;
+                                    Text { horizontal-stretch: 1; vertical-alignment: center; text: item.artifact-id + " → " + item.boundary; color: Theme.ink; font-size: 12px; }
+                                    Text { vertical-alignment: center; text: item.reason; color: Theme.ink-quiet; font-size: 11px; }
+                                    StatusPill { label: item.outcome; accent: item.outcome == "allow" ? Theme.success : Theme.danger; }
                                 }
                             }
                         }

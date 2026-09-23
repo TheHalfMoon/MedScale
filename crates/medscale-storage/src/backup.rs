@@ -54,7 +54,7 @@ pub fn backup_vault(vault: &SyntheticVault, dest: &Path) -> Result<BackupManifes
     }
 
     let manifest = BackupManifest {
-        schema_version: 7,
+        schema_version: crate::CURRENT_META_SCHEMA_VERSION,
         vault_id: vault.vault_id.clone(),
         created_at: "1970-01-01T00:00:00Z".to_owned(),
         metadata_snapshot_digest: snapshot_digest,
@@ -106,7 +106,9 @@ pub fn restore_vault(src: &Path, dest_vault_root: &Path) -> Result<(u64, u64), S
     let snapshot_schema = snapshot_value
         .get("schema_version")
         .and_then(|v| v.as_u64());
-    if snapshot_schema == Some(7) {
+    if snapshot_schema == Some(8) {
+        restore_v8(&vault, &snapshot_value, &mut sources)?;
+    } else if snapshot_schema == Some(7) {
         restore_v7(&vault, &snapshot_value, &mut sources)?;
     } else if snapshot_schema == Some(6) {
         restore_v6(&vault, &snapshot_value, &mut sources)?;
@@ -582,6 +584,57 @@ fn restore_v5(
                 .map_err(|e| e.to_string())?;
         }
     }
+    Ok(())
+}
+
+/// Replays one Privacy Gate family: deserialize each row, then restore it.
+fn restore_rows<T: serde::de::DeserializeOwned>(
+    snapshot: &serde_json::Value,
+    key: &str,
+    mut restore: impl FnMut(&T) -> Result<(), crate::MetaError>,
+) -> Result<(), String> {
+    if let Some(entries) = snapshot.get(key).and_then(|v| v.as_array()) {
+        for value in entries {
+            let row: T = serde_json::from_value(value.clone()).map_err(|e| e.to_string())?;
+            restore(&row).map_err(|e| e.to_string())?;
+        }
+    }
+    Ok(())
+}
+
+fn restore_v8(
+    vault: &SyntheticVault,
+    snapshot: &serde_json::Value,
+    sources: &mut u64,
+) -> Result<(), String> {
+    restore_v7(vault, snapshot, sources)?;
+    // Spec 079 rows replay exactly through plain-INSERT paths (duplicates
+    // fail closed). Each insert re-validates its contract; cross-row
+    // invariants are re-verified once every family is replayed.
+    let meta = &vault.meta;
+    restore_rows(snapshot, "privacy_profiles", |row| {
+        meta.restore_privacy_profile_row(row)
+    })?;
+    restore_rows(snapshot, "privacy_pseudonym_maps", |row| {
+        meta.restore_pseudonym_map_row(row)
+    })?;
+    restore_rows(snapshot, "privacy_pseudonym_entries", |row| {
+        meta.restore_pseudonym_entry_row(row)
+    })?;
+    restore_rows(snapshot, "privacy_deid_receipts", |row| {
+        meta.restore_deid_receipt_row(row)
+    })?;
+    restore_rows(snapshot, "privacy_classifications", |row| {
+        meta.restore_classification_row(row)
+    })?;
+    restore_rows(snapshot, "privacy_reid_audit", |row| {
+        meta.restore_reid_audit_row(row)
+    })?;
+    restore_rows(snapshot, "privacy_egress_decisions", |row| {
+        meta.restore_egress_decision_row(row)
+    })?;
+    meta.verify_privacy_gate_consistency()
+        .map_err(|e| e.to_string())?;
     Ok(())
 }
 

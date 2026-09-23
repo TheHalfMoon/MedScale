@@ -41,6 +41,17 @@ pub struct CoreFacade {
     packs: Mutex<medscale_pack::PackStore>,
     prepared_models: Mutex<HashMap<DigestSha256, Arc<medscale_pack::PreparedOnnxTokenClassifier>>>,
     mesc_epochs: Mutex<medscale_pack::MescEpochStore>,
+    /// Spec 079: custody of pseudonym map keys. Never vault metadata.
+    privacy_keys: PrivacyKeys,
+}
+
+/// Key custody for Spec 079 pseudonym maps. `Debug` never prints keys.
+struct PrivacyKeys(Box<dyn medscale_keys::KeyStore>);
+
+impl std::fmt::Debug for PrivacyKeys {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("PrivacyKeys(..)")
+    }
 }
 
 impl Default for CoreFacade {
@@ -64,6 +75,9 @@ impl CoreFacade {
             packs: Mutex::new(medscale_pack::PackStore::default()),
             prepared_models: Mutex::new(HashMap::new()),
             mesc_epochs: Mutex::new(medscale_pack::MescEpochStore::new()),
+            // Process-lifetime by default; hosts install a durable store
+            // with `set_privacy_key_store`.
+            privacy_keys: PrivacyKeys(Box::new(medscale_keys::MemoryKeyStore::new())),
         }
     }
 
@@ -82,6 +96,13 @@ impl CoreFacade {
     #[must_use]
     pub fn sessions(&self) -> &SessionRegistry {
         &self.sessions
+    }
+
+    /// Installs the key store that holds Spec 079 pseudonym map keys (for
+    /// example the OS keyring). Keys created before the swap stay in the
+    /// previous store and become unavailable, which fails closed.
+    pub fn set_privacy_key_store(&mut self, keys: Box<dyn medscale_keys::KeyStore>) {
+        self.privacy_keys = PrivacyKeys(keys);
     }
 
     /// Active session enforcement mode (Spec 024).
@@ -300,6 +321,45 @@ impl CoreFacade {
             store: store_ref,
             meta,
             packs: packs_ref,
+            sessions: &self.sessions,
+            leases: &self.leases,
+            vault_id,
+            realm,
+            scope,
+            session_id,
+        })
+    }
+
+    /// Runs one Spec 079 Privacy Gate operation with lease enforcement,
+    /// vault-meta, pack-store and key-store access. Surfaces never touch
+    /// privacy storage or keys: this is the only path.
+    fn privacy<R>(
+        &self,
+        vault_id: &medscale_contracts::objects::VaultId,
+        realm: medscale_contracts::objects::RealmId,
+        scope: medscale_contracts::objects::AuthorityScopeId,
+        session_id: Option<medscale_contracts::objects::OpaqueId>,
+        op: impl FnOnce(super::privacy_gate::PrivacyGate<'_>) -> Result<R, AuthorityError>,
+    ) -> Result<R, AuthorityError> {
+        self.require_lease(vault_id)?;
+        let vault_guard = self.vault();
+        let enc_guard = self.encrypted();
+        let meta = if let Some(enc) = enc_guard.as_ref() {
+            &enc.meta
+        } else if let Some(vault) = vault_guard.as_ref() {
+            &vault.meta
+        } else {
+            return Err(AuthorityError::VaultRequired);
+        };
+        let mut store = self.store();
+        let store_ref: &mut InMemoryAuthorityStore = &mut store;
+        let packs_guard = self.packs();
+        let packs_ref: &medscale_pack::PackStore = &packs_guard;
+        op(super::privacy_gate::PrivacyGate {
+            store: store_ref,
+            meta,
+            packs: packs_ref,
+            keys: self.privacy_keys.0.as_ref(),
             sessions: &self.sessions,
             leases: &self.leases,
             vault_id,
@@ -2665,6 +2725,295 @@ impl CoreFacade {
             // AgentCapabilityManifest).
             // Spec 078 Model Fleet + Compare: every mutation flows through
             // Core authority paths. T078-03 slice (AgentLane).
+            // Spec 079 Privacy Gate: every classification, transform,
+            // pseudonym and egress decision flows through Core.
+            RequestBody::PrivacyClassify {
+                project_id,
+                artifact_id,
+                data_class,
+                expected_revision,
+            } => {
+                let result = self.privacy(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut gate| {
+                        gate.classify_artifact(
+                            project_id,
+                            artifact_id,
+                            data_class,
+                            expected_revision,
+                        )
+                    },
+                )?;
+                Ok(ResponseBody::PrivacyClassification {
+                    classification: Box::new(result),
+                })
+            }
+            RequestBody::PrivacyClassificationGet {
+                project_id,
+                artifact_id,
+            } => {
+                let result = self.privacy(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |gate| gate.effective_classification(&project_id, &artifact_id),
+                )?;
+                Ok(ResponseBody::PrivacyEffectiveClassification {
+                    effective: Box::new(result),
+                })
+            }
+            RequestBody::PrivacyClassificationList { project_id } => {
+                let result = self.privacy(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |gate| gate.list_classifications(&project_id),
+                )?;
+                Ok(ResponseBody::PrivacyClassificationList {
+                    classifications: result,
+                })
+            }
+            RequestBody::PrivacyProfileCreate {
+                project_id,
+                name,
+                target_class,
+                rules,
+                use_model_recognizer,
+            } => {
+                let result = self.privacy(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut gate| {
+                        gate.create_profile(
+                            project_id,
+                            name,
+                            target_class,
+                            rules,
+                            use_model_recognizer,
+                        )
+                    },
+                )?;
+                Ok(ResponseBody::PrivacyProfile {
+                    profile: Box::new(result),
+                })
+            }
+            RequestBody::PrivacyProfileGet { profile_id } => {
+                let result = self.privacy(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |gate| gate.get_profile(&profile_id),
+                )?;
+                Ok(ResponseBody::PrivacyProfile {
+                    profile: Box::new(result),
+                })
+            }
+            RequestBody::PrivacyProfileList { project_id } => {
+                let result = self.privacy(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |gate| gate.list_profiles(&project_id),
+                )?;
+                Ok(ResponseBody::PrivacyProfileList { profiles: result })
+            }
+            RequestBody::PrivacyProfileRevoke {
+                profile_id,
+                expected_revision,
+            } => {
+                let result = self.privacy(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut gate| gate.revoke_profile(&profile_id, expected_revision),
+                )?;
+                Ok(ResponseBody::PrivacyProfile {
+                    profile: Box::new(result),
+                })
+            }
+            RequestBody::PrivacyMapCreate { project_id } => {
+                let result = self.privacy(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut gate| gate.create_pseudonym_map(project_id),
+                )?;
+                Ok(ResponseBody::PrivacyMap {
+                    map: Box::new(result),
+                })
+            }
+            RequestBody::PrivacyMapList { project_id } => {
+                let result = self.privacy(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |gate| gate.list_pseudonym_maps(&project_id),
+                )?;
+                Ok(ResponseBody::PrivacyMapList { maps: result })
+            }
+            RequestBody::PrivacyMapRevoke {
+                map_id,
+                expected_revision,
+            } => {
+                let result = self.privacy(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut gate| gate.revoke_pseudonym_map(&map_id, expected_revision),
+                )?;
+                Ok(ResponseBody::PrivacyMap {
+                    map: Box::new(result),
+                })
+            }
+            RequestBody::PrivacyTransform {
+                project_id,
+                source_artifact_id,
+                profile_id,
+                pseudonym_map_id,
+                model_pack_id,
+                model_pack_path,
+                synthetic_only,
+            } => {
+                let model = match (model_pack_id, model_pack_path) {
+                    (Some(pack_id), Some(local_path)) => {
+                        Some(super::privacy_gate::ModelRecognizerRequest {
+                            pack_id,
+                            local_path,
+                        })
+                    }
+                    (None, None) => None,
+                    _ => {
+                        return Err(AuthorityError::InvalidArgument {
+                            message: "model_pack_id and model_pack_path go together".to_owned(),
+                        });
+                    }
+                };
+                let receipt = self.privacy(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut gate| {
+                        gate.transform(super::privacy_gate::TransformRequest {
+                            project_id,
+                            source_artifact_id,
+                            profile_id,
+                            pseudonym_map_id,
+                            model,
+                            synthetic_only,
+                        })
+                    },
+                )?;
+                Ok(ResponseBody::PrivacyReceipt {
+                    receipt: Box::new(receipt),
+                })
+            }
+            RequestBody::PrivacyReceiptGet { receipt_id } => {
+                let result = self.privacy(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |gate| gate.get_receipt(&receipt_id),
+                )?;
+                Ok(ResponseBody::PrivacyReceipt {
+                    receipt: Box::new(result),
+                })
+            }
+            RequestBody::PrivacyReceiptList { project_id } => {
+                let result = self.privacy(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |gate| gate.list_receipts(&project_id),
+                )?;
+                Ok(ResponseBody::PrivacyReceiptList { receipts: result })
+            }
+            RequestBody::PrivacyReceiptRevoke {
+                receipt_id,
+                expected_revision,
+            } => {
+                let result = self.privacy(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut gate| gate.revoke_receipt(&receipt_id, expected_revision),
+                )?;
+                Ok(ResponseBody::PrivacyReceipt {
+                    receipt: Box::new(result),
+                })
+            }
+            RequestBody::PrivacyReidentify {
+                map_id,
+                pseudonym,
+                reason,
+            } => {
+                let (audit, value) = self.privacy(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut gate| gate.reidentify(&map_id, pseudonym, reason),
+                )?;
+                Ok(ResponseBody::PrivacyReidentified {
+                    audit: Box::new(audit),
+                    value,
+                })
+            }
+            RequestBody::PrivacyReidentificationAuditList { map_id } => {
+                let result = self.privacy(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |gate| gate.list_reid_audit(&map_id),
+                )?;
+                Ok(ResponseBody::PrivacyReidentificationAuditList { audits: result })
+            }
+            RequestBody::PrivacyEgressEvaluate {
+                project_id,
+                artifact_id,
+                boundary,
+            } => {
+                let result = self.privacy(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut gate| gate.evaluate_egress(project_id, artifact_id, boundary),
+                )?;
+                Ok(ResponseBody::PrivacyEgressDecision {
+                    decision: Box::new(result),
+                })
+            }
+            RequestBody::PrivacyEgressDecisionList {
+                project_id,
+                artifact_id,
+            } => {
+                let result = self.privacy(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |gate| gate.list_egress_decisions(&project_id, artifact_id.as_ref()),
+                )?;
+                Ok(ResponseBody::PrivacyEgressDecisionList { decisions: result })
+            }
             RequestBody::ComparisonCompute { fleet_run_id } => {
                 let report = self.model_fleet(
                     &req.vault_id,
@@ -3588,6 +3937,54 @@ fn capability_matches(cap: &Capability, body: &RequestBody) -> bool {
             | (
                 Capability::ComparisonRead,
                 RequestBody::ComparisonReportList { .. }
+            )
+            | (
+                Capability::PrivacyClassify,
+                RequestBody::PrivacyClassify { .. }
+            )
+            | (
+                Capability::PrivacyRead,
+                RequestBody::PrivacyClassificationGet { .. }
+                    | RequestBody::PrivacyClassificationList { .. }
+                    | RequestBody::PrivacyProfileGet { .. }
+                    | RequestBody::PrivacyProfileList { .. }
+                    | RequestBody::PrivacyMapList { .. }
+                    | RequestBody::PrivacyReceiptGet { .. }
+                    | RequestBody::PrivacyReceiptList { .. }
+                    | RequestBody::PrivacyReidentificationAuditList { .. }
+                    | RequestBody::PrivacyEgressDecisionList { .. }
+            )
+            | (
+                Capability::PrivacyProfileCreate,
+                RequestBody::PrivacyProfileCreate { .. }
+            )
+            | (
+                Capability::PrivacyProfileRevoke,
+                RequestBody::PrivacyProfileRevoke { .. }
+            )
+            | (
+                Capability::PrivacyTransform,
+                RequestBody::PrivacyTransform { .. }
+            )
+            | (
+                Capability::PrivacyReceiptRevoke,
+                RequestBody::PrivacyReceiptRevoke { .. }
+            )
+            | (
+                Capability::PrivacyMapCreate,
+                RequestBody::PrivacyMapCreate { .. }
+            )
+            | (
+                Capability::PrivacyMapRevoke,
+                RequestBody::PrivacyMapRevoke { .. }
+            )
+            | (
+                Capability::PrivacyReidentify,
+                RequestBody::PrivacyReidentify { .. }
+            )
+            | (
+                Capability::PrivacyEgressEvaluate,
+                RequestBody::PrivacyEgressEvaluate { .. }
             )
     )
 }

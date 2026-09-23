@@ -87,7 +87,10 @@ fn schema_v3_migrates_empty_store_additively() {
     let journal = meta.migration_journal().unwrap();
     // Forward-fixed for Spec 077 (v5 -> v6); see interrupted_migration_fails_closed_on_reopen
     // below for why this must track the live top version, not this test's own.
-    assert_eq!(journal.finished_version, 7);
+    assert_eq!(
+        journal.finished_version,
+        medscale_storage::CURRENT_META_SCHEMA_VERSION
+    );
     assert!(!journal.interrupted());
     // Pre-074 state still queryable after migration.
     assert!(meta.list_sources().unwrap().is_empty());
@@ -134,7 +137,10 @@ fn schema_v3_migrates_populated_v2_store_without_identity_loss() {
     let meta = SqliteMetaStore::open_at(&db_path).unwrap();
     let journal = meta.migration_journal().unwrap();
     // Forward-fixed for Spec 077 (v5 -> v6).
-    assert_eq!(journal.finished_version, 7);
+    assert_eq!(
+        journal.finished_version,
+        medscale_storage::CURRENT_META_SCHEMA_VERSION
+    );
     // Pre-074 identities survive the migration untouched.
     let source = meta.get_source(&OpaqueId::new("src-keep")).unwrap();
     assert_eq!(source.media_type, "text/plain");
@@ -167,11 +173,11 @@ fn interrupted_migration_fails_closed_on_reopen() {
         // from the journal rather than pinned, so a later version bump
         // cannot silently turn this into a no-op check again.
         let top = meta.migration_journal().unwrap().finished_version;
-        assert_eq!(top, 7);
+        assert_eq!(top, medscale_storage::CURRENT_META_SCHEMA_VERSION);
         meta.begin_migration(top).unwrap();
         // Drop without finish: simulated crash mid-migration.
     }
-    let top = 7;
+    let top = medscale_storage::CURRENT_META_SCHEMA_VERSION;
     let err = SqliteMetaStore::open_at(&root.join("meta.sqlite3")).unwrap_err();
     assert!(
         matches!(err, MetaError::MigrationIncomplete(v) if v == top),

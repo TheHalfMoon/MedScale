@@ -38,6 +38,10 @@ use crate::packs::{
     PackPromotionState,
 };
 use crate::presentation::{DrillDownResult, SubjectBriefV1, SubjectCoverageV1, SubjectTimelineV1};
+use crate::privacy_gate::{
+    ArtifactClassification, DataClass, DeidReceipt, EffectiveClassification, EgressBoundary,
+    EgressDecision, PrivacyPolicyProfile, ProfileRule, PseudonymMapRef, ReidentificationAudit,
+};
 use crate::project_graph::{
     ArtifactDescriptor, Experiment, ExperimentSummary, GraphDirection, GraphEndpoint,
     GraphNeighborPage, Project, ProjectArtifactRef, ProjectContext, ProjectGraphEdge,
@@ -193,6 +197,18 @@ pub enum Capability {
     // Spec 078 T078-05/06 slice: comparison + history.
     ComparisonCompute,
     ComparisonRead,
+    // Spec 079: Privacy Gate. `PrivacyReidentify` is deliberately absent from
+    // `operator_grants`: a session must request it explicitly.
+    PrivacyClassify,
+    PrivacyRead,
+    PrivacyProfileCreate,
+    PrivacyProfileRevoke,
+    PrivacyTransform,
+    PrivacyReceiptRevoke,
+    PrivacyMapCreate,
+    PrivacyMapRevoke,
+    PrivacyReidentify,
+    PrivacyEgressEvaluate,
 }
 
 impl Capability {
@@ -245,6 +261,7 @@ impl Capability {
                 | Self::AgentLaneRead
                 | Self::FleetRunRead
                 | Self::ComparisonRead
+                | Self::PrivacyRead
         )
     }
 
@@ -383,6 +400,15 @@ impl Capability {
             Self::FleetRunCancel,
             Self::ComparisonCompute,
             Self::ComparisonRead,
+            Self::PrivacyClassify,
+            Self::PrivacyRead,
+            Self::PrivacyProfileCreate,
+            Self::PrivacyProfileRevoke,
+            Self::PrivacyTransform,
+            Self::PrivacyReceiptRevoke,
+            Self::PrivacyMapCreate,
+            Self::PrivacyMapRevoke,
+            Self::PrivacyEgressEvaluate,
         ]
     }
 }
@@ -1062,6 +1088,88 @@ pub enum RequestBody {
     ComparisonReportList {
         fleet_run_id: OpaqueId,
     },
+    // Spec 079: Privacy Gate.
+    /// Declares an artifact's class in a Project. `expected_revision` is
+    /// `None` for the first classification and required afterwards.
+    PrivacyClassify {
+        project_id: OpaqueId,
+        artifact_id: OpaqueId,
+        data_class: DataClass,
+        expected_revision: Option<u64>,
+    },
+    PrivacyClassificationGet {
+        project_id: OpaqueId,
+        artifact_id: OpaqueId,
+    },
+    PrivacyClassificationList {
+        project_id: OpaqueId,
+    },
+    PrivacyProfileCreate {
+        project_id: OpaqueId,
+        name: String,
+        target_class: DataClass,
+        rules: Vec<ProfileRule>,
+        use_model_recognizer: bool,
+    },
+    PrivacyProfileGet {
+        profile_id: OpaqueId,
+    },
+    PrivacyProfileList {
+        project_id: OpaqueId,
+    },
+    PrivacyProfileRevoke {
+        profile_id: OpaqueId,
+        expected_revision: u64,
+    },
+    PrivacyMapCreate {
+        project_id: OpaqueId,
+    },
+    PrivacyMapList {
+        project_id: OpaqueId,
+    },
+    PrivacyMapRevoke {
+        map_id: OpaqueId,
+        expected_revision: u64,
+    },
+    /// Transforms a source into a new de-identified derived artifact.
+    PrivacyTransform {
+        project_id: OpaqueId,
+        source_artifact_id: OpaqueId,
+        profile_id: OpaqueId,
+        pseudonym_map_id: Option<OpaqueId>,
+        /// Admitted local model Pack id + directory for the model recognizer.
+        model_pack_id: Option<OpaqueId>,
+        model_pack_path: Option<String>,
+        synthetic_only: bool,
+    },
+    PrivacyReceiptGet {
+        receipt_id: OpaqueId,
+    },
+    PrivacyReceiptList {
+        project_id: OpaqueId,
+    },
+    PrivacyReceiptRevoke {
+        receipt_id: OpaqueId,
+        expected_revision: u64,
+    },
+    PrivacyReidentify {
+        map_id: OpaqueId,
+        pseudonym: String,
+        reason: String,
+    },
+    PrivacyReidentificationAuditList {
+        map_id: OpaqueId,
+    },
+    /// The egress decision every boundary must request before sending.
+    PrivacyEgressEvaluate {
+        project_id: OpaqueId,
+        artifact_id: OpaqueId,
+        boundary: EgressBoundary,
+    },
+    PrivacyEgressDecisionList {
+        project_id: OpaqueId,
+        artifact_id: Option<OpaqueId>,
+    },
 }
 
 impl RequestBody {
@@ -1442,6 +1550,48 @@ pub enum ResponseBody {
     },
     ModelFleetComparisonReportList {
         reports: Vec<ComparisonReport>,
+    },
+    // Spec 079: Privacy Gate typed results.
+    PrivacyClassification {
+        classification: Box<ArtifactClassification>,
+    },
+    PrivacyEffectiveClassification {
+        effective: Box<EffectiveClassification>,
+    },
+    PrivacyClassificationList {
+        classifications: Vec<ArtifactClassification>,
+    },
+    PrivacyProfile {
+        profile: Box<PrivacyPolicyProfile>,
+    },
+    PrivacyProfileList {
+        profiles: Vec<PrivacyPolicyProfile>,
+    },
+    PrivacyMap {
+        map: Box<PseudonymMapRef>,
+    },
+    PrivacyMapList {
+        maps: Vec<PseudonymMapRef>,
+    },
+    PrivacyReceipt {
+        receipt: Box<DeidReceipt>,
+    },
+    PrivacyReceiptList {
+        receipts: Vec<DeidReceipt>,
+    },
+    /// `value` is present only when `audit.outcome` is `returned`.
+    PrivacyReidentified {
+        audit: Box<ReidentificationAudit>,
+        value: Option<String>,
+    },
+    PrivacyReidentificationAuditList {
+        audits: Vec<ReidentificationAudit>,
+    },
+    PrivacyEgressDecision {
+        decision: Box<EgressDecision>,
+    },
+    PrivacyEgressDecisionList {
+        decisions: Vec<EgressDecision>,
     },
 }
 

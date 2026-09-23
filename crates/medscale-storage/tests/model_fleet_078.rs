@@ -299,9 +299,26 @@ fn rewind_to_v6(root: &Path) {
     for table in MODEL_FLEET_TABLES {
         conn.execute_batch(&format!("DROP TABLE {table};")).unwrap();
     }
-    conn.execute("DELETE FROM migration_journal WHERE version = 7", [])
+    // Later additive versions (Spec 079 v8, ...) are also absent in a v6
+    // build, so their tables and journal rows go too.
+    for table in LATER_VERSION_TABLES {
+        conn.execute_batch(&format!("DROP TABLE IF EXISTS {table};"))
+            .unwrap();
+    }
+    conn.execute("DELETE FROM migration_journal WHERE version >= 7", [])
         .unwrap();
 }
+
+/// Tables created by migrations after v7.
+const LATER_VERSION_TABLES: &[&str] = &[
+    "privacy_classifications",
+    "privacy_profiles",
+    "privacy_deid_receipts",
+    "privacy_pseudonym_maps",
+    "privacy_pseudonym_entries",
+    "privacy_reid_audit",
+    "privacy_egress_decisions",
+];
 
 fn table_exists(root: &Path, table: &str) -> bool {
     raw(root)
@@ -321,7 +338,7 @@ fn pre_078_view(meta: &SqliteMetaStore) -> serde_json::Value {
         serde_json::from_slice(&meta.snapshot_bytes().unwrap()).unwrap();
     let object = snapshot.as_object_mut().unwrap();
     object.remove("schema_version");
-    object.retain(|key, _| !key.starts_with("model_fleet_"));
+    object.retain(|key, _| !key.starts_with("model_fleet_") && !key.starts_with("privacy_"));
     snapshot
 }
 
@@ -429,7 +446,10 @@ fn migration_v6_to_v7_preserves_populated_pre_078_vault_and_binds_to_its_077_obj
     // Steps 4-5: apply the migration once and inspect version metadata.
     let meta = open_meta(&root);
     let journal = meta.migration_journal().unwrap();
-    assert_eq!(journal.finished_version, 7);
+    assert_eq!(
+        journal.finished_version,
+        medscale_storage::CURRENT_META_SCHEMA_VERSION
+    );
     assert_eq!(journal.started_version, None);
     for table in MODEL_FLEET_TABLES {
         assert!(table_exists(&root, table), "{table} must exist at v7");
@@ -456,7 +476,10 @@ fn migration_v6_to_v7_preserves_populated_pre_078_vault_and_binds_to_its_077_obj
     // prove a repeated open is a no-op.
     for _ in 0..3 {
         let meta = open_meta(&root);
-        assert_eq!(meta.migration_journal().unwrap().finished_version, 7);
+        assert_eq!(
+            meta.migration_journal().unwrap().finished_version,
+            medscale_storage::CURRENT_META_SCHEMA_VERSION
+        );
         let lane_1 = meta.get_agent_lane(&id("lane-1")).unwrap();
         assert_eq!(lane_1.agent_identity_id.as_str(), "agent-1");
         assert_eq!(lane_1.revision, 1);
@@ -488,7 +511,10 @@ fn repeated_open_and_repeated_migration_is_safe() {
     for _ in 0..5 {
         let meta = open_meta(&root);
         let journal = meta.migration_journal().unwrap();
-        assert_eq!(journal.finished_version, 7);
+        assert_eq!(
+            journal.finished_version,
+            medscale_storage::CURRENT_META_SCHEMA_VERSION
+        );
         assert_eq!(meta.get_agent_lane(&id("lane-1")).unwrap().revision, 1);
         assert_eq!(meta.list_all_agent_lanes().unwrap().len(), 1);
     }
@@ -500,12 +526,18 @@ fn encrypted_vault_migrates_to_v7_and_reopens_with_its_key() {
     let key = [7_u8; 32];
     {
         let meta = SqliteMetaStore::open_at_sqlcipher(&db_path(&root), &key).unwrap();
-        assert_eq!(meta.migration_journal().unwrap().finished_version, 7);
+        assert_eq!(
+            meta.migration_journal().unwrap().finished_version,
+            medscale_storage::CURRENT_META_SCHEMA_VERSION
+        );
         populate_pre_078(&meta);
         build_fleet(&meta);
     }
     let meta = SqliteMetaStore::open_at_sqlcipher(&db_path(&root), &key).unwrap();
-    assert_eq!(meta.migration_journal().unwrap().finished_version, 7);
+    assert_eq!(
+        meta.migration_journal().unwrap().finished_version,
+        medscale_storage::CURRENT_META_SCHEMA_VERSION
+    );
     assert_eq!(
         meta.get_fleet_run(&id("fleet-1")).unwrap().status,
         FleetRunState::PartiallyFailed
@@ -553,7 +585,7 @@ fn crash_mid_migration_fails_closed_and_pre_migration_backup_recovers() {
     let restored = SyntheticVault::open("vault-1", &restored_root).unwrap();
     assert_eq!(
         restored.meta.migration_journal().unwrap().finished_version,
-        7
+        medscale_storage::CURRENT_META_SCHEMA_VERSION
     );
     assert_eq!(
         restored.meta.get_agent_run(&id("run-1")).unwrap().status,
@@ -846,7 +878,10 @@ fn backed_up_fleet_vault(root: &Path) -> PathBuf {
     build_fleet(&vault.meta);
     let dest = root.join("backup-out");
     let manifest = backup_vault(&vault, &dest).unwrap();
-    assert_eq!(manifest.schema_version, 7);
+    assert_eq!(
+        manifest.schema_version,
+        medscale_storage::CURRENT_META_SCHEMA_VERSION
+    );
     dest
 }
 
@@ -976,7 +1011,7 @@ fn pre_078_v6_backup_restores_with_empty_078_tables() {
     // Re-express the checkpoint exactly as a v6 build writes it.
     tamper_backup(&dest, |s| {
         let object = s.as_object_mut().unwrap();
-        object.retain(|key, _| !key.starts_with("model_fleet_"));
+        object.retain(|key, _| !key.starts_with("model_fleet_") && !key.starts_with("privacy_"));
         object.insert("schema_version".to_owned(), 6.into());
     });
     let manifest_path = dest.join("manifest.json");

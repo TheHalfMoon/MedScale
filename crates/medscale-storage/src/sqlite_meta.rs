@@ -240,6 +240,12 @@ impl SqliteMetaStore {
             self.conn.execute_batch(crate::model_fleet::V7_DDL)?;
             self.finish_migration(7)?;
         }
+        let journal = self.migration_journal()?;
+        if journal.finished_version < 8 {
+            self.begin_migration(8)?;
+            self.conn.execute_batch(crate::privacy_gate::V8_DDL)?;
+            self.finish_migration(8)?;
+        }
         Ok(())
     }
 
@@ -419,7 +425,7 @@ impl SqliteMetaStore {
             })
             .collect();
         let payload = serde_json::json!({
-            "schema_version": 7,
+            "schema_version": crate::CURRENT_META_SCHEMA_VERSION,
             "next_seq": self.get_next_seq()?,
             "sources": source_payload,
             "objects": object_payload,
@@ -479,6 +485,43 @@ impl SqliteMetaStore {
             "model_fleet_lane_run_refs": self.list_all_lane_run_refs()?,
             "model_fleet_comparison_reports": self.list_all_comparison_reports()?,
         });
+        // Spec 079: Privacy Gate rows (added outside `json!` to stay under the
+        // macro recursion limit). Pseudonym entries are sealed; map keys live
+        // in the KeyStore and are never part of a backup.
+        let privacy = [
+            (
+                "privacy_classifications",
+                serde_json::to_value(self.list_all_classifications()?),
+            ),
+            (
+                "privacy_profiles",
+                serde_json::to_value(self.list_all_privacy_profiles()?),
+            ),
+            (
+                "privacy_deid_receipts",
+                serde_json::to_value(self.list_all_deid_receipts()?),
+            ),
+            (
+                "privacy_pseudonym_maps",
+                serde_json::to_value(self.list_all_pseudonym_maps()?),
+            ),
+            (
+                "privacy_pseudonym_entries",
+                serde_json::to_value(self.list_all_pseudonym_entries()?),
+            ),
+            (
+                "privacy_reid_audit",
+                serde_json::to_value(self.list_all_reid_audit()?),
+            ),
+            (
+                "privacy_egress_decisions",
+                serde_json::to_value(self.list_all_egress_decisions()?),
+            ),
+        ];
+        let mut payload = payload;
+        for (key, value) in privacy {
+            payload[key] = value.map_err(|e| MetaError::CorruptObjectBody(e.to_string()))?;
+        }
         Ok(serde_json::to_vec(&payload).unwrap_or_default())
     }
 

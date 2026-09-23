@@ -6,7 +6,7 @@ mod pack_trust;
 mod provider;
 mod recovery;
 
-pub use aead_wrap::{WrappedBlob, seal, unseal};
+pub use aead_wrap::{WrappedBlob, generate_key32, seal, unseal, zeroize_key};
 pub use keystore::{
     FORCE_MEMORY_KEYSTORE_ENV, FakeOsKeyStore, KeyStore, KeyStoreDoctorPosture, KeyStoreError,
     MemoryKeyStore, MobileKeyStorePolicy, OS_KEYRING_PROBE_ACCOUNT, OS_KEYRING_SERVICE, OsKeyStore,

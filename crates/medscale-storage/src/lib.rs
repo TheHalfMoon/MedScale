@@ -10,6 +10,7 @@ mod gc;
 mod medagent;
 mod migrate;
 mod model_fleet;
+mod privacy_gate;
 mod privacy_probes;
 mod project_graph;
 mod sealed_blob;
@@ -28,6 +29,7 @@ pub use data_sources::{
 pub use encrypted_vault::{EncryptedVault, EncryptedVaultError, default_vault_root};
 pub use gc::{GcStats, run_gc};
 pub use migrate::MigrationJournal;
+pub use privacy_gate::{DeidTransformCommit, PseudonymEntryRow};
 pub use privacy_probes::{
     ClassifiedResidualSurface, OsFileProbeResult, PrivacyProbeReport, ProbeHonestyClass,
     crash_sidecar_leftovers_present, probe_os_privacy_surfaces, residual_risk_classes_open,
@@ -37,3 +39,8 @@ pub use sealed_blob::SealedBlobStore;
 pub use sqlite_meta::{AuthorityObjectRow, MetaError, SourceMeta, SqliteMetaStore};
 pub use vault::{SyntheticVault, VaultError};
 pub use writer_lock::{WriterLock, WriterLockError};
+
+/// Top metadata schema version written by this build (Spec 079: v8). Tests of
+/// earlier specs assert against this constant so a later additive migration
+/// does not require editing them.
+pub const CURRENT_META_SCHEMA_VERSION: u32 = 8;

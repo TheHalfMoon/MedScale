@@ -19,6 +19,8 @@ pub struct CliSession {
     next_req: u64,
     vault_root: Option<String>,
     open: bool,
+    /// Spec 079: whether the durable pseudonym key store is installed.
+    privacy_keys_installed: bool,
 }
 
 impl CliSession {
@@ -66,6 +68,7 @@ impl CliSession {
             next_req: 0,
             vault_root: None,
             open: false,
+            privacy_keys_installed: false,
         };
         let resp = session.dispatch_bootstrap(
             Capability::AcquireLease,
@@ -2752,5 +2755,392 @@ impl CliSession {
             });
         };
         Ok(records)
+    }
+
+    // ---------------------------------------------------------------------
+    // Spec 079: Privacy Gate
+    // ---------------------------------------------------------------------
+
+    /// Installs the durable key store (OS keyring when available, else the
+    /// in-memory store) before the first call that creates or uses a
+    /// pseudonym map key. A CLI command is one process, so keys must outlive
+    /// it to support later re-identification.
+    fn ensure_privacy_keys(&mut self) {
+        if !self.privacy_keys_installed {
+            self.facade
+                .set_privacy_key_store(medscale_keys::select_keystore());
+            self.privacy_keys_installed = true;
+        }
+    }
+
+    /// Keeps pseudonym map keys in process memory only (tests, and hosts
+    /// that must not touch the OS keyring). Keys then end with the process,
+    /// and later re-identification is denied as `denied_key_unavailable`.
+    pub fn use_in_memory_privacy_keys(&mut self) {
+        self.facade
+            .set_privacy_key_store(Box::new(medscale_keys::MemoryKeyStore::new()));
+        self.privacy_keys_installed = true;
+    }
+
+    /// Creates a source record through Core (existing Spec 002 capability).
+    pub fn create_source_record(
+        &mut self,
+        media_type: String,
+        bytes: Vec<u8>,
+    ) -> Result<OpaqueId, AuthorityError> {
+        match self.dispatch(
+            Capability::CreateSourceRecord,
+            RequestBody::CreateSourceRecord { media_type, bytes },
+        )? {
+            ResponseBody::Created { object_id } => Ok(object_id),
+            _ => Err(Self::unexpected("created source")),
+        }
+    }
+
+    fn unexpected(what: &str) -> AuthorityError {
+        AuthorityError::InvalidArgument {
+            message: format!("expected {what}"),
+        }
+    }
+
+    pub fn privacy_classify(
+        &mut self,
+        project_id: OpaqueId,
+        artifact_id: OpaqueId,
+        data_class: medscale_contracts::privacy_gate::DataClass,
+        expected_revision: Option<u64>,
+    ) -> Result<medscale_contracts::privacy_gate::ArtifactClassification, AuthorityError> {
+        match self.dispatch(
+            Capability::PrivacyClassify,
+            RequestBody::PrivacyClassify {
+                project_id,
+                artifact_id,
+                data_class,
+                expected_revision,
+            },
+        )? {
+            ResponseBody::PrivacyClassification { classification } => Ok(*classification),
+            _ => Err(Self::unexpected("privacy classification")),
+        }
+    }
+
+    pub fn privacy_classification_get(
+        &mut self,
+        project_id: OpaqueId,
+        artifact_id: OpaqueId,
+    ) -> Result<medscale_contracts::privacy_gate::EffectiveClassification, AuthorityError> {
+        match self.dispatch(
+            Capability::PrivacyRead,
+            RequestBody::PrivacyClassificationGet {
+                project_id,
+                artifact_id,
+            },
+        )? {
+            ResponseBody::PrivacyEffectiveClassification { effective } => Ok(*effective),
+            _ => Err(Self::unexpected("effective classification")),
+        }
+    }
+
+    pub fn privacy_classification_list(
+        &mut self,
+        project_id: OpaqueId,
+    ) -> Result<Vec<medscale_contracts::privacy_gate::ArtifactClassification>, AuthorityError> {
+        match self.dispatch(
+            Capability::PrivacyRead,
+            RequestBody::PrivacyClassificationList { project_id },
+        )? {
+            ResponseBody::PrivacyClassificationList { classifications } => Ok(classifications),
+            _ => Err(Self::unexpected("classification list")),
+        }
+    }
+
+    pub fn privacy_profile_create(
+        &mut self,
+        project_id: OpaqueId,
+        name: String,
+        target_class: medscale_contracts::privacy_gate::DataClass,
+        rules: Vec<medscale_contracts::privacy_gate::ProfileRule>,
+        use_model_recognizer: bool,
+    ) -> Result<medscale_contracts::privacy_gate::PrivacyPolicyProfile, AuthorityError> {
+        match self.dispatch(
+            Capability::PrivacyProfileCreate,
+            RequestBody::PrivacyProfileCreate {
+                project_id,
+                name,
+                target_class,
+                rules,
+                use_model_recognizer,
+            },
+        )? {
+            ResponseBody::PrivacyProfile { profile } => Ok(*profile),
+            _ => Err(Self::unexpected("privacy profile")),
+        }
+    }
+
+    pub fn privacy_profile_list(
+        &mut self,
+        project_id: OpaqueId,
+    ) -> Result<Vec<medscale_contracts::privacy_gate::PrivacyPolicyProfile>, AuthorityError> {
+        match self.dispatch(
+            Capability::PrivacyRead,
+            RequestBody::PrivacyProfileList { project_id },
+        )? {
+            ResponseBody::PrivacyProfileList { profiles } => Ok(profiles),
+            _ => Err(Self::unexpected("privacy profile list")),
+        }
+    }
+
+    pub fn privacy_profile_revoke(
+        &mut self,
+        profile_id: OpaqueId,
+        expected_revision: u64,
+    ) -> Result<medscale_contracts::privacy_gate::PrivacyPolicyProfile, AuthorityError> {
+        match self.dispatch(
+            Capability::PrivacyProfileRevoke,
+            RequestBody::PrivacyProfileRevoke {
+                profile_id,
+                expected_revision,
+            },
+        )? {
+            ResponseBody::PrivacyProfile { profile } => Ok(*profile),
+            _ => Err(Self::unexpected("privacy profile")),
+        }
+    }
+
+    pub fn privacy_map_create(
+        &mut self,
+        project_id: OpaqueId,
+    ) -> Result<medscale_contracts::privacy_gate::PseudonymMapRef, AuthorityError> {
+        self.ensure_privacy_keys();
+        match self.dispatch(
+            Capability::PrivacyMapCreate,
+            RequestBody::PrivacyMapCreate { project_id },
+        )? {
+            ResponseBody::PrivacyMap { map } => Ok(*map),
+            _ => Err(Self::unexpected("pseudonym map")),
+        }
+    }
+
+    pub fn privacy_map_list(
+        &mut self,
+        project_id: OpaqueId,
+    ) -> Result<Vec<medscale_contracts::privacy_gate::PseudonymMapRef>, AuthorityError> {
+        match self.dispatch(
+            Capability::PrivacyRead,
+            RequestBody::PrivacyMapList { project_id },
+        )? {
+            ResponseBody::PrivacyMapList { maps } => Ok(maps),
+            _ => Err(Self::unexpected("pseudonym map list")),
+        }
+    }
+
+    pub fn privacy_map_revoke(
+        &mut self,
+        map_id: OpaqueId,
+        expected_revision: u64,
+    ) -> Result<medscale_contracts::privacy_gate::PseudonymMapRef, AuthorityError> {
+        self.ensure_privacy_keys();
+        match self.dispatch(
+            Capability::PrivacyMapRevoke,
+            RequestBody::PrivacyMapRevoke {
+                map_id,
+                expected_revision,
+            },
+        )? {
+            ResponseBody::PrivacyMap { map } => Ok(*map),
+            _ => Err(Self::unexpected("pseudonym map")),
+        }
+    }
+
+    /// Transforms a source artifact into a new de-identified artifact.
+    #[allow(clippy::too_many_arguments)]
+    pub fn privacy_transform(
+        &mut self,
+        project_id: OpaqueId,
+        source_artifact_id: OpaqueId,
+        profile_id: OpaqueId,
+        pseudonym_map_id: Option<OpaqueId>,
+        model_pack_id: Option<OpaqueId>,
+        model_pack_path: Option<String>,
+        synthetic_only: bool,
+    ) -> Result<medscale_contracts::privacy_gate::DeidReceipt, AuthorityError> {
+        self.ensure_privacy_keys();
+        match self.dispatch(
+            Capability::PrivacyTransform,
+            RequestBody::PrivacyTransform {
+                project_id,
+                source_artifact_id,
+                profile_id,
+                pseudonym_map_id,
+                model_pack_id,
+                model_pack_path,
+                synthetic_only,
+            },
+        )? {
+            ResponseBody::PrivacyReceipt { receipt } => Ok(*receipt),
+            _ => Err(Self::unexpected("deid receipt")),
+        }
+    }
+
+    pub fn privacy_receipt_get(
+        &mut self,
+        receipt_id: OpaqueId,
+    ) -> Result<medscale_contracts::privacy_gate::DeidReceipt, AuthorityError> {
+        match self.dispatch(
+            Capability::PrivacyRead,
+            RequestBody::PrivacyReceiptGet { receipt_id },
+        )? {
+            ResponseBody::PrivacyReceipt { receipt } => Ok(*receipt),
+            _ => Err(Self::unexpected("deid receipt")),
+        }
+    }
+
+    pub fn privacy_receipt_list(
+        &mut self,
+        project_id: OpaqueId,
+    ) -> Result<Vec<medscale_contracts::privacy_gate::DeidReceipt>, AuthorityError> {
+        match self.dispatch(
+            Capability::PrivacyRead,
+            RequestBody::PrivacyReceiptList { project_id },
+        )? {
+            ResponseBody::PrivacyReceiptList { receipts } => Ok(receipts),
+            _ => Err(Self::unexpected("deid receipt list")),
+        }
+    }
+
+    pub fn privacy_receipt_revoke(
+        &mut self,
+        receipt_id: OpaqueId,
+        expected_revision: u64,
+    ) -> Result<medscale_contracts::privacy_gate::DeidReceipt, AuthorityError> {
+        match self.dispatch(
+            Capability::PrivacyReceiptRevoke,
+            RequestBody::PrivacyReceiptRevoke {
+                receipt_id,
+                expected_revision,
+            },
+        )? {
+            ResponseBody::PrivacyReceipt { receipt } => Ok(*receipt),
+            _ => Err(Self::unexpected("deid receipt")),
+        }
+    }
+
+    /// Re-identifies one pseudonym. The operator session does not hold
+    /// `PrivacyReidentify`; this opens a separate, single-purpose session
+    /// that holds only that capability, uses it once, and revokes it.
+    pub fn privacy_reidentify(
+        &mut self,
+        map_id: OpaqueId,
+        pseudonym: String,
+        reason: String,
+    ) -> Result<
+        (
+            medscale_contracts::privacy_gate::ReidentificationAudit,
+            Option<String>,
+        ),
+        AuthorityError,
+    > {
+        self.ensure_privacy_keys();
+        let ResponseBody::Session { session_id, .. } = self.dispatch_bootstrap(
+            Capability::OpenSession,
+            RequestBody::OpenSession {
+                holder_id: self.holder_id.clone(),
+                granted: vec![Capability::PrivacyReidentify],
+                ttl_ticks: 1_000,
+            },
+        )?
+        else {
+            return Err(Self::unexpected("session"));
+        };
+        let mut req = AuthorityRequest::new(
+            self.req_id(),
+            self.vault_id.clone(),
+            self.realm_id.clone(),
+            self.scope_id.clone(),
+            Capability::PrivacyReidentify,
+            RequestBody::PrivacyReidentify {
+                map_id,
+                pseudonym,
+                reason,
+            },
+        );
+        req.session_id = Some(session_id.clone());
+        let result = self.facade.dispatch(req).result;
+        let _ = self.dispatch_bootstrap(
+            Capability::RevokeSession,
+            RequestBody::RevokeSession { session_id },
+        );
+        match result? {
+            ResponseBody::PrivacyReidentified { audit, value } => Ok((*audit, value)),
+            _ => Err(Self::unexpected("re-identification result")),
+        }
+    }
+
+    /// Tries re-identification through the operator session only. The
+    /// operator grant set excludes `PrivacyReidentify`, so this is refused;
+    /// kept public so tests and hosts can prove the separation.
+    pub fn privacy_reidentify_with_operator_session(
+        &mut self,
+        map_id: OpaqueId,
+        pseudonym: String,
+        reason: String,
+    ) -> Result<ResponseBody, AuthorityError> {
+        self.dispatch(
+            Capability::PrivacyReidentify,
+            RequestBody::PrivacyReidentify {
+                map_id,
+                pseudonym,
+                reason,
+            },
+        )
+    }
+
+    pub fn privacy_reid_audit_list(
+        &mut self,
+        map_id: OpaqueId,
+    ) -> Result<Vec<medscale_contracts::privacy_gate::ReidentificationAudit>, AuthorityError> {
+        match self.dispatch(
+            Capability::PrivacyRead,
+            RequestBody::PrivacyReidentificationAuditList { map_id },
+        )? {
+            ResponseBody::PrivacyReidentificationAuditList { audits } => Ok(audits),
+            _ => Err(Self::unexpected("re-identification audit list")),
+        }
+    }
+
+    pub fn privacy_egress_evaluate(
+        &mut self,
+        project_id: OpaqueId,
+        artifact_id: OpaqueId,
+        boundary: medscale_contracts::privacy_gate::EgressBoundary,
+    ) -> Result<medscale_contracts::privacy_gate::EgressDecision, AuthorityError> {
+        match self.dispatch(
+            Capability::PrivacyEgressEvaluate,
+            RequestBody::PrivacyEgressEvaluate {
+                project_id,
+                artifact_id,
+                boundary,
+            },
+        )? {
+            ResponseBody::PrivacyEgressDecision { decision } => Ok(*decision),
+            _ => Err(Self::unexpected("egress decision")),
+        }
+    }
+
+    pub fn privacy_egress_list(
+        &mut self,
+        project_id: OpaqueId,
+        artifact_id: Option<OpaqueId>,
+    ) -> Result<Vec<medscale_contracts::privacy_gate::EgressDecision>, AuthorityError> {
+        match self.dispatch(
+            Capability::PrivacyRead,
+            RequestBody::PrivacyEgressDecisionList {
+                project_id,
+                artifact_id,
+            },
+        )? {
+            ResponseBody::PrivacyEgressDecisionList { decisions } => Ok(decisions),
+            _ => Err(Self::unexpected("egress decision list")),
+        }
     }
 }
