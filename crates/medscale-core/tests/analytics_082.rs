@@ -11,7 +11,7 @@ use medscale_contracts::analytics::{
 };
 use medscale_contracts::data_sources::{CellValue, LocalFileFormat, SourceLocator};
 use medscale_contracts::envelopes::AuthorityError;
-use medscale_contracts::objects::OpaqueId;
+use medscale_contracts::objects::{DigestSha256, OpaqueId};
 use medscale_core::CliSession;
 
 const LABS: &str = "id,age,ldl,sex\n1,34,3.1,f\n2,71,4.4,m\n3,58,,f\n4,45,5.0,m\n";
@@ -459,4 +459,56 @@ fn analytics_state_survives_reopen() {
         s.analytics_replay(v.receipt.header.id).unwrap().verdict,
         ReplayVerdict::Reproduced
     );
+}
+
+/// Rewrites one stored receipt body. The edited body stays self-consistent,
+/// so only replay can notice the change.
+fn edit_receipt(dir: &std::path::Path, id: &OpaqueId, edit: impl FnOnce(&mut serde_json::Value)) {
+    let conn = rusqlite::Connection::open(dir.join("meta.sqlite3")).unwrap();
+    let body: String = conn
+        .query_row(
+            "SELECT body_json FROM analytics_receipts WHERE receipt_id = ?1",
+            [id.as_str()],
+            |r| r.get(0),
+        )
+        .unwrap();
+    let mut value: serde_json::Value = serde_json::from_str(&body).unwrap();
+    edit(&mut value);
+    conn.execute(
+        "UPDATE analytics_receipts SET body_json = ?1 WHERE receipt_id = ?2",
+        rusqlite::params![value.to_string(), id.as_str()],
+    )
+    .unwrap();
+}
+
+#[test]
+fn replay_reports_moved_inputs_and_changed_results() {
+    let mut lab = setup("replay-tamper");
+    let moved = lab
+        .s
+        .analytics_query(request(&lab, "SELECT COUNT(*) AS n FROM labs"))
+        .unwrap();
+    let changed = lab
+        .s
+        .analytics_query(request(&lab, "SELECT MIN(age) AS youngest FROM labs"))
+        .unwrap();
+    let other = serde_json::to_value(DigestSha256::of(b"other")).unwrap();
+    let dir = lab.dir.clone();
+    drop(lab.s);
+    edit_receipt(&dir, &moved.receipt.header.id, |v| {
+        v["inputs"][0]["content_digest"] = other.clone();
+    });
+    edit_receipt(&dir, &changed.receipt.header.id, |v| {
+        v["result_digest"] = other.clone();
+    });
+    let mut s = CliSession::connect("vault-082-replay-tamper").unwrap();
+    s.open_synthetic_vault(&dir.display().to_string()).unwrap();
+    // The pinned input no longer matches any stored snapshot: not re-run.
+    let report = s.analytics_replay(moved.receipt.header.id).unwrap();
+    assert_eq!(report.verdict, ReplayVerdict::InputUnavailable);
+    assert!(report.replay_digest.is_none());
+    // The recorded result no longer matches what the inputs produce.
+    let report = s.analytics_replay(changed.receipt.header.id).unwrap();
+    assert_eq!(report.verdict, ReplayVerdict::Diverged);
+    assert_eq!(report.replay_digest, changed.receipt.result_digest);
 }
