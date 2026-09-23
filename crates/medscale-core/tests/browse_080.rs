@@ -355,6 +355,14 @@ fn every_redirect_hop_is_re_evaluated() {
         .route(
             "https://example.org/docs/loop",
             ScriptedBrowseTransport::redirect("/docs/loop"),
+        )
+        .route(
+            "https://example.org/docs/climb",
+            ScriptedBrowseTransport::redirect("/docs/%2e%2e/admin"),
+        )
+        .route(
+            "https://example.org/admin",
+            ScriptedBrowseTransport::ok("text/plain", b"outside the allowlist"),
         );
     let mut h = Harness::setup("redirect", t);
     let p = h.project();
@@ -372,6 +380,7 @@ fn every_redirect_hop_is_re_evaluated() {
         "https://example.org/docs/evil",
         "https://example.org/docs/down",
         "https://example.org/docs/meta",
+        "https://example.org/docs/climb",
     ] {
         let before = h.calls();
         let v = h.fetch(&p, url);
@@ -386,6 +395,22 @@ fn every_redirect_hop_is_re_evaluated() {
             1,
             "the denied target is never requested"
         );
+    }
+
+    // A dot-segment path cannot climb out of an allowlisted prefix.
+    for url in [
+        "https://example.org/docs/../admin",
+        "https://example.org/docs/%2E%2E/admin",
+        "https://example.org/docs/..%5cadmin",
+    ] {
+        let before = h.calls();
+        let v = h.fetch(&p, url);
+        assert_eq!(
+            deny_reason(&v),
+            Some(BrowseDenyReason::MalformedUrl),
+            "{url}"
+        );
+        assert_eq!(h.calls(), before, "{url} never reaches the transport");
     }
 
     let v = h.fetch(&p, "https://example.org/docs/loop");

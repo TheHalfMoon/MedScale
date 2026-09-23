@@ -470,7 +470,7 @@ fn backup_restore_roundtrips_every_080_row_exactly() {
 #[test]
 fn restore_rejects_hand_edited_080_snapshots() {
     type Edit = (&'static str, fn(&mut serde_json::Value));
-    let edits: [Edit; 4] = [
+    let edits: [Edit; 8] = [
         ("evidence bytes changed", |s| {
             rows(s, "browse_evidence")[0]["content_hex"] = serde_json::json!("00");
         }),
@@ -483,6 +483,20 @@ fn restore_rejects_hand_edited_080_snapshots() {
         }),
         ("allowlist ip literal", |s| {
             rows(s, "browse_allowlist")[0]["host"] = serde_json::json!("127.0.0.1");
+        }),
+        ("allowlist dot-segment prefix", |s| {
+            rows(s, "browse_allowlist")[0]["path_prefix"] = serde_json::json!("/docs/../admin");
+        }),
+        ("allowlist names a missing project", |s| {
+            rows(s, "browse_allowlist")[0]["project_id"] = serde_json::json!("proj-missing");
+        }),
+        ("session moved to another scope", |s| {
+            rows(s, "browse_sessions")[0]["header"]["authority_scope_id"] =
+                serde_json::json!("scope-2");
+        }),
+        ("receipt request digest swapped", |s| {
+            let other = rows(s, "browse_evidence")[0]["evidence"]["content_digest"].clone();
+            rows(s, "browse_receipts")[0]["request_digest"] = other;
         }),
     ];
     for (name, edit) in edits {

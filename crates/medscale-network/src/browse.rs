@@ -14,9 +14,13 @@
 
 use std::fmt;
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
-use medscale_contracts::browse::{BrowseDenyReason, URL_MAX_CHARS, is_dns_host_name};
+use medscale_contracts::browse::{
+    BrowseDenyReason, URL_MAX_CHARS, is_dns_host_name, is_unambiguous_url_path,
+};
 
 /// A URL that passed `validate_url`.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -29,7 +33,9 @@ pub struct ValidatedUrl {
 }
 
 /// Parses and checks a Browse URL. Fragment is dropped; userinfo, other
-/// schemes and ports, and IP-literal hosts are refused.
+/// schemes and ports, IP-literal hosts, and paths a server could normalize
+/// out from under an allowlist prefix (dot segments, backslashes, encoded
+/// slashes) are refused.
 pub fn validate_url(raw: &str) -> Result<ValidatedUrl, BrowseDenyReason> {
     let raw = raw.trim();
     if raw.is_empty() || raw.chars().count() > URL_MAX_CHARS {
@@ -79,6 +85,9 @@ pub fn validate_url(raw: &str) -> Result<ValidatedUrl, BrowseDenyReason> {
     } else {
         path.to_owned()
     };
+    if !is_unambiguous_url_path(&path) {
+        return Err(BrowseDenyReason::MalformedUrl);
+    }
     Ok(ValidatedUrl {
         url: format!("https://{host}{path}"),
         host,
@@ -143,6 +152,20 @@ fn forbidden_v6(ip: Ipv6Addr) -> bool {
         return forbidden_v4(v4);
     }
     let s = ip.segments();
+    // 6to4 (2002::/16) embeds an IPv4 address; Teredo (2001::/32) and the
+    // local-use NAT64 prefix (64:ff9b:1::/48) are refused outright.
+    if s[0] == 0x2002 {
+        let v4 = Ipv4Addr::new(
+            (s[1] >> 8) as u8,
+            (s[1] & 0xff) as u8,
+            (s[2] >> 8) as u8,
+            (s[2] & 0xff) as u8,
+        );
+        return forbidden_v4(v4);
+    }
+    if (s[0] == 0x2001 && s[1] == 0) || (s[0] == 0x64 && s[1] == 0xff9b && s[2] == 1) {
+        return true;
+    }
     // IPv4-compatible (::a.b.c.d, deprecated) and NAT64 (64:ff9b::/96).
     if s[..6] == [0, 0, 0, 0, 0, 0] || (s[0] == 0x64 && s[1] == 0xff9b && s[2..6] == [0, 0, 0, 0]) {
         let v4 = Ipv4Addr::new(
@@ -196,10 +219,13 @@ pub trait BrowseTransport: Send + Sync {
 #[derive(Debug, Default)]
 pub struct UreqBrowseTransport;
 
-/// Wraps the default resolver and drops forbidden addresses.
+/// Wraps the default resolver and drops forbidden addresses. When the name
+/// resolved but every answer was forbidden, `refused` is set so the caller
+/// can tell a private-network answer from a name that does not resolve.
 #[derive(Debug, Default)]
 pub struct PublicOnlyResolver {
     inner: ureq::unversioned::resolver::DefaultResolver,
+    refused: Arc<AtomicBool>,
 }
 
 impl ureq::unversioned::resolver::Resolver for PublicOnlyResolver {
@@ -215,6 +241,9 @@ impl ureq::unversioned::resolver::Resolver for PublicOnlyResolver {
             kept.push(*addr);
         }
         if kept.is_empty() {
+            if !all.is_empty() {
+                self.refused.store(true, Ordering::SeqCst);
+            }
             return Err(ureq::Error::HostNotFound);
         }
         Ok(kept)
@@ -222,7 +251,7 @@ impl ureq::unversioned::resolver::Resolver for PublicOnlyResolver {
 }
 
 impl UreqBrowseTransport {
-    fn agent(timeout: Duration) -> ureq::Agent {
+    fn agent(timeout: Duration, refused: Arc<AtomicBool>) -> ureq::Agent {
         let config = ureq::Agent::config_builder()
             .max_redirects(0)
             .http_status_as_error(false)
@@ -234,7 +263,10 @@ impl UreqBrowseTransport {
         ureq::Agent::with_parts(
             config,
             ureq::unversioned::transport::DefaultConnector::default(),
-            PublicOnlyResolver::default(),
+            PublicOnlyResolver {
+                inner: ureq::unversioned::resolver::DefaultResolver::default(),
+                refused,
+            },
         )
     }
 }
@@ -246,10 +278,15 @@ impl BrowseTransport for UreqBrowseTransport {
         max_body_bytes: usize,
         timeout: Duration,
     ) -> Result<BrowseHttpResponse, BrowseTransportError> {
-        let agent = Self::agent(timeout);
+        let refused = Arc::new(AtomicBool::new(false));
+        let agent = Self::agent(timeout, Arc::clone(&refused));
         let mut response = match agent.get(&url.url).call() {
             Ok(r) => r,
-            Err(ureq::Error::HostNotFound) => return Err(BrowseTransportError::ForbiddenAddress),
+            // A name that does not resolve is a transport failure; only an
+            // answer made entirely of forbidden addresses is a private target.
+            Err(ureq::Error::HostNotFound) if refused.load(Ordering::SeqCst) => {
+                return Err(BrowseTransportError::ForbiddenAddress);
+            }
             Err(ureq::Error::Timeout(_)) => return Err(BrowseTransportError::Timeout),
             Err(_) => return Err(BrowseTransportError::Failed),
         };
@@ -399,6 +436,45 @@ mod tests {
             ("https://localhost/", BrowseDenyReason::MalformedUrl),
             ("https://exa mple.org/", BrowseDenyReason::MalformedUrl),
             ("example.org", BrowseDenyReason::MalformedUrl),
+            (
+                "https://example.org/docs/../admin",
+                BrowseDenyReason::MalformedUrl,
+            ),
+            (
+                "https://example.org/docs/%2e%2e/admin",
+                BrowseDenyReason::MalformedUrl,
+            ),
+            (
+                "https://example.org/docs/..;/admin",
+                BrowseDenyReason::MalformedUrl,
+            ),
+            (
+                "https://example.org/docs%2fadmin",
+                BrowseDenyReason::MalformedUrl,
+            ),
+            (
+                "https://example.org\\@evil.org/",
+                BrowseDenyReason::MalformedUrl,
+            ),
+            (
+                "https://evil.org\\.example.org/",
+                BrowseDenyReason::MalformedUrl,
+            ),
+            ("https://%31%32%37.0.0.1/", BrowseDenyReason::MalformedUrl),
+            ("https://ex\u{e4}mple.org/", BrowseDenyReason::MalformedUrl),
+            (
+                "https://example.org:443@evil.org/",
+                BrowseDenyReason::MalformedUrl,
+            ),
+            ("https://example.org:/", BrowseDenyReason::PortNotAllowed),
+            (
+                "https://example.org:0443/",
+                BrowseDenyReason::PortNotAllowed,
+            ),
+            ("https://0177.0.0.1/", BrowseDenyReason::IpLiteralHost),
+            ("https:/example.org/", BrowseDenyReason::MalformedUrl),
+            ("HTTP://example.org/", BrowseDenyReason::SchemeNotHttps),
+            ("https://localhost./", BrowseDenyReason::MalformedUrl),
             ("", BrowseDenyReason::MalformedUrl),
         ];
         for (url, reason) in cases {
@@ -433,6 +509,13 @@ mod tests {
             "::ffff:10.0.0.1",
             "::127.0.0.1",
             "64:ff9b::a9fe:a9fe",
+            "64:ff9b:1::1",
+            "2002:7f00:1::1",
+            "2002:a9fe:a9fe::1",
+            "2001:0:4136:e378::1",
+            "fec0::1",
+            "::ffff:169.254.169.254",
+            "::ffff:100.64.0.1",
         ] {
             assert!(is_forbidden_ip(ip.parse().unwrap()), "{ip}");
         }
@@ -441,6 +524,7 @@ mod tests {
             "1.1.1.1",
             "2606:4700:4700::1111",
             "::ffff:8.8.8.8",
+            "2002:808:808::1",
         ] {
             assert!(!is_forbidden_ip(ip.parse().unwrap()), "{ip}");
         }

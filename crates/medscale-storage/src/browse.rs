@@ -13,9 +13,9 @@ use std::collections::{HashMap, HashSet};
 
 use medscale_contracts::browse::{
     BrowseAllowlistEntry, BrowseDownloadCandidate, BrowseEvidenceItem, BrowseReceipt,
-    BrowseSession, BrowseSessionState,
+    BrowseSession, BrowseSessionState, request_digest,
 };
-use medscale_contracts::objects::{DigestSha256, OpaqueId};
+use medscale_contracts::objects::{DigestSha256, ObjectHeader, OpaqueId};
 use rusqlite::{OptionalExtension, params};
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
@@ -655,16 +655,48 @@ impl SqliteMetaStore {
         )
     }
 
+    /// A Browse row must name an existing Project in its own realm and scope,
+    /// as the Core write path requires.
+    fn browse_project_in_scope(
+        &self,
+        project_id: &OpaqueId,
+        header: &ObjectHeader,
+        what: &str,
+    ) -> Result<(), MetaError> {
+        let project = match self.get_project(project_id) {
+            Ok(project) => project,
+            Err(MetaError::NotFound) => {
+                return Err(corrupt(format!("{what} names a missing project")));
+            }
+            Err(other) => return Err(other),
+        };
+        if project.header.realm_id != header.realm_id
+            || project.header.authority_scope_id != header.authority_scope_id
+        {
+            return Err(corrupt(format!("{what} is outside its project's scope")));
+        }
+        Ok(())
+    }
+
     /// Cross-row invariants, re-verified after restore:
-    /// - every session has exactly one receipt, whose final state, step
-    ///   count and evidence/download ids match the stored rows;
+    /// - every allowlist entry and session names an existing Project in the
+    ///   same realm and scope;
+    /// - every session has exactly one receipt, whose route, request digest,
+    ///   final state, step count and evidence/download ids match the stored
+    ///   rows;
     /// - every evidence/download row belongs to an existing session.
     pub fn verify_browse_consistency(&self) -> Result<(), MetaError> {
+        for entry in self.list_all_browse_allowlist()? {
+            self.browse_project_in_scope(&entry.project_id, &entry.header, "allowlist entry")?;
+        }
         let sessions: HashMap<String, BrowseSession> = self
             .list_all_browse_sessions()?
             .into_iter()
             .map(|s| (s.header.id.as_str().to_owned(), s))
             .collect();
+        for session in sessions.values() {
+            self.browse_project_in_scope(&session.project_id, &session.header, "browse session")?;
+        }
         let mut evidence: HashMap<String, HashSet<String>> = HashMap::new();
         for row in self.list_all_browse_evidence()? {
             let sid = row.evidence.session_id.as_str().to_owned();
@@ -703,6 +735,8 @@ impl SqliteMetaStore {
                     .collect::<HashSet<_>>()
             };
             if !state_ok
+                || r.route != session.route
+                || r.request_digest != request_digest(&session.request)
                 || r.step_count as usize != session.steps.len()
                 || r.project_id != session.project_id
                 || ids(&r.evidence_ids) != evidence.get(&sid).cloned().unwrap_or_default()

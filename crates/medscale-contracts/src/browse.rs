@@ -254,18 +254,76 @@ impl BrowseAllowlistEntry {
         {
             return Err("allowlist path prefix must start with / and be bounded".to_owned());
         }
+        if self.path_prefix.contains(['?', '#']) || !is_unambiguous_url_path(&self.path_prefix) {
+            return Err(
+                "allowlist path prefix must not carry a query, fragment or dot segment".to_owned(),
+            );
+        }
         Ok(())
     }
 
-    /// True when `host`/`path` fall under this enabled entry.
+    /// True when `host`/`path` fall under this enabled entry. The prefix
+    /// matches whole segments: `/docs` covers `/docs`, `/docs/a` and
+    /// `/docs?q`, never `/docs-private`.
     #[must_use]
     pub fn matches(&self, host: &str, path: &str) -> bool {
-        self.enabled && self.host == host && path.starts_with(&self.path_prefix)
+        if !self.enabled || self.host != host {
+            return false;
+        }
+        let Some(rest) = path.strip_prefix(self.path_prefix.as_str()) else {
+            return false;
+        };
+        self.path_prefix.ends_with('/')
+            || rest.is_empty()
+            || rest.starts_with('/')
+            || rest.starts_with('?')
     }
 
     pub fn check_mutation(&self, expected: ProjectRevision) -> Result<ProjectRevision, String> {
         check_revision(self.revision, expected)
     }
+}
+
+/// True when a URL path (query ignored) means the same thing to every server,
+/// so an allowlist prefix check on it cannot be bypassed by normalization.
+/// Refused: backslashes, dot segments (`.`/`..`, also percent-encoded,
+/// double-encoded or with `;params`), and encoded `/` or `\`.
+#[must_use]
+pub fn is_unambiguous_url_path(path: &str) -> bool {
+    let path = path.split('?').next().unwrap_or("");
+    if path.contains('\\') {
+        return false;
+    }
+    path.split('/').all(|segment| {
+        let decoded = percent_decode_once(segment);
+        let core = decoded.split(';').next().unwrap_or("").to_ascii_lowercase();
+        !decoded.contains(['/', '\\'])
+            && !matches!(
+                core.as_str(),
+                "." | ".." | "%2e" | "%2e%2e" | ".%2e" | "%2e."
+            )
+    })
+}
+
+fn percent_decode_once(s: &str) -> String {
+    let bytes = s.as_bytes();
+    let mut out = Vec::with_capacity(bytes.len());
+    let mut i = 0;
+    while i < bytes.len() {
+        if bytes[i] == b'%'
+            && i + 2 < bytes.len()
+            && bytes[i + 1].is_ascii_hexdigit()
+            && bytes[i + 2].is_ascii_hexdigit()
+        {
+            let hex = |b: u8| (b as char).to_digit(16).unwrap_or(0) as u8;
+            out.push(hex(bytes[i + 1]) * 16 + hex(bytes[i + 2]));
+            i += 3;
+            continue;
+        }
+        out.push(bytes[i]);
+        i += 1;
+    }
+    String::from_utf8_lossy(&out).into_owned()
 }
 
 /// A lowercase DNS host name with at least one dot and no IP-literal shape.
@@ -673,6 +731,38 @@ mod tests {
         assert!(e.matches("example.org", "/docs/a"));
         assert!(!e.matches("example.org", "/other"));
         assert!(!e.matches("evil.org", "/docs/a"));
+        // Prefixes match whole segments.
+        let bare = BrowseAllowlistEntry::new(
+            h("d"),
+            OpaqueId::new("p"),
+            "example.org".to_owned(),
+            "/docs".to_owned(),
+        )
+        .unwrap();
+        for ok in ["/docs", "/docs/a", "/docs?q=1"] {
+            assert!(bare.matches("example.org", ok), "{ok}");
+        }
+        assert!(!bare.matches("example.org", "/docs-private"));
+        assert!(!bare.matches("example.org", "/docsx/a"));
+        // Prefixes cannot carry dot segments, queries or backslashes.
+        for bad in [
+            "/docs/../admin",
+            "/docs/%2e%2e/",
+            "/a\\b",
+            "/docs?x",
+            "/docs#x",
+        ] {
+            assert!(
+                BrowseAllowlistEntry::new(
+                    h("e"),
+                    OpaqueId::new("p"),
+                    "example.org".to_owned(),
+                    bad.to_owned()
+                )
+                .is_err(),
+                "{bad}"
+            );
+        }
         let mut off = e.clone();
         off.enabled = false;
         assert!(!off.matches("example.org", "/docs/a"));
@@ -694,6 +784,36 @@ mod tests {
             )
             .is_err()
         );
+    }
+
+    #[test]
+    fn url_paths_with_normalization_ambiguity_are_refused() {
+        for ok in [
+            "/",
+            "/docs/a.b",
+            "/docs/..x",
+            "/a/.well-known/x",
+            "/q?next=../x",
+            "/%41bc",
+            "/100%",
+        ] {
+            assert!(is_unambiguous_url_path(ok), "{ok}");
+        }
+        for bad in [
+            "/docs/../admin",
+            "/docs/./a",
+            "/docs/..",
+            "/docs/%2e%2e/admin",
+            "/docs/%2E%2E/admin",
+            "/docs/.%2e/admin",
+            "/docs/%252e%252e/admin",
+            "/docs/..;/admin",
+            "/docs/..\\admin",
+            "/docs%2fadmin",
+            "/docs%5cadmin",
+        ] {
+            assert!(!is_unambiguous_url_path(bad), "{bad}");
+        }
     }
 
     #[test]
