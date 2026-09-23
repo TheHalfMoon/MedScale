@@ -12,5 +12,6 @@ OPEN PRS          = #124 (draft, Orca donor plan), #125 (draft, identity v2 /
 STORAGE SCHEMA    = v7 on base (Spec 078); this spec adds v8
 BRANCH PROTECTION = ruleset protect-main; six required checks
 REVIEW POLICY     = FOUNDER_REVIEW_POLICY_AMENDMENT_2026-09-22
-POST-MAIN RUN FOR BASE = 35799605433 (in progress at promotion time)
+POST-MAIN RUN FOR BASE = 35799605433 (push on cf8731e, 6/6 success, verified 2026-09-23)
+PROMOTION HEAD CI = 35799706442 (pull_request on 3403883, 6/6 success)
 ```

@@ -18,8 +18,7 @@ Live verification at promotion time:
   `35777530037` (6/6); PR #135 merged as `bf400e8`; post-merge main run
   `35793707525` passed 6/6. Closure bookkeeping PR #136 passed exact-head run
   `35796883084` (6/6 on `9188efb`) and merged as `cf8731e`; its post-merge
-  main run is `35799605433` (recorded in `evidence/079-privacy-gate/LIVE_TRUTH.md`
-  once complete).
+  main run `35799605433` passed 6/6.
 - Spec 077 is `CLOSED_CANONICAL` (PR #133 merged as `ce8a40d`; closure PR #134
   merged as `ff2e677`).
 - Spec 074 is `CLOSED_CANONICAL` (see `BUILD_QUEUE.md`).
