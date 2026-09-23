@@ -12,6 +12,5 @@ AUDIO POSTURE      = no audio code on base; no audio device dependency;
                      no speech model admitted
 REVIEW POLICY      = FOUNDER_REVIEW_POLICY_AMENDMENT_2026-09-22
 CLOSURE PR #140    = exact-head run 35879136073 (6/6 on 21db0d1)
-POST-MAIN RUN FOR BASE = 35885589830 (push on c682178; in progress at
-                     promotion, recorded in EXACT_HEAD_QUALIFICATION.md)
+POST-MAIN RUN FOR BASE = 35885589830 (push on c682178, 6/6 success)
 ```
