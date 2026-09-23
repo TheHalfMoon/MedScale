@@ -130,8 +130,18 @@ fn parse_binding(spec: &str) -> Result<ViewBinding, String> {
     })
 }
 
+/// `"..."` is always text; `true`/`false` are booleans; otherwise an
+/// integer, a float, or text. Core refuses a value that does not fit its
+/// field's type.
 fn parse_value(raw: &str) -> CellValue {
-    if let Ok(i) = raw.parse::<i64>() {
+    if let Some(text) = raw
+        .strip_prefix('"')
+        .and_then(|rest| rest.strip_suffix('"'))
+    {
+        CellValue::Text(text.to_owned())
+    } else if raw == "true" || raw == "false" {
+        CellValue::Boolean(raw == "true")
+    } else if let Ok(i) = raw.parse::<i64>() {
         CellValue::Integer(i)
     } else if let Ok(f) = raw.parse::<f64>() {
         CellValue::Float(f)
@@ -140,7 +150,7 @@ fn parse_value(raw: &str) -> CellValue {
     }
 }
 
-/// `field:op` or `field:op:value` (value typed as integer, float or text).
+/// `field:op` or `field:op:value` (see `parse_value` for value typing).
 fn parse_criterion(spec: &str) -> Result<CohortCriterion, String> {
     let mut parts = spec.splitn(3, ':');
     let field = parts.next().unwrap_or("").to_owned();
@@ -220,6 +230,8 @@ pub enum AnalyticsCmd {
         label: String,
         #[arg(long)]
         snapshot_id: String,
+        /// `field:op[:value]`; repeat for AND. A `"..."` value is always
+        /// text, and `true`/`false` are booleans.
         #[arg(long = "where", required = true)]
         criteria: Vec<String>,
         #[arg(long)]
@@ -416,6 +428,18 @@ mod tests {
             Some(CellValue::Float(4.5))
         );
         assert_eq!(parse_criterion("ldl:is_null").unwrap().value, None);
+        assert_eq!(
+            parse_criterion("zip:eq:\"007\"").unwrap().value,
+            Some(CellValue::Text("007".to_owned()))
+        );
+        assert_eq!(
+            parse_criterion("smoker:eq:true").unwrap().value,
+            Some(CellValue::Boolean(true))
+        );
+        assert_eq!(
+            parse_criterion("sex:eq:f").unwrap().value,
+            Some(CellValue::Text("f".to_owned()))
+        );
         assert!(parse_criterion("age:like:4").is_err());
         assert!(parse_binding("labs").is_err());
         assert_eq!(parse_binding("labs=snap-1").unwrap().alias, "labs");
