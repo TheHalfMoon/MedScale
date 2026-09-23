@@ -134,7 +134,7 @@ pub fn parse_wav(bytes: &[u8]) -> Result<(PcmFormat, &[u8]), String> {
     if data.is_empty() {
         return Err("empty audio".to_owned());
     }
-    if data.len() as u64 % format.frame_bytes() != 0 {
+    if !(data.len() as u64).is_multiple_of(format.frame_bytes()) {
         return Err("data is not whole PCM frames".to_owned());
     }
     if format.duration_ms(data.len() as u64) > MAX_AUDIO_DURATION_MS {
@@ -171,12 +171,12 @@ pub fn build_wav(format: PcmFormat, pcm: &[u8]) -> Vec<u8> {
 #[must_use]
 pub fn synthetic_pcm(format: PcmFormat, parts: &[(u32, bool)]) -> Vec<u8> {
     let mut out = Vec::new();
-    let mut n: u64 = 0;
+    let mut offset: u64 = 0;
     for &(ms, tone) in parts {
         let frames = u64::from(ms) * u64::from(format.sample_rate) / 1_000;
-        for _ in 0..frames {
+        for i in 0..frames {
             let sample = if tone {
-                let t = n as f64 / f64::from(format.sample_rate);
+                let t = (offset + i) as f64 / f64::from(format.sample_rate);
                 (0.3 * 32_767.0 * (2.0 * std::f64::consts::PI * 440.0 * t).sin()) as i16
             } else {
                 0
@@ -184,8 +184,8 @@ pub fn synthetic_pcm(format: PcmFormat, parts: &[(u32, bool)]) -> Vec<u8> {
             for _ in 0..format.channels {
                 out.extend_from_slice(&sample.to_le_bytes());
             }
-            n += 1;
         }
+        offset += frames;
     }
     out
 }
@@ -569,7 +569,7 @@ impl Audio<'_> {
         if frames.is_empty() || frames.len() > MAX_CAPTURE_CHUNK_BYTES {
             return Err(invalid("a chunk holds 1 byte to 1 MiB of PCM"));
         }
-        if frames.len() as u64 % session.format.frame_bytes() != 0 {
+        if !(frames.len() as u64).is_multiple_of(session.format.frame_bytes()) {
             return Err(invalid("a chunk holds whole PCM frames"));
         }
         let total = session.captured_bytes + frames.len() as u64;

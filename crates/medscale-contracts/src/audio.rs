@@ -501,7 +501,10 @@ impl AudioSession {
         if self.captured_bytes > MAX_AUDIO_BYTES as u64 {
             return Err("capture exceeds the audio size bound".to_owned());
         }
-        if self.captured_bytes % self.format.frame_bytes() != 0 {
+        if !self
+            .captured_bytes
+            .is_multiple_of(self.format.frame_bytes())
+        {
             return Err("captured bytes are not whole PCM frames".to_owned());
         }
         match (self.state, &self.source_id) {
