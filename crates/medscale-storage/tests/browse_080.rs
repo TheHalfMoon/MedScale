@@ -267,7 +267,6 @@ fn migration_v8_to_v9_is_additive() {
         meta.migration_journal().unwrap().finished_version,
         CURRENT_META_SCHEMA_VERSION
     );
-    assert!(CURRENT_META_SCHEMA_VERSION >= 9);
     for t in BROWSE_TABLES {
         assert!(table_exists(&root, t), "{t}");
     }

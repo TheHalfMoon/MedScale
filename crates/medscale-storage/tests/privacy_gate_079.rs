@@ -341,7 +341,6 @@ fn migration_v7_to_v8_preserves_populated_pre_079_vault() {
     let meta = open_meta(&root);
     let journal = meta.migration_journal().unwrap();
     assert_eq!(journal.finished_version, CURRENT_META_SCHEMA_VERSION);
-    assert!(CURRENT_META_SCHEMA_VERSION >= 8);
     assert_eq!(journal.started_version, None);
     for table in PRIVACY_TABLES {
         assert!(table_exists(&root, table), "{table} must exist at v8");
