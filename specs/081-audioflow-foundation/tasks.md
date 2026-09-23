@@ -19,10 +19,11 @@
 - [x] fmt, dependency direction, Clippy, workspace tests, cargo-deny.
 - [x] Deterministic exact-range scope record.
 - [x] Evidence files.
-- [ ] Exact-head CI on the final head; merge; post-main CI.
-- [ ] Closure PR; recompute the next unit.
+- [x] Exact-head CI on the final head; merge; post-main CI.
+- [x] Closure PR; recompute the next unit.
 
 Reconciled 2026-09-23 against implementation, tests and CI: T081-00 to
 T081-04 are complete on code head `502b49a` (run `35889704517`, 6/6; see
 `evidence/081-audioflow-foundation/QUALIFICATION.md`). The last two T081-05
-items stay open until merge, post-main CI and the closure PR.
+items were completed by PR #141 (merged as `876b9fe`, post-main run
+`35906389709` 6/6) and the closure PR; the next unit is 082.
