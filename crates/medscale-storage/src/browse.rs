@@ -398,7 +398,7 @@ impl SqliteMetaStore {
 
     // -- sessions --------------------------------------------------------------
 
-    fn insert_session_on(conn: &rusqlite::Connection, s: &BrowseSession) -> Result<(), MetaError> {
+    fn browse_insert_session_on(conn: &rusqlite::Connection, s: &BrowseSession) -> Result<(), MetaError> {
         s.validate()
             .map_err(|e| MetaError::UnsupportedSchema(format!("browse session: {e}")))?;
         map_insert(
@@ -416,7 +416,7 @@ impl SqliteMetaStore {
         )
     }
 
-    fn insert_evidence_on(
+    fn browse_insert_evidence_on(
         conn: &rusqlite::Connection,
         e: &BrowseEvidenceItem,
         bytes: &[u8],
@@ -435,7 +435,7 @@ impl SqliteMetaStore {
         )
     }
 
-    fn insert_download_on(
+    fn browse_insert_download_on(
         conn: &rusqlite::Connection,
         d: &BrowseDownloadCandidate,
         bytes: &[u8],
@@ -452,7 +452,7 @@ impl SqliteMetaStore {
         )
     }
 
-    fn insert_receipt_on(conn: &rusqlite::Connection, r: &BrowseReceipt) -> Result<(), MetaError> {
+    fn browse_insert_receipt_on(conn: &rusqlite::Connection, r: &BrowseReceipt) -> Result<(), MetaError> {
         map_insert(
             conn.execute(
                 "INSERT INTO browse_receipts(receipt_id, session_id, body_json) VALUES (?1, ?2, ?3)",
@@ -478,14 +478,14 @@ impl SqliteMetaStore {
             ));
         }
         let tx = self.conn().unchecked_transaction()?;
-        Self::insert_session_on(&tx, &commit.session)?;
+        Self::browse_insert_session_on(&tx, &commit.session)?;
         for (e, bytes) in &commit.evidence {
             if &e.session_id != session_id {
                 return Err(MetaError::UnsupportedSchema(
                     "evidence names another session".to_owned(),
                 ));
             }
-            Self::insert_evidence_on(&tx, e, bytes)?;
+            Self::browse_insert_evidence_on(&tx, e, bytes)?;
         }
         for (d, bytes) in &commit.downloads {
             if &d.session_id != session_id {
@@ -493,9 +493,9 @@ impl SqliteMetaStore {
                     "download names another session".to_owned(),
                 ));
             }
-            Self::insert_download_on(&tx, d, bytes)?;
+            Self::browse_insert_download_on(&tx, d, bytes)?;
         }
-        Self::insert_receipt_on(&tx, receipt)?;
+        Self::browse_insert_receipt_on(&tx, receipt)?;
         tx.commit()?;
         Ok(())
     }
@@ -761,7 +761,7 @@ impl SqliteMetaStore {
     pub fn restore_browse_evidence_row(&self, row: &BrowseEvidenceRow) -> Result<(), MetaError> {
         let bytes = from_hex(&row.content_hex)?;
         restore_conflict_is_corrupt(
-            Self::insert_evidence_on(self.conn(), &row.evidence, &bytes).map_err(|e| match e {
+            Self::browse_insert_evidence_on(self.conn(), &row.evidence, &bytes).map_err(|e| match e {
                 MetaError::UnsupportedSchema(m) => corrupt(m),
                 other => other,
             }),
@@ -771,7 +771,7 @@ impl SqliteMetaStore {
     pub fn restore_browse_download_row(&self, row: &BrowseDownloadRow) -> Result<(), MetaError> {
         let bytes = from_hex(&row.content_hex)?;
         restore_conflict_is_corrupt(
-            Self::insert_download_on(self.conn(), &row.download, &bytes).map_err(|e| match e {
+            Self::browse_insert_download_on(self.conn(), &row.download, &bytes).map_err(|e| match e {
                 MetaError::UnsupportedSchema(m) => corrupt(m),
                 other => other,
             }),
@@ -779,6 +779,6 @@ impl SqliteMetaStore {
     }
 
     pub fn restore_browse_receipt_row(&self, value: &BrowseReceipt) -> Result<(), MetaError> {
-        restore_conflict_is_corrupt(Self::insert_receipt_on(self.conn(), value))
+        restore_conflict_is_corrupt(Self::browse_insert_receipt_on(self.conn(), value))
     }
 }
