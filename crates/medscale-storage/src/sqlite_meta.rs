@@ -246,6 +246,12 @@ impl SqliteMetaStore {
             self.conn.execute_batch(crate::privacy_gate::V8_DDL)?;
             self.finish_migration(8)?;
         }
+        let journal = self.migration_journal()?;
+        if journal.finished_version < 9 {
+            self.begin_migration(9)?;
+            self.conn.execute_batch(crate::browse::V9_DDL)?;
+            self.finish_migration(9)?;
+        }
         Ok(())
     }
 
@@ -516,6 +522,27 @@ impl SqliteMetaStore {
             (
                 "privacy_egress_decisions",
                 serde_json::to_value(self.list_all_egress_decisions()?),
+            ),
+            // Spec 080: Governed Browse rows (evidence/download bytes as hex).
+            (
+                "browse_allowlist",
+                serde_json::to_value(self.list_all_browse_allowlist()?),
+            ),
+            (
+                "browse_sessions",
+                serde_json::to_value(self.list_all_browse_sessions()?),
+            ),
+            (
+                "browse_evidence",
+                serde_json::to_value(self.list_all_browse_evidence()?),
+            ),
+            (
+                "browse_downloads",
+                serde_json::to_value(self.list_all_browse_downloads()?),
+            ),
+            (
+                "browse_receipts",
+                serde_json::to_value(self.list_all_browse_receipts()?),
             ),
         ];
         let mut payload = payload;

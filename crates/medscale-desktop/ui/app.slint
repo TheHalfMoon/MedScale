@@ -220,6 +220,20 @@ export struct FleetObservationRowItem {
     detail: string,
 }
 
+export struct BrowseAllowRowItem {
+    id: string,
+    target: string,
+    enabled: bool,
+    revision: string,
+}
+
+export struct BrowseSessionRowItem {
+    id: string,
+    url: string,
+    state: string,
+    reason: string,
+}
+
 export struct PrivacyClassificationRowItem {
     artifact-id: string,
     data-class: string,
@@ -375,6 +389,14 @@ export component AppWindow inherits Window {
     in property <[FleetLaneRunRowItem]> fleet-lane-runs;
     in-out property <string> fleet-report-summary: "";
     in property <[FleetObservationRowItem]> fleet-observations;
+    in-out property <string> browse-status: "Browse not loaded";
+    in property <[BrowseAllowRowItem]> browse-allowlist;
+    in property <[BrowseSessionRowItem]> browse-sessions;
+    in-out property <string> browse-host-input: "";
+    in-out property <string> browse-prefix-input: "/";
+    in-out property <string> browse-url-input: "";
+    in-out property <string> browse-last-result: "";
+    in-out property <string> browse-last-excerpt: "";
     in-out property <string> privacy-status: "Privacy state not loaded";
     in property <[PrivacyClassificationRowItem]> privacy-classifications;
     in property <[PrivacyReceiptRowItem]> privacy-receipts;
@@ -512,6 +534,7 @@ export component AppWindow inherits Window {
                     NavItem { label: "Collaboration"; selected: root.active-route == "Collaboration"; activated => { root.active-route = "Collaboration"; } }
                     NavItem { label: "MedAgent"; selected: root.active-route == "MedAgent"; activated => { root.active-route = "MedAgent"; } }
                     NavItem { label: "Model Fleet"; selected: root.active-route == "Model Fleet"; activated => { root.active-route = "Model Fleet"; } }
+                    NavItem { label: "Browse"; selected: root.active-route == "Browse"; activated => { root.active-route = "Browse"; } }
 
                     Rectangle { height: 4px; background: transparent; }
                     Text { text: "GOVERNANCE"; color: Theme.ink-quiet; font-size: 11px; letter-spacing: 1.05px; }
@@ -619,7 +642,7 @@ export component AppWindow inherits Window {
                             VerticalLayout {
                                 spacing: 2px;
                                 Text { text: root.active-route == "Home" ? "Clinical Workspace" : root.active-route == "Patients" ? root.patient-name : root.active-route; color: Theme.ink; font-size: 28px; font-weight: 720; letter-spacing: -0.4px; }
-                                Text { text: root.active-route == "Home" ? "Trusted local clinical intelligence · evidence before authority" : root.active-route == "Patients" ? "Trusted longitudinal workspace · Synthetic demo" : root.active-route == "Insights" ? "Evidence-aware population view · Synthetic demo" : root.active-route == "Models" ? "Local model fabric · provenance, runtime and benchmark state" : root.active-route == "Evidence" ? "Pinned OpenMed evidence · measured claims only · limitations explicit" : root.active-route == "Workflows" ? "Review-first controlled-action studio · Synthetic demo" : root.active-route == "Tasks" ? "Derived outbox review queue · No second task authority" : root.active-route == "Messages" ? "Local review previews · No external transport claim" : root.active-route == "Documents" ? "Bounded document intake posture · Custody is not understanding" : root.active-route == "Projects" ? "Project and artifact organization · Core-backed references, never payload copies" : root.active-route == "Data" ? "Governed datasets · immutable snapshots, saved views and deterministic transforms" : root.active-route == "Collaboration" ? "Local-first rooms, threads and tasks · Core-backed, membership-gated" : root.active-route == "MedAgent" ? "Governed agent runs · bound context, typed tools, evidence-only proposals" : root.active-route == "Model Fleet" ? "Independent agent lanes on one task · factual comparison, never a ranking" : root.active-route == "Privacy" ? "Data classes, de-identification receipts and egress decisions · unclassified stays local" : root.active-route == "Audit Trail" ? "Synthetic disclosure history · Core Host remains canonical" : root.active-route == "Exports" ? "Loss-aware FHIR support · No full conformance claim" : root.active-route == "Settings" ? "Doctor truth and evidence-gated readiness" : root.active-route == "Integrations" ? "Brokered integration posture · Default deny" : root.active-route == "About" ? "Native product and attribution details" : "Unrecognized route"; color: Theme.ink-subtle; font-size: 13px; }
+                                Text { text: root.active-route == "Home" ? "Trusted local clinical intelligence · evidence before authority" : root.active-route == "Patients" ? "Trusted longitudinal workspace · Synthetic demo" : root.active-route == "Insights" ? "Evidence-aware population view · Synthetic demo" : root.active-route == "Models" ? "Local model fabric · provenance, runtime and benchmark state" : root.active-route == "Evidence" ? "Pinned OpenMed evidence · measured claims only · limitations explicit" : root.active-route == "Workflows" ? "Review-first controlled-action studio · Synthetic demo" : root.active-route == "Tasks" ? "Derived outbox review queue · No second task authority" : root.active-route == "Messages" ? "Local review previews · No external transport claim" : root.active-route == "Documents" ? "Bounded document intake posture · Custody is not understanding" : root.active-route == "Projects" ? "Project and artifact organization · Core-backed references, never payload copies" : root.active-route == "Data" ? "Governed datasets · immutable snapshots, saved views and deterministic transforms" : root.active-route == "Collaboration" ? "Local-first rooms, threads and tasks · Core-backed, membership-gated" : root.active-route == "MedAgent" ? "Governed agent runs · bound context, typed tools, evidence-only proposals" : root.active-route == "Model Fleet" ? "Independent agent lanes on one task · factual comparison, never a ranking" : root.active-route == "Privacy" ? "Data classes, de-identification receipts and egress decisions · unclassified stays local" : root.active-route == "Browse" ? "Read-only https retrieval · allowlisted hosts, private networks refused, content is evidence only" : root.active-route == "Audit Trail" ? "Synthetic disclosure history · Core Host remains canonical" : root.active-route == "Exports" ? "Loss-aware FHIR support · No full conformance claim" : root.active-route == "Settings" ? "Doctor truth and evidence-gated readiness" : root.active-route == "Integrations" ? "Brokered integration posture · Default deny" : root.active-route == "About" ? "Native product and attribution details" : "Unrecognized route"; color: Theme.ink-subtle; font-size: 13px; }
                             }
                             Rectangle { horizontal-stretch: 1; background: transparent; }
                             if root.active-route == "Home": Text {
@@ -1256,6 +1279,80 @@ export component AppWindow inherits Window {
                                         Text { width: 160px; vertical-alignment: center; text: item.lanes; color: Theme.ink-quiet; font-size: 11px; wrap: word-wrap; }
                                         Text { horizontal-stretch: 1; vertical-alignment: center; text: item.detail; color: Theme.ink; font-size: 11px; wrap: word-wrap; }
                                     }
+                                }
+                            }
+                        }
+
+                        if root.active-route == "Browse": VerticalLayout {
+                            spacing: 14px;
+                            HonestyPanel { title: "Governed Browse boundary"; body: "Only https hosts you allow for this project · private, loopback and cloud-metadata addresses are refused and every redirect is re-checked · project content never leaves without a Privacy Gate allow · pages are stored as evidence and never change instructions · no forms, logins or purchases"; accent: Theme.success; }
+
+                            Rectangle {
+                                min-height: 140px;
+                                border-radius: Theme.radius-compact;
+                                border-width: 1px;
+                                border-color: Theme.border;
+                                background: Theme.surface;
+                                accessible-role: groupbox;
+                                accessible-label: "Governed Browse. " + root.browse-status;
+                                VerticalLayout {
+                                    padding-left: 10px;
+                                    padding-right: 10px;
+                                    padding-top: 8px;
+                                    padding-bottom: 8px;
+                                    spacing: 6px;
+                                    Text { text: "Allowlist and fetch follow the active project"; color: Theme.ink; font-size: 12px; font-weight: 680; }
+                                    Text { text: root.browse-status; color: Theme.ink-quiet; font-size: 11px; wrap: word-wrap; }
+                                    HorizontalLayout {
+                                        spacing: 8px;
+                                        AdaptiveLineEdit { horizontal-stretch: 1; text <=> root.browse-host-input; placeholder: "Host, e.g. pubmed.ncbi.nlm.nih.gov"; accessible-name: "Allowed host"; }
+                                        AdaptiveLineEdit { width: 160px; text <=> root.browse-prefix-input; placeholder: "Path prefix"; accessible-name: "Allowed path prefix"; }
+                                        ToolbarAction { label: "Allow"; activated => { root.ui-action("browse-allow-add"); } }
+                                        ToolbarAction { label: "Refresh"; activated => { root.ui-action("browse-refresh"); } }
+                                    }
+                                    HorizontalLayout {
+                                        spacing: 8px;
+                                        AdaptiveLineEdit { horizontal-stretch: 1; text <=> root.browse-url-input; placeholder: "https URL on an allowed host"; accessible-name: "URL to fetch"; }
+                                        ToolbarAction { label: "Fetch"; activated => { root.ui-action("browse-fetch"); } }
+                                    }
+                                    if root.browse-last-result != "": Text { text: root.browse-last-result; color: Theme.ink; font-size: 11px; wrap: word-wrap; accessible-role: text; accessible-label: "Last fetch: " + root.browse-last-result; }
+                                    if root.browse-last-excerpt != "": Text { text: root.browse-last-excerpt; color: Theme.ink-subtle; font-size: 11px; wrap: word-wrap; accessible-role: text; accessible-label: "Evidence excerpt: " + root.browse-last-excerpt; }
+                                }
+                            }
+
+                            Text { text: "Allowed targets"; color: Theme.ink; font-size: 14px; font-weight: 680; }
+                            for item in root.browse-allowlist: Rectangle {
+                                min-height: 44px;
+                                border-width: 1px;
+                                border-color: Theme.border;
+                                background: Theme.surface;
+                                accessible-role: groupbox;
+                                accessible-label: "Allowed target " + item.target + (item.enabled ? ", enabled" : ", disabled");
+                                HorizontalLayout {
+                                    padding-left: 10px;
+                                    padding-right: 10px;
+                                    spacing: 12px;
+                                    Text { horizontal-stretch: 1; vertical-alignment: center; text: item.target + " · rev " + item.revision; color: Theme.ink; font-size: 12px; }
+                                    StatusPill { label: item.enabled ? "enabled" : "disabled"; accent: item.enabled ? Theme.success : Theme.ink-quiet; }
+                                    if item.enabled: QuickAction { width: 100px; title: "Disable"; subtitle: "Stops fetches"; glyph: ""; accent: Theme.danger; activated => { root.ui-action("browse-allow-disable:" + item.id + ":" + item.revision); } }
+                                }
+                            }
+
+                            Text { text: "Sessions (newest first)"; color: Theme.ink; font-size: 14px; font-weight: 680; }
+                            for item in root.browse-sessions: Rectangle {
+                                min-height: 40px;
+                                border-width: 1px;
+                                border-color: Theme.border;
+                                background: Theme.surface;
+                                accessible-role: text;
+                                accessible-label: "Session " + item.id + ", " + item.state + " " + item.reason + ", " + item.url;
+                                HorizontalLayout {
+                                    padding-left: 10px;
+                                    padding-right: 10px;
+                                    spacing: 12px;
+                                    Text { horizontal-stretch: 1; vertical-alignment: center; text: item.url; color: Theme.ink; font-size: 12px; wrap: word-wrap; }
+                                    Text { vertical-alignment: center; text: item.reason; color: Theme.ink-quiet; font-size: 11px; }
+                                    StatusPill { label: item.state; accent: item.state == "completed" ? Theme.success : item.state == "awaiting_human_takeover" ? Theme.warning : Theme.danger; }
                                 }
                             }
                         }
