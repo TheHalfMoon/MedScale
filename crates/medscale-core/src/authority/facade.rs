@@ -43,6 +43,18 @@ pub struct CoreFacade {
     mesc_epochs: Mutex<medscale_pack::MescEpochStore>,
     /// Spec 079: custody of pseudonym map keys. Never vault metadata.
     privacy_keys: PrivacyKeys,
+    /// Spec 080: the only Browse egress path (public-only resolver, no
+    /// redirects followed by the transport).
+    browse_transport: BrowseTransportBox,
+}
+
+/// Browse transport holder. `Debug` prints no configuration.
+struct BrowseTransportBox(Box<dyn medscale_network::BrowseTransport>);
+
+impl std::fmt::Debug for BrowseTransportBox {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("BrowseTransport(..)")
+    }
 }
 
 /// Key custody for Spec 079 pseudonym maps. `Debug` never prints keys.
@@ -78,6 +90,7 @@ impl CoreFacade {
             // Process-lifetime by default; hosts install a durable store
             // with `set_privacy_key_store`.
             privacy_keys: PrivacyKeys(Box::new(medscale_keys::MemoryKeyStore::new())),
+            browse_transport: BrowseTransportBox(Box::new(medscale_network::UreqBrowseTransport)),
         }
     }
 
@@ -103,6 +116,12 @@ impl CoreFacade {
     /// previous store and become unavailable, which fails closed.
     pub fn set_privacy_key_store(&mut self, keys: Box<dyn medscale_keys::KeyStore>) {
         self.privacy_keys = PrivacyKeys(keys);
+    }
+
+    /// Replaces the Browse transport (hermetic tests and offline demos use
+    /// `medscale_network::ScriptedBrowseTransport`). Policy stays in Core.
+    pub fn set_browse_transport(&mut self, transport: Box<dyn medscale_network::BrowseTransport>) {
+        self.browse_transport = BrowseTransportBox(transport);
     }
 
     /// Active session enforcement mode (Spec 024).
@@ -360,6 +379,41 @@ impl CoreFacade {
             meta,
             packs: packs_ref,
             keys: self.privacy_keys.0.as_ref(),
+            sessions: &self.sessions,
+            leases: &self.leases,
+            vault_id,
+            realm,
+            scope,
+            session_id,
+        })
+    }
+
+    /// Runs one Spec 080 Browse operation with lease enforcement and
+    /// vault-meta access. Surfaces never reach the transport directly.
+    fn browse<R>(
+        &self,
+        vault_id: &medscale_contracts::objects::VaultId,
+        realm: medscale_contracts::objects::RealmId,
+        scope: medscale_contracts::objects::AuthorityScopeId,
+        session_id: Option<medscale_contracts::objects::OpaqueId>,
+        op: impl FnOnce(super::browse::Browse<'_>) -> Result<R, AuthorityError>,
+    ) -> Result<R, AuthorityError> {
+        self.require_lease(vault_id)?;
+        let vault_guard = self.vault();
+        let enc_guard = self.encrypted();
+        let meta = if let Some(enc) = enc_guard.as_ref() {
+            &enc.meta
+        } else if let Some(vault) = vault_guard.as_ref() {
+            &vault.meta
+        } else {
+            return Err(AuthorityError::VaultRequired);
+        };
+        let mut store = self.store();
+        let store_ref: &mut InMemoryAuthorityStore = &mut store;
+        op(super::browse::Browse {
+            store: store_ref,
+            meta,
+            transport: self.browse_transport.0.as_ref(),
             sessions: &self.sessions,
             leases: &self.leases,
             vault_id,
@@ -2725,6 +2779,132 @@ impl CoreFacade {
             // AgentCapabilityManifest).
             // Spec 078 Model Fleet + Compare: every mutation flows through
             // Core authority paths. T078-03 slice (AgentLane).
+            // Spec 080 Governed Browse: policy, transport and persistence
+            // all run in Core; Project content first needs a Spec 079
+            // egress decision for the browse boundary.
+            RequestBody::BrowseAllowlistAdd {
+                project_id,
+                host,
+                path_prefix,
+            } => {
+                let entry = self.browse(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut b| b.allowlist_add(project_id, host, path_prefix),
+                )?;
+                Ok(ResponseBody::BrowseAllowlistEntry {
+                    entry: Box::new(entry),
+                })
+            }
+            RequestBody::BrowseAllowlistList { project_id } => {
+                let entries = self.browse(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |b| b.allowlist_list(&project_id),
+                )?;
+                Ok(ResponseBody::BrowseAllowlist { entries })
+            }
+            RequestBody::BrowseAllowlistDisable {
+                entry_id,
+                expected_revision,
+            } => {
+                let entry = self.browse(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut b| b.allowlist_disable(&entry_id, expected_revision),
+                )?;
+                Ok(ResponseBody::BrowseAllowlistEntry {
+                    entry: Box::new(entry),
+                })
+            }
+            RequestBody::BrowseRouteList => Ok(ResponseBody::BrowseRoutes {
+                routes: super::browse::Browse::routes(),
+            }),
+            RequestBody::BrowseRun { request } => {
+                let context = match request.context_artifact_id.clone() {
+                    Some(artifact_id) => {
+                        let decision = self.privacy(
+                            &req.vault_id,
+                            req.realm_id.clone(),
+                            req.authority_scope_id.clone(),
+                            req.session_id.clone(),
+                            |mut gate| {
+                                gate.evaluate_egress(
+                                    request.project_id.clone(),
+                                    artifact_id,
+                                    medscale_contracts::privacy_gate::EgressBoundary::Browse,
+                                )
+                            },
+                        )?;
+                        Some(super::browse::ContextEgress {
+                            decision_id: decision.header.id,
+                            allowed: decision.outcome
+                                == medscale_contracts::privacy_gate::EgressOutcome::Allow,
+                        })
+                    }
+                    None => None,
+                };
+                let view = self.browse(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut b| b.browse(request, context),
+                )?;
+                Ok(ResponseBody::BrowseSession {
+                    view: Box::new(view),
+                })
+            }
+            RequestBody::BrowseSessionGet { session_id } => {
+                let view = self.browse(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |b| b.get_session(&session_id),
+                )?;
+                Ok(ResponseBody::BrowseSession {
+                    view: Box::new(view),
+                })
+            }
+            RequestBody::BrowseSessionList { project_id } => {
+                let sessions = self.browse(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |b| b.list_sessions(&project_id),
+                )?;
+                Ok(ResponseBody::BrowseSessionList { sessions })
+            }
+            RequestBody::BrowseSessionCancel {
+                session_id,
+                expected_revision,
+            } => {
+                self.browse(
+                    &req.vault_id,
+                    req.realm_id.clone(),
+                    req.authority_scope_id.clone(),
+                    req.session_id.clone(),
+                    |mut b| b.cancel_session(&session_id, expected_revision),
+                )?;
+                let view = self.browse(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |b| b.get_session(&session_id),
+                )?;
+                Ok(ResponseBody::BrowseSession {
+                    view: Box::new(view),
+                })
+            }
             // Spec 079 Privacy Gate: every classification, transform,
             // pseudonym and egress decision flows through Core.
             RequestBody::PrivacyClassify {
@@ -3985,6 +4165,22 @@ fn capability_matches(cap: &Capability, body: &RequestBody) -> bool {
             | (
                 Capability::PrivacyEgressEvaluate,
                 RequestBody::PrivacyEgressEvaluate { .. }
+            )
+            | (
+                Capability::BrowseAllowlistManage,
+                RequestBody::BrowseAllowlistAdd { .. } | RequestBody::BrowseAllowlistDisable { .. }
+            )
+            | (
+                Capability::BrowseRead,
+                RequestBody::BrowseAllowlistList { .. }
+                    | RequestBody::BrowseRouteList
+                    | RequestBody::BrowseSessionGet { .. }
+                    | RequestBody::BrowseSessionList { .. }
+            )
+            | (Capability::BrowseRun, RequestBody::BrowseRun { .. })
+            | (
+                Capability::BrowseCancel,
+                RequestBody::BrowseSessionCancel { .. }
             )
     )
 }

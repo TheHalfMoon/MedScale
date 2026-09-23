@@ -109,11 +109,25 @@ fn populate_pre_079(meta: &SqliteMetaStore) {
     .unwrap();
 }
 
+/// Tables created by migrations after v8.
+const LATER_VERSION_TABLES: &[&str] = &[
+    "browse_allowlist",
+    "browse_sessions",
+    "browse_evidence",
+    "browse_downloads",
+    "browse_receipts",
+];
+
 /// Rewinds the file to exactly what a v7 build leaves on disk.
 fn rewind_to_v7(root: &Path) {
     let conn = raw(root);
     for table in PRIVACY_TABLES {
         conn.execute_batch(&format!("DROP TABLE {table};")).unwrap();
+    }
+    // Later additive versions (Spec 080 v9, ...) are absent in a v7 build too.
+    for table in LATER_VERSION_TABLES {
+        conn.execute_batch(&format!("DROP TABLE IF EXISTS {table};"))
+            .unwrap();
     }
     conn.execute("DELETE FROM migration_journal WHERE version >= 8", [])
         .unwrap();
@@ -136,7 +150,7 @@ fn pre_079_view(meta: &SqliteMetaStore) -> serde_json::Value {
         serde_json::from_slice(&meta.snapshot_bytes().unwrap()).unwrap();
     let object = snapshot.as_object_mut().unwrap();
     object.remove("schema_version");
-    object.retain(|key, _| !key.starts_with("privacy_"));
+    object.retain(|key, _| !key.starts_with("privacy_") && !key.starts_with("browse_"));
     snapshot
 }
 
@@ -326,8 +340,7 @@ fn migration_v7_to_v8_preserves_populated_pre_079_vault() {
     }
     let meta = open_meta(&root);
     let journal = meta.migration_journal().unwrap();
-    assert_eq!(journal.finished_version, 8);
-    assert_eq!(CURRENT_META_SCHEMA_VERSION, 8);
+    assert_eq!(journal.finished_version, CURRENT_META_SCHEMA_VERSION);
     assert_eq!(journal.started_version, None);
     for table in PRIVACY_TABLES {
         assert!(table_exists(&root, table), "{table} must exist at v8");
@@ -359,7 +372,10 @@ fn repeated_open_is_a_no_op() {
     }
     for _ in 0..3 {
         let meta = open_meta(&root);
-        assert_eq!(meta.migration_journal().unwrap().finished_version, 8);
+        assert_eq!(
+            meta.migration_journal().unwrap().finished_version,
+            CURRENT_META_SCHEMA_VERSION
+        );
         assert_eq!(meta.list_all_deid_receipts().unwrap().len(), 2);
         meta.verify_privacy_gate_consistency().unwrap();
     }
@@ -395,7 +411,7 @@ fn crash_mid_v8_migration_fails_closed_and_backup_recovers() {
     let restored = SyntheticVault::open("vault-1", &restored_root).unwrap();
     assert_eq!(
         restored.meta.migration_journal().unwrap().finished_version,
-        8
+        CURRENT_META_SCHEMA_VERSION
     );
     assert!(restored.meta.get_agent_lane(&id("lane-1")).is_ok());
 }
@@ -619,7 +635,7 @@ fn backup_restore_roundtrips_every_079_row_exactly() {
     );
     let manifest: BackupManifest =
         serde_json::from_slice(&fs::read(dest.join("manifest.json")).unwrap()).unwrap();
-    assert_eq!(manifest.schema_version, 8);
+    assert_eq!(manifest.schema_version, CURRENT_META_SCHEMA_VERSION);
 }
 
 #[test]
@@ -668,7 +684,7 @@ fn pre_079_v7_backup_restores_with_empty_079_tables() {
     // Turn the snapshot into what a v7 build writes.
     tamper_backup(&dest, |s| {
         let object = s.as_object_mut().unwrap();
-        object.retain(|key, _| !key.starts_with("privacy_"));
+        object.retain(|key, _| !key.starts_with("privacy_") && !key.starts_with("browse_"));
         object.insert("schema_version".to_owned(), serde_json::json!(7));
     });
     let restored_root = root.join("restored");

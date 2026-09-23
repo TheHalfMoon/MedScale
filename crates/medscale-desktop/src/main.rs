@@ -13,6 +13,7 @@ use std::time::Duration;
 
 use slint::{ComponentHandle, ModelRc, VecModel};
 
+mod browse_workspace;
 mod collaboration_workspace;
 mod data_workbench;
 mod medagent_workspace;
@@ -541,6 +542,60 @@ fn open_model_fleet(ui: &AppWindow, session: &Rc<RefCell<CliSession>>, fleet_id:
     }
 }
 
+fn refresh_browse(ui: &AppWindow, session: &Rc<RefCell<CliSession>>) {
+    let project_id = ui.get_project_active_id().to_string();
+    if project_id.is_empty() {
+        ui.set_browse_status("Open a project to use Governed Browse".into());
+        ui.set_browse_allowlist(ModelRc::new(VecModel::from(Vec::new())));
+        ui.set_browse_sessions(ModelRc::new(VecModel::from(Vec::new())));
+        return;
+    }
+    match browse_workspace::refresh(&mut session.borrow_mut(), &project_id) {
+        Ok(overview) => {
+            ui.set_browse_status(
+                format!(
+                    "{} allowed target{} · {} session{} · {} · Core-backed",
+                    overview.allowlist.len(),
+                    if overview.allowlist.len() == 1 {
+                        ""
+                    } else {
+                        "s"
+                    },
+                    overview.sessions.len(),
+                    if overview.sessions.len() == 1 {
+                        ""
+                    } else {
+                        "s"
+                    },
+                    overview.routes
+                )
+                .into(),
+            );
+            ui.set_browse_allowlist(ModelRc::new(VecModel::from_iter(
+                overview.allowlist.iter().map(|row| BrowseAllowRowItem {
+                    id: row.id.clone().into(),
+                    target: row.target.clone().into(),
+                    enabled: row.enabled,
+                    revision: row.revision.to_string().into(),
+                }),
+            )));
+            ui.set_browse_sessions(ModelRc::new(VecModel::from_iter(
+                overview.sessions.iter().map(|row| BrowseSessionRowItem {
+                    id: row.id.clone().into(),
+                    url: row.url.clone().into(),
+                    state: row.state.clone().into(),
+                    reason: row.reason.clone().into(),
+                }),
+            )));
+        }
+        Err(err) => {
+            ui.set_browse_allowlist(ModelRc::new(VecModel::from(Vec::new())));
+            ui.set_browse_sessions(ModelRc::new(VecModel::from(Vec::new())));
+            ui.set_browse_status(browse_workspace::status_message(&err).into());
+        }
+    }
+}
+
 fn refresh_privacy(ui: &AppWindow, session: &Rc<RefCell<CliSession>>) {
     let project_id = ui.get_project_active_id().to_string();
     if project_id.is_empty() {
@@ -658,6 +713,7 @@ fn evidence_route_override() -> Option<&'static str> {
         "Integrations" => Some("Integrations"),
         "Model Fleet" => Some("Model Fleet"),
         "Privacy" => Some("Privacy"),
+        "Browse" => Some("Browse"),
         "Settings" => Some("Settings"),
         "About" => Some("About"),
         _ => None,
@@ -1560,6 +1616,106 @@ fn main() -> ExitCode {
         }
         // Spec 079 Privacy Gate actions (Core-backed; profiles, transforms
         // and re-identification stay CLI-only in this slice).
+        // Spec 080 Governed Browse actions (Core-backed; the transport and
+        // every policy check stay in Core).
+        if action == "browse-refresh" {
+            if let Some(session) = &project_session_for_actions {
+                refresh_browse(&ui, session);
+            } else {
+                ui.set_browse_status("Browse unavailable: no Core session".into());
+            }
+            return;
+        }
+        if action == "browse-allow-add" {
+            let Some(session) = &project_session_for_actions else {
+                ui.set_browse_status("Browse unavailable: no Core session".into());
+                return;
+            };
+            let project_id = ui.get_project_active_id().to_string();
+            if project_id.is_empty() {
+                ui.set_browse_status("Invalid: open a project first".into());
+                return;
+            }
+            let host = ui.get_browse_host_input().to_string();
+            let prefix = ui.get_browse_prefix_input().to_string();
+            let added = browse_workspace::add_allowed_host(
+                &mut session.borrow_mut(),
+                &project_id,
+                &host,
+                &prefix,
+            );
+            match added {
+                Ok(_) => {
+                    ui.set_browse_host_input("".into());
+                    refresh_browse(&ui, session);
+                }
+                Err(err) => ui.set_browse_status(browse_workspace::status_message(&err).into()),
+            }
+            return;
+        }
+        if let Some(rest) = action.strip_prefix("browse-allow-disable:") {
+            let Some(session) = &project_session_for_actions else {
+                ui.set_browse_status("Browse unavailable: no Core session".into());
+                return;
+            };
+            let Some((entry_id, revision)) = rest.rsplit_once(':') else {
+                ui.set_browse_status("Invalid: malformed disable action".into());
+                return;
+            };
+            let Ok(expected_revision) = revision.parse::<u64>() else {
+                ui.set_browse_status("Invalid: entry has no revision".into());
+                return;
+            };
+            let disabled = browse_workspace::disable_allowed_host(
+                &mut session.borrow_mut(),
+                entry_id,
+                expected_revision,
+            );
+            match disabled {
+                Ok(()) => refresh_browse(&ui, session),
+                Err(err) => ui.set_browse_status(browse_workspace::status_message(&err).into()),
+            }
+            return;
+        }
+        if action == "browse-fetch" {
+            let Some(session) = &project_session_for_actions else {
+                ui.set_browse_status("Browse unavailable: no Core session".into());
+                return;
+            };
+            let project_id = ui.get_project_active_id().to_string();
+            let url = ui.get_browse_url_input().to_string();
+            if project_id.is_empty() || url.trim().is_empty() {
+                ui.set_browse_status("Invalid: open a project and enter an https URL".into());
+                return;
+            }
+            let fetched = browse_workspace::fetch(&mut session.borrow_mut(), &project_id, &url);
+            match fetched {
+                Ok(result) => {
+                    ui.set_browse_last_result(
+                        format!(
+                            "{} · {}{}{}",
+                            result.session.state,
+                            result.session.url,
+                            if result.session.reason.is_empty() {
+                                String::new()
+                            } else {
+                                format!(" · {}", result.session.reason)
+                            },
+                            if result.flagged {
+                                " · instruction-like text flagged (ignored)"
+                            } else {
+                                ""
+                            }
+                        )
+                        .into(),
+                    );
+                    ui.set_browse_last_excerpt(result.excerpt.into());
+                    refresh_browse(&ui, session);
+                }
+                Err(err) => ui.set_browse_status(browse_workspace::status_message(&err).into()),
+            }
+            return;
+        }
         if action == "privacy-refresh" {
             if let Some(session) = &project_session_for_actions {
                 refresh_privacy(&ui, session);

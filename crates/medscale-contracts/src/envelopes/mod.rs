@@ -5,6 +5,9 @@ use serde_json::Value;
 
 use crate::AUTHORITY_SCHEMA_VERSION;
 use crate::actions::{CreateExternalActionIntentRequest, NphiesInvokeRequest, OutboxEntry};
+use crate::browse::{
+    BrowseAllowlistEntry, BrowseRequest, BrowseRouteStatus, BrowseSession, BrowseSessionView,
+};
 use crate::collaboration::{
     ActivityRecord, AnchorTarget, ApprovalDecision, ApprovalDecisionOutcome, ApprovalKind,
     ApprovalRequest, MembershipRole, Message, MessageEdit, NoteDocument, NoteRevision,
@@ -209,6 +212,11 @@ pub enum Capability {
     PrivacyMapRevoke,
     PrivacyReidentify,
     PrivacyEgressEvaluate,
+    // Spec 080: Governed Browse.
+    BrowseAllowlistManage,
+    BrowseRead,
+    BrowseRun,
+    BrowseCancel,
 }
 
 impl Capability {
@@ -262,6 +270,7 @@ impl Capability {
                 | Self::FleetRunRead
                 | Self::ComparisonRead
                 | Self::PrivacyRead
+                | Self::BrowseRead
         )
     }
 
@@ -409,6 +418,10 @@ impl Capability {
             Self::PrivacyMapCreate,
             Self::PrivacyMapRevoke,
             Self::PrivacyEgressEvaluate,
+            Self::BrowseAllowlistManage,
+            Self::BrowseRead,
+            Self::BrowseRun,
+            Self::BrowseCancel,
         ]
     }
 }
@@ -1170,6 +1183,35 @@ pub enum RequestBody {
         project_id: OpaqueId,
         artifact_id: Option<OpaqueId>,
     },
+    // Spec 080: Governed Browse.
+    BrowseAllowlistAdd {
+        project_id: OpaqueId,
+        host: String,
+        path_prefix: String,
+    },
+    BrowseAllowlistList {
+        project_id: OpaqueId,
+    },
+    BrowseAllowlistDisable {
+        entry_id: OpaqueId,
+        expected_revision: u64,
+    },
+    BrowseRouteList,
+    /// Runs one read-only Browse request under the full policy.
+    BrowseRun {
+        request: BrowseRequest,
+    },
+    BrowseSessionGet {
+        session_id: OpaqueId,
+    },
+    BrowseSessionList {
+        project_id: OpaqueId,
+    },
+    /// Cancels a session awaiting human takeover.
+    BrowseSessionCancel {
+        session_id: OpaqueId,
+        expected_revision: u64,
+    },
 }
 
 impl RequestBody {
@@ -1592,6 +1634,22 @@ pub enum ResponseBody {
     },
     PrivacyEgressDecisionList {
         decisions: Vec<EgressDecision>,
+    },
+    // Spec 080: Governed Browse typed results.
+    BrowseAllowlistEntry {
+        entry: Box<BrowseAllowlistEntry>,
+    },
+    BrowseAllowlist {
+        entries: Vec<BrowseAllowlistEntry>,
+    },
+    BrowseRoutes {
+        routes: Vec<BrowseRouteStatus>,
+    },
+    BrowseSession {
+        view: Box<BrowseSessionView>,
+    },
+    BrowseSessionList {
+        sessions: Vec<BrowseSession>,
     },
 }
 

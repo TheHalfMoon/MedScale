@@ -2,6 +2,7 @@
 
 mod backup;
 mod blob;
+mod browse;
 mod claim;
 mod collaboration;
 mod data_sources;
@@ -20,6 +21,7 @@ mod writer_lock;
 
 pub use backup::{backup_vault, restore_vault};
 pub use blob::FsBlobStore;
+pub use browse::{BrowseDownloadRow, BrowseEvidenceRow, BrowseSessionCommit};
 pub use claim::{ClaimError, assert_claim_path};
 pub use data_sources::{
     EXTERNAL_TABLES_MAX, ExternalCell, ExternalTable, RECEIPT_KIND_IMPORT, RECEIPT_KIND_REFRESH,
@@ -40,7 +42,7 @@ pub use sqlite_meta::{AuthorityObjectRow, MetaError, SourceMeta, SqliteMetaStore
 pub use vault::{SyntheticVault, VaultError};
 pub use writer_lock::{WriterLock, WriterLockError};
 
-/// Top metadata schema version written by this build (Spec 079: v8). Tests of
+/// Top metadata schema version written by this build (Spec 080: v9). Tests of
 /// earlier specs assert against this constant so a later additive migration
 /// does not require editing them.
-pub const CURRENT_META_SCHEMA_VERSION: u32 = 8;
+pub const CURRENT_META_SCHEMA_VERSION: u32 = 9;

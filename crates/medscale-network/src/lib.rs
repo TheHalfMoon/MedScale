@@ -2,12 +2,18 @@
 
 mod adapters;
 mod allowlist;
+mod browse;
 mod transport;
 
 pub use adapters::{
     FhirPartnerAdapter, SmartAuthAdapter, StubFhirAdapter, StubSmartAdapter, live_partner_refused,
 };
 pub use allowlist::{AllowlistDecision, evaluate_allowlist};
+pub use browse::{
+    BrowseHttpResponse, BrowseTransport, BrowseTransportError, PublicOnlyResolver,
+    ScriptedBrowseTransport, UreqBrowseTransport, ValidatedUrl, is_forbidden_ip, resolve_redirect,
+    validate_url,
+};
 pub use transport::{
     BrokerTransport, FixtureTransport, TransportError, TransportRequest, UreqTransport,
 };

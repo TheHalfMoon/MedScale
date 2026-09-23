@@ -318,6 +318,11 @@ const LATER_VERSION_TABLES: &[&str] = &[
     "privacy_pseudonym_entries",
     "privacy_reid_audit",
     "privacy_egress_decisions",
+    "browse_allowlist",
+    "browse_sessions",
+    "browse_evidence",
+    "browse_downloads",
+    "browse_receipts",
 ];
 
 fn table_exists(root: &Path, table: &str) -> bool {
@@ -338,7 +343,11 @@ fn pre_078_view(meta: &SqliteMetaStore) -> serde_json::Value {
         serde_json::from_slice(&meta.snapshot_bytes().unwrap()).unwrap();
     let object = snapshot.as_object_mut().unwrap();
     object.remove("schema_version");
-    object.retain(|key, _| !key.starts_with("model_fleet_") && !key.starts_with("privacy_"));
+    object.retain(|key, _| {
+        !key.starts_with("model_fleet_")
+            && !key.starts_with("privacy_")
+            && !key.starts_with("browse_")
+    });
     snapshot
 }
 
@@ -1011,7 +1020,11 @@ fn pre_078_v6_backup_restores_with_empty_078_tables() {
     // Re-express the checkpoint exactly as a v6 build writes it.
     tamper_backup(&dest, |s| {
         let object = s.as_object_mut().unwrap();
-        object.retain(|key, _| !key.starts_with("model_fleet_") && !key.starts_with("privacy_"));
+        object.retain(|key, _| {
+            !key.starts_with("model_fleet_")
+                && !key.starts_with("privacy_")
+                && !key.starts_with("browse_")
+        });
         object.insert("schema_version".to_owned(), 6.into());
     });
     let manifest_path = dest.join("manifest.json");

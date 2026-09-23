@@ -14,6 +14,7 @@ use medscale_core::{
 };
 use serde::Serialize;
 
+mod browse;
 mod collaboration;
 mod data_source;
 mod medagent;
@@ -169,6 +170,11 @@ enum Commands {
     ModelFleet {
         #[command(subcommand)]
         action: Box<model_fleet::ModelFleetCmd>,
+    },
+    /// Governed Browse (Spec 080; read-only, policy-gated web retrieval).
+    Browse {
+        #[command(subcommand)]
+        action: Box<browse::BrowseCmd>,
     },
     /// Privacy Gate (Spec 079; classification, de-identification, egress).
     Privacy {
@@ -1186,6 +1192,7 @@ fn run() -> Result<()> {
         Commands::MedAgent { action } => medagent::run_medagent(*action),
         Commands::ModelFleet { action } => model_fleet::run_model_fleet(*action),
         Commands::Privacy { action } => privacy_gate::run_privacy(*action),
+        Commands::Browse { action } => browse::run_browse(*action),
         Commands::DataSource { action } => data_source::run_data_source(*action),
         Commands::Snapshot { action } => data_source::run_snapshot(*action),
         Commands::DataView { action } => data_source::run_data_view(*action),
