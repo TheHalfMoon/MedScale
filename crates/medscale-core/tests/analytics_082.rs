@@ -337,6 +337,49 @@ fn cohorts_bind_values_and_reproduce() {
         ),
         Err(AuthorityError::InvalidArgument { .. })
     ));
+    // Type mismatches are refused, not left to match nothing.
+    for (field, value) in [
+        ("age", CellValue::Text("40".to_owned())),
+        ("sex", CellValue::Integer(1)),
+        ("ldl", CellValue::Boolean(true)),
+    ] {
+        assert!(
+            matches!(
+                lab.s.analytics_cohort_create(
+                    lab.project.clone(),
+                    "mismatch".to_owned(),
+                    lab.snapshot.clone(),
+                    vec![CohortCriterion {
+                        field: field.to_owned(),
+                        op: CohortOp::Eq,
+                        value: Some(value),
+                    }],
+                ),
+                Err(AuthorityError::InvalidArgument { .. })
+            ),
+            "{field}"
+        );
+    }
+    // Malformed operators and null comparisons are refused.
+    for (op, value) in [
+        (CohortOp::Eq, None),
+        (CohortOp::IsNull, Some(CellValue::Integer(1))),
+        (CohortOp::Eq, Some(CellValue::Null)),
+    ] {
+        assert!(matches!(
+            lab.s.analytics_cohort_create(
+                lab.project.clone(),
+                "malformed".to_owned(),
+                lab.snapshot.clone(),
+                vec![CohortCriterion {
+                    field: "age".to_owned(),
+                    op,
+                    value,
+                }],
+            ),
+            Err(AuthorityError::InvalidArgument { .. })
+        ));
+    }
     assert_eq!(
         lab.s
             .analytics_cohort_list(lab.project.clone())

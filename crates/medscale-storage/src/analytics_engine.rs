@@ -10,7 +10,11 @@
 //! 2. SQLite must accept exactly one statement, and report it read-only;
 //! 3. the connection is switched to `query_only` before the query runs;
 //! 4. rows, columns, text size and wall time are bounded; an interrupt
-//!    ends a query at the time limit.
+//!    ends a query at the time limit;
+//! 5. SQLite run-time limits: no attached databases, and no string, BLOB
+//!    or row larger than the engine value bound, so a query cannot build a
+//!    giant value in memory before the result checks run. The connection
+//!    is also in SQLite's `defensive` mode.
 //!
 //! The engine never opens a file, and it never sees vault storage: Core
 //! passes decoded, digest-verified snapshot rows in.
@@ -22,9 +26,16 @@ use medscale_contracts::analytics::{
     QueryDenyReason, RESULT_COLUMNS_MAX, ResultColumn, ResultTableDoc,
 };
 use medscale_contracts::data_sources::{CELL_TEXT_MAX_BYTES, CellValue, FieldType, SchemaField};
+use rusqlite::config::DbConfig;
+use rusqlite::limits::Limit;
 use rusqlite::types::{Value, ValueRef};
 
 pub const ENGINE_NAME: &str = "sqlite";
+
+/// Floor for the largest string, BLOB or row a query may build (16 MiB).
+/// The bound is raised only to twice the widest bound input row, so any
+/// loaded row can still be read, sorted and grouped.
+pub const ENGINE_VALUE_MIN_BYTES: usize = 16 * 1024 * 1024;
 
 /// The SQLite library version this build runs.
 #[must_use]
@@ -168,6 +179,39 @@ fn load_tables(
     Ok(())
 }
 
+/// Upper estimate of one bound row's record size in bytes.
+fn row_bytes(row: &[CellValue]) -> usize {
+    row.iter()
+        .map(|cell| match cell {
+            CellValue::Text(t) => t.len() + 16,
+            _ => 16,
+        })
+        .sum()
+}
+
+/// Defense 5: run-time limits and defensive mode, set after the bound
+/// tables are loaded.
+fn restrict(conn: &rusqlite::Connection, tables: &[EngineTable<'_>]) -> Result<(), EngineRefusal> {
+    let widest = tables
+        .iter()
+        .flat_map(|t| t.rows.iter())
+        .map(|r| row_bytes(r.as_slice()))
+        .max()
+        .unwrap_or(0);
+    let value_bound =
+        i32::try_from(ENGINE_VALUE_MIN_BYTES.max(widest.saturating_mul(2))).unwrap_or(i32::MAX);
+    let fail = |_| EngineRefusal::Failed("engine unavailable");
+    conn.set_limit(Limit::SQLITE_LIMIT_ATTACHED, 0)
+        .map_err(fail)?;
+    conn.set_limit(Limit::SQLITE_LIMIT_LENGTH, value_bound)
+        .map_err(fail)?;
+    conn.set_db_config(DbConfig::SQLITE_DBCONFIG_DEFENSIVE, true)
+        .map_err(fail)?;
+    conn.execute_batch("PRAGMA query_only = ON;")
+        .map_err(fail)?;
+    Ok(())
+}
+
 fn observed(prev: Option<&str>, next: &str) -> String {
     match prev {
         None | Some("null") => next.to_owned(),
@@ -205,6 +249,15 @@ fn is_interrupt(err: &rusqlite::Error) -> bool {
     )
 }
 
+fn is_too_big(err: &rusqlite::Error) -> bool {
+    matches!(
+        err,
+        rusqlite::Error::SqliteFailure(f, _) if f.code == rusqlite::ErrorCode::TooBig
+    )
+}
+
+const TOO_BIG: &str = "a value exceeds the engine bound";
+
 /// Steps the prepared statement and converts rows (defense 4 bounds).
 fn collect_rows(
     stmt: &mut rusqlite::Statement<'_>,
@@ -218,6 +271,8 @@ fn collect_rows(
         .map_err(|e| {
             if is_interrupt(&e) {
                 EngineRefusal::TimedOut
+            } else if is_too_big(&e) {
+                EngineRefusal::Failed(TOO_BIG)
             } else {
                 EngineRefusal::Failed("query could not start")
             }
@@ -230,6 +285,7 @@ fn collect_rows(
             Ok(Some(row)) => row,
             Ok(None) => break,
             Err(e) if is_interrupt(&e) => return Err(EngineRefusal::TimedOut),
+            Err(e) if is_too_big(&e) => return Err(EngineRefusal::Failed(TOO_BIG)),
             Err(_) => return Err(EngineRefusal::Failed("query failed while running")),
         };
         if out.len() as u64 >= u64::from(max_rows) {
@@ -274,8 +330,7 @@ pub fn run_readonly_query(
     let conn = rusqlite::Connection::open_in_memory()
         .map_err(|_| EngineRefusal::Failed("engine unavailable"))?;
     load_tables(&conn, tables)?;
-    conn.execute_batch("PRAGMA query_only = ON;")
-        .map_err(|_| EngineRefusal::Failed("engine unavailable"))?;
+    restrict(&conn, tables)?;
 
     let mut stmt = match conn.prepare(sql) {
         Ok(stmt) => stmt,
@@ -496,6 +551,151 @@ mod tests {
         )
         .unwrap();
         assert!(out.table.rows.is_empty(), "the value is data, not SQL");
+    }
+
+    #[test]
+    fn statement_tricks_are_refused() {
+        let denied = |sql: &str| match run(sql) {
+            Err(EngineRefusal::Denied(r)) => r,
+            other => panic!("{sql}: {other:?}"),
+        };
+        for sql in [
+            "SELECT 1 FROM p; DELETE FROM p",
+            "SELECT 1 FROM p /* c */ ; SELECT 2 FROM p",
+            "SELECT 1 FROM p;SELECT 2",
+        ] {
+            assert_eq!(denied(sql), QueryDenyReason::MultipleStatements, "{sql}");
+        }
+        for sql in [
+            "PrAgMa query_only = OFF",
+            "BEGIN",
+            "SAVEPOINT s",
+            "EXPLAIN SELECT 1",
+            "/* SELECT */ DROP TABLE p",
+        ] {
+            assert_eq!(denied(sql), QueryDenyReason::NotReadOnly, "{sql}");
+        }
+        for sql in [
+            "SELECT 1 FROM p; PRAGMA writable_schema = ON",
+            "SELECT 'attach' FROM p",
+            "SELECT * FROM PRAGMA_database_list",
+            "SELECT readfile('/etc/passwd')",
+            "SELECT fts3_tokenizer('simple')",
+            "WITH x AS (SELECT 1) SELECT * FROM x; VACUUM INTO 'f.db'",
+            "SELECT 1 FROM p; DETACH main",
+        ] {
+            assert_eq!(denied(sql), QueryDenyReason::ForbiddenConstruct, "{sql}");
+        }
+        for sql in [
+            "WITH x AS (SELECT 1) UPDATE p SET age = 0",
+            "WITH x AS (SELECT 1) INSERT INTO p SELECT * FROM p",
+        ] {
+            assert_eq!(denied(sql), QueryDenyReason::NotReadOnly, "{sql}");
+        }
+        // A trailing semicolon or comment is still one statement.
+        assert_eq!(
+            run("SELECT id FROM p; -- done").unwrap().table.rows.len(),
+            3
+        );
+        // The engine database holds only the bound table.
+        let schema = run("SELECT name FROM sqlite_schema ORDER BY name").unwrap();
+        assert_eq!(
+            schema.table.rows,
+            vec![vec![CellValue::Text("p".to_owned())]]
+        );
+    }
+
+    #[test]
+    fn giant_values_and_wide_results_are_bounded() {
+        let failed = |sql: &str| match run(sql) {
+            Err(EngineRefusal::Failed(m)) => m,
+            other => panic!("{sql}: {other:?}"),
+        };
+        // SQLite refuses to build the value at all (SQLITE_LIMIT_LENGTH).
+        assert_eq!(
+            failed("SELECT length(zeroblob(1000000000)) FROM p"),
+            TOO_BIG
+        );
+        assert_eq!(
+            failed("SELECT length(hex(zeroblob(20000000))) FROM p"),
+            TOO_BIG
+        );
+        // Growth past the bound inside a function is refused too.
+        assert_eq!(
+            failed("SELECT length(replace(hex(zeroblob(5000000)), '0', '0000')) FROM p"),
+            TOO_BIG
+        );
+        // Values under the engine bound but over the cell bound.
+        assert_eq!(
+            failed("SELECT hex(zeroblob(40000)) FROM p"),
+            "a result text exceeds its bound"
+        );
+        assert_eq!(
+            failed("SELECT char(0) FROM p"),
+            "a result text exceeds its bound"
+        );
+        assert_eq!(
+            failed("SELECT CAST(x'c328' AS TEXT) FROM p"),
+            "a result text is not UTF-8"
+        );
+        let wide = format!(
+            "SELECT {} FROM p",
+            vec!["1"; RESULT_COLUMNS_MAX + 1].join(", ")
+        );
+        assert_eq!(failed(&wide), "result column count out of bounds");
+        let widest = format!("SELECT {} FROM p", vec!["1"; RESULT_COLUMNS_MAX].join(", "));
+        assert_eq!(
+            run(&widest).unwrap().table.columns.len(),
+            RESULT_COLUMNS_MAX
+        );
+    }
+
+    #[test]
+    fn engine_connection_refuses_escapes_without_the_text_screen() {
+        let (fields, rows) = fixture();
+        let t = EngineTable {
+            alias: "p",
+            fields: &fields,
+            rows: &rows,
+        };
+        let conn = rusqlite::Connection::open_in_memory().unwrap();
+        load_tables(&conn, &[t]).unwrap();
+        restrict(&conn, &[t]).unwrap();
+        for sql in [
+            "ATTACH DATABASE ':memory:' AS x",
+            "DELETE FROM p",
+            "CREATE TEMP TABLE t (a)",
+            "PRAGMA writable_schema = ON; UPDATE sqlite_schema SET sql = ''",
+        ] {
+            assert!(conn.execute_batch(sql).is_err(), "{sql}");
+        }
+        let count: i64 = conn
+            .query_row("SELECT COUNT(*) FROM p", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(count, 3);
+    }
+
+    #[test]
+    fn cartesian_explosions_time_out() {
+        let (fields, rows) = fixture();
+        let t = EngineTable {
+            alias: "p",
+            fields: &fields,
+            rows: &rows,
+        };
+        // 3^24 row combinations: far beyond the time limit.
+        let from = (0..24)
+            .map(|i| format!("p AS t{i}"))
+            .collect::<Vec<_>>()
+            .join(", ");
+        let r = run_readonly_query(
+            &[t],
+            &format!("SELECT COUNT(*) FROM {from}"),
+            &[],
+            10,
+            Duration::from_millis(200),
+        );
+        assert_eq!(r, Err(EngineRefusal::TimedOut));
     }
 
     #[test]

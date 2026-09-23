@@ -374,9 +374,17 @@ fn backup_restore_roundtrips_every_082_row_exactly() {
 #[test]
 fn restore_rejects_hand_edited_082_snapshots() {
     type Edit = (&'static str, fn(&mut serde_json::Value));
-    let edits: [Edit; 7] = [
+    let edits: [Edit; 9] = [
         ("result bytes changed", |s| {
             rows(s, "analytics_results")[0]["content_hex"] = serde_json::json!("00");
+        }),
+        // Four bytes whose first pair splits a UTF-8 character: this must be
+        // refused as corrupt, never reach a panicking slice.
+        ("result hex not ASCII", |s| {
+            rows(s, "analytics_results")[0]["content_hex"] = serde_json::json!("a\u{e9}b");
+        }),
+        ("result hex with signs", |s| {
+            rows(s, "analytics_results")[0]["content_hex"] = serde_json::json!("+f+f");
         }),
         ("receipt SQL edited", |s| {
             rows(s, "analytics_receipts")[0]["sql"] = serde_json::json!("SELECT 2 FROM t");

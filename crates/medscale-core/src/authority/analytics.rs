@@ -16,7 +16,9 @@ use medscale_contracts::analytics::{
     QueryOutcome, QueryReceipt, QueryRequest, QueryView, ReplayReport, ReplayVerdict,
     ResultTableDoc, StatisticKind, StatisticResult, StatisticValue, ViewBinding,
 };
-use medscale_contracts::data_sources::{CellValue, SnapshotCanonicalDoc, SnapshotStatus};
+use medscale_contracts::data_sources::{
+    CellValue, FieldType, SnapshotCanonicalDoc, SnapshotStatus,
+};
 use medscale_contracts::envelopes::AuthorityError;
 use medscale_contracts::objects::{DigestSha256, ObjectHeader, OpaqueId};
 use medscale_storage::analytics_engine::{
@@ -74,6 +76,23 @@ pub fn compile_cohort(criteria: &[CohortCriterion]) -> (String, Vec<CellValue>) 
             clauses.join(" AND ")
         ),
         params,
+    )
+}
+
+/// Whether a criterion value compares meaningfully with a field of this
+/// type. SQLite would otherwise coerce or compare across storage classes
+/// and silently match nothing.
+const fn value_fits(field: FieldType, value: &CellValue) -> bool {
+    matches!(
+        (field, value),
+        (
+            FieldType::Integer | FieldType::Float,
+            CellValue::Integer(_) | CellValue::Float(_)
+        ) | (FieldType::Boolean, CellValue::Boolean(_))
+            | (
+                FieldType::Text | FieldType::Date | FieldType::Time | FieldType::DateTime,
+                CellValue::Text(_)
+            )
     )
 }
 
@@ -445,7 +464,14 @@ impl DataSources<'_> {
             .iter()
             .position(|c| c.name == column)
             .ok_or_else(|| invalid("no such result column"))?;
-        let values: Vec<CellValue> = doc.rows.iter().map(|r| r[index].clone()).collect();
+        let values: Vec<CellValue> = doc
+            .rows
+            .iter()
+            .map(|r| r.get(index).cloned())
+            .collect::<Option<_>>()
+            .ok_or_else(|| AuthorityError::Corrupt {
+                message: "a result row is shorter than its columns".to_owned(),
+            })?;
         Ok(kinds
             .iter()
             .map(|kind| StatisticResult {
@@ -472,8 +498,21 @@ impl DataSources<'_> {
             return Err(AuthorityError::WrongScope);
         }
         for c in &criteria {
-            if !record.schema.fields.iter().any(|f| f.name == c.field) {
-                return Err(invalid(format!("no field named {:?}", c.field)));
+            let field = record
+                .schema
+                .fields
+                .iter()
+                .find(|f| f.name == c.field)
+                .ok_or_else(|| invalid(format!("no field named {:?}", c.field)))?;
+            if let Some(value) = &c.value
+                && !value.is_null()
+                && !value_fits(field.field_type, value)
+            {
+                return Err(invalid(format!(
+                    "the value for {:?} does not fit its {} type",
+                    c.field,
+                    field.field_type.as_str()
+                )));
             }
         }
         let mut cohort = CohortDefinition {

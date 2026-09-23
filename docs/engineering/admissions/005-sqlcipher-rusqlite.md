@@ -39,3 +39,12 @@ Measured via `PRAGMA cipher_version` in `crates/medscale-storage/tests/vault_ope
 | PRIVATE_DATA_READY | **FALSE** (OsKeyStore READY_BASE in Spec 028; Spec 032 probes only; swap/hibernate/snapshots/pagefile unqualified) |
 | Windows build note | Vendored OpenSSL requires Perl on PATH (CI: Chocolatey StrawberryPerl) |
 | macOS build note (Spec 029) | CI installs Homebrew `openssl@3` + `perl` and sets `OPENSSL_DIR` for vendored/SQLCipher builds; macOS CI ≠ product PLATFORM_QUALIFIED |
+
+## Spec 082 feature amendment (2026-09-23)
+
+Spec 082 (Analytics Gate) enables the rusqlite `limits` feature. It adds
+no crate and no C code (`limits = []` in rusqlite 0.37.0); it only exposes
+`sqlite3_limit` through `Connection::set_limit`. The analytics engine uses it
+on its private in-memory connection to set `SQLITE_LIMIT_ATTACHED = 0` and
+bound `SQLITE_LIMIT_LENGTH`, so a query cannot build a giant value in memory.
+Vault connections are unchanged. `Cargo.lock` is unchanged by a feature flag.
