@@ -14,6 +14,7 @@ use medscale_core::{
 };
 use serde::Serialize;
 
+mod analytics;
 mod audio;
 mod browse;
 mod collaboration;
@@ -171,6 +172,12 @@ enum Commands {
     ModelFleet {
         #[command(subcommand)]
         action: Box<model_fleet::ModelFleetCmd>,
+    },
+    /// Analytics Gate (Spec 082; read-only SQL, cohorts and statistics over
+    /// exact snapshots).
+    Analytics {
+        #[command(subcommand)]
+        action: Box<analytics::AnalyticsCmd>,
     },
     /// AudioFlow Foundation (Spec 081; local audio import, capture and
     /// transcript lineage).
@@ -1201,6 +1208,7 @@ fn run() -> Result<()> {
         Commands::Privacy { action } => privacy_gate::run_privacy(*action),
         Commands::Browse { action } => browse::run_browse(*action),
         Commands::Audio { action } => audio::run_audio(*action),
+        Commands::Analytics { action } => analytics::run_analytics(*action),
         Commands::DataSource { action } => data_source::run_data_source(*action),
         Commands::Snapshot { action } => data_source::run_snapshot(*action),
         Commands::DataView { action } => data_source::run_data_view(*action),

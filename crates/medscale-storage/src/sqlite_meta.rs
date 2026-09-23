@@ -258,6 +258,12 @@ impl SqliteMetaStore {
             self.conn.execute_batch(crate::audio::V10_DDL)?;
             self.finish_migration(10)?;
         }
+        let journal = self.migration_journal()?;
+        if journal.finished_version < 11 {
+            self.begin_migration(11)?;
+            self.conn.execute_batch(crate::analytics::V11_DDL)?;
+            self.finish_migration(11)?;
+        }
         Ok(())
     }
 
@@ -571,6 +577,19 @@ impl SqliteMetaStore {
             (
                 "audio_transcript_receipts",
                 serde_json::to_value(self.list_all_transcript_receipts()?),
+            ),
+            // Spec 082: Analytics Gate rows (derived table bytes as hex).
+            (
+                "analytics_receipts",
+                serde_json::to_value(self.list_all_query_receipts()?),
+            ),
+            (
+                "analytics_results",
+                serde_json::to_value(self.list_all_derived_tables()?),
+            ),
+            (
+                "analytics_cohorts",
+                serde_json::to_value(self.list_all_cohorts()?),
             ),
         ];
         let mut payload = payload;

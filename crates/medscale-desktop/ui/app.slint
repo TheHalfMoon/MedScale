@@ -220,6 +220,12 @@ export struct FleetObservationRowItem {
     detail: string,
 }
 
+export struct AnalyticsReceiptRowItem {
+    id: string,
+    outcome: string,
+    detail: string,
+}
+
 export struct AudioSourceRowItem {
     id: string,
     label: string,
@@ -404,6 +410,12 @@ export component AppWindow inherits Window {
     in property <[FleetLaneRunRowItem]> fleet-lane-runs;
     in-out property <string> fleet-report-summary: "";
     in property <[FleetObservationRowItem]> fleet-observations;
+    in-out property <string> analytics-status: "Analytics not loaded";
+    in property <[AnalyticsReceiptRowItem]> analytics-receipts;
+    in-out property <string> analytics-sql-input: "";
+    in-out property <string> analytics-bindings-input: "";
+    in-out property <string> analytics-last-result: "";
+    in-out property <string> analytics-preview: "";
     in-out property <string> audio-status: "AudioFlow not loaded";
     in-out property <string> audio-native-capture: "";
     in property <[AudioSourceRowItem]> audio-sources;
@@ -557,6 +569,7 @@ export component AppWindow inherits Window {
                     NavItem { label: "Model Fleet"; selected: root.active-route == "Model Fleet"; activated => { root.active-route = "Model Fleet"; } }
                     NavItem { label: "Browse"; selected: root.active-route == "Browse"; activated => { root.active-route = "Browse"; } }
                     NavItem { label: "Audio"; selected: root.active-route == "Audio"; activated => { root.active-route = "Audio"; } }
+                    NavItem { label: "Analytics"; selected: root.active-route == "Analytics"; activated => { root.active-route = "Analytics"; } }
 
                     Rectangle { height: 4px; background: transparent; }
                     Text { text: "GOVERNANCE"; color: Theme.ink-quiet; font-size: 11px; letter-spacing: 1.05px; }
@@ -664,7 +677,7 @@ export component AppWindow inherits Window {
                             VerticalLayout {
                                 spacing: 2px;
                                 Text { text: root.active-route == "Home" ? "Clinical Workspace" : root.active-route == "Patients" ? root.patient-name : root.active-route; color: Theme.ink; font-size: 28px; font-weight: 720; letter-spacing: -0.4px; }
-                                Text { text: root.active-route == "Home" ? "Trusted local clinical intelligence · evidence before authority" : root.active-route == "Patients" ? "Trusted longitudinal workspace · Synthetic demo" : root.active-route == "Insights" ? "Evidence-aware population view · Synthetic demo" : root.active-route == "Models" ? "Local model fabric · provenance, runtime and benchmark state" : root.active-route == "Evidence" ? "Pinned OpenMed evidence · measured claims only · limitations explicit" : root.active-route == "Workflows" ? "Review-first controlled-action studio · Synthetic demo" : root.active-route == "Tasks" ? "Derived outbox review queue · No second task authority" : root.active-route == "Messages" ? "Local review previews · No external transport claim" : root.active-route == "Documents" ? "Bounded document intake posture · Custody is not understanding" : root.active-route == "Projects" ? "Project and artifact organization · Core-backed references, never payload copies" : root.active-route == "Data" ? "Governed datasets · immutable snapshots, saved views and deterministic transforms" : root.active-route == "Collaboration" ? "Local-first rooms, threads and tasks · Core-backed, membership-gated" : root.active-route == "MedAgent" ? "Governed agent runs · bound context, typed tools, evidence-only proposals" : root.active-route == "Model Fleet" ? "Independent agent lanes on one task · factual comparison, never a ranking" : root.active-route == "Privacy" ? "Data classes, de-identification receipts and egress decisions · unclassified stays local" : root.active-route == "Browse" ? "Read-only https retrieval · allowlisted hosts, private networks refused, content is evidence only" : root.active-route == "Audio" ? "Local audio sources and transcript lineage · nothing leaves this device" : root.active-route == "Audit Trail" ? "Synthetic disclosure history · Core Host remains canonical" : root.active-route == "Exports" ? "Loss-aware FHIR support · No full conformance claim" : root.active-route == "Settings" ? "Doctor truth and evidence-gated readiness" : root.active-route == "Integrations" ? "Brokered integration posture · Default deny" : root.active-route == "About" ? "Native product and attribution details" : "Unrecognized route"; color: Theme.ink-subtle; font-size: 13px; }
+                                Text { text: root.active-route == "Home" ? "Trusted local clinical intelligence · evidence before authority" : root.active-route == "Patients" ? "Trusted longitudinal workspace · Synthetic demo" : root.active-route == "Insights" ? "Evidence-aware population view · Synthetic demo" : root.active-route == "Models" ? "Local model fabric · provenance, runtime and benchmark state" : root.active-route == "Evidence" ? "Pinned OpenMed evidence · measured claims only · limitations explicit" : root.active-route == "Workflows" ? "Review-first controlled-action studio · Synthetic demo" : root.active-route == "Tasks" ? "Derived outbox review queue · No second task authority" : root.active-route == "Messages" ? "Local review previews · No external transport claim" : root.active-route == "Documents" ? "Bounded document intake posture · Custody is not understanding" : root.active-route == "Projects" ? "Project and artifact organization · Core-backed references, never payload copies" : root.active-route == "Data" ? "Governed datasets · immutable snapshots, saved views and deterministic transforms" : root.active-route == "Collaboration" ? "Local-first rooms, threads and tasks · Core-backed, membership-gated" : root.active-route == "MedAgent" ? "Governed agent runs · bound context, typed tools, evidence-only proposals" : root.active-route == "Model Fleet" ? "Independent agent lanes on one task · factual comparison, never a ranking" : root.active-route == "Privacy" ? "Data classes, de-identification receipts and egress decisions · unclassified stays local" : root.active-route == "Browse" ? "Read-only https retrieval · allowlisted hosts, private networks refused, content is evidence only" : root.active-route == "Audio" ? "Local audio sources and transcript lineage · nothing leaves this device" : root.active-route == "Analytics" ? "Read-only SQL over exact snapshots · every run leaves a receipt" : root.active-route == "Audit Trail" ? "Synthetic disclosure history · Core Host remains canonical" : root.active-route == "Exports" ? "Loss-aware FHIR support · No full conformance claim" : root.active-route == "Settings" ? "Doctor truth and evidence-gated readiness" : root.active-route == "Integrations" ? "Brokered integration posture · Default deny" : root.active-route == "About" ? "Native product and attribution details" : "Unrecognized route"; color: Theme.ink-subtle; font-size: 13px; }
                             }
                             Rectangle { horizontal-stretch: 1; background: transparent; }
                             if root.active-route == "Home": Text {
@@ -1375,6 +1388,59 @@ export component AppWindow inherits Window {
                                     Text { horizontal-stretch: 1; vertical-alignment: center; text: item.url; color: Theme.ink; font-size: 12px; wrap: word-wrap; }
                                     Text { vertical-alignment: center; text: item.reason; color: Theme.ink-quiet; font-size: 11px; }
                                     StatusPill { label: item.state; accent: item.state == "completed" ? Theme.success : item.state == "awaiting_human_takeover" ? Theme.warning : Theme.danger; }
+                                }
+                            }
+                        }
+
+                        if root.active-route == "Analytics": VerticalLayout {
+                            spacing: 14px;
+                            HonestyPanel { title: "Analytics boundary"; body: "Queries are read-only: writes, schema changes, attachments and pragmas are refused · every run pins the exact snapshots it read and leaves a receipt · truncated or partial-input results are labelled as such · no R, Python or shell runs here"; accent: Theme.success; }
+
+                            Rectangle {
+                                min-height: 120px;
+                                border-radius: Theme.radius-compact;
+                                border-width: 1px;
+                                border-color: Theme.border;
+                                background: Theme.surface;
+                                accessible-role: groupbox;
+                                accessible-label: "Analytics. " + root.analytics-status;
+                                VerticalLayout {
+                                    padding-left: 10px;
+                                    padding-right: 10px;
+                                    padding-top: 8px;
+                                    padding-bottom: 8px;
+                                    spacing: 6px;
+                                    HorizontalLayout {
+                                        spacing: 8px;
+                                        Text { horizontal-stretch: 1; text: "Queries follow the active project"; color: Theme.ink; font-size: 12px; font-weight: 680; }
+                                        ToolbarAction { label: "Refresh"; activated => { root.ui-action("analytics-refresh"); } }
+                                    }
+                                    Text { text: root.analytics-status; color: Theme.ink-quiet; font-size: 11px; wrap: word-wrap; }
+                                    AdaptiveLineEdit { text <=> root.analytics-bindings-input; placeholder: "Bindings, e.g. labs=snap-1"; accessible-name: "Snapshot bindings"; }
+                                    HorizontalLayout {
+                                        spacing: 8px;
+                                        AdaptiveLineEdit { horizontal-stretch: 1; text <=> root.analytics-sql-input; placeholder: "SELECT ... FROM labs"; accessible-name: "Read-only SQL query"; }
+                                        ToolbarAction { label: "Run"; activated => { root.ui-action("analytics-run"); } }
+                                    }
+                                    if root.analytics-last-result != "": Text { text: root.analytics-last-result; color: Theme.ink; font-size: 11px; wrap: word-wrap; accessible-role: text; accessible-label: "Last run: " + root.analytics-last-result; }
+                                    if root.analytics-preview != "": Text { text: root.analytics-preview; color: Theme.ink-subtle; font-size: 11px; wrap: word-wrap; accessible-role: text; accessible-label: "Result preview: " + root.analytics-preview; }
+                                }
+                            }
+
+                            Text { text: "Query receipts (newest first)"; color: Theme.ink; font-size: 14px; font-weight: 680; }
+                            for item in root.analytics-receipts: Rectangle {
+                                min-height: 40px;
+                                border-width: 1px;
+                                border-color: Theme.border;
+                                background: Theme.surface;
+                                accessible-role: text;
+                                accessible-label: "Receipt " + item.id + ", " + item.outcome + ", " + item.detail;
+                                HorizontalLayout {
+                                    padding-left: 10px;
+                                    padding-right: 10px;
+                                    spacing: 12px;
+                                    Text { horizontal-stretch: 1; vertical-alignment: center; text: item.id + " · " + item.detail; color: Theme.ink; font-size: 12px; wrap: word-wrap; }
+                                    StatusPill { label: item.outcome; accent: item.outcome == "completed" ? Theme.success : item.outcome == "truncated" ? Theme.warning : Theme.danger; }
                                 }
                             }
                         }

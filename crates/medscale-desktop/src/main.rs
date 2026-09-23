@@ -13,6 +13,7 @@ use std::time::Duration;
 
 use slint::{ComponentHandle, ModelRc, VecModel};
 
+mod analytics_workspace;
 mod audio_workspace;
 mod browse_workspace;
 mod collaboration_workspace;
@@ -543,6 +544,38 @@ fn open_model_fleet(ui: &AppWindow, session: &Rc<RefCell<CliSession>>, fleet_id:
     }
 }
 
+fn refresh_analytics(ui: &AppWindow, session: &Rc<RefCell<CliSession>>) {
+    let project_id = ui.get_project_active_id().to_string();
+    if project_id.is_empty() {
+        ui.set_analytics_status("Open a project to use Analytics".into());
+        ui.set_analytics_receipts(ModelRc::new(VecModel::from(Vec::new())));
+        return;
+    }
+    match analytics_workspace::receipts(&mut session.borrow_mut(), &project_id) {
+        Ok(rows) => {
+            ui.set_analytics_status(
+                format!(
+                    "{} query receipt{} · read-only engine · Core-backed",
+                    rows.len(),
+                    if rows.len() == 1 { "" } else { "s" }
+                )
+                .into(),
+            );
+            ui.set_analytics_receipts(ModelRc::new(VecModel::from_iter(rows.iter().map(|row| {
+                AnalyticsReceiptRowItem {
+                    id: row.id.clone().into(),
+                    outcome: row.outcome.clone().into(),
+                    detail: row.detail.clone().into(),
+                }
+            }))));
+        }
+        Err(err) => {
+            ui.set_analytics_receipts(ModelRc::new(VecModel::from(Vec::new())));
+            ui.set_analytics_status(analytics_workspace::status_message(&err).into());
+        }
+    }
+}
+
 fn refresh_audio(ui: &AppWindow, session: &Rc<RefCell<CliSession>>) {
     let project_id = ui.get_project_active_id().to_string();
     if project_id.is_empty() {
@@ -774,6 +807,7 @@ fn evidence_route_override() -> Option<&'static str> {
         "Privacy" => Some("Privacy"),
         "Browse" => Some("Browse"),
         "Audio" => Some("Audio"),
+        "Analytics" => Some("Analytics"),
         "Settings" => Some("Settings"),
         "About" => Some("About"),
         _ => None,
@@ -1676,6 +1710,39 @@ fn main() -> ExitCode {
         }
         // Spec 079 Privacy Gate actions (Core-backed; profiles, transforms
         // and re-identification stay CLI-only in this slice).
+        // Spec 082 Analytics actions (Core-backed; read-only engine).
+        if action == "analytics-refresh" {
+            if let Some(session) = &project_session_for_actions {
+                refresh_analytics(&ui, session);
+            } else {
+                ui.set_analytics_status("Analytics unavailable: no Core session".into());
+            }
+            return;
+        }
+        if action == "analytics-run" {
+            let Some(session) = &project_session_for_actions else {
+                ui.set_analytics_status("Analytics unavailable: no Core session".into());
+                return;
+            };
+            let project_id = ui.get_project_active_id().to_string();
+            let sql = ui.get_analytics_sql_input().to_string();
+            let bindings = ui.get_analytics_bindings_input().to_string();
+            if project_id.is_empty() || sql.trim().is_empty() {
+                ui.set_analytics_status("Invalid: open a project and enter a query".into());
+                return;
+            }
+            let ran =
+                analytics_workspace::run_query(&mut session.borrow_mut(), &project_id, &sql, &bindings);
+            match ran {
+                Ok(result) => {
+                    ui.set_analytics_last_result(result.summary.into());
+                    ui.set_analytics_preview(result.preview.into());
+                    refresh_analytics(&ui, session);
+                }
+                Err(err) => ui.set_analytics_status(analytics_workspace::status_message(&err).into()),
+            }
+            return;
+        }
         // Spec 081 AudioFlow actions (Core-backed; local only).
         if action == "audio-refresh" {
             if let Some(session) = &project_session_for_actions {
