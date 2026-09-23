@@ -675,7 +675,7 @@ impl TranscriptRevision {
             .find(|s| s.seq == seq)
             .map(|s| AudioEvidenceRef {
                 source_id: self.source_id.clone(),
-                source_digest: self.source_digest,
+                source_digest: self.source_digest.clone(),
                 start_ms: s.start_ms,
                 end_ms: s.end_ms,
                 transcript_revision_id: self.header.id.clone(),

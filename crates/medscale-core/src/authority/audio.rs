@@ -768,7 +768,7 @@ impl Audio<'_> {
                 header: self.header(self.alloc("audio-transcript")?),
                 project_id: source.project_id.clone(),
                 source_id: source.header.id.clone(),
-                source_digest: source.content_digest,
+                source_digest: source.content_digest.clone(),
                 revision_no: latest + 1,
                 origin: TranscriptOrigin::Engine {
                     route: request.route,
@@ -806,7 +806,7 @@ impl Audio<'_> {
             header: self.header(self.alloc("audio-receipt")?),
             project_id: source.project_id.clone(),
             source_id: source.header.id.clone(),
-            source_digest: source.content_digest,
+            source_digest: source.content_digest.clone(),
             request_digest: audio_request_digest(request),
             route: request.route,
             decision,
@@ -903,7 +903,7 @@ impl Audio<'_> {
             header: self.header(self.alloc("audio-transcript")?),
             project_id: parent.project_id.clone(),
             source_id: parent.source_id.clone(),
-            source_digest: parent.source_digest,
+            source_digest: parent.source_digest.clone(),
             revision_no: parent.revision_no + 1,
             origin: TranscriptOrigin::HumanCorrection {
                 parent_revision_id: parent.header.id.clone(),
