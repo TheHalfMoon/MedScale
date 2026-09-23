@@ -85,8 +85,13 @@ directive); OS keyring path not exercised in CI.
 - [x] Migration/recovery and security suites.
 - [x] Rendered Desktop evidence or recorded residual.
 - [x] Deterministic exact-range scope record (`EXACT_RANGE_REVIEW.md`).
-- [ ] Exact-head required CI (6/6) on the final candidate head.
+- [x] Exact-head required CI (6/6) on the final candidate head.
 - [x] Evidence files complete.
-- [ ] Merge on green exact head; post-main CI.
-- [ ] Closure bookkeeping PR; `CLOSED_CANONICAL` only after post-main evidence.
-- [ ] Recompute the next eligible unit.
+- [x] Merge on green exact head; post-main CI.
+- [x] Closure bookkeeping PR; `CLOSED_CANONICAL` only after post-main evidence.
+- [x] Recompute the next eligible unit.
+
+**Closure (2026-09-23):** final head `0168f05` passed exact-head run
+`35806329807` (6/6); PR #137 merged as `e2a90ba`; post-merge main run
+`35809030069` passed 6/6. Next eligible unit recomputed: Spec 080 Governed
+Browse (hard dependency 077 + 079 + network broker), promoted separately.
