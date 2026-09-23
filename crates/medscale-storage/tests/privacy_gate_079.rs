@@ -411,7 +411,7 @@ fn crash_mid_v8_migration_fails_closed_and_backup_recovers() {
     let restored = SyntheticVault::open("vault-1", &restored_root).unwrap();
     assert_eq!(
         restored.meta.migration_journal().unwrap().finished_version,
-        8
+        CURRENT_META_SCHEMA_VERSION
     );
     assert!(restored.meta.get_agent_lane(&id("lane-1")).is_ok());
 }
