@@ -317,7 +317,6 @@ impl ScriptedBrowseTransport {
     }
 
     /// A 200 response with the given content type and body.
-    #[must_use]
     pub fn ok(content_type: &str, body: &[u8]) -> Result<BrowseHttpResponse, BrowseTransportError> {
         Ok(BrowseHttpResponse {
             status: 200,
@@ -329,7 +328,6 @@ impl ScriptedBrowseTransport {
     }
 
     /// A 302 redirect.
-    #[must_use]
     pub fn redirect(location: &str) -> Result<BrowseHttpResponse, BrowseTransportError> {
         Ok(BrowseHttpResponse {
             status: 302,
