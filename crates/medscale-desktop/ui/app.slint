@@ -1403,7 +1403,7 @@ export component AppWindow inherits Window {
                                         ToolbarAction { label: "Refresh"; activated => { root.ui-action("audio-refresh"); } }
                                     }
                                     Text { text: root.audio-status; color: Theme.ink-quiet; font-size: 11px; wrap: word-wrap; }
-                                    if root.audio-native-capture != "": Text { text: root.audio-native-capture; color: Theme.warning; font-size: 11px; wrap: word-wrap; accessible-role: text; accessible-label: root.audio-native-capture; }
+                                    if root.audio-native-capture != "": Text { text: root.audio-native-capture; color: Theme.ink-subtle; font-size: 11px; wrap: word-wrap; accessible-role: text; accessible-label: root.audio-native-capture; }
                                     if root.audio-last-result != "": Text { text: root.audio-last-result; color: Theme.ink; font-size: 11px; wrap: word-wrap; accessible-role: text; accessible-label: "Last segmentation: " + root.audio-last-result; }
                                     if root.audio-transcript != "": Text { text: root.audio-transcript; color: Theme.ink-subtle; font-size: 11px; wrap: word-wrap; accessible-role: text; accessible-label: "Transcript segments: " + root.audio-transcript; }
                                 }
