@@ -398,7 +398,10 @@ impl SqliteMetaStore {
 
     // -- sessions --------------------------------------------------------------
 
-    fn browse_insert_session_on(conn: &rusqlite::Connection, s: &BrowseSession) -> Result<(), MetaError> {
+    fn browse_insert_session_on(
+        conn: &rusqlite::Connection,
+        s: &BrowseSession,
+    ) -> Result<(), MetaError> {
         s.validate()
             .map_err(|e| MetaError::UnsupportedSchema(format!("browse session: {e}")))?;
         map_insert(
@@ -452,7 +455,10 @@ impl SqliteMetaStore {
         )
     }
 
-    fn browse_insert_receipt_on(conn: &rusqlite::Connection, r: &BrowseReceipt) -> Result<(), MetaError> {
+    fn browse_insert_receipt_on(
+        conn: &rusqlite::Connection,
+        r: &BrowseReceipt,
+    ) -> Result<(), MetaError> {
         map_insert(
             conn.execute(
                 "INSERT INTO browse_receipts(receipt_id, session_id, body_json) VALUES (?1, ?2, ?3)",
@@ -761,20 +767,24 @@ impl SqliteMetaStore {
     pub fn restore_browse_evidence_row(&self, row: &BrowseEvidenceRow) -> Result<(), MetaError> {
         let bytes = from_hex(&row.content_hex)?;
         restore_conflict_is_corrupt(
-            Self::browse_insert_evidence_on(self.conn(), &row.evidence, &bytes).map_err(|e| match e {
-                MetaError::UnsupportedSchema(m) => corrupt(m),
-                other => other,
-            }),
+            Self::browse_insert_evidence_on(self.conn(), &row.evidence, &bytes).map_err(
+                |e| match e {
+                    MetaError::UnsupportedSchema(m) => corrupt(m),
+                    other => other,
+                },
+            ),
         )
     }
 
     pub fn restore_browse_download_row(&self, row: &BrowseDownloadRow) -> Result<(), MetaError> {
         let bytes = from_hex(&row.content_hex)?;
         restore_conflict_is_corrupt(
-            Self::browse_insert_download_on(self.conn(), &row.download, &bytes).map_err(|e| match e {
-                MetaError::UnsupportedSchema(m) => corrupt(m),
-                other => other,
-            }),
+            Self::browse_insert_download_on(self.conn(), &row.download, &bytes).map_err(
+                |e| match e {
+                    MetaError::UnsupportedSchema(m) => corrupt(m),
+                    other => other,
+                },
+            ),
         )
     }
 
