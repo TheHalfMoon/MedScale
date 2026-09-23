@@ -2,7 +2,7 @@
 
 **Status:** `PROMOTED_IMPLEMENTATION_AUTHORIZED`
 **Promotion date:** 2026-09-23
-**Canonical base:** `__BASE__`
+**Canonical base:** `44f71e606ac74b632d417f2aa86202e79f71f9ea`
 **Target branch:** `spec/082-analytics-gate`
 
 ## Authority
@@ -15,7 +15,8 @@ Live verification at promotion time (2026-09-23, `gh pr view` / `gh run view`):
 
 - Spec 081 is `CLOSED_CANONICAL`: final head `be0ad73` passed exact-head run
   `35899434716` (6/6); PR #141 merged as `876b9fe`; post-merge main run
-  `35906389709` passed 6/6. Closure PR __CLOSURE_PR__ merged as `__BASE_SHORT__`.
+  `35906389709` passed 6/6. Closure PR #143 (exact-head run
+  `35915171239`, 6/6 on `1f5aabd`) merged as `44f71e6`.
 - Specs 074, 075 and 079 are `CLOSED_CANONICAL` (see `BUILD_QUEUE.md`).
 
 Dependency proof: `RESEARCH_OS_V2_SPEC_IMPLEMENTATION_CONTRACTS.md` and
