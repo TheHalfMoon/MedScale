@@ -17,7 +17,6 @@ use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 use std::time::Duration;
 
 use medscale_contracts::browse::{BrowseDenyReason, URL_MAX_CHARS, is_dns_host_name};
-use ureq::unversioned::resolver::Resolver as _;
 
 /// A URL that passed `validate_url`.
 #[derive(Debug, Clone, PartialEq, Eq)]
