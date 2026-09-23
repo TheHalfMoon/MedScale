@@ -22,13 +22,14 @@
 - [x] fmt, dependency direction, Clippy, workspace tests, cargo-deny.
 - [x] Deterministic exact-range scope record.
 - [x] Evidence files.
-- [ ] Exact-head CI on the final head; merge; post-main CI.
-- [ ] Closure PR; recompute the next unit.
+- [x] Exact-head CI on the final head; merge; post-main CI.
+- [x] Closure PR; recompute the next unit.
 
 Reconciled 2026-09-23 against implementation, tests and CI (not against the
 presence of code alone): T080-00 to T080-05 are complete on code head
 `5daec97` (run `35861492981`, 6/6; see
 `evidence/080-governed-browse/QUALIFICATION.md`). T080-02/-03/-04 were
 reopened during the T080-06 challenge and closed with the fixes recorded in
-`SECURITY_ADVERSARIAL.md` C1-C6. The last two T080-06 items stay open until
-merge, post-main CI and the closure PR.
+`SECURITY_ADVERSARIAL.md` C1-C6. The last two T080-06 items were completed by PR #139 (merged as `a8e32be`,
+post-main run `35873449163` 6/6) and the closure PR; the next unit is 081
+(`evidence/080-governed-browse/CLOSURE.md`).
