@@ -1455,8 +1455,8 @@ pub enum RequestBody {
     HubJoinComplete {
         link_id: OpaqueId,
         endpoint: String,
-        code: HubInvitationCode,
-        device: DeviceIdentity,
+        code: Box<HubInvitationCode>,
+        device: Box<DeviceIdentity>,
     },
     HubQueue {
         link_id: OpaqueId,

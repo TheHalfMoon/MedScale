@@ -176,8 +176,8 @@ pub fn join(
         RequestBody::HubJoinComplete {
             link_id,
             endpoint,
-            code,
-            device: *device,
+            code: Box::new(code),
+            device,
         },
     )?
     else {
