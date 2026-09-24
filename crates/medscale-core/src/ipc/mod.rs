@@ -12,7 +12,9 @@ use std::time::Duration;
 
 use interprocess::local_socket::prelude::*;
 use interprocess::local_socket::{GenericNamespaced, Listener, ListenerOptions, Stream, ToNsName};
-use medscale_contracts::envelopes::{AuthorityRequest, AuthorityResponse};
+use medscale_contracts::envelopes::{
+    AuthorityError, AuthorityRequest, AuthorityResponse, Capability,
+};
 use medscale_storage::{WriterLock, WriterLockError};
 use sha2::{Digest, Sha256};
 use thiserror::Error;
@@ -93,6 +95,15 @@ impl HostIpcServer {
         serve_stream(&self.facade, stream)
     }
 
+    /// Accept one client and serve it, answering only requests whose
+    /// capability is in `allowed` (Spec 084: a Hub's device-facing endpoint
+    /// serves only Hub bootstrap and sync). Anything else is refused before
+    /// it reaches Core, so a sessionless peer cannot use lease-holder reads.
+    pub fn serve_connection_limited(&self, allowed: &[Capability]) -> Result<(), HostIpcError> {
+        let stream = self.listener.accept().map_err(HostIpcError::Io)?;
+        serve_stream_limited(&self.facade, stream, Some(allowed))
+    }
+
     /// Move this server into a background accept loop (one connection handler thread each).
     pub fn into_background(self) -> (String, Arc<CoreFacade>, JoinHandle<()>) {
         let endpoint = self.endpoint.clone();
@@ -109,7 +120,15 @@ impl HostIpcServer {
     }
 }
 
-fn serve_stream(facade: &CoreFacade, mut stream: Stream) -> Result<(), HostIpcError> {
+fn serve_stream(facade: &CoreFacade, stream: Stream) -> Result<(), HostIpcError> {
+    serve_stream_limited(facade, stream, None)
+}
+
+fn serve_stream_limited(
+    facade: &CoreFacade,
+    mut stream: Stream,
+    allowed: Option<&[Capability]>,
+) -> Result<(), HostIpcError> {
     loop {
         let req_bytes = match read_frame(&mut stream) {
             Ok(b) => b,
@@ -117,7 +136,14 @@ fn serve_stream(facade: &CoreFacade, mut stream: Stream) -> Result<(), HostIpcEr
             Err(e) => return Err(HostIpcError::Io(e)),
         };
         let req: AuthorityRequest = serde_json::from_slice(&req_bytes)?;
-        let resp = facade.dispatch(req);
+        let resp = match allowed {
+            Some(allowed) if !allowed.contains(&req.capability) => AuthorityResponse {
+                schema_version: req.schema_version,
+                request_id: req.request_id,
+                result: Err(AuthorityError::Unauthorized),
+            },
+            _ => facade.dispatch(req),
+        };
         let resp_bytes = serde_json::to_vec(&resp)?;
         write_frame(&mut stream, &resp_bytes)?;
     }

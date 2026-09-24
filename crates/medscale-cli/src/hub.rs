@@ -555,7 +555,8 @@ mod tests {
         drop(s);
         let code_json = serde_json::to_string(&code).unwrap();
 
-        // The Hub serves two connections (join, then sync) in a thread.
+        // The Hub serves three connections (join, sync, and a raw peer) in a
+        // thread.
         let (vr, hd, ep) = (hub_root.clone(), root.join("host"), endpoint.clone());
         let server = std::thread::spawn(move || {
             run_hub(HubCmd::Serve {
@@ -563,7 +564,7 @@ mod tests {
                 vault_root: vr,
                 host_dir: hd,
                 endpoint: ep,
-                connections: 2,
+                connections: 3,
             })
         });
 
@@ -599,6 +600,21 @@ mod tests {
             json: false,
         })
         .unwrap();
+        // A local peer without a session cannot use the Hub endpoint for
+        // anything but Hub bootstrap and sync (no lease-holder reads).
+        let mut peer = medscale_core::ipc::HostIpcClient::connect(&endpoint).unwrap();
+        let status = peer
+            .dispatch(medscale_contracts::envelopes::AuthorityRequest::new(
+                OpaqueId::new("peer-1"),
+                medscale_contracts::objects::VaultId::new("vault-hub"),
+                medscale_contracts::objects::RealmId::new("cli-realm"),
+                medscale_contracts::objects::AuthorityScopeId::new("cli-scope"),
+                medscale_contracts::envelopes::Capability::HubRead,
+                medscale_contracts::envelopes::RequestBody::HubStatus,
+            ))
+            .unwrap();
+        assert_eq!(status.result, Err(AuthorityError::Unauthorized));
+        drop(peer);
         server.join().unwrap().unwrap();
 
         for json in [true, false] {

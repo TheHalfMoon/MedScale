@@ -413,8 +413,12 @@ pub fn serve_hub(
             vault_root: vault_root.display().to_string(),
         },
     )?;
+    // Devices reach only Hub bootstrap and sync; operator commands run on
+    // the vault directly, never through this endpoint.
     for _ in 0..connections {
-        server.serve_connection().map_err(unavailable)?;
+        server
+            .serve_connection_limited(&[Capability::HubBootstrap, Capability::HubSync])
+            .map_err(unavailable)?;
     }
     Ok(())
 }
