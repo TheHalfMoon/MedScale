@@ -529,7 +529,7 @@ fn invitations_and_handshakes_fail_closed() {
     else {
         panic!()
     };
-    let ResponseBody::HubHandshakeSigned { handshake } = c
+    let ResponseBody::HubHandshakeSigned { handshake: signed } = c
         .call(
             Capability::HubClient,
             RequestBody::HubSignHandshake {
@@ -541,7 +541,7 @@ fn invitations_and_handshakes_fail_closed() {
     else {
         panic!()
     };
-    let good = *handshake;
+    let good = *signed;
     let mut wrong_version = good.clone();
     wrong_version.protocol_version = 2;
     assert!(matches!(
