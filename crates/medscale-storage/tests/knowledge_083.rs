@@ -480,7 +480,7 @@ fn backup_restore_roundtrips_every_083_row_exactly() {
 #[test]
 fn restore_rejects_hand_edited_083_snapshots() {
     type Edit = (&'static str, fn(&mut serde_json::Value));
-    let edits: [Edit; 8] = [
+    let edits: [Edit; 12] = [
         ("chunk text changed", |s| {
             rows(s, "knowledge_index_versions")[0]["chunks"][0]["text"] =
                 serde_json::json!("myalgia BEFORE statin");
@@ -511,6 +511,18 @@ fn restore_rejects_hand_edited_083_snapshots() {
         ("duplicate receipt", |s| {
             let first = rows(s, "knowledge_receipts")[0].clone();
             rows(s, "knowledge_receipts").push(first);
+        }),
+        ("receipt family replaced by a string", |s| {
+            s["knowledge_receipts"] = serde_json::json!("receipts");
+        }),
+        ("canvas family dropped", |s| {
+            s.as_object_mut().unwrap().remove("knowledge_canvases");
+        }),
+        ("index versions replaced by an object", |s| {
+            s["knowledge_index_versions"] = serde_json::json!({});
+        }),
+        ("chunk replaced by a number", |s| {
+            rows(s, "knowledge_index_versions")[0]["chunks"][0] = serde_json::json!(42);
         }),
     ];
     for (name, edit) in edits {

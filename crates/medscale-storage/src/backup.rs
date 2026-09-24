@@ -601,13 +601,32 @@ fn restore_rows<T: serde::de::DeserializeOwned>(
     key: &str,
     mut restore: impl FnMut(&T) -> Result<(), crate::MetaError>,
 ) -> Result<(), String> {
-    if let Some(entries) = snapshot.get(key).and_then(|v| v.as_array()) {
-        for value in entries {
-            let row: T = serde_json::from_value(value.clone()).map_err(|e| e.to_string())?;
-            restore(&row).map_err(|e| e.to_string())?;
-        }
+    // Every writer emits each family as an array, so any other shape is a
+    // hand-edited snapshot and must not restore as an empty family.
+    let Some(family) = snapshot.get(key) else {
+        return Ok(());
+    };
+    let entries = family
+        .as_array()
+        .ok_or_else(|| format!("tampered metadata snapshot: {key} is not an array"))?;
+    for value in entries {
+        let row: T = serde_json::from_value(value.clone()).map_err(|e| e.to_string())?;
+        restore(&row).map_err(|e| e.to_string())?;
     }
     Ok(())
+}
+
+/// Like `restore_rows`, for a family every snapshot of this schema carries:
+/// a missing family is a hand-edited snapshot, not an empty one.
+fn restore_required_rows<T: serde::de::DeserializeOwned>(
+    snapshot: &serde_json::Value,
+    key: &str,
+    restore: impl FnMut(&T) -> Result<(), crate::MetaError>,
+) -> Result<(), String> {
+    if snapshot.get(key).is_none() {
+        return Err(format!("tampered metadata snapshot: {key} is missing"));
+    }
+    restore_rows(snapshot, key, restore)
 }
 
 fn restore_v12(
@@ -620,13 +639,13 @@ fn restore_v12(
     // order; chunk sets are re-checked against their manifest digests and
     // cross-row invariants are re-verified once every family is replayed.
     let meta = &vault.meta;
-    restore_rows(snapshot, "knowledge_index_versions", |row| {
+    restore_required_rows(snapshot, "knowledge_index_versions", |row| {
         meta.restore_index_version_row(row)
     })?;
-    restore_rows(snapshot, "knowledge_receipts", |row| {
+    restore_required_rows(snapshot, "knowledge_receipts", |row| {
         meta.restore_retrieval_receipt_row(row)
     })?;
-    restore_rows(snapshot, "knowledge_canvases", |row| {
+    restore_required_rows(snapshot, "knowledge_canvases", |row| {
         meta.restore_canvas_row(row)
     })?;
     meta.verify_knowledge_consistency()
