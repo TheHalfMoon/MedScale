@@ -106,7 +106,9 @@ pub fn restore_vault(src: &Path, dest_vault_root: &Path) -> Result<(u64, u64), S
     let snapshot_schema = snapshot_value
         .get("schema_version")
         .and_then(|v| v.as_u64());
-    if snapshot_schema == Some(11) {
+    if snapshot_schema == Some(12) {
+        restore_v12(&vault, &snapshot_value, &mut sources)?;
+    } else if snapshot_schema == Some(11) {
         restore_v11(&vault, &snapshot_value, &mut sources)?;
     } else if snapshot_schema == Some(10) {
         restore_v10(&vault, &snapshot_value, &mut sources)?;
@@ -605,6 +607,30 @@ fn restore_rows<T: serde::de::DeserializeOwned>(
             restore(&row).map_err(|e| e.to_string())?;
         }
     }
+    Ok(())
+}
+
+fn restore_v12(
+    vault: &SyntheticVault,
+    snapshot: &serde_json::Value,
+    sources: &mut u64,
+) -> Result<(), String> {
+    restore_v11(vault, snapshot, sources)?;
+    // Spec 083 rows replay through plain-INSERT paths in their original
+    // order; chunk sets are re-checked against their manifest digests and
+    // cross-row invariants are re-verified once every family is replayed.
+    let meta = &vault.meta;
+    restore_rows(snapshot, "knowledge_index_versions", |row| {
+        meta.restore_index_version_row(row)
+    })?;
+    restore_rows(snapshot, "knowledge_receipts", |row| {
+        meta.restore_retrieval_receipt_row(row)
+    })?;
+    restore_rows(snapshot, "knowledge_canvases", |row| {
+        meta.restore_canvas_row(row)
+    })?;
+    meta.verify_knowledge_consistency()
+        .map_err(|e| e.to_string())?;
     Ok(())
 }
 

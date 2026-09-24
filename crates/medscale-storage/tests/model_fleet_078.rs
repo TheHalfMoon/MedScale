@@ -331,6 +331,10 @@ const LATER_VERSION_TABLES: &[&str] = &[
     "analytics_receipts",
     "analytics_results",
     "analytics_cohorts",
+    "knowledge_manifests",
+    "knowledge_chunks",
+    "knowledge_receipts",
+    "knowledge_canvases",
 ];
 
 fn table_exists(root: &Path, table: &str) -> bool {
@@ -357,6 +361,7 @@ fn pre_078_view(meta: &SqliteMetaStore) -> serde_json::Value {
             && !key.starts_with("browse_")
             && !key.starts_with("audio_")
             && !key.starts_with("analytics_")
+            && !key.starts_with("knowledge_")
     });
     snapshot
 }
@@ -1036,6 +1041,7 @@ fn pre_078_v6_backup_restores_with_empty_078_tables() {
                 && !key.starts_with("browse_")
                 && !key.starts_with("audio_")
                 && !key.starts_with("analytics_")
+                && !key.starts_with("knowledge_")
         });
         object.insert("schema_version".to_owned(), 6.into());
     });

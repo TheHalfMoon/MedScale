@@ -14,6 +14,7 @@ pub mod ffi_policy;
 pub mod fhir;
 pub mod fixture_ui;
 pub mod ingest;
+pub mod knowledge;
 pub mod legal;
 pub mod medagent;
 pub mod mesc;

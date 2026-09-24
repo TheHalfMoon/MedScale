@@ -11,6 +11,7 @@ mod collaboration;
 mod data_sources;
 mod encrypted_vault;
 mod gc;
+mod knowledge;
 mod medagent;
 mod migrate;
 mod model_fleet;
@@ -35,6 +36,7 @@ pub use data_sources::{
 };
 pub use encrypted_vault::{EncryptedVault, EncryptedVaultError, default_vault_root};
 pub use gc::{GcStats, run_gc};
+pub use knowledge::IndexVersionRow;
 pub use migrate::MigrationJournal;
 pub use privacy_gate::{DeidTransformCommit, PseudonymEntryRow};
 pub use privacy_probes::{
@@ -47,7 +49,7 @@ pub use sqlite_meta::{AuthorityObjectRow, MetaError, SourceMeta, SqliteMetaStore
 pub use vault::{SyntheticVault, VaultError};
 pub use writer_lock::{WriterLock, WriterLockError};
 
-/// Top metadata schema version written by this build (Spec 082: v11). Tests of
+/// Top metadata schema version written by this build (Spec 083: v12). Tests of
 /// earlier specs assert against this constant so a later additive migration
 /// does not require editing them.
-pub const CURRENT_META_SCHEMA_VERSION: u32 = 11;
+pub const CURRENT_META_SCHEMA_VERSION: u32 = 12;

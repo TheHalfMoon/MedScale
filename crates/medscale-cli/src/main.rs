@@ -19,6 +19,7 @@ mod audio;
 mod browse;
 mod collaboration;
 mod data_source;
+mod knowledge;
 mod medagent;
 mod model_fleet;
 mod privacy_gate;
@@ -178,6 +179,12 @@ enum Commands {
     Analytics {
         #[command(subcommand)]
         action: Box<analytics::AnalyticsCmd>,
+    },
+    /// Knowledge + Research Canvas (Spec 083; lexical retrieval over exact
+    /// source revisions, retrieval receipts, and live-reference canvases).
+    Knowledge {
+        #[command(subcommand)]
+        action: Box<knowledge::KnowledgeCmd>,
     },
     /// AudioFlow Foundation (Spec 081; local audio import, capture and
     /// transcript lineage).
@@ -1209,6 +1216,7 @@ fn run() -> Result<()> {
         Commands::Browse { action } => browse::run_browse(*action),
         Commands::Audio { action } => audio::run_audio(*action),
         Commands::Analytics { action } => analytics::run_analytics(*action),
+        Commands::Knowledge { action } => knowledge::run_knowledge(*action),
         Commands::DataSource { action } => data_source::run_data_source(*action),
         Commands::Snapshot { action } => data_source::run_snapshot(*action),
         Commands::DataView { action } => data_source::run_data_view(*action),

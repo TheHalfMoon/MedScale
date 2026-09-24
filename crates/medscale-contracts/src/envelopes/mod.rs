@@ -34,6 +34,10 @@ use crate::documents::{
 };
 use crate::evidence::{LexicalRetrieveRequest, LexicalRetrieveResult};
 use crate::ingest::{BackupManifest, IngestReceipt};
+use crate::knowledge::{
+    CanvasOp, CanvasRevision, CanvasSummary, CanvasView, IndexManifest, IndexStatus,
+    RetrievalReceipt, RetrievalRequest, RetrievalResult,
+};
 use crate::medagent::{
     AgentCapabilityManifest, AgentIdentity, AgentProposal, AgentRun, AgentRunState, AgentTurn,
     ContextManifest, RunReceipt, ToolInvocation, ToolKind, ToolReceipt,
@@ -236,6 +240,11 @@ pub enum Capability {
     AnalyticsQuery,
     AnalyticsRead,
     AnalyticsCohort,
+    // Spec 083: Knowledge + Research Canvas.
+    KnowledgeIndex,
+    KnowledgeSearch,
+    KnowledgeRead,
+    KnowledgeCanvas,
 }
 
 impl Capability {
@@ -292,6 +301,7 @@ impl Capability {
                 | Self::BrowseRead
                 | Self::AudioRead
                 | Self::AnalyticsRead
+                | Self::KnowledgeRead
         )
     }
 
@@ -451,6 +461,10 @@ impl Capability {
             Self::AnalyticsQuery,
             Self::AnalyticsRead,
             Self::AnalyticsCohort,
+            Self::KnowledgeIndex,
+            Self::KnowledgeSearch,
+            Self::KnowledgeRead,
+            Self::KnowledgeCanvas,
         ]
     }
 }
@@ -1343,6 +1357,42 @@ pub enum RequestBody {
         cohort_id: OpaqueId,
         max_rows: Option<u32>,
     },
+    // Spec 083: Knowledge + Research Canvas (lexical index is a projection).
+    /// Builds the next index version from the Project's current sources.
+    KnowledgeIndexBuild {
+        project_id: OpaqueId,
+    },
+    KnowledgeIndexStatus {
+        project_id: OpaqueId,
+    },
+    /// Runs one lexical retrieval and records its receipt.
+    KnowledgeSearch {
+        request: RetrievalRequest,
+    },
+    KnowledgeReceiptGet {
+        receipt_id: OpaqueId,
+    },
+    KnowledgeReceiptList {
+        project_id: OpaqueId,
+    },
+    CanvasCreate {
+        project_id: OpaqueId,
+        title: String,
+    },
+    /// Applies edits to `expected_revision`, writing revision n+1.
+    CanvasEdit {
+        canvas_id: OpaqueId,
+        expected_revision: u32,
+        ops: Vec<CanvasOp>,
+    },
+    /// A revision (latest by default) resolved live, with inspection.
+    CanvasGet {
+        canvas_id: OpaqueId,
+        revision: Option<u32>,
+    },
+    CanvasList {
+        project_id: OpaqueId,
+    },
 }
 
 impl RequestBody {
@@ -1842,6 +1892,32 @@ pub enum ResponseBody {
     },
     AnalyticsCohorts {
         cohorts: Vec<CohortDefinition>,
+    },
+    // Spec 083: Knowledge + Research Canvas typed results.
+    KnowledgeIndexBuilt {
+        manifest: Box<IndexManifest>,
+        status: IndexStatus,
+    },
+    KnowledgeIndexStatus {
+        status: Option<IndexStatus>,
+    },
+    KnowledgeSearch {
+        result: Box<RetrievalResult>,
+    },
+    KnowledgeReceipt {
+        receipt: Box<RetrievalReceipt>,
+    },
+    KnowledgeReceipts {
+        receipts: Vec<RetrievalReceipt>,
+    },
+    Canvas {
+        canvas: Box<CanvasRevision>,
+    },
+    CanvasView {
+        view: Box<CanvasView>,
+    },
+    Canvases {
+        canvases: Vec<CanvasSummary>,
     },
 }
 

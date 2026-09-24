@@ -80,6 +80,10 @@ fn rewind_to_v9(root: &Path) {
         "analytics_receipts",
         "analytics_results",
         "analytics_cohorts",
+        "knowledge_manifests",
+        "knowledge_chunks",
+        "knowledge_receipts",
+        "knowledge_canvases",
     ] {
         conn.execute_batch(&format!("DROP TABLE IF EXISTS {table};"))
             .unwrap();
@@ -104,7 +108,11 @@ fn pre_081_view(meta: &SqliteMetaStore) -> serde_json::Value {
         serde_json::from_slice(&meta.snapshot_bytes().unwrap()).unwrap();
     let object = snapshot.as_object_mut().unwrap();
     object.remove("schema_version");
-    object.retain(|key, _| !key.starts_with("audio_") && !key.starts_with("analytics_"));
+    object.retain(|key, _| {
+        !key.starts_with("audio_")
+            && !key.starts_with("analytics_")
+            && !key.starts_with("knowledge_")
+    });
     snapshot
 }
 
@@ -681,7 +689,9 @@ fn pre_081_v9_backup_restores_with_empty_audio_tables() {
     backup_vault(&vault, &dest).unwrap();
     tamper_backup(&dest, |s| {
         let o = s.as_object_mut().unwrap();
-        o.retain(|k, _| !k.starts_with("audio_") && !k.starts_with("analytics_"));
+        o.retain(|k, _| {
+            !k.starts_with("audio_") && !k.starts_with("analytics_") && !k.starts_with("knowledge_")
+        });
         o.insert("schema_version".to_owned(), serde_json::json!(9));
     });
     restore_vault(&dest, &root.join("restored")).unwrap();

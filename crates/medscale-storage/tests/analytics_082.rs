@@ -71,6 +71,16 @@ fn rewind_to_v10(root: &Path) {
     for table in ANALYTICS_TABLES {
         conn.execute_batch(&format!("DROP TABLE {table};")).unwrap();
     }
+    // Later additive versions (Spec 083 v12, ...) are absent in a v10 build too.
+    for table in [
+        "knowledge_manifests",
+        "knowledge_chunks",
+        "knowledge_receipts",
+        "knowledge_canvases",
+    ] {
+        conn.execute_batch(&format!("DROP TABLE IF EXISTS {table};"))
+            .unwrap();
+    }
     conn.execute("DELETE FROM migration_journal WHERE version >= 11", [])
         .unwrap();
 }
@@ -91,7 +101,7 @@ fn pre_082_view(meta: &SqliteMetaStore) -> serde_json::Value {
         serde_json::from_slice(&meta.snapshot_bytes().unwrap()).unwrap();
     let object = snapshot.as_object_mut().unwrap();
     object.remove("schema_version");
-    object.retain(|key, _| !key.starts_with("analytics_"));
+    object.retain(|key, _| !key.starts_with("analytics_") && !key.starts_with("knowledge_"));
     snapshot
 }
 
@@ -428,7 +438,7 @@ fn pre_082_v10_backup_restores_with_empty_analytics_tables() {
     backup_vault(&vault, &dest).unwrap();
     tamper_backup(&dest, |s| {
         let o = s.as_object_mut().unwrap();
-        o.retain(|k, _| !k.starts_with("analytics_"));
+        o.retain(|k, _| !k.starts_with("analytics_") && !k.starts_with("knowledge_"));
         o.insert("schema_version".to_owned(), serde_json::json!(10));
     });
     restore_vault(&dest, &root.join("restored")).unwrap();
