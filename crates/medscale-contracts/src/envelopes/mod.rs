@@ -33,6 +33,11 @@ use crate::documents::{
     AsrStubRequest, DocumentIntakeRequest, DocumentIntakeResult, MediaStubResult, OcrStubRequest,
 };
 use crate::evidence::{LexicalRetrieveRequest, LexicalRetrieveResult};
+use crate::hub::{
+    DeviceIdentity, HubChallenge, HubEvent, HubEventPage, HubHandshake, HubIdentity, HubInvitation,
+    HubInvitationCode, HubLink, HubSession, HubStatus, OutboxEntry, SyncEnvelope, SyncIntent,
+    SyncOutcome,
+};
 use crate::ingest::{BackupManifest, IngestReceipt};
 use crate::knowledge::{
     CanvasOp, CanvasRevision, CanvasSummary, CanvasView, IndexManifest, IndexStatus,
@@ -245,6 +250,14 @@ pub enum Capability {
     KnowledgeSearch,
     KnowledgeRead,
     KnowledgeCanvas,
+    // Spec 084: MedScale Hub foundation. `HubBootstrap` ops (enroll,
+    // challenge, handshake) run before a session exists; `HubSync` is only
+    // ever granted to a device session opened by a handshake.
+    HubAdmin,
+    HubRead,
+    HubBootstrap,
+    HubSync,
+    HubClient,
 }
 
 impl Capability {
@@ -253,7 +266,11 @@ impl Capability {
     pub const fn is_session_bootstrap(self) -> bool {
         matches!(
             self,
-            Self::AcquireLease | Self::ReleaseLease | Self::OpenSession | Self::RevokeSession
+            Self::AcquireLease
+                | Self::ReleaseLease
+                | Self::OpenSession
+                | Self::RevokeSession
+                | Self::HubBootstrap
         )
     }
 
@@ -302,6 +319,7 @@ impl Capability {
                 | Self::AudioRead
                 | Self::AnalyticsRead
                 | Self::KnowledgeRead
+                | Self::HubRead
         )
     }
 
@@ -465,6 +483,9 @@ impl Capability {
             Self::KnowledgeSearch,
             Self::KnowledgeRead,
             Self::KnowledgeCanvas,
+            Self::HubAdmin,
+            Self::HubRead,
+            Self::HubClient,
         ]
     }
 }
@@ -1393,6 +1414,79 @@ pub enum RequestBody {
     CanvasList {
         project_id: OpaqueId,
     },
+    // Spec 084: MedScale Hub foundation (local transport only).
+    /// Gives this vault its Hub role.
+    HubInit,
+    HubInvite {
+        project_id: OpaqueId,
+        display_name: String,
+    },
+    HubInvitationRevoke {
+        invitation_id: OpaqueId,
+    },
+    HubDeviceRevoke {
+        device_id: OpaqueId,
+    },
+    HubStatus,
+    /// Redeems an invitation (bootstrap; proves key possession).
+    HubEnroll {
+        token_hex: String,
+        public_key_hex: String,
+        signature_hex: String,
+    },
+    HubChallenge {
+        device_id: OpaqueId,
+    },
+    HubHandshake {
+        handshake: HubHandshake,
+    },
+    /// Applies envelopes in order (device session only).
+    HubSubmit {
+        envelopes: Vec<SyncEnvelope>,
+    },
+    HubPull {
+        after: u64,
+        limit: u32,
+    },
+    /// Client: generates a device key and signs the enrollment proof.
+    HubJoinPrepare {
+        code: HubInvitationCode,
+    },
+    HubJoinComplete {
+        link_id: OpaqueId,
+        endpoint: String,
+        code: HubInvitationCode,
+        device: DeviceIdentity,
+    },
+    HubQueue {
+        link_id: OpaqueId,
+        intent: SyncIntent,
+    },
+    HubSignHandshake {
+        link_id: OpaqueId,
+        challenge: HubChallenge,
+    },
+    HubRecordOutcomes {
+        link_id: OpaqueId,
+        outcomes: Vec<(u64, SyncOutcome)>,
+    },
+    HubMirrorAppend {
+        link_id: OpaqueId,
+        page: HubEventPage,
+    },
+    HubLinkList,
+    HubLinkGet {
+        link_id: OpaqueId,
+    },
+    HubOutboxList {
+        link_id: OpaqueId,
+        pending_only: bool,
+    },
+    HubMirrorList {
+        link_id: OpaqueId,
+        after: u64,
+        limit: u32,
+    },
 }
 
 impl RequestBody {
@@ -1919,6 +2013,59 @@ pub enum ResponseBody {
     Canvases {
         canvases: Vec<CanvasSummary>,
     },
+    // Spec 084: MedScale Hub foundation.
+    HubIdentity {
+        hub: Box<HubIdentity>,
+    },
+    HubInvited {
+        invitation: Box<HubInvitation>,
+        code: Box<HubInvitationCode>,
+    },
+    HubInvitation {
+        invitation: Box<HubInvitation>,
+    },
+    HubDevice {
+        device: Box<DeviceIdentity>,
+    },
+    HubStatus {
+        status: Box<HubStatus>,
+    },
+    HubChallenge {
+        challenge: Box<HubChallenge>,
+    },
+    HubSession {
+        session: Box<HubSession>,
+    },
+    HubOutcomes {
+        outcomes: Vec<SyncOutcome>,
+    },
+    HubEvents {
+        page: Box<HubEventPage>,
+    },
+    HubJoinPrepared {
+        link_id: OpaqueId,
+        public_key_hex: String,
+        signature_hex: String,
+    },
+    HubLink {
+        link: Box<HubLink>,
+    },
+    HubLinks {
+        links: Vec<HubLink>,
+    },
+    HubQueued {
+        entry: Box<OutboxEntry>,
+    },
+    HubHandshakeSigned {
+        handshake: Box<HubHandshake>,
+    },
+    HubOutbox {
+        entries: Vec<OutboxEntry>,
+    },
+    HubMirror {
+        events: Vec<HubEvent>,
+    },
+    HubRecorded,
 }
 
 /// Authority error vocabulary (fail closed).

@@ -1,12 +1,17 @@
 //! KeyProvider and vault key classes (Spec 005). Synthetic-only proofs; REAL_PHI unauthorized.
 
 mod aead_wrap;
+mod device_key;
 mod keystore;
 mod pack_trust;
 mod provider;
 mod recovery;
 
 pub use aead_wrap::{WrappedBlob, generate_key32, seal, unseal, zeroize_key};
+pub use device_key::{
+    DeviceKeyError, device_public_key, generate_device_key, sign_device_payload,
+    verify_device_signature,
+};
 pub use keystore::{
     FORCE_MEMORY_KEYSTORE_ENV, FakeOsKeyStore, KeyStore, KeyStoreDoctorPosture, KeyStoreError,
     MemoryKeyStore, MobileKeyStorePolicy, OS_KEYRING_PROBE_ACCOUNT, OS_KEYRING_SERVICE, OsKeyStore,

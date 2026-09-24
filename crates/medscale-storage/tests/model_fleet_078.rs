@@ -335,6 +335,15 @@ const LATER_VERSION_TABLES: &[&str] = &[
     "knowledge_chunks",
     "knowledge_receipts",
     "knowledge_canvases",
+    "hub_identity",
+    "hub_invitations",
+    "hub_devices",
+    "hub_nonces",
+    "hub_events",
+    "hub_links",
+    "hub_link_secrets",
+    "hub_outbox",
+    "hub_mirror",
 ];
 
 fn table_exists(root: &Path, table: &str) -> bool {
@@ -362,6 +371,7 @@ fn pre_078_view(meta: &SqliteMetaStore) -> serde_json::Value {
             && !key.starts_with("audio_")
             && !key.starts_with("analytics_")
             && !key.starts_with("knowledge_")
+            && !key.starts_with("hub_")
     });
     snapshot
 }
@@ -1042,6 +1052,7 @@ fn pre_078_v6_backup_restores_with_empty_078_tables() {
                 && !key.starts_with("audio_")
                 && !key.starts_with("analytics_")
                 && !key.starts_with("knowledge_")
+                && !key.starts_with("hub_")
         });
         object.insert("schema_version".to_owned(), 6.into());
     });

@@ -252,6 +252,66 @@ impl CoreFacade {
         })
     }
 
+    /// Runs one Spec 084 Hub operation (Hub side) with lease enforcement and
+    /// vault-meta access. Device submissions reach collaboration rows only
+    /// through the `Collab` view this builds, under the device's session.
+    fn hub<R>(
+        &self,
+        vault_id: &medscale_contracts::objects::VaultId,
+        realm: medscale_contracts::objects::RealmId,
+        scope: medscale_contracts::objects::AuthorityScopeId,
+        session_id: Option<medscale_contracts::objects::OpaqueId>,
+        op: impl FnOnce(super::hub::Hub<'_>) -> Result<R, AuthorityError>,
+    ) -> Result<R, AuthorityError> {
+        self.require_lease(vault_id)?;
+        let vault_guard = self.vault();
+        let enc_guard = self.encrypted();
+        let meta = if let Some(enc) = enc_guard.as_ref() {
+            &enc.meta
+        } else if let Some(vault) = vault_guard.as_ref() {
+            &vault.meta
+        } else {
+            return Err(AuthorityError::VaultRequired);
+        };
+        let mut store = self.store();
+        let store_ref: &mut InMemoryAuthorityStore = &mut store;
+        let packs_guard = self.packs();
+        let packs_ref: &medscale_pack::PackStore = &packs_guard;
+        op(super::hub::Hub {
+            store: store_ref,
+            meta,
+            packs: packs_ref,
+            sessions: &self.sessions,
+            leases: &self.leases,
+            vault_id,
+            realm,
+            scope,
+            session_id,
+        })
+    }
+
+    /// Runs one Spec 084 client-side operation over this vault's own links,
+    /// outbox and mirror.
+    fn hub_client<R>(
+        &self,
+        vault_id: &medscale_contracts::objects::VaultId,
+        realm: medscale_contracts::objects::RealmId,
+        scope: medscale_contracts::objects::AuthorityScopeId,
+        op: impl FnOnce(super::hub::HubClient<'_>) -> Result<R, AuthorityError>,
+    ) -> Result<R, AuthorityError> {
+        self.require_lease(vault_id)?;
+        let vault_guard = self.vault();
+        let enc_guard = self.encrypted();
+        let meta = if let Some(enc) = enc_guard.as_ref() {
+            &enc.meta
+        } else if let Some(vault) = vault_guard.as_ref() {
+            &vault.meta
+        } else {
+            return Err(AuthorityError::VaultRequired);
+        };
+        op(super::hub::HubClient { meta, realm, scope })
+    }
+
     /// Runs one Spec 076 collaboration operation with lease enforcement and
     /// vault-meta access (synthetic or encrypted). Surfaces never touch
     /// storage: this is the only path from request to collaboration rows.
@@ -3197,6 +3257,227 @@ impl CoreFacade {
                 )?;
                 Ok(ResponseBody::Canvases { canvases: value })
             }
+            // Spec 084 MedScale Hub foundation: Hub side (operator and
+            // device) and client side (links, outbox, mirror).
+            RequestBody::HubInit => {
+                let hub = self.hub(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |h| h.init(),
+                )?;
+                Ok(ResponseBody::HubIdentity { hub: Box::new(hub) })
+            }
+            RequestBody::HubInvite {
+                project_id,
+                display_name,
+            } => {
+                let (invitation, code) = self.hub(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |h| h.invite(project_id, display_name),
+                )?;
+                Ok(ResponseBody::HubInvited {
+                    invitation: Box::new(invitation),
+                    code: Box::new(code),
+                })
+            }
+            RequestBody::HubInvitationRevoke { invitation_id } => {
+                let invitation = self.hub(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |h| h.revoke_invitation(&invitation_id),
+                )?;
+                Ok(ResponseBody::HubInvitation {
+                    invitation: Box::new(invitation),
+                })
+            }
+            RequestBody::HubDeviceRevoke { device_id } => {
+                let device = self.hub(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut h| h.revoke_device(&device_id),
+                )?;
+                Ok(ResponseBody::HubDevice {
+                    device: Box::new(device),
+                })
+            }
+            RequestBody::HubStatus => {
+                let status = self.hub(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |h| h.status(),
+                )?;
+                Ok(ResponseBody::HubStatus {
+                    status: Box::new(status),
+                })
+            }
+            RequestBody::HubEnroll {
+                token_hex,
+                public_key_hex,
+                signature_hex,
+            } => {
+                let device = self.hub(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    None,
+                    |mut h| h.enroll(&token_hex, &public_key_hex, &signature_hex),
+                )?;
+                Ok(ResponseBody::HubDevice {
+                    device: Box::new(device),
+                })
+            }
+            RequestBody::HubChallenge { device_id } => {
+                let challenge = self.hub(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    None,
+                    |h| h.challenge(&device_id),
+                )?;
+                Ok(ResponseBody::HubChallenge {
+                    challenge: Box::new(challenge),
+                })
+            }
+            RequestBody::HubHandshake { handshake } => {
+                let session = self.hub(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    None,
+                    |h| h.handshake(&handshake),
+                )?;
+                Ok(ResponseBody::HubSession {
+                    session: Box::new(session),
+                })
+            }
+            RequestBody::HubSubmit { envelopes } => {
+                let outcomes = self.hub(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut h| h.submit(envelopes),
+                )?;
+                Ok(ResponseBody::HubOutcomes { outcomes })
+            }
+            RequestBody::HubPull { after, limit } => {
+                let page = self.hub(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |h| h.pull(after, limit),
+                )?;
+                Ok(ResponseBody::HubEvents {
+                    page: Box::new(page),
+                })
+            }
+            RequestBody::HubJoinPrepare { code } => {
+                let prepared =
+                    self.hub_client(&req.vault_id, req.realm_id, req.authority_scope_id, |c| {
+                        c.join_prepare(&code)
+                    })?;
+                Ok(ResponseBody::HubJoinPrepared {
+                    link_id: prepared.link_id,
+                    public_key_hex: prepared.public_key_hex,
+                    signature_hex: prepared.signature_hex,
+                })
+            }
+            RequestBody::HubJoinComplete {
+                link_id,
+                endpoint,
+                code,
+                device,
+            } => {
+                let link =
+                    self.hub_client(&req.vault_id, req.realm_id, req.authority_scope_id, |c| {
+                        c.join_complete(&link_id, endpoint, &code, &device)
+                    })?;
+                Ok(ResponseBody::HubLink {
+                    link: Box::new(link),
+                })
+            }
+            RequestBody::HubQueue { link_id, intent } => {
+                let entry =
+                    self.hub_client(&req.vault_id, req.realm_id, req.authority_scope_id, |c| {
+                        c.queue(&link_id, intent)
+                    })?;
+                Ok(ResponseBody::HubQueued {
+                    entry: Box::new(entry),
+                })
+            }
+            RequestBody::HubSignHandshake { link_id, challenge } => {
+                let handshake =
+                    self.hub_client(&req.vault_id, req.realm_id, req.authority_scope_id, |c| {
+                        c.sign_handshake(&link_id, &challenge)
+                    })?;
+                Ok(ResponseBody::HubHandshakeSigned {
+                    handshake: Box::new(handshake),
+                })
+            }
+            RequestBody::HubRecordOutcomes { link_id, outcomes } => {
+                self.hub_client(&req.vault_id, req.realm_id, req.authority_scope_id, |c| {
+                    c.record_outcomes(&link_id, &outcomes)
+                })?;
+                Ok(ResponseBody::HubRecorded)
+            }
+            RequestBody::HubMirrorAppend { link_id, page } => {
+                let link =
+                    self.hub_client(&req.vault_id, req.realm_id, req.authority_scope_id, |c| {
+                        c.mirror_append(&link_id, &page)
+                    })?;
+                Ok(ResponseBody::HubLink {
+                    link: Box::new(link),
+                })
+            }
+            RequestBody::HubLinkList => {
+                let links =
+                    self.hub_client(&req.vault_id, req.realm_id, req.authority_scope_id, |c| {
+                        c.links()
+                    })?;
+                Ok(ResponseBody::HubLinks { links })
+            }
+            RequestBody::HubLinkGet { link_id } => {
+                let link =
+                    self.hub_client(&req.vault_id, req.realm_id, req.authority_scope_id, |c| {
+                        c.link(&link_id)
+                    })?;
+                Ok(ResponseBody::HubLink {
+                    link: Box::new(link),
+                })
+            }
+            RequestBody::HubOutboxList {
+                link_id,
+                pending_only,
+            } => {
+                let entries =
+                    self.hub_client(&req.vault_id, req.realm_id, req.authority_scope_id, |c| {
+                        c.outbox(&link_id, pending_only)
+                    })?;
+                Ok(ResponseBody::HubOutbox { entries })
+            }
+            RequestBody::HubMirrorList {
+                link_id,
+                after,
+                limit,
+            } => {
+                let events =
+                    self.hub_client(&req.vault_id, req.realm_id, req.authority_scope_id, |c| {
+                        c.mirror(&link_id, after, limit)
+                    })?;
+                Ok(ResponseBody::HubMirror { events })
+            }
             // Spec 081 AudioFlow Foundation: local only; every operation
             // runs in Core over vault storage.
             RequestBody::AudioImport {
@@ -4745,6 +5026,40 @@ fn capability_matches(cap: &Capability, body: &RequestBody) -> bool {
             | (
                 Capability::KnowledgeCanvas,
                 RequestBody::CanvasCreate { .. } | RequestBody::CanvasEdit { .. }
+            )
+            | (
+                Capability::HubAdmin,
+                RequestBody::HubInit
+                    | RequestBody::HubInvite { .. }
+                    | RequestBody::HubInvitationRevoke { .. }
+                    | RequestBody::HubDeviceRevoke { .. }
+            )
+            | (
+                Capability::HubRead,
+                RequestBody::HubStatus
+                    | RequestBody::HubLinkList
+                    | RequestBody::HubLinkGet { .. }
+                    | RequestBody::HubOutboxList { .. }
+                    | RequestBody::HubMirrorList { .. }
+            )
+            | (
+                Capability::HubBootstrap,
+                RequestBody::HubEnroll { .. }
+                    | RequestBody::HubChallenge { .. }
+                    | RequestBody::HubHandshake { .. }
+            )
+            | (
+                Capability::HubSync,
+                RequestBody::HubSubmit { .. } | RequestBody::HubPull { .. }
+            )
+            | (
+                Capability::HubClient,
+                RequestBody::HubJoinPrepare { .. }
+                    | RequestBody::HubJoinComplete { .. }
+                    | RequestBody::HubQueue { .. }
+                    | RequestBody::HubSignHandshake { .. }
+                    | RequestBody::HubRecordOutcomes { .. }
+                    | RequestBody::HubMirrorAppend { .. }
             )
     )
 }

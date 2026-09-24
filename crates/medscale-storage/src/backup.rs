@@ -106,7 +106,9 @@ pub fn restore_vault(src: &Path, dest_vault_root: &Path) -> Result<(u64, u64), S
     let snapshot_schema = snapshot_value
         .get("schema_version")
         .and_then(|v| v.as_u64());
-    if snapshot_schema == Some(12) {
+    if snapshot_schema == Some(13) {
+        restore_v13(&vault, &snapshot_value, &mut sources)?;
+    } else if snapshot_schema == Some(12) {
         restore_v12(&vault, &snapshot_value, &mut sources)?;
     } else if snapshot_schema == Some(11) {
         restore_v11(&vault, &snapshot_value, &mut sources)?;
@@ -627,6 +629,38 @@ fn restore_required_rows<T: serde::de::DeserializeOwned>(
         return Err(format!("tampered metadata snapshot: {key} is missing"));
     }
     restore_rows(snapshot, key, restore)
+}
+
+fn restore_v13(
+    vault: &SyntheticVault,
+    snapshot: &serde_json::Value,
+    sources: &mut u64,
+) -> Result<(), String> {
+    restore_v12(vault, snapshot, sources)?;
+    // Spec 084 rows replay in their original order through plain-INSERT
+    // paths; each Hub event must follow its Project's previous event, and
+    // cross-row invariants are re-verified once every family is replayed.
+    // Device secrets are never in a backup: a restored client re-enrolls.
+    let meta = &vault.meta;
+    restore_required_rows(snapshot, "hub_identity", |row| {
+        meta.restore_hub_identity_row(row)
+    })?;
+    restore_required_rows(snapshot, "hub_invitations", |row| {
+        meta.restore_invitation_row(row)
+    })?;
+    restore_required_rows(snapshot, "hub_devices", |row| meta.restore_device_row(row))?;
+    restore_required_rows(snapshot, "hub_events", |row| {
+        meta.restore_hub_event_row(row)
+    })?;
+    restore_required_rows(snapshot, "hub_links", |row| meta.restore_hub_link_row(row))?;
+    restore_required_rows(snapshot, "hub_outbox", |row| {
+        meta.restore_hub_outbox_row(row)
+    })?;
+    restore_required_rows(snapshot, "hub_mirror", |row| {
+        meta.restore_hub_mirror_row(row)
+    })?;
+    meta.verify_hub_consistency().map_err(|e| e.to_string())?;
+    Ok(())
 }
 
 fn restore_v12(

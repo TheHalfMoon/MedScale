@@ -12,6 +12,7 @@ mod document_ops;
 mod durable;
 mod facade;
 mod handles;
+mod hub;
 mod identity;
 mod ingest_ops;
 mod knowledge;
