@@ -21,8 +21,12 @@ or states the residual honestly. Test names refer to:
 | Archived source text disclosed | never | archived sources are tombstoned; tombstoned hits and nodes carry no text; Core stale and canvas tests |
 | Cache reuse across authorization contexts | not possible | no retrieval cache exists; the per-request span cache lives only for one request (Q31) |
 | Index text treated as truth | no | hit text is re-read from the pinned live revision, never from the index; receipts store references only; canvases store references only (Core canvas test checks the stored JSON has no evidence text) |
-| Tampered chunk, dropped chunk, removed version | refused | chunk list re-digested on every read; contiguous versions; storage `index_versions_are_atomic_contiguous_and_digest_checked`, `restore_rejects_hand_edited_083_snapshots` (8 cases) |
+| Tampered chunk, dropped chunk, removed version | refused | chunk list re-digested on every read; contiguous versions; storage `index_versions_are_atomic_contiguous_and_digest_checked`, `restore_rejects_hand_edited_083_snapshots` (17 cases) |
 | Tampered receipt (query, digest), duplicate rows, scope moved | refused on restore | storage restore tamper cases |
+| Backup family missing or of the wrong JSON type (string, object), chunk or hit replaced by a scalar | refused on restore, never empty state | a family that is not an array is refused for every schema; a v12 snapshot must carry all three knowledge families; storage restore tamper cases |
+| Receipt hit naming another chunk, no chunk, a moved span or another Project's source | refused on restore | every hit must be a chunk of its index, span for span (`verify_knowledge_consistency`); storage restore tamper cases |
+| Repeated query terms or a term repeated in a document | bounded | query terms are deduplicated; term frequency is capped at 3; Core unit `scores_match_hand_computed_values` |
+| Giant sources | bounded | windows of at most 1,000 characters; an index build over 100,000 chunks is refused, not truncated |
 | Canvas revision gaps, Project moves, stale writers | refused | storage `receipts_and_canvas_revisions_hold_their_invariants`; Core canvas test (stale expected revision) |
 | Query injection (SQL, markup) | inert | the query is split into words and never reaches SQL or a parser; Core `refused_retrievals_leave_receipts` |
 | Oversized query, too many terms, bad hit limit, no index, empty query | refused with receipts | Core `refused_retrievals_leave_receipts` |
