@@ -39,6 +39,9 @@ const LATER_VERSION_TABLES: &[&str] = &[
     "audio_capture_chunks",
     "audio_transcripts",
     "audio_transcript_receipts",
+    "analytics_receipts",
+    "analytics_results",
+    "analytics_cohorts",
 ];
 
 fn temp_root(name: &str) -> PathBuf {
@@ -108,7 +111,9 @@ fn pre_080_view(meta: &SqliteMetaStore) -> serde_json::Value {
         serde_json::from_slice(&meta.snapshot_bytes().unwrap()).unwrap();
     let object = snapshot.as_object_mut().unwrap();
     object.remove("schema_version");
-    object.retain(|key, _| !key.starts_with("browse_") && !key.starts_with("audio_"));
+    object.retain(|key, _| {
+        !key.starts_with("browse_") && !key.starts_with("audio_") && !key.starts_with("analytics_")
+    });
     snapshot
 }
 
@@ -533,7 +538,9 @@ fn pre_080_v8_backup_restores_with_empty_browse_tables() {
     backup_vault(&vault, &dest).unwrap();
     tamper_backup(&dest, |s| {
         let o = s.as_object_mut().unwrap();
-        o.retain(|k, _| !k.starts_with("browse_") && !k.starts_with("audio_"));
+        o.retain(|k, _| {
+            !k.starts_with("browse_") && !k.starts_with("audio_") && !k.starts_with("analytics_")
+        });
         o.insert("schema_version".to_owned(), serde_json::json!(8));
     });
     restore_vault(&dest, &root.join("restored")).unwrap();

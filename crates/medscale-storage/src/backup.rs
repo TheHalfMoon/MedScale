@@ -106,7 +106,9 @@ pub fn restore_vault(src: &Path, dest_vault_root: &Path) -> Result<(u64, u64), S
     let snapshot_schema = snapshot_value
         .get("schema_version")
         .and_then(|v| v.as_u64());
-    if snapshot_schema == Some(10) {
+    if snapshot_schema == Some(11) {
+        restore_v11(&vault, &snapshot_value, &mut sources)?;
+    } else if snapshot_schema == Some(10) {
         restore_v10(&vault, &snapshot_value, &mut sources)?;
     } else if snapshot_schema == Some(9) {
         restore_v9(&vault, &snapshot_value, &mut sources)?;
@@ -603,6 +605,30 @@ fn restore_rows<T: serde::de::DeserializeOwned>(
             restore(&row).map_err(|e| e.to_string())?;
         }
     }
+    Ok(())
+}
+
+fn restore_v11(
+    vault: &SyntheticVault,
+    snapshot: &serde_json::Value,
+    sources: &mut u64,
+) -> Result<(), String> {
+    restore_v10(vault, snapshot, sources)?;
+    // Spec 082 rows replay through plain-INSERT paths; derived table bytes
+    // are re-checked against their digests; cross-row invariants are
+    // re-verified once every family is replayed.
+    let meta = &vault.meta;
+    restore_rows(snapshot, "analytics_cohorts", |row| {
+        meta.restore_cohort_row(row)
+    })?;
+    restore_rows(snapshot, "analytics_receipts", |row| {
+        meta.restore_query_receipt_row(row)
+    })?;
+    restore_rows(snapshot, "analytics_results", |row| {
+        meta.restore_derived_table_row(row)
+    })?;
+    meta.verify_analytics_consistency()
+        .map_err(|e| e.to_string())?;
     Ok(())
 }
 

@@ -3554,4 +3554,149 @@ impl CliSession {
             _ => Err(Self::unexpected("audio evidence")),
         }
     }
+
+    // ---------------------------------------------------------------------
+    // Spec 082: Analytics Gate
+    // ---------------------------------------------------------------------
+
+    pub fn analytics_query(
+        &mut self,
+        request: medscale_contracts::analytics::QueryRequest,
+    ) -> Result<medscale_contracts::analytics::QueryView, AuthorityError> {
+        match self.dispatch(
+            Capability::AnalyticsQuery,
+            RequestBody::AnalyticsQuery { request },
+        )? {
+            ResponseBody::AnalyticsQuery { view } => Ok(*view),
+            _ => Err(Self::unexpected("query view")),
+        }
+    }
+
+    pub fn analytics_replay(
+        &mut self,
+        receipt_id: OpaqueId,
+    ) -> Result<medscale_contracts::analytics::ReplayReport, AuthorityError> {
+        match self.dispatch(
+            Capability::AnalyticsRead,
+            RequestBody::AnalyticsReplay { receipt_id },
+        )? {
+            ResponseBody::AnalyticsReplay { report } => Ok(report),
+            _ => Err(Self::unexpected("replay report")),
+        }
+    }
+
+    pub fn analytics_receipt_get(
+        &mut self,
+        receipt_id: OpaqueId,
+    ) -> Result<medscale_contracts::analytics::QueryReceipt, AuthorityError> {
+        match self.dispatch(
+            Capability::AnalyticsRead,
+            RequestBody::AnalyticsReceiptGet { receipt_id },
+        )? {
+            ResponseBody::AnalyticsReceipt { receipt } => Ok(*receipt),
+            _ => Err(Self::unexpected("query receipt")),
+        }
+    }
+
+    pub fn analytics_receipt_list(
+        &mut self,
+        project_id: OpaqueId,
+    ) -> Result<Vec<medscale_contracts::analytics::QueryReceipt>, AuthorityError> {
+        match self.dispatch(
+            Capability::AnalyticsRead,
+            RequestBody::AnalyticsReceiptList { project_id },
+        )? {
+            ResponseBody::AnalyticsReceipts { receipts } => Ok(receipts),
+            _ => Err(Self::unexpected("query receipts")),
+        }
+    }
+
+    pub fn analytics_result_get(
+        &mut self,
+        result_id: OpaqueId,
+    ) -> Result<
+        (
+            medscale_contracts::analytics::DerivedTable,
+            medscale_contracts::analytics::ResultTableDoc,
+        ),
+        AuthorityError,
+    > {
+        match self.dispatch(
+            Capability::AnalyticsRead,
+            RequestBody::AnalyticsResultGet { result_id },
+        )? {
+            ResponseBody::AnalyticsResult { table, doc } => Ok((*table, *doc)),
+            _ => Err(Self::unexpected("derived table")),
+        }
+    }
+
+    pub fn analytics_statistics(
+        &mut self,
+        result_id: OpaqueId,
+        column: String,
+        kinds: Vec<medscale_contracts::analytics::StatisticKind>,
+    ) -> Result<Vec<medscale_contracts::analytics::StatisticResult>, AuthorityError> {
+        match self.dispatch(
+            Capability::AnalyticsRead,
+            RequestBody::AnalyticsStatistics {
+                result_id,
+                column,
+                kinds,
+            },
+        )? {
+            ResponseBody::AnalyticsStatistics { results } => Ok(results),
+            _ => Err(Self::unexpected("statistics")),
+        }
+    }
+
+    pub fn analytics_cohort_create(
+        &mut self,
+        project_id: OpaqueId,
+        label: String,
+        snapshot_id: OpaqueId,
+        criteria: Vec<medscale_contracts::analytics::CohortCriterion>,
+    ) -> Result<medscale_contracts::analytics::CohortDefinition, AuthorityError> {
+        match self.dispatch(
+            Capability::AnalyticsCohort,
+            RequestBody::AnalyticsCohortCreate {
+                project_id,
+                label,
+                snapshot_id,
+                criteria,
+            },
+        )? {
+            ResponseBody::AnalyticsCohort { cohort } => Ok(*cohort),
+            _ => Err(Self::unexpected("cohort")),
+        }
+    }
+
+    pub fn analytics_cohort_list(
+        &mut self,
+        project_id: OpaqueId,
+    ) -> Result<Vec<medscale_contracts::analytics::CohortDefinition>, AuthorityError> {
+        match self.dispatch(
+            Capability::AnalyticsRead,
+            RequestBody::AnalyticsCohortList { project_id },
+        )? {
+            ResponseBody::AnalyticsCohorts { cohorts } => Ok(cohorts),
+            _ => Err(Self::unexpected("cohorts")),
+        }
+    }
+
+    pub fn analytics_cohort_run(
+        &mut self,
+        cohort_id: OpaqueId,
+        max_rows: Option<u32>,
+    ) -> Result<medscale_contracts::analytics::QueryView, AuthorityError> {
+        match self.dispatch(
+            Capability::AnalyticsCohort,
+            RequestBody::AnalyticsCohortRun {
+                cohort_id,
+                max_rows,
+            },
+        )? {
+            ResponseBody::AnalyticsQuery { view } => Ok(*view),
+            _ => Err(Self::unexpected("query view")),
+        }
+    }
 }

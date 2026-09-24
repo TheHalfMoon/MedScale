@@ -154,7 +154,7 @@ pub struct DataSources<'a> {
 
 impl DataSources<'_> {
     /// Resolves the request actor: session holder, else lease holder.
-    fn actor(&self) -> Result<OpaqueId, AuthorityError> {
+    pub(super) fn actor(&self) -> Result<OpaqueId, AuthorityError> {
         if let Some(holder) = self
             .session_id
             .as_ref()
@@ -168,7 +168,11 @@ impl DataSources<'_> {
     }
 
     /// Appends one audit row to the existing trail.
-    fn audit(&mut self, action: &str, targets: Vec<OpaqueId>) -> Result<(), AuthorityError> {
+    pub(super) fn audit(
+        &mut self,
+        action: &str,
+        targets: Vec<OpaqueId>,
+    ) -> Result<(), AuthorityError> {
         let actor = self.actor()?;
         let id = self.store.alloc_id("audit");
         let record = medscale_contracts::objects::ActionAuditRecord {
@@ -190,7 +194,7 @@ impl DataSources<'_> {
         Ok(())
     }
 
-    fn meta(&self) -> &SqliteMetaStore {
+    pub(super) fn meta(&self) -> &SqliteMetaStore {
         self.backend.meta()
     }
 
@@ -202,7 +206,7 @@ impl DataSources<'_> {
         Ok(source)
     }
 
-    fn scoped_snapshot(&self, id: &OpaqueId) -> Result<SnapshotRecord, AuthorityError> {
+    pub(super) fn scoped_snapshot(&self, id: &OpaqueId) -> Result<SnapshotRecord, AuthorityError> {
         let record = self.meta().get_snapshot(id).map_err(meta_err)?;
         if record.snapshot.header.realm_id != self.realm
             || record.snapshot.header.authority_scope_id != self.scope
@@ -212,7 +216,7 @@ impl DataSources<'_> {
         Ok(record)
     }
 
-    fn require_project(&self, project_id: &OpaqueId) -> Result<(), AuthorityError> {
+    pub(super) fn require_project(&self, project_id: &OpaqueId) -> Result<(), AuthorityError> {
         let project = self.meta().get_project(project_id).map_err(meta_err)?;
         if project.header.realm_id != self.realm || project.header.authority_scope_id != self.scope
         {
@@ -958,7 +962,7 @@ impl DataSources<'_> {
     }
 
     /// Loads, digest-verifies, and decodes snapshot bytes.
-    fn load_table(
+    pub(super) fn load_table(
         &self,
         record: &SnapshotRecord,
     ) -> Result<medscale_contracts::data_sources::SnapshotCanonicalDoc, AuthorityError> {

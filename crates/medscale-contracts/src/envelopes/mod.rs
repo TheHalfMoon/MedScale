@@ -5,6 +5,10 @@ use serde_json::Value;
 
 use crate::AUTHORITY_SCHEMA_VERSION;
 use crate::actions::{CreateExternalActionIntentRequest, NphiesInvokeRequest, OutboxEntry};
+use crate::analytics::{
+    CohortCriterion, CohortDefinition, DerivedTable, QueryReceipt, QueryRequest, QueryView,
+    ReplayReport, ResultTableDoc, StatisticKind, StatisticResult,
+};
 use crate::audio::{
     AudioEvidenceRef, AudioRouteRequest, AudioRouteStatus, AudioSession, AudioSource,
     CaptureBackendKind, CaptureState, PcmFormat, TranscriptReceipt, TranscriptRevision,
@@ -228,6 +232,10 @@ pub enum Capability {
     AudioCapture,
     AudioTranscribe,
     AudioCorrect,
+    // Spec 082: Analytics Gate.
+    AnalyticsQuery,
+    AnalyticsRead,
+    AnalyticsCohort,
 }
 
 impl Capability {
@@ -283,6 +291,7 @@ impl Capability {
                 | Self::PrivacyRead
                 | Self::BrowseRead
                 | Self::AudioRead
+                | Self::AnalyticsRead
         )
     }
 
@@ -439,6 +448,9 @@ impl Capability {
             Self::AudioCapture,
             Self::AudioTranscribe,
             Self::AudioCorrect,
+            Self::AnalyticsQuery,
+            Self::AnalyticsRead,
+            Self::AnalyticsCohort,
         ]
     }
 }
@@ -1295,6 +1307,42 @@ pub enum RequestBody {
         revision_id: OpaqueId,
         segment_seq: u32,
     },
+    // Spec 082: Analytics Gate (read-only over exact snapshots).
+    /// Runs one read-only SQL query over bound snapshots.
+    AnalyticsQuery {
+        request: QueryRequest,
+    },
+    /// Re-runs a receipt against its pinned inputs; writes nothing.
+    AnalyticsReplay {
+        receipt_id: OpaqueId,
+    },
+    AnalyticsReceiptGet {
+        receipt_id: OpaqueId,
+    },
+    AnalyticsReceiptList {
+        project_id: OpaqueId,
+    },
+    AnalyticsResultGet {
+        result_id: OpaqueId,
+    },
+    AnalyticsStatistics {
+        result_id: OpaqueId,
+        column: String,
+        kinds: Vec<StatisticKind>,
+    },
+    AnalyticsCohortCreate {
+        project_id: OpaqueId,
+        label: String,
+        snapshot_id: OpaqueId,
+        criteria: Vec<CohortCriterion>,
+    },
+    AnalyticsCohortList {
+        project_id: OpaqueId,
+    },
+    AnalyticsCohortRun {
+        cohort_id: OpaqueId,
+        max_rows: Option<u32>,
+    },
 }
 
 impl RequestBody {
@@ -1768,6 +1816,32 @@ pub enum ResponseBody {
     },
     AudioEvidence {
         evidence: AudioEvidenceRef,
+    },
+    // Spec 082: Analytics typed results.
+    AnalyticsQuery {
+        view: Box<QueryView>,
+    },
+    AnalyticsReplay {
+        report: ReplayReport,
+    },
+    AnalyticsReceipt {
+        receipt: Box<QueryReceipt>,
+    },
+    AnalyticsReceipts {
+        receipts: Vec<QueryReceipt>,
+    },
+    AnalyticsResult {
+        table: Box<DerivedTable>,
+        doc: Box<ResultTableDoc>,
+    },
+    AnalyticsStatistics {
+        results: Vec<StatisticResult>,
+    },
+    AnalyticsCohort {
+        cohort: Box<CohortDefinition>,
+    },
+    AnalyticsCohorts {
+        cohorts: Vec<CohortDefinition>,
     },
 }
 
