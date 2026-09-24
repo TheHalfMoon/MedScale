@@ -22,13 +22,14 @@
 - [x] fmt, dependency direction, Clippy, workspace tests, cargo-deny.
 - [x] Deterministic exact-range scope record.
 - [x] Evidence files.
-- [ ] Exact-head CI on the final head; merge; post-main CI.
-- [ ] Closure PR; recompute the next unit.
+- [x] Exact-head CI on the final head; merge; post-main CI.
+- [x] Closure PR; recompute the next unit.
 
 Reconciled 2026-09-24 against implementation, tests and CI: T082-00 to
 T082-05 and the first three T082-06 items are complete on code head
 `11150b5` (run `35921559272`, 6/6; see
 `evidence/082-analytics-gate/QUALIFICATION.md`). T082-02 to T082-05 were
 reopened by the qualification challenge and closed with the fixes in
-`SECURITY.md` F1-F4. The last two T082-06 items stay open until merge,
-post-main CI and the closure PR.
+`SECURITY.md` F1-F4. The last two T082-06 items were completed by PR #142
+(merged as `3ea6610`, post-main run `35969739867` 6/6) and the closure PR;
+the next unit is 083.
