@@ -2,7 +2,7 @@
 
 **Status:** `PROMOTED_IMPLEMENTATION_AUTHORIZED`
 **Promotion date:** 2026-09-24
-**Canonical base:** `SPEC_083_CLOSURE_MAIN`
+**Canonical base:** `426bb3448d4e6e4b9c641fa256d6d2af530c2820` (Spec 083 closure PR #148)
 **Target branch:** `spec/084-hub`
 
 ## Authority
@@ -15,7 +15,12 @@ this spec admits nothing).
 
 Live verification at promotion time:
 
-- Spec 083 is `CLOSED_CANONICAL`: SPEC_083_CLOSURE_EVIDENCE.
+- Spec 083 is `CLOSED_CANONICAL`: final head `194840c` passed exact-head
+  run `36004914365` (6/6); PR #145 merged as `2892860`; post-merge main run
+  `36014350193` passed 6/6. Closure PR #148 (exact-head run `36022980908`,
+  6/6 on `f32a55d`) merged as `426bb34`; its post-main run is `36033406508`,
+  verified before this spec's implementation PR merges (recorded in
+  `evidence/084-hub/POST_MERGE_VERIFICATION.md`).
 - Specs 074, 076 and 079 are `CLOSED_CANONICAL` (see `BUILD_QUEUE.md`).
 
 Dependency proof: `RESEARCH_OS_V2_SPEC_IMPLEMENTATION_CONTRACTS.md`,

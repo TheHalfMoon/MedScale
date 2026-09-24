@@ -1,7 +1,7 @@
 # Tasks — Spec 084 MedScale Hub Foundation
 
 ## T084-00 — Live truth and promotion
-- [ ] Record base SHA (Spec 083 closure main), open PRs, CI state and schema version.
+- [x] Record base SHA (Spec 083 closure main), open PRs, CI state and schema version.
 
 ## T084-01 — Contracts and keys
 - [x] `hub.rs` contracts, closed vocabularies, signing payloads, event chain; device keys; unit tests.
@@ -25,4 +25,4 @@
 Reconciled 2026-09-24 against implementation, tests and CI: T084-01 to
 T084-04 and the first three T084-05 items are complete on code head
 `7858106` (run `36023022359`, 6/6; see `evidence/084-hub/QUALIFICATION.md`).
-T084-00 completes with the promotion base once the Spec 083 closure merges.
+T084-00 is complete: promotion base `426bb34` (`evidence/084-hub/LIVE_TRUTH.md`).
