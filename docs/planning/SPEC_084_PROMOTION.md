@@ -98,14 +98,17 @@ with its own dependency, TLS and threat admission.
 - Ordered events: every accepted or refused submission becomes a
   `HubEvent` with a per-Project monotonic cursor and a hash-chained
   `HubAuditCheckpoint`; clients pull events after their cursor.
-- Revocation: revoking a device or its participant closes its sessions;
-  later handshakes and submissions are refused and recorded as quarantined;
-  nothing a revoked device sends after revocation is applied.
+- Revocation: revoking a device revokes its Hub participant and closes its
+  sessions; later handshakes and submissions are refused (a submission that
+  races the revocation inside a live session is recorded as
+  `device_revoked`); nothing a revoked device sends after revocation is
+  applied; the revocation is an event every other device mirrors.
 - Tenant and Project scope checked before any lookup: realm, authority
   scope and Project membership bind every Hub read and write.
 - Storage schema v12 -> v13 (additive), backup/restore with fail-closed
   parsing, consistency checks, restart recovery.
-- CLI `medscale hub ...` (human and JSON); Desktop status only.
+- CLI `medscale hub ...` (human and JSON), including `serve` over the local
+  IPC. No Desktop surface in this foundation.
 
 ## Explicitly not authorized
 
@@ -133,22 +136,30 @@ with its own dependency, TLS and threat admission.
    conflict copy; messages never conflict.
 5. Replaying an accepted envelope changes nothing and returns the same
    outcome; a forged, reordered or re-signed envelope is refused.
-6. After revocation the device's handshakes and submissions are refused and
-   quarantined; nothing it sends is applied.
+6. After revocation the device's handshakes and submissions are refused;
+   nothing it sends is applied; other devices mirror the revocation event.
 7. A device of Project P cannot read or write Project Q, and nothing crosses
    realm or authority scope.
 8. The Hub event chain verifies from the first event; an edited, removed or
    reordered event is detected on read and on restore.
 9. Hub and client state survive reopen and backup/restore; tampered rows
-   are refused; v12 backups restore with empty Hub tables.
-10. CLI and Desktop reach the Hub only through Core; no network code.
+   are refused; v12 backups restore with empty Hub tables; device secrets
+   are never in a backup (a restored client re-enrolls); invitations open
+   at backup time restore revoked; a device's public key is bound into the
+   chained enrollment event.
+10. The CLI reaches the Hub only through Core; no network code.
 11. Exact-head and post-main CI pass.
 
-Recorded residuals: local-machine transport only; Hub-to-device
-authentication relies on the local socket's OS access control; device
-secrets are protected by the vault, not an OS key store; no object
-transfer; operator trust: the Hub operator can read everything the Hub
-stores (no end-to-end encryption).
+Recorded residuals:
+
+- local-machine transport only; Hub-to-device authentication relies on the
+  local socket's OS access control;
+- device secrets are protected by the vault, not an OS key store;
+- no object transfer and no Desktop surface;
+- a crash between applying a submission and recording its event can apply
+  that submission again on retry;
+- operator trust: the Hub operator can read everything the Hub stores (no
+  end-to-end encryption).
 
 ## Completion rule
 
