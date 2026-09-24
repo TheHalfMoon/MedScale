@@ -2,7 +2,7 @@
 
 **Status:** `PROMOTED_IMPLEMENTATION_AUTHORIZED`
 **Promotion date:** 2026-09-24
-**Canonical base:** `__BASE__`
+**Canonical base:** `4b9351a56f58ae23146e6b77db62e941d2863132`
 **Target branch:** `spec/083-knowledge-canvas`
 
 ## Authority
@@ -15,7 +15,9 @@ Live verification at promotion time (`gh pr view` / `gh run view`):
 
 - Spec 082 is `CLOSED_CANONICAL`: final head `7cc58ec` passed exact-head run
   `35928650470` (6/6); PR #142 merged as `3ea6610`; post-merge main run
-  `35969739867` passed 6/6. __CLOSURE__
+  `35969739867` passed 6/6. Closure PR #146 (exact-head run
+  `35977276424`, 6/6 on `93dfd6f`) merged as `4b9351a`; its post-main run
+  is `35983448840`.
 - Specs 074, 075, 077 and 079 are `CLOSED_CANONICAL` (see `BUILD_QUEUE.md`).
 
 Dependency proof: `RESEARCH_OS_V2_SPEC_IMPLEMENTATION_CONTRACTS.md` and
