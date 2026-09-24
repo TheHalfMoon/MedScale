@@ -489,9 +489,17 @@ fn backup_restore_roundtrips_every_080_row_exactly() {
 #[test]
 fn restore_rejects_hand_edited_080_snapshots() {
     type Edit = (&'static str, fn(&mut serde_json::Value));
-    let edits: [Edit; 8] = [
+    let edits: [Edit; 10] = [
         ("evidence bytes changed", |s| {
             rows(s, "browse_evidence")[0]["content_hex"] = serde_json::json!("00");
+        }),
+        // Four bytes whose first pair splits a UTF-8 character: refused as
+        // corrupt, never a panicking slice.
+        ("hex not ASCII", |s| {
+            rows(s, "browse_evidence")[0]["content_hex"] = serde_json::json!("a\u{e9}b");
+        }),
+        ("hex with signs", |s| {
+            rows(s, "browse_evidence")[0]["content_hex"] = serde_json::json!("+f+f");
         }),
         ("duplicate session", |s| {
             let first = rows(s, "browse_sessions")[0].clone();

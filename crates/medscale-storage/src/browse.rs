@@ -145,7 +145,13 @@ fn to_hex(bytes: &[u8]) -> String {
     bytes.iter().map(|b| format!("{b:02x}")).collect()
 }
 
+/// Strict hex decoding. Checking the characters first keeps a tampered
+/// backup from reaching a non-ASCII slice boundary (a panic) or
+/// `from_str_radix`'s sign handling.
 fn from_hex(hex: &str) -> Result<Vec<u8>, MetaError> {
+    if !hex.bytes().all(|b| b.is_ascii_hexdigit()) {
+        return Err(corrupt("bad hex".to_owned()));
+    }
     if !hex.len().is_multiple_of(2) {
         return Err(corrupt("odd hex length".to_owned()));
     }
