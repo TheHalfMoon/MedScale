@@ -15,7 +15,8 @@ DEPENDENCIES       = none added; lexical scoring is native Rust
 REVIEW POLICY      = FOUNDER_REVIEW_POLICY_AMENDMENT_2026-09-22 (no external
                      reviewer)
 CLOSURE PR #146    = exact-head run 35977276424 (6/6 on 93dfd6f)
-POST-MAIN RUN FOR BASE = 35983448840 (push on 4b9351a)
+POST-MAIN RUN FOR BASE = 35983448840 (push on 4b9351a), 6/6 success;
+                     Spec 082 CLOSED_CANONICAL on this base
 EARLIER 083 HEAD   = 665a161 run 35971707983 (6/6, base 3ea6610; ubuntu
                      832 passed, 0 failed)
 ```
