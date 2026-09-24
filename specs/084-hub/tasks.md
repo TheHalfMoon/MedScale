@@ -4,20 +4,25 @@
 - [ ] Record base SHA (Spec 083 closure main), open PRs, CI state and schema version.
 
 ## T084-01 — Contracts and keys
-- [ ] `hub.rs` contracts, closed vocabularies, signing payloads, event chain; device keys; unit tests.
+- [x] `hub.rs` contracts, closed vocabularies, signing payloads, event chain; device keys; unit tests.
 
 ## T084-02 — Storage v13
-- [ ] Tables, migration, event chain with sequence claims, links/outbox/mirror, consistency, backup/restore, tests; 078-083 rewind tests updated.
+- [x] Tables, migration, event chain with sequence claims, links/outbox/mirror, consistency, backup/restore, tests; 078-083 rewind tests updated.
 
 ## T084-03 — Core authority
-- [ ] Hub (init, invite, enroll, challenge, handshake, submit, pull, revoke, status) and client (join, queue, sign, record, mirror), facade wiring, sync orchestration, transports, tests.
+- [x] Hub (init, invite, enroll, challenge, handshake, submit, pull, revoke, status) and client (join, queue, sign, record, mirror), facade wiring, sync orchestration, transports, tests.
 
 ## T084-04 — CLI
-- [ ] `medscale hub ...` (human and JSON), `serve` over local IPC, tests.
+- [x] `medscale hub ...` (human and JSON), `serve` over local IPC, tests.
 
 ## T084-05 — Qualification and closure
-- [ ] fmt, dependency direction, Clippy, workspace tests, cargo-deny.
-- [ ] Deterministic exact-range scope record and security challenge.
-- [ ] Evidence files.
+- [x] fmt, dependency direction, Clippy, workspace tests, cargo-deny.
+- [x] Deterministic exact-range scope record and security challenge.
+- [x] Evidence files.
 - [ ] Exact-head CI on the final head; merge; post-main CI.
 - [ ] Closure PR; recompute the next unit.
+
+Reconciled 2026-09-24 against implementation, tests and CI: T084-01 to
+T084-04 and the first three T084-05 items are complete on code head
+`7858106` (run `36023022359`, 6/6; see `evidence/084-hub/QUALIFICATION.md`).
+T084-00 completes with the promotion base once the Spec 083 closure merges.
