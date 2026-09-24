@@ -6,9 +6,11 @@ review; no external reviewer ran or is required. The deterministic security
 challenge is in `SECURITY.md`.
 
 ```text
-BASE_SHA   = 2892860e64ffed9ff9ae6387f681f1657730e19c (origin/main, PR #145 merge)
-RANGE_HEAD = 785810645e965b3d9db9191ff6df0ad440a6ffd7 (code head)
-DIFF       = 38 files, +7470 / -12
+BASE_SHA   = 426bb3448d4e6e4b9c641fa256d6d2af530c2820 (origin/main, Spec 083 closure PR #148)
+RANGE_HEAD = 38c47e33710d026f74bada5cce53350422194423 (checks re-run here)
+CODE_HEAD  = 785810645e965b3d9db9191ff6df0ad440a6ffd7 (`git diff 7858106 38c47e3 -- crates` is empty)
+DIFF       = 41 files, +7575 / -14 (first run on base 2892860 / head 7858106:
+             38 files, +7470 / -12; the difference is 084 documentation)
 PLATFORM   = Windows 11 workstation, git for Windows, 2026-09-24
 ```
 
@@ -23,7 +25,7 @@ PLATFORM   = Windows 11 workstation, git for Windows, 2026-09-24
 | Added `unsafe` | `git diff $B $H -- 'crates/*.rs' \| grep '^+' \| grep -cE 'unsafe \{\|unsafe fn'` | 0 |
 | Whitespace | `git -c core.whitespace=cr-at-eol diff --check $B $H` | clean (`medscale-cli/src/main.rs` is CRLF on main; added lines keep it) |
 | Format / dependency direction | `cargo fmt --all -- --check`; `scripts/check-dependency-direction.ps1` | clean; passed |
-| History | branch started from the Spec 083 branch while 083 closed; forward merges of main (`7858106`); no rebase, no force-push | verified |
+| History | branch started from the Spec 083 branch while 083 closed; forward merges of main (`7858106`, then `426bb34`); no rebase, no force-push | verified |
 
 The Spec 024 IPC module gains one additive method,
 `HostIpcServer::serve_connection_limited`; existing serving is unchanged.
