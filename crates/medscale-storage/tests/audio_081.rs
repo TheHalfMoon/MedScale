@@ -633,9 +633,17 @@ fn backup_restore_roundtrips_every_081_row_exactly() {
 #[test]
 fn restore_rejects_hand_edited_081_snapshots() {
     type Edit = (&'static str, fn(&mut serde_json::Value));
-    let edits: [Edit; 10] = [
+    let edits: [Edit; 12] = [
         ("source bytes changed", |s| {
             rows(s, "audio_sources")[0]["content_hex"] = serde_json::json!("00");
+        }),
+        // Four bytes whose first pair splits a UTF-8 character: refused as
+        // corrupt, never a panicking slice.
+        ("hex not ASCII", |s| {
+            rows(s, "audio_sources")[0]["content_hex"] = serde_json::json!("a\u{e9}b");
+        }),
+        ("hex with signs", |s| {
+            rows(s, "audio_sources")[0]["content_hex"] = serde_json::json!("+f+f");
         }),
         ("source names a missing project", |s| {
             rows(s, "audio_sources")[0]["source"]["project_id"] = serde_json::json!("proj-x");
