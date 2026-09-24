@@ -19,5 +19,11 @@
 - [x] fmt, dependency direction, Clippy, workspace tests, cargo-deny.
 - [x] Deterministic exact-range scope record and security challenge.
 - [x] Evidence files.
-- [ ] Exact-head CI on the final head; merge; post-main CI.
-- [ ] Closure PR; recompute the next unit.
+- [x] Exact-head CI on the final head; merge; post-main CI.
+- [x] Closure PR; recompute the next unit.
+
+Reconciled 2026-09-24 against implementation, tests and CI: T083-00 to
+T083-05 are complete. Code head `8a05ccf` passed run `35997730588` (6/6);
+evidence head `194840c` passed run `36004914365` (6/6); PR #145 merged as
+`2892860` with post-main run `36014350193 (6/6)`; the closure PR records it.
+The next dependency-ready unit is 084.
