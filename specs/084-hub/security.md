@@ -13,8 +13,8 @@
 | H9 | Tampered Hub history | per-Project hash chain verified on every read, pull, status and restore; clients verify continuity and refuse a Hub whose head moved backwards | storage `edited_or_removed_event_rows_fail_closed_on_read`, `restore_rejects_hand_edited_084_snapshots` |
 | H10 | Key swap or planted invitation in a backup | the device key is bound into the chained enrollment event; invitations open at backup time restore revoked | storage restore tamper cases |
 | H11 | Device secret disclosure | the secret stays in the client vault; it is never returned by Core, never sent, never in a backup | storage `backup_restore_roundtrips_hub_rows_without_secrets`; Core restore test |
-| H13 | Lease-holder reads over the Hub endpoint | the device-facing endpoint serves only `HubBootstrap` and `HubSync` | CLI `hub_commands_run_through_core_over_local_ipc` (raw peer refused) |
 | H12 | Malformed input | strict lowercase hex of exact lengths; closed vocabularies; bounded batches (100) and names | contract and key unit tests |
+| H13 | Lease-holder reads over the Hub endpoint | the device-facing endpoint serves only `HubBootstrap` and `HubSync` | CLI `hub_commands_run_through_core_over_local_ipc` (raw peer refused) |
 
 Transport is local only (in-process or the Spec 024 local socket). There
 is no network listener, no TLS and no new dependency. Real PHI remains
