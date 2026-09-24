@@ -28,10 +28,13 @@ skipped version and foreign-source chunk write nothing; edited or deleted
 chunks are refused on read), `receipts_and_canvas_revisions_hold_their_invariants`,
 `consistency_check_detects_invariant_breaks`,
 `backup_restore_roundtrips_every_083_row_exactly`,
-`restore_rejects_hand_edited_083_snapshots` (8 cases: chunk text changed,
+`restore_rejects_hand_edited_083_snapshots` (12 cases: chunk text changed,
 chunk dropped, index version removed, receipt names another digest, receipt
 query edited, canvas revision removed, canvas in another scope, duplicate
-receipt), `pre_083_v11_backup_restores_with_empty_knowledge_tables`.
+receipt, receipt family replaced by a string, canvas family dropped, index
+versions replaced by an object, chunk replaced by a number; a family that is
+not an array is refused for every schema, and a v12 snapshot must carry all
+three knowledge families), `pre_083_v11_backup_restores_with_empty_knowledge_tables`.
 The Spec 078, 079, 080, 081 and 082 storage suites drop the v12 tables when
 they rewind and pass with `CURRENT_META_SCHEMA_VERSION = 12`.
 
