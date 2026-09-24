@@ -11,7 +11,7 @@
 use std::collections::HashMap;
 
 use medscale_contracts::knowledge::{
-    CanvasRevision, IndexChunk, IndexManifest, RetrievalReceipt, chunks_digest,
+    CanvasRevision, IndexChunk, IndexManifest, ReceiptHit, RetrievalReceipt, chunks_digest,
 };
 use medscale_contracts::objects::{ObjectHeader, OpaqueId};
 use rusqlite::{OptionalExtension, params};
@@ -532,7 +532,7 @@ impl SqliteMetaStore {
     pub fn verify_knowledge_consistency(&self) -> Result<(), MetaError> {
         let versions = self.list_all_index_versions()?;
         let mut by_project: HashMap<String, Vec<u32>> = HashMap::new();
-        let mut manifests: HashMap<String, &IndexManifest> = HashMap::new();
+        let mut manifests: HashMap<String, (&IndexManifest, &[IndexChunk])> = HashMap::new();
         for row in &versions {
             let m = &row.manifest;
             self.knowledge_project_in_scope(&m.project_id, &m.header, "index manifest")?;
@@ -540,7 +540,7 @@ impl SqliteMetaStore {
                 .entry(m.project_id.as_str().to_owned())
                 .or_default()
                 .push(m.version);
-            manifests.insert(m.header.id.as_str().to_owned(), m);
+            manifests.insert(m.header.id.as_str().to_owned(), (m, &row.chunks));
         }
         for list in by_project.values_mut() {
             list.sort_unstable();
@@ -551,13 +551,25 @@ impl SqliteMetaStore {
         for r in self.list_all_retrieval_receipts()? {
             self.knowledge_project_in_scope(&r.project_id, &r.header, "retrieval receipt")?;
             if let Some(id) = &r.manifest_id {
-                let m = manifests
+                let (m, chunks) = manifests
                     .get(id.as_str())
                     .ok_or_else(|| corrupt("a receipt names a missing index".to_owned()))?;
                 if m.project_id != r.project_id
                     || Some(&m.chunks_digest) != r.manifest_chunks_digest.as_ref()
                 {
                     return Err(corrupt("a receipt disagrees with its index".to_owned()));
+                }
+                // Every hit is one chunk of that index, span for span.
+                let hit_in_index = |hit: &ReceiptHit| {
+                    (hit.chunk_seq as usize)
+                        .checked_sub(1)
+                        .and_then(|i| chunks.get(i))
+                        .is_some_and(|chunk| chunk.span == hit.span)
+                };
+                if !r.hits.iter().all(hit_in_index) {
+                    return Err(corrupt(
+                        "a receipt hit is not a chunk of its index".to_owned(),
+                    ));
                 }
             }
         }
