@@ -41,8 +41,8 @@ Earlier heads on this branch (historical only):
 
 | Head | Run | Result |
 |---|---|---|
-| 8f28157 | 36006576798 | failure (compile: `OutboxEntry` name clash) |
-| 21a5c16 | 36006930338 | failure (Clippy `large_enum_variant`) |
+| 8f28157 | 36006576798 | cancelled (superseded) after its ubuntu job failed to compile (`OutboxEntry` name clash) |
+| 21a5c16 | 36006930338 | cancelled (superseded) after its ubuntu job failed Clippy (`large_enum_variant`) |
 | ae116fc | 36007228901 | failure (Clippy `unused_mut`) |
 | d731747 | 36011098373 | failure (test compile: shadowed helper) |
 | 4b1aef7 | 36014421782 | ubuntu/macOS/deny/supply/perf success (854 passed, 0 failed on ubuntu); Windows cancelled (superseded) |
