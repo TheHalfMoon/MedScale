@@ -363,7 +363,7 @@ impl Hub<'_> {
             Err(other) => return Err(other),
         }
         let session = self.session_id.clone();
-        let mut collab = self.collab(session);
+        let collab = self.collab(session);
         let result = match &intent {
             SyncIntent::MessagePost { thread_id, body } => collab
                 .post_message(thread_id, body.clone())
