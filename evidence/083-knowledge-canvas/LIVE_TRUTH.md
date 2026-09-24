@@ -18,6 +18,7 @@ POST-MAIN RUN FOR BASE = 35983448840 (push on 4b9351a), 6/6 success;
                      Spec 082 CLOSED_CANONICAL on this base
 PR #144            = exact-head run 35983517642 (6/6 on ef0f4b2), merged
                      as f08f903 (2026-09-24); post-main run 35997628344
+                     (6/6 success)
 CURRENT BASE       = f08f90314243267eca9e2edae1d6666f3fb74a10, forward-merged
                      into the branch as 8a05ccf (no conflicts)
 PREVIOUS 083 HEAD  = 9f04a4d run 35983576587 (6/6, base 4b9351a; historical)
