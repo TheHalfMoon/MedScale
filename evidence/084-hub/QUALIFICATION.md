@@ -58,9 +58,11 @@ The Spec 078-083 storage suites drop the v13 tables when they rewind.
 ## CLI (`crates/medscale-cli/src/hub.rs`, 1 test)
 
 `hub_commands_run_through_core_over_local_ipc`: status before init, init,
-invite, `serve` in a thread for two connections, join and sync over the
-local socket, a malformed intent refused, links, outbox, mirror and status
-in human and JSON form, revocation, and a repeated revocation refused.
+invite, `serve` in a thread for three connections, join and sync over the
+local socket, a raw local peer whose sessionless `HubStatus` is refused by
+the endpoint's capability limit, a malformed intent refused, links, outbox,
+mirror and status in human and JSON form, revocation, and a repeated
+revocation refused.
 
 ## Not demonstrated (recorded, non-blocking)
 
