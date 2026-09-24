@@ -35,7 +35,7 @@ use crate::documents::{
 use crate::evidence::{LexicalRetrieveRequest, LexicalRetrieveResult};
 use crate::hub::{
     DeviceIdentity, HubChallenge, HubEvent, HubEventPage, HubHandshake, HubIdentity, HubInvitation,
-    HubInvitationCode, HubLink, HubSession, HubStatus, OutboxEntry, SyncEnvelope, SyncIntent,
+    HubInvitationCode, HubLink, HubOutboxEntry, HubSession, HubStatus, SyncEnvelope, SyncIntent,
     SyncOutcome,
 };
 use crate::ingest::{BackupManifest, IngestReceipt};
@@ -2054,13 +2054,13 @@ pub enum ResponseBody {
         links: Vec<HubLink>,
     },
     HubQueued {
-        entry: Box<OutboxEntry>,
+        entry: Box<HubOutboxEntry>,
     },
     HubHandshakeSigned {
         handshake: Box<HubHandshake>,
     },
     HubOutbox {
-        entries: Vec<OutboxEntry>,
+        entries: Vec<HubOutboxEntry>,
     },
     HubMirror {
         events: Vec<HubEvent>,

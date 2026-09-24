@@ -600,14 +600,14 @@ closed_vocabulary!(OutboxState, "outbox state", {
 /// One queued submission of a client and, once sent, the Hub's outcome.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
-pub struct OutboxEntry {
+pub struct HubOutboxEntry {
     pub link_id: OpaqueId,
     pub envelope: SyncEnvelope,
     pub state: OutboxState,
     pub outcome: Option<SyncOutcome>,
 }
 
-impl OutboxEntry {
+impl HubOutboxEntry {
     pub fn validate(&self) -> Result<(), String> {
         self.envelope.validate()?;
         if (self.state == OutboxState::Done) != self.outcome.is_some() {
@@ -753,7 +753,7 @@ mod tests {
         let mut bad = envelope(1);
         bad.signature_hex = "zz".to_owned();
         assert!(bad.validate().is_err());
-        let pending = OutboxEntry {
+        let pending = HubOutboxEntry {
             link_id: OpaqueId::new("link-1"),
             envelope: envelope(1),
             state: OutboxState::Pending,

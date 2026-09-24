@@ -18,7 +18,7 @@ use std::collections::HashMap;
 
 use medscale_contracts::hub::{
     DeviceIdentity, DeviceStatus, HubAuditCheckpoint, HubEvent, HubEventKind, HubIdentity,
-    HubInvitation, HubLink, InvitationStatus, OutboxEntry, OutboxState, SyncOutcome,
+    HubInvitation, HubLink, HubOutboxEntry, InvitationStatus, OutboxState, SyncOutcome,
     hub_event_digest,
 };
 use medscale_contracts::objects::{DigestSha256, OpaqueId};
@@ -903,7 +903,10 @@ impl SqliteMetaStore {
 
     // ----- outbox -----
 
-    fn hub_insert_outbox_on(conn: &rusqlite::Connection, e: &OutboxEntry) -> Result<(), MetaError> {
+    fn hub_insert_outbox_on(
+        conn: &rusqlite::Connection,
+        e: &HubOutboxEntry,
+    ) -> Result<(), MetaError> {
         e.validate().map_err(|err| invalid("outbox entry", err))?;
         map_insert(
             conn.execute(
@@ -921,7 +924,7 @@ impl SqliteMetaStore {
     }
 
     /// Appends a pending entry at `link.last_seq + 1` and advances the link.
-    pub fn queue_hub_outbox(&self, entry: &OutboxEntry) -> Result<HubLink, MetaError> {
+    pub fn queue_hub_outbox(&self, entry: &HubOutboxEntry) -> Result<HubLink, MetaError> {
         let tx = self.conn().unchecked_transaction()?;
         let mut link = self.get_hub_link(&entry.link_id)?;
         if link.revoked {
@@ -943,12 +946,12 @@ impl SqliteMetaStore {
         Ok(link)
     }
 
-    fn decode_outbox(row: &rusqlite::Row<'_>) -> Result<OutboxEntry, MetaError> {
+    fn decode_outbox(row: &rusqlite::Row<'_>) -> Result<HubOutboxEntry, MetaError> {
         let link: String = row.get(0)?;
         let seq: i64 = row.get(1)?;
         let state: String = row.get(2)?;
         let body: String = row.get(3)?;
-        let e: OutboxEntry = from_json(&body, "outbox entry")?;
+        let e: HubOutboxEntry = from_json(&body, "outbox entry")?;
         check_column(&link, e.link_id.as_str(), "outbox entry")?;
         check_column(&state, e.state.as_str(), "outbox entry")?;
         if to_u64(seq, "seq")? != e.envelope.body.seq {
@@ -965,7 +968,7 @@ impl SqliteMetaStore {
         &self,
         link_id: &OpaqueId,
         pending_only: bool,
-    ) -> Result<Vec<OutboxEntry>, MetaError> {
+    ) -> Result<Vec<HubOutboxEntry>, MetaError> {
         let filter = if pending_only {
             " AND state = 'pending'"
         } else {
@@ -980,7 +983,7 @@ impl SqliteMetaStore {
         )
     }
 
-    fn list_all_hub_outbox(&self) -> Result<Vec<OutboxEntry>, MetaError> {
+    fn list_all_hub_outbox(&self) -> Result<Vec<HubOutboxEntry>, MetaError> {
         self.hub_rows(
             "SELECT link_id, seq, state, body_json FROM hub_outbox ORDER BY link_id, seq",
             &[],
@@ -1244,7 +1247,7 @@ impl SqliteMetaStore {
         restore_conflict_is_corrupt(Self::hub_insert_link_on(self.conn(), link))
     }
 
-    pub fn restore_hub_outbox_row(&self, e: &OutboxEntry) -> Result<(), MetaError> {
+    pub fn restore_hub_outbox_row(&self, e: &HubOutboxEntry) -> Result<(), MetaError> {
         restore_conflict_is_corrupt(Self::hub_insert_outbox_on(self.conn(), e))
     }
 

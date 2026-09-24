@@ -15,8 +15,8 @@ use medscale_contracts::envelopes::{AuthorityError, Capability};
 use medscale_contracts::hub::{
     DeviceIdentity, DeviceStatus, HUB_BATCH_MAX, HUB_PROTOCOL_VERSION, HUB_SCHEMA_VERSION,
     HubChallenge, HubEvent, HubEventKind, HubEventPage, HubHandshake, HubIdentity, HubInvitation,
-    HubInvitationCode, HubLink, HubSession, HubStatus, InvitationStatus, NONCE_HEX_LEN,
-    OutboxEntry, OutboxState, PUBLIC_KEY_HEX_LEN, SIGNATURE_HEX_LEN, SyncConflict, SyncEnvelope,
+    HubInvitationCode, HubLink, HubOutboxEntry, HubSession, HubStatus, InvitationStatus,
+    NONCE_HEX_LEN, OutboxState, PUBLIC_KEY_HEX_LEN, SIGNATURE_HEX_LEN, SyncConflict, SyncEnvelope,
     SyncEnvelopeBody, SyncIntent, SyncOutcome, SyncRefusal, TOKEN_HEX_LEN, check_endpoint,
     check_hex, enrollment_payload, handshake_payload, invitation_token_digest,
 };
@@ -783,7 +783,7 @@ impl HubClient<'_> {
         &self,
         link_id: &OpaqueId,
         intent: SyncIntent,
-    ) -> Result<OutboxEntry, AuthorityError> {
+    ) -> Result<HubOutboxEntry, AuthorityError> {
         let link = self.scoped_link(link_id)?;
         if link.revoked {
             return Err(AuthorityError::Unauthorized);
@@ -800,7 +800,7 @@ impl HubClient<'_> {
                 .map_err(|e| AuthorityError::Corrupt {
                     message: e.to_string(),
                 })?;
-        let entry = OutboxEntry {
+        let entry = HubOutboxEntry {
             link_id: link_id.clone(),
             envelope: SyncEnvelope {
                 body,
@@ -856,7 +856,7 @@ impl HubClient<'_> {
         &self,
         link_id: &OpaqueId,
         pending_only: bool,
-    ) -> Result<Vec<OutboxEntry>, AuthorityError> {
+    ) -> Result<Vec<HubOutboxEntry>, AuthorityError> {
         self.scoped_link(link_id)?;
         self.meta
             .list_hub_outbox(link_id, pending_only)

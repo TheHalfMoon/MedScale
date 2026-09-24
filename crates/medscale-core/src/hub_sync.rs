@@ -349,3 +349,72 @@ pub fn sync(
     report.cursor = cursor;
     Ok(report)
 }
+
+/// Serves a Hub vault over the Spec 024 local-socket IPC for `connections`
+/// client connections, then returns. The host lock lives in `host_dir`
+/// (the vault's own writer lock is taken when the served Core opens it).
+/// Realm and scope are the CLI operator's, so invitations issued from the
+/// CLI name the Hub devices will reach.
+pub fn serve_hub(
+    vault_id: &str,
+    vault_root: &std::path::Path,
+    host_dir: &std::path::Path,
+    endpoint: &str,
+    connections: u32,
+) -> Result<(), AuthorityError> {
+    let unavailable = |e: crate::ipc::HostIpcError| AuthorityError::Unavailable {
+        message: e.to_string(),
+    };
+    std::fs::create_dir_all(host_dir).map_err(|e| AuthorityError::Unavailable {
+        message: e.to_string(),
+    })?;
+    let server = crate::ipc::HostIpcServer::bind(host_dir, endpoint).map_err(unavailable)?;
+    let facade = server.facade();
+    let mut calls = Calls { next: 0 };
+    let target = HubTarget {
+        vault_id: VaultId::new(vault_id),
+        realm_id: RealmId::new("cli-realm"),
+        scope_id: AuthorityScopeId::new("cli-scope"),
+    };
+    let mut local = InProcessHubTransport { hub: facade };
+    let ResponseBody::Lease { holder_id, .. } = calls.hub(
+        &mut local,
+        &target,
+        None,
+        Capability::AcquireLease,
+        RequestBody::AcquireLease {
+            client_id: OpaqueId::new("medscale-hub"),
+            holder_id_hint: Some(OpaqueId::new("hub-host")),
+        },
+    )?
+    else {
+        return Err(unexpected("lease"));
+    };
+    let ResponseBody::Session { session_id, .. } = calls.hub(
+        &mut local,
+        &target,
+        None,
+        Capability::OpenSession,
+        RequestBody::OpenSession {
+            holder_id,
+            granted: vec![Capability::OpenSyntheticVault],
+            ttl_ticks: 1_000_000,
+        },
+    )?
+    else {
+        return Err(unexpected("session"));
+    };
+    calls.hub(
+        &mut local,
+        &target,
+        Some(session_id),
+        Capability::OpenSyntheticVault,
+        RequestBody::OpenSyntheticVault {
+            vault_root: vault_root.display().to_string(),
+        },
+    )?;
+    for _ in 0..connections {
+        server.serve_connection().map_err(unavailable)?;
+    }
+    Ok(())
+}

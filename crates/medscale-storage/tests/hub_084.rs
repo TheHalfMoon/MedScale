@@ -9,8 +9,8 @@ use std::path::{Path, PathBuf};
 
 use medscale_contracts::hub::{
     DeviceIdentity, DeviceStatus, HUB_PROTOCOL_VERSION, HUB_SCHEMA_VERSION, HubEvent, HubEventKind,
-    HubIdentity, HubInvitation, HubLink, InvitationStatus, OutboxEntry, OutboxState, SyncEnvelope,
-    SyncEnvelopeBody, SyncIntent, SyncOutcome, SyncRefusal,
+    HubIdentity, HubInvitation, HubLink, HubOutboxEntry, InvitationStatus, OutboxState,
+    SyncEnvelope, SyncEnvelopeBody, SyncIntent, SyncOutcome, SyncRefusal,
 };
 use medscale_contracts::ingest::BackupManifest;
 use medscale_contracts::objects::{
@@ -194,7 +194,7 @@ fn build_state(meta: &SqliteMetaStore) -> Vec<HubEvent> {
         .unwrap();
     meta.insert_hub_link(&link()).unwrap();
     for (seq, text) in [(1, "hello"), (2, "second"), (3, "queued")] {
-        meta.queue_hub_outbox(&OutboxEntry {
+        meta.queue_hub_outbox(&HubOutboxEntry {
             link_id: id("link-1"),
             envelope: envelope(1, seq, text),
             state: OutboxState::Pending,
@@ -375,7 +375,7 @@ fn hub_rows_hold_their_invariants() {
     let mut skip = envelope(1, 9, "skip");
     skip.body.seq = 9;
     assert!(matches!(
-        meta.queue_hub_outbox(&OutboxEntry {
+        meta.queue_hub_outbox(&HubOutboxEntry {
             link_id: id("link-1"),
             envelope: skip,
             state: OutboxState::Pending,

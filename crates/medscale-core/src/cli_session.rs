@@ -3837,4 +3837,150 @@ impl CliSession {
             _ => Err(Self::unexpected("canvases")),
         }
     }
+
+    // ---------------------------------------------------------------------
+    // Spec 084: MedScale Hub foundation
+    // ---------------------------------------------------------------------
+
+    /// This session's own request context for `hub_sync::join` / `sync`.
+    #[must_use]
+    pub fn hub_client_context(&self) -> crate::hub_sync::ClientContext<'_> {
+        crate::hub_sync::ClientContext {
+            facade: &self.facade,
+            vault_id: self.vault_id.clone(),
+            realm_id: self.realm_id.clone(),
+            scope_id: self.scope_id.clone(),
+            session_id: self.session_id.clone(),
+        }
+    }
+
+    pub fn hub_init(&mut self) -> Result<medscale_contracts::hub::HubIdentity, AuthorityError> {
+        match self.dispatch(Capability::HubAdmin, RequestBody::HubInit)? {
+            ResponseBody::HubIdentity { hub } => Ok(*hub),
+            _ => Err(Self::unexpected("hub identity")),
+        }
+    }
+
+    pub fn hub_invite(
+        &mut self,
+        project_id: OpaqueId,
+        display_name: String,
+    ) -> Result<
+        (
+            medscale_contracts::hub::HubInvitation,
+            medscale_contracts::hub::HubInvitationCode,
+        ),
+        AuthorityError,
+    > {
+        match self.dispatch(
+            Capability::HubAdmin,
+            RequestBody::HubInvite {
+                project_id,
+                display_name,
+            },
+        )? {
+            ResponseBody::HubInvited { invitation, code } => Ok((*invitation, *code)),
+            _ => Err(Self::unexpected("hub invitation")),
+        }
+    }
+
+    pub fn hub_invitation_revoke(
+        &mut self,
+        invitation_id: OpaqueId,
+    ) -> Result<medscale_contracts::hub::HubInvitation, AuthorityError> {
+        match self.dispatch(
+            Capability::HubAdmin,
+            RequestBody::HubInvitationRevoke { invitation_id },
+        )? {
+            ResponseBody::HubInvitation { invitation } => Ok(*invitation),
+            _ => Err(Self::unexpected("hub invitation")),
+        }
+    }
+
+    pub fn hub_device_revoke(
+        &mut self,
+        device_id: OpaqueId,
+    ) -> Result<medscale_contracts::hub::DeviceIdentity, AuthorityError> {
+        match self.dispatch(
+            Capability::HubAdmin,
+            RequestBody::HubDeviceRevoke { device_id },
+        )? {
+            ResponseBody::HubDevice { device } => Ok(*device),
+            _ => Err(Self::unexpected("hub device")),
+        }
+    }
+
+    pub fn hub_status(&mut self) -> Result<medscale_contracts::hub::HubStatus, AuthorityError> {
+        match self.dispatch(Capability::HubRead, RequestBody::HubStatus)? {
+            ResponseBody::HubStatus { status } => Ok(*status),
+            _ => Err(Self::unexpected("hub status")),
+        }
+    }
+
+    pub fn hub_queue(
+        &mut self,
+        link_id: OpaqueId,
+        intent: medscale_contracts::hub::SyncIntent,
+    ) -> Result<medscale_contracts::hub::HubOutboxEntry, AuthorityError> {
+        match self.dispatch(
+            Capability::HubClient,
+            RequestBody::HubQueue { link_id, intent },
+        )? {
+            ResponseBody::HubQueued { entry } => Ok(*entry),
+            _ => Err(Self::unexpected("outbox entry")),
+        }
+    }
+
+    pub fn hub_links(&mut self) -> Result<Vec<medscale_contracts::hub::HubLink>, AuthorityError> {
+        match self.dispatch(Capability::HubRead, RequestBody::HubLinkList)? {
+            ResponseBody::HubLinks { links } => Ok(links),
+            _ => Err(Self::unexpected("hub links")),
+        }
+    }
+
+    pub fn hub_link(
+        &mut self,
+        link_id: OpaqueId,
+    ) -> Result<medscale_contracts::hub::HubLink, AuthorityError> {
+        match self.dispatch(Capability::HubRead, RequestBody::HubLinkGet { link_id })? {
+            ResponseBody::HubLink { link } => Ok(*link),
+            _ => Err(Self::unexpected("hub link")),
+        }
+    }
+
+    pub fn hub_outbox(
+        &mut self,
+        link_id: OpaqueId,
+        pending_only: bool,
+    ) -> Result<Vec<medscale_contracts::hub::HubOutboxEntry>, AuthorityError> {
+        match self.dispatch(
+            Capability::HubRead,
+            RequestBody::HubOutboxList {
+                link_id,
+                pending_only,
+            },
+        )? {
+            ResponseBody::HubOutbox { entries } => Ok(entries),
+            _ => Err(Self::unexpected("hub outbox")),
+        }
+    }
+
+    pub fn hub_mirror(
+        &mut self,
+        link_id: OpaqueId,
+        after: u64,
+        limit: u32,
+    ) -> Result<Vec<medscale_contracts::hub::HubEvent>, AuthorityError> {
+        match self.dispatch(
+            Capability::HubRead,
+            RequestBody::HubMirrorList {
+                link_id,
+                after,
+                limit,
+            },
+        )? {
+            ResponseBody::HubMirror { events } => Ok(events),
+            _ => Err(Self::unexpected("hub mirror")),
+        }
+    }
 }
