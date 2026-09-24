@@ -13,6 +13,7 @@ challenge changed and what remains.
 | A hand-edited backup could plant an open invitation whose token the editor knows | invitations open at backup time restore revoked (round-trip test) |
 | A backup could carry device secrets | secrets live in `hub_link_secrets`, which no backup writes; a restored client fails closed until re-enrollment |
 | An envelope naming another device or hub could be written into this Project's chain | such envelopes are answered and never recorded; consistency requires every event to name an existing device of the same Project |
+| A sessionless read over the Hub's IPC endpoint runs as the vault's lease holder, so a device-side peer could read Hub state (status, messages) as the operator | `serve_hub` answers only `HubBootstrap` and `HubSync`; everything else is refused before Core (`serve_connection_limited`; CLI test raw peer) |
 | A malformed hex string could reach decoding | every key, signature, nonce and token is checked as exact-length lowercase hex before use; decoding refuses signs, whitespace and non-ASCII (PR #144 lesson) |
 
 ## Honest residuals
