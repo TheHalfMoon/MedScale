@@ -1,6 +1,7 @@
 //! Shared `MedScale` contracts (Specs 001–004).
 
 pub mod actions;
+pub mod analytics;
 pub mod audio;
 pub mod browse;
 pub mod collaboration;

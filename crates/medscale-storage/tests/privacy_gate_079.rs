@@ -121,6 +121,9 @@ const LATER_VERSION_TABLES: &[&str] = &[
     "audio_capture_chunks",
     "audio_transcripts",
     "audio_transcript_receipts",
+    "analytics_receipts",
+    "analytics_results",
+    "analytics_cohorts",
 ];
 
 /// Rewinds the file to exactly what a v7 build leaves on disk.
@@ -156,7 +159,10 @@ fn pre_079_view(meta: &SqliteMetaStore) -> serde_json::Value {
     let object = snapshot.as_object_mut().unwrap();
     object.remove("schema_version");
     object.retain(|key, _| {
-        !key.starts_with("privacy_") && !key.starts_with("browse_") && !key.starts_with("audio_")
+        !key.starts_with("privacy_")
+            && !key.starts_with("browse_")
+            && !key.starts_with("audio_")
+            && !key.starts_with("analytics_")
     });
     snapshot
 }
@@ -695,6 +701,7 @@ fn pre_079_v7_backup_restores_with_empty_079_tables() {
             !key.starts_with("privacy_")
                 && !key.starts_with("browse_")
                 && !key.starts_with("audio_")
+                && !key.starts_with("analytics_")
         });
         object.insert("schema_version".to_owned(), serde_json::json!(7));
     });

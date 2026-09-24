@@ -1,6 +1,7 @@
 //! Authority facade, store, promotion, and identity operations.
 
 mod amend;
+mod analytics;
 mod audio;
 mod browse;
 mod collaboration;

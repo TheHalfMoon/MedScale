@@ -2963,6 +2963,127 @@ impl CoreFacade {
                     view: Box::new(view),
                 })
             }
+            // Spec 082 Analytics Gate: runs on the Spec 075 data-source
+            // authority; snapshots are read, never written.
+            RequestBody::AnalyticsQuery { request } => {
+                let value = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut d| {
+                        d.analytics_query(
+                            request,
+                            medscale_contracts::analytics::QueryOrigin::SqlEditor,
+                            None,
+                        )
+                    },
+                )?;
+                Ok(ResponseBody::AnalyticsQuery {
+                    view: Box::new(value),
+                })
+            }
+            RequestBody::AnalyticsReplay { receipt_id } => {
+                let value = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |d| d.analytics_replay(&receipt_id),
+                )?;
+                Ok(ResponseBody::AnalyticsReplay { report: value })
+            }
+            RequestBody::AnalyticsReceiptGet { receipt_id } => {
+                let value = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |d| d.analytics_receipt(&receipt_id),
+                )?;
+                Ok(ResponseBody::AnalyticsReceipt {
+                    receipt: Box::new(value),
+                })
+            }
+            RequestBody::AnalyticsReceiptList { project_id } => {
+                let value = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |d| d.analytics_receipts(&project_id),
+                )?;
+                Ok(ResponseBody::AnalyticsReceipts { receipts: value })
+            }
+            RequestBody::AnalyticsResultGet { result_id } => {
+                let value = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |d| d.analytics_result(&result_id),
+                )?;
+                Ok(ResponseBody::AnalyticsResult {
+                    table: Box::new(value.0),
+                    doc: Box::new(value.1),
+                })
+            }
+            RequestBody::AnalyticsStatistics {
+                result_id,
+                column,
+                kinds,
+            } => {
+                let value = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |d| d.analytics_statistics(&result_id, &column, &kinds),
+                )?;
+                Ok(ResponseBody::AnalyticsStatistics { results: value })
+            }
+            RequestBody::AnalyticsCohortCreate {
+                project_id,
+                label,
+                snapshot_id,
+                criteria,
+            } => {
+                let value = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut d| d.analytics_cohort_create(project_id, label, snapshot_id, criteria),
+                )?;
+                Ok(ResponseBody::AnalyticsCohort {
+                    cohort: Box::new(value),
+                })
+            }
+            RequestBody::AnalyticsCohortList { project_id } => {
+                let value = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |d| d.analytics_cohorts(&project_id),
+                )?;
+                Ok(ResponseBody::AnalyticsCohorts { cohorts: value })
+            }
+            RequestBody::AnalyticsCohortRun {
+                cohort_id,
+                max_rows,
+            } => {
+                let value = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut d| d.analytics_cohort_run(&cohort_id, max_rows),
+                )?;
+                Ok(ResponseBody::AnalyticsQuery {
+                    view: Box::new(value),
+                })
+            }
             // Spec 081 AudioFlow Foundation: local only; every operation
             // runs in Core over vault storage.
             RequestBody::AudioImport {
@@ -4474,6 +4595,23 @@ fn capability_matches(cap: &Capability, body: &RequestBody) -> bool {
             | (
                 Capability::AudioCorrect,
                 RequestBody::AudioTranscriptCorrect { .. }
+            )
+            | (
+                Capability::AnalyticsQuery,
+                RequestBody::AnalyticsQuery { .. }
+            )
+            | (
+                Capability::AnalyticsRead,
+                RequestBody::AnalyticsReplay { .. }
+                    | RequestBody::AnalyticsReceiptGet { .. }
+                    | RequestBody::AnalyticsReceiptList { .. }
+                    | RequestBody::AnalyticsResultGet { .. }
+                    | RequestBody::AnalyticsStatistics { .. }
+                    | RequestBody::AnalyticsCohortList { .. }
+            )
+            | (
+                Capability::AnalyticsCohort,
+                RequestBody::AnalyticsCohortCreate { .. } | RequestBody::AnalyticsCohortRun { .. }
             )
     )
 }

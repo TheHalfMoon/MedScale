@@ -75,6 +75,15 @@ fn rewind_to_v9(root: &Path) {
     for table in AUDIO_TABLES {
         conn.execute_batch(&format!("DROP TABLE {table};")).unwrap();
     }
+    // Later additive versions (Spec 082 v11, ...) are absent in a v9 build too.
+    for table in [
+        "analytics_receipts",
+        "analytics_results",
+        "analytics_cohorts",
+    ] {
+        conn.execute_batch(&format!("DROP TABLE IF EXISTS {table};"))
+            .unwrap();
+    }
     conn.execute("DELETE FROM migration_journal WHERE version >= 10", [])
         .unwrap();
 }
@@ -95,7 +104,7 @@ fn pre_081_view(meta: &SqliteMetaStore) -> serde_json::Value {
         serde_json::from_slice(&meta.snapshot_bytes().unwrap()).unwrap();
     let object = snapshot.as_object_mut().unwrap();
     object.remove("schema_version");
-    object.retain(|key, _| !key.starts_with("audio_"));
+    object.retain(|key, _| !key.starts_with("audio_") && !key.starts_with("analytics_"));
     snapshot
 }
 
@@ -680,7 +689,7 @@ fn pre_081_v9_backup_restores_with_empty_audio_tables() {
     backup_vault(&vault, &dest).unwrap();
     tamper_backup(&dest, |s| {
         let o = s.as_object_mut().unwrap();
-        o.retain(|k, _| !k.starts_with("audio_"));
+        o.retain(|k, _| !k.starts_with("audio_") && !k.starts_with("analytics_"));
         o.insert("schema_version".to_owned(), serde_json::json!(9));
     });
     restore_vault(&dest, &root.join("restored")).unwrap();

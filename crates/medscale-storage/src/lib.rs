@@ -1,5 +1,7 @@
 //! Durable storage: synthetic vaults (003) + encrypted vaults (005).
 
+mod analytics;
+pub mod analytics_engine;
 mod audio;
 mod backup;
 mod blob;
@@ -20,6 +22,7 @@ mod sqlite_meta;
 mod vault;
 mod writer_lock;
 
+pub use analytics::DerivedTableRow;
 pub use audio::{AudioChunkRow, AudioSourceRow};
 pub use backup::{backup_vault, restore_vault};
 pub use blob::FsBlobStore;
@@ -44,7 +47,7 @@ pub use sqlite_meta::{AuthorityObjectRow, MetaError, SourceMeta, SqliteMetaStore
 pub use vault::{SyntheticVault, VaultError};
 pub use writer_lock::{WriterLock, WriterLockError};
 
-/// Top metadata schema version written by this build (Spec 081: v10). Tests of
+/// Top metadata schema version written by this build (Spec 082: v11). Tests of
 /// earlier specs assert against this constant so a later additive migration
 /// does not require editing them.
-pub const CURRENT_META_SCHEMA_VERSION: u32 = 10;
+pub const CURRENT_META_SCHEMA_VERSION: u32 = 11;
