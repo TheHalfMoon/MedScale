@@ -3084,6 +3084,119 @@ impl CoreFacade {
                     view: Box::new(value),
                 })
             }
+            // Spec 083 Knowledge + Research Canvas: a rebuildable lexical
+            // projection over sources Core already governs; sources are read,
+            // never written.
+            RequestBody::KnowledgeIndexBuild { project_id } => {
+                let value = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut d| d.knowledge_index_build(&project_id),
+                )?;
+                Ok(ResponseBody::KnowledgeIndexBuilt {
+                    manifest: Box::new(value.0),
+                    status: value.1,
+                })
+            }
+            RequestBody::KnowledgeIndexStatus { project_id } => {
+                let value = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |d| d.knowledge_index_status(&project_id),
+                )?;
+                Ok(ResponseBody::KnowledgeIndexStatus { status: value })
+            }
+            RequestBody::KnowledgeSearch { request } => {
+                let value = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut d| d.knowledge_search(request),
+                )?;
+                Ok(ResponseBody::KnowledgeSearch {
+                    result: Box::new(value),
+                })
+            }
+            RequestBody::KnowledgeReceiptGet { receipt_id } => {
+                let value = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |d| d.knowledge_receipt(&receipt_id),
+                )?;
+                Ok(ResponseBody::KnowledgeReceipt {
+                    receipt: Box::new(value),
+                })
+            }
+            RequestBody::KnowledgeReceiptList { project_id } => {
+                let value = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |d| d.knowledge_receipts(&project_id),
+                )?;
+                Ok(ResponseBody::KnowledgeReceipts { receipts: value })
+            }
+            RequestBody::CanvasCreate { project_id, title } => {
+                let value = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut d| d.canvas_create(project_id, title),
+                )?;
+                Ok(ResponseBody::Canvas {
+                    canvas: Box::new(value),
+                })
+            }
+            RequestBody::CanvasEdit {
+                canvas_id,
+                expected_revision,
+                ops,
+            } => {
+                let value = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut d| d.canvas_edit(&canvas_id, expected_revision, ops),
+                )?;
+                Ok(ResponseBody::Canvas {
+                    canvas: Box::new(value),
+                })
+            }
+            RequestBody::CanvasGet {
+                canvas_id,
+                revision,
+            } => {
+                let value = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |d| d.canvas_view(&canvas_id, revision),
+                )?;
+                Ok(ResponseBody::CanvasView {
+                    view: Box::new(value),
+                })
+            }
+            RequestBody::CanvasList { project_id } => {
+                let value = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |d| d.canvas_list(&project_id),
+                )?;
+                Ok(ResponseBody::Canvases { canvases: value })
+            }
             // Spec 081 AudioFlow Foundation: local only; every operation
             // runs in Core over vault storage.
             RequestBody::AudioImport {
@@ -4612,6 +4725,26 @@ fn capability_matches(cap: &Capability, body: &RequestBody) -> bool {
             | (
                 Capability::AnalyticsCohort,
                 RequestBody::AnalyticsCohortCreate { .. } | RequestBody::AnalyticsCohortRun { .. }
+            )
+            | (
+                Capability::KnowledgeIndex,
+                RequestBody::KnowledgeIndexBuild { .. }
+            )
+            | (
+                Capability::KnowledgeSearch,
+                RequestBody::KnowledgeSearch { .. }
+            )
+            | (
+                Capability::KnowledgeRead,
+                RequestBody::KnowledgeIndexStatus { .. }
+                    | RequestBody::KnowledgeReceiptGet { .. }
+                    | RequestBody::KnowledgeReceiptList { .. }
+                    | RequestBody::CanvasGet { .. }
+                    | RequestBody::CanvasList { .. }
+            )
+            | (
+                Capability::KnowledgeCanvas,
+                RequestBody::CanvasCreate { .. } | RequestBody::CanvasEdit { .. }
             )
     )
 }

@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
 /// Vault-scoped opaque object identifier (not a content hash).
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct OpaqueId(String);
 
 impl OpaqueId {
@@ -40,7 +40,7 @@ impl VaultId {
 }
 
 /// SHA-256 content digest (evidence metadata only; never source identity).
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct DigestSha256([u8; 32]);
 
 impl DigestSha256 {

@@ -18,6 +18,7 @@ mod audio_workspace;
 mod browse_workspace;
 mod collaboration_workspace;
 mod data_workbench;
+mod knowledge_workspace;
 mod medagent_workspace;
 mod model_fleet_workspace;
 mod patient_workspace;
@@ -576,6 +577,39 @@ fn refresh_analytics(ui: &AppWindow, session: &Rc<RefCell<CliSession>>) {
     }
 }
 
+fn refresh_knowledge(ui: &AppWindow, session: &Rc<RefCell<CliSession>>) {
+    let project_id = ui.get_project_active_id().to_string();
+    if project_id.is_empty() {
+        ui.set_knowledge_status("Open a project to use Knowledge".into());
+        ui.set_knowledge_canvases(ModelRc::new(VecModel::from(Vec::new())));
+        return;
+    }
+    let mut s = session.borrow_mut();
+    match knowledge_workspace::index_status(&mut s, &project_id) {
+        Ok(line) => ui.set_knowledge_status(line.into()),
+        Err(err) => {
+            ui.set_knowledge_status(knowledge_workspace::status_message(&err).into());
+            ui.set_knowledge_canvases(ModelRc::new(VecModel::from(Vec::new())));
+            return;
+        }
+    }
+    match knowledge_workspace::canvases(&mut s, &project_id) {
+        Ok(rows) => {
+            ui.set_knowledge_canvases(ModelRc::new(VecModel::from_iter(rows.iter().map(|row| {
+                KnowledgeCanvasRowItem {
+                    id: row.id.clone().into(),
+                    title: row.title.clone().into(),
+                    detail: row.detail.clone().into(),
+                }
+            }))));
+        }
+        Err(err) => {
+            ui.set_knowledge_canvases(ModelRc::new(VecModel::from(Vec::new())));
+            ui.set_knowledge_status(knowledge_workspace::status_message(&err).into());
+        }
+    }
+}
+
 fn refresh_audio(ui: &AppWindow, session: &Rc<RefCell<CliSession>>) {
     let project_id = ui.get_project_active_id().to_string();
     if project_id.is_empty() {
@@ -808,6 +842,7 @@ fn evidence_route_override() -> Option<&'static str> {
         "Browse" => Some("Browse"),
         "Audio" => Some("Audio"),
         "Analytics" => Some("Analytics"),
+        "Knowledge" => Some("Knowledge"),
         "Settings" => Some("Settings"),
         "About" => Some("About"),
         _ => None,
@@ -1710,6 +1745,49 @@ fn main() -> ExitCode {
         }
         // Spec 079 Privacy Gate actions (Core-backed; profiles, transforms
         // and re-identification stay CLI-only in this slice).
+        // Spec 083 Knowledge actions (Core-backed; lexical index is a
+        // projection, every search leaves a receipt).
+        if action == "knowledge-refresh" {
+            if let Some(session) = &project_session_for_actions {
+                refresh_knowledge(&ui, session);
+            } else {
+                ui.set_knowledge_status("Knowledge unavailable: no Core session".into());
+            }
+            return;
+        }
+        if action == "knowledge-build" || action == "knowledge-search" {
+            let Some(session) = &project_session_for_actions else {
+                ui.set_knowledge_status("Knowledge unavailable: no Core session".into());
+                return;
+            };
+            let project_id = ui.get_project_active_id().to_string();
+            if project_id.is_empty() {
+                ui.set_knowledge_status("Invalid: open a project first".into());
+                return;
+            }
+            if action == "knowledge-build" {
+                let built = knowledge_workspace::build_index(&mut session.borrow_mut(), &project_id);
+                if let Err(err) = built {
+                    ui.set_knowledge_status(knowledge_workspace::status_message(&err).into());
+                    return;
+                }
+            } else {
+                let query = ui.get_knowledge_query_input().to_string();
+                let found = knowledge_workspace::search(&mut session.borrow_mut(), &project_id, &query);
+                match found {
+                    Ok(result) => {
+                        ui.set_knowledge_last_result(result.summary.into());
+                        ui.set_knowledge_hits(result.hits.into());
+                    }
+                    Err(err) => {
+                        ui.set_knowledge_status(knowledge_workspace::status_message(&err).into());
+                        return;
+                    }
+                }
+            }
+            refresh_knowledge(&ui, session);
+            return;
+        }
         // Spec 082 Analytics actions (Core-backed; read-only engine).
         if action == "analytics-refresh" {
             if let Some(session) = &project_session_for_actions {

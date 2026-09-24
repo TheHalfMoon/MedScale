@@ -3699,4 +3699,142 @@ impl CliSession {
             _ => Err(Self::unexpected("query view")),
         }
     }
+
+    // ---------------------------------------------------------------------
+    // Spec 083: Knowledge + Research Canvas
+    // ---------------------------------------------------------------------
+
+    pub fn knowledge_index_build(
+        &mut self,
+        project_id: OpaqueId,
+    ) -> Result<
+        (
+            medscale_contracts::knowledge::IndexManifest,
+            medscale_contracts::knowledge::IndexStatus,
+        ),
+        AuthorityError,
+    > {
+        match self.dispatch(
+            Capability::KnowledgeIndex,
+            RequestBody::KnowledgeIndexBuild { project_id },
+        )? {
+            ResponseBody::KnowledgeIndexBuilt { manifest, status } => Ok((*manifest, status)),
+            _ => Err(Self::unexpected("index manifest")),
+        }
+    }
+
+    pub fn knowledge_index_status(
+        &mut self,
+        project_id: OpaqueId,
+    ) -> Result<Option<medscale_contracts::knowledge::IndexStatus>, AuthorityError> {
+        match self.dispatch(
+            Capability::KnowledgeRead,
+            RequestBody::KnowledgeIndexStatus { project_id },
+        )? {
+            ResponseBody::KnowledgeIndexStatus { status } => Ok(status),
+            _ => Err(Self::unexpected("index status")),
+        }
+    }
+
+    pub fn knowledge_search(
+        &mut self,
+        request: medscale_contracts::knowledge::RetrievalRequest,
+    ) -> Result<medscale_contracts::knowledge::RetrievalResult, AuthorityError> {
+        match self.dispatch(
+            Capability::KnowledgeSearch,
+            RequestBody::KnowledgeSearch { request },
+        )? {
+            ResponseBody::KnowledgeSearch { result } => Ok(*result),
+            _ => Err(Self::unexpected("retrieval result")),
+        }
+    }
+
+    pub fn knowledge_receipt_get(
+        &mut self,
+        receipt_id: OpaqueId,
+    ) -> Result<medscale_contracts::knowledge::RetrievalReceipt, AuthorityError> {
+        match self.dispatch(
+            Capability::KnowledgeRead,
+            RequestBody::KnowledgeReceiptGet { receipt_id },
+        )? {
+            ResponseBody::KnowledgeReceipt { receipt } => Ok(*receipt),
+            _ => Err(Self::unexpected("retrieval receipt")),
+        }
+    }
+
+    pub fn knowledge_receipt_list(
+        &mut self,
+        project_id: OpaqueId,
+    ) -> Result<Vec<medscale_contracts::knowledge::RetrievalReceipt>, AuthorityError> {
+        match self.dispatch(
+            Capability::KnowledgeRead,
+            RequestBody::KnowledgeReceiptList { project_id },
+        )? {
+            ResponseBody::KnowledgeReceipts { receipts } => Ok(receipts),
+            _ => Err(Self::unexpected("retrieval receipts")),
+        }
+    }
+
+    pub fn canvas_create(
+        &mut self,
+        project_id: OpaqueId,
+        title: String,
+    ) -> Result<medscale_contracts::knowledge::CanvasRevision, AuthorityError> {
+        match self.dispatch(
+            Capability::KnowledgeCanvas,
+            RequestBody::CanvasCreate { project_id, title },
+        )? {
+            ResponseBody::Canvas { canvas } => Ok(*canvas),
+            _ => Err(Self::unexpected("canvas")),
+        }
+    }
+
+    pub fn canvas_edit(
+        &mut self,
+        canvas_id: OpaqueId,
+        expected_revision: u32,
+        ops: Vec<medscale_contracts::knowledge::CanvasOp>,
+    ) -> Result<medscale_contracts::knowledge::CanvasRevision, AuthorityError> {
+        match self.dispatch(
+            Capability::KnowledgeCanvas,
+            RequestBody::CanvasEdit {
+                canvas_id,
+                expected_revision,
+                ops,
+            },
+        )? {
+            ResponseBody::Canvas { canvas } => Ok(*canvas),
+            _ => Err(Self::unexpected("canvas")),
+        }
+    }
+
+    pub fn canvas_get(
+        &mut self,
+        canvas_id: OpaqueId,
+        revision: Option<u32>,
+    ) -> Result<medscale_contracts::knowledge::CanvasView, AuthorityError> {
+        match self.dispatch(
+            Capability::KnowledgeRead,
+            RequestBody::CanvasGet {
+                canvas_id,
+                revision,
+            },
+        )? {
+            ResponseBody::CanvasView { view } => Ok(*view),
+            _ => Err(Self::unexpected("canvas view")),
+        }
+    }
+
+    pub fn canvas_list(
+        &mut self,
+        project_id: OpaqueId,
+    ) -> Result<Vec<medscale_contracts::knowledge::CanvasSummary>, AuthorityError> {
+        match self.dispatch(
+            Capability::KnowledgeRead,
+            RequestBody::CanvasList { project_id },
+        )? {
+            ResponseBody::Canvases { canvases } => Ok(canvases),
+            _ => Err(Self::unexpected("canvases")),
+        }
+    }
 }

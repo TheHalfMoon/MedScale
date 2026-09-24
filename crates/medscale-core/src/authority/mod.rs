@@ -14,6 +14,7 @@ mod facade;
 mod handles;
 mod identity;
 mod ingest_ops;
+mod knowledge;
 mod medagent;
 mod model_fleet;
 mod model_fleet_compare;

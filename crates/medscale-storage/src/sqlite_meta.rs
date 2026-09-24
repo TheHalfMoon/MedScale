@@ -264,6 +264,12 @@ impl SqliteMetaStore {
             self.conn.execute_batch(crate::analytics::V11_DDL)?;
             self.finish_migration(11)?;
         }
+        let journal = self.migration_journal()?;
+        if journal.finished_version < 12 {
+            self.begin_migration(12)?;
+            self.conn.execute_batch(crate::knowledge::V12_DDL)?;
+            self.finish_migration(12)?;
+        }
         Ok(())
     }
 
@@ -590,6 +596,19 @@ impl SqliteMetaStore {
             (
                 "analytics_cohorts",
                 serde_json::to_value(self.list_all_cohorts()?),
+            ),
+            // Spec 083: Knowledge + Research Canvas rows.
+            (
+                "knowledge_index_versions",
+                serde_json::to_value(self.list_all_index_versions()?),
+            ),
+            (
+                "knowledge_receipts",
+                serde_json::to_value(self.list_all_retrieval_receipts()?),
+            ),
+            (
+                "knowledge_canvases",
+                serde_json::to_value(self.list_all_canvas_revisions()?),
             ),
         ];
         let mut payload = payload;
