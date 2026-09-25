@@ -620,19 +620,18 @@ impl SqliteMetaStore {
                 ));
             }
         }
-        let mut with_output = 0_usize;
-        for row in self.list_all_compute_outputs()? {
+        let outputs = self.list_all_compute_outputs()?;
+        for row in &outputs {
             let r = receipts
                 .get(row.output.receipt_id.as_str())
                 .ok_or_else(|| corrupt("compute output without its receipt".to_owned()))?;
             output_matches_receipt(&row.output, r).map_err(corrupt)?;
-            with_output += 1;
         }
         let completed = receipts
             .values()
             .filter(|r| r.state == ComputeState::Completed)
             .count();
-        if completed != with_output {
+        if completed != outputs.len() {
             return Err(corrupt(
                 "a completed compute receipt has no output".to_owned(),
             ));

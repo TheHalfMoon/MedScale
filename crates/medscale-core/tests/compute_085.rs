@@ -435,8 +435,6 @@ fn inputs_are_re_verified_before_staging() {
         .unwrap()
         .header
         .id;
-    let dir = lab.dir.clone();
-    let snapshot = lab.snapshot.clone();
     let mut lab = {
         let Lab {
             s,
@@ -470,7 +468,6 @@ fn inputs_are_re_verified_before_staging() {
         Some(ComputeDenyReason::InputUnavailable)
     );
     assert_no_output(&view);
-    let _ = (dir, snapshot);
 }
 
 #[test]
