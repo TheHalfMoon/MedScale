@@ -372,10 +372,12 @@ impl ComputeManifest {
         {
             return Err("manifest runtime identity is not admitted".to_owned());
         }
-        if let Some(input) = &self.input {
-            if input.snapshot_id != self.requested_snapshot_id {
-                return Err("manifest input is not the requested snapshot".to_owned());
-            }
+        if self
+            .input
+            .as_ref()
+            .is_some_and(|i| i.snapshot_id != self.requested_snapshot_id)
+        {
+            return Err("manifest input is not the requested snapshot".to_owned());
         }
         Ok(())
     }
