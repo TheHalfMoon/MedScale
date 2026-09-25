@@ -142,7 +142,9 @@ fn jobs_run_in_the_worker_and_match_hand_computed_fixtures() {
     let mut lab = setup("fixtures");
     let before = lab.s.snapshot_get(lab.snapshot.clone()).unwrap();
 
-    let profile = submit_and_run(&mut lab, request(&lab, ComputeParams::ColumnProfile));
+    let req = request(&lab, ComputeParams::ColumnProfile);
+
+    let profile = submit_and_run(&mut lab, req);
     assert_eq!(profile.job.state, ComputeState::Completed, "{profile:?}");
     let table = profile.table.clone().unwrap();
     let names: Vec<_> = table.columns.iter().map(|c| c.name.as_str()).collect();
@@ -195,10 +197,8 @@ fn jobs_run_in_the_worker_and_match_hand_computed_fixtures() {
         ]
     );
 
-    let sorted = submit_and_run(
-        &mut lab,
-        request(&lab, projection(&["id", "ldl"], &["ldl"], true)),
-    );
+    let req = request(&lab, projection(&["id", "ldl"], &["ldl"], true));
+    let sorted = submit_and_run(&mut lab, req);
     assert_eq!(sorted.job.state, ComputeState::Completed, "{sorted:?}");
     let ids: Vec<_> = sorted
         .table
@@ -236,7 +236,8 @@ fn jobs_run_in_the_worker_and_match_hand_computed_fixtures() {
     );
 
     // Deterministic: the same job again yields byte-identical output.
-    let again = submit_and_run(&mut lab, request(&lab, ComputeParams::ColumnProfile));
+    let req = request(&lab, ComputeParams::ColumnProfile);
+    let again = submit_and_run(&mut lab, req);
     assert_eq!(
         again.output.as_ref().unwrap().content_digest,
         o.content_digest
@@ -348,7 +349,8 @@ fn admission_refuses_with_receipts_and_runs_nothing() {
 #[test]
 fn a_job_runs_at_most_once_and_cancelled_jobs_never_run() {
     let mut lab = setup("once");
-    let done = submit_and_run(&mut lab, request(&lab, ComputeParams::ColumnProfile));
+    let req = request(&lab, ComputeParams::ColumnProfile);
+    let done = submit_and_run(&mut lab, req);
     assert_eq!(done.job.state, ComputeState::Completed);
     let id = done.job.header.id.clone();
     for _ in 0..2 {
@@ -582,7 +584,8 @@ fn faulty_workers_are_contained_and_commit_nothing() {
 
     // Stderr is bounded and never stored as text; the job still completes.
     lab.s.set_compute_runtime(fault("flood-stderr"));
-    let view = submit_and_run(&mut lab, request(&lab, ComputeParams::ColumnProfile));
+    let req = request(&lab, ComputeParams::ColumnProfile);
+    let view = submit_and_run(&mut lab, req);
     assert_eq!(view.job.state, ComputeState::Completed, "{view:?}");
     let r = view.receipt.as_ref().unwrap();
     assert_eq!(r.stderr_bytes, 64 * 64 * 1024);
@@ -593,13 +596,11 @@ fn faulty_workers_are_contained_and_commit_nothing() {
     // Process isolation only: a worker without an OS mechanism may run,
     // and the receipt says exactly that.
     lab.s.set_compute_runtime(fault("no-sandbox"));
-    let view = submit_and_run(
-        &mut lab,
-        ComputeJobRequest {
-            sandbox: Some(SandboxRequirement::ProcessIsolationOnly),
-            ..request(&lab, ComputeParams::ColumnProfile)
-        },
-    );
+    let req = ComputeJobRequest {
+        sandbox: Some(SandboxRequirement::ProcessIsolationOnly),
+        ..request(&lab, ComputeParams::ColumnProfile)
+    };
+    let view = submit_and_run(&mut lab, req);
     assert_eq!(view.job.state, ComputeState::Completed, "{view:?}");
     let sandbox = view.receipt.as_ref().unwrap().sandbox.clone().unwrap();
     assert_eq!(sandbox.mechanism, SandboxMechanism::None);
@@ -610,7 +611,8 @@ fn faulty_workers_are_contained_and_commit_nothing() {
         lab.dir.join("no-such-worker"),
         vec![],
     ));
-    let view = submit_and_run(&mut lab, request(&lab, ComputeParams::ColumnProfile));
+    let req = request(&lab, ComputeParams::ColumnProfile);
+    let view = submit_and_run(&mut lab, req);
     assert_eq!(view.job.state, ComputeState::Unavailable);
     assert_eq!(
         view.receipt.as_ref().unwrap().failure,
@@ -652,7 +654,8 @@ fn a_running_job_cancels_through_its_handle() {
     assert!(started.elapsed() < Duration::from_secs(15));
     // The next run starts with a fresh handle and is not cancelled.
     lab.s.set_compute_runtime(ComputeRuntime::resolve());
-    let view = submit_and_run(&mut lab, request(&lab, ComputeParams::ColumnProfile));
+    let req = request(&lab, ComputeParams::ColumnProfile);
+    let view = submit_and_run(&mut lab, req);
     assert_eq!(view.job.state, ComputeState::Completed, "{view:?}");
 }
 
