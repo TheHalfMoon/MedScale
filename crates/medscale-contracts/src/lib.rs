@@ -5,6 +5,7 @@ pub mod analytics;
 pub mod audio;
 pub mod browse;
 pub mod collaboration;
+pub mod compute;
 pub mod data_sources;
 pub mod doctor;
 pub mod documents;

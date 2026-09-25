@@ -33,3 +33,11 @@ windows-sys = { version = "0.61.2", features = [
 [[bin]]
 name = "medscale-os-sandbox-probe"
 path = "src/bin/os_sandbox_probe.rs"
+
+[[bin]]
+name = "medscale-compute-worker"
+path = "src/bin/compute_worker.rs"
+
+[[bin]]
+name = "medscale-compute-fault-worker"
+path = "src/bin/compute_fault_worker.rs"

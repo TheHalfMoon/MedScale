@@ -86,6 +86,9 @@ fn rewind_to_v10(root: &Path) {
         "hub_link_secrets",
         "hub_outbox",
         "hub_mirror",
+        "compute_jobs",
+        "compute_receipts",
+        "compute_outputs",
     ] {
         conn.execute_batch(&format!("DROP TABLE IF EXISTS {table};"))
             .unwrap();
@@ -111,7 +114,10 @@ fn pre_082_view(meta: &SqliteMetaStore) -> serde_json::Value {
     let object = snapshot.as_object_mut().unwrap();
     object.remove("schema_version");
     object.retain(|key, _| {
-        !key.starts_with("analytics_") && !key.starts_with("knowledge_") && !key.starts_with("hub_")
+        !key.starts_with("analytics_")
+            && !key.starts_with("knowledge_")
+            && !key.starts_with("hub_")
+            && !key.starts_with("compute_")
     });
     snapshot
 }
@@ -450,7 +456,10 @@ fn pre_082_v10_backup_restores_with_empty_analytics_tables() {
     tamper_backup(&dest, |s| {
         let o = s.as_object_mut().unwrap();
         o.retain(|k, _| {
-            !k.starts_with("analytics_") && !k.starts_with("knowledge_") && !k.starts_with("hub_")
+            !k.starts_with("analytics_")
+                && !k.starts_with("knowledge_")
+                && !k.starts_with("hub_")
+                && !k.starts_with("compute_")
         });
         o.insert("schema_version".to_owned(), serde_json::json!(10));
     });

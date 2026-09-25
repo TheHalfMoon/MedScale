@@ -272,7 +272,7 @@ fn migration_v12_to_v13_is_additive() {
         meta.migration_journal().unwrap().finished_version,
         CURRENT_META_SCHEMA_VERSION
     );
-    assert_eq!(CURRENT_META_SCHEMA_VERSION, 13);
+    assert!(CURRENT_META_SCHEMA_VERSION >= 13);
     for table in HUB_TABLES {
         assert!(table_exists(&root, table), "{table}");
     }
@@ -580,7 +580,7 @@ fn pre_084_v12_backup_restores_with_empty_hub_tables() {
     backup_vault(&vault, &dest).unwrap();
     tamper_backup(&dest, |s| {
         let o = s.as_object_mut().unwrap();
-        o.retain(|k, _| !k.starts_with("hub_"));
+        o.retain(|k, _| !k.starts_with("hub_") && !k.starts_with("compute_"));
         o.insert("schema_version".to_owned(), serde_json::json!(12));
     });
     restore_vault(&dest, &root.join("restored")).unwrap();

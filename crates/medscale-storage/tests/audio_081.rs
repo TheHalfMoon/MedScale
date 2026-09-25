@@ -93,6 +93,9 @@ fn rewind_to_v9(root: &Path) {
         "hub_link_secrets",
         "hub_outbox",
         "hub_mirror",
+        "compute_jobs",
+        "compute_receipts",
+        "compute_outputs",
     ] {
         conn.execute_batch(&format!("DROP TABLE IF EXISTS {table};"))
             .unwrap();
@@ -122,6 +125,7 @@ fn pre_081_view(meta: &SqliteMetaStore) -> serde_json::Value {
             && !key.starts_with("analytics_")
             && !key.starts_with("knowledge_")
             && !key.starts_with("hub_")
+            && !key.starts_with("compute_")
     });
     snapshot
 }
@@ -712,6 +716,7 @@ fn pre_081_v9_backup_restores_with_empty_audio_tables() {
                 && !k.starts_with("analytics_")
                 && !k.starts_with("knowledge_")
                 && !k.starts_with("hub_")
+                && !k.starts_with("compute_")
         });
         o.insert("schema_version".to_owned(), serde_json::json!(9));
     });

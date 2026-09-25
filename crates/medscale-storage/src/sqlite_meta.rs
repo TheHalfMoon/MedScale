@@ -276,6 +276,12 @@ impl SqliteMetaStore {
             self.conn.execute_batch(crate::hub::V13_DDL)?;
             self.finish_migration(13)?;
         }
+        let journal = self.migration_journal()?;
+        if journal.finished_version < 14 {
+            self.begin_migration(14)?;
+            self.conn.execute_batch(crate::compute::V14_DDL)?;
+            self.finish_migration(14)?;
+        }
         Ok(())
     }
 
@@ -623,6 +629,10 @@ impl SqliteMetaStore {
         }
         // Spec 084: Hub rows (device secrets are never exported).
         for (key, value) in self.hub_backup_families()? {
+            payload[key] = value;
+        }
+        // Spec 085: Compute rows (output bytes as hex).
+        for (key, value) in self.compute_backup_families()? {
             payload[key] = value;
         }
         Ok(serde_json::to_vec(&payload).unwrap_or_default())

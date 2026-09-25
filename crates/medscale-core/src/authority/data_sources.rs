@@ -989,6 +989,14 @@ impl DataSources<'_> {
         Ok(doc)
     }
 
+    /// The exact stored canonical bytes of a snapshot (Spec 085 staging).
+    pub(super) fn snapshot_bytes(
+        &self,
+        record: &SnapshotRecord,
+    ) -> Result<Vec<u8>, AuthorityError> {
+        self.backend.get_bytes(&record.snapshot.content_digest)
+    }
+
     /// Queries snapshot rows with optional filters/sort and stable paging.
     pub fn snapshot_rows(
         &self,
