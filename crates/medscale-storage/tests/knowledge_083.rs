@@ -74,6 +74,21 @@ fn rewind_to_v11(root: &Path) {
     for table in KNOWLEDGE_TABLES {
         conn.execute_batch(&format!("DROP TABLE {table};")).unwrap();
     }
+    // Later additive versions (Spec 084 v13, ...) are absent in a v11 build too.
+    for table in [
+        "hub_identity",
+        "hub_invitations",
+        "hub_devices",
+        "hub_nonces",
+        "hub_events",
+        "hub_links",
+        "hub_link_secrets",
+        "hub_outbox",
+        "hub_mirror",
+    ] {
+        conn.execute_batch(&format!("DROP TABLE IF EXISTS {table};"))
+            .unwrap();
+    }
     conn.execute("DELETE FROM migration_journal WHERE version >= 12", [])
         .unwrap();
 }
@@ -94,7 +109,7 @@ fn pre_083_view(meta: &SqliteMetaStore) -> serde_json::Value {
         serde_json::from_slice(&meta.snapshot_bytes().unwrap()).unwrap();
     let object = snapshot.as_object_mut().unwrap();
     object.remove("schema_version");
-    object.retain(|key, _| !key.starts_with("knowledge_"));
+    object.retain(|key, _| !key.starts_with("knowledge_") && !key.starts_with("hub_"));
     snapshot
 }
 
@@ -562,7 +577,7 @@ fn pre_083_v11_backup_restores_with_empty_knowledge_tables() {
     backup_vault(&vault, &dest).unwrap();
     tamper_backup(&dest, |s| {
         let o = s.as_object_mut().unwrap();
-        o.retain(|k, _| !k.starts_with("knowledge_"));
+        o.retain(|k, _| !k.starts_with("knowledge_") && !k.starts_with("hub_"));
         o.insert("schema_version".to_owned(), serde_json::json!(11));
     });
     restore_vault(&dest, &root.join("restored")).unwrap();

@@ -13,6 +13,7 @@ pub mod evidence;
 pub mod ffi_policy;
 pub mod fhir;
 pub mod fixture_ui;
+pub mod hub;
 pub mod ingest;
 pub mod knowledge;
 pub mod legal;

@@ -46,6 +46,15 @@ const LATER_VERSION_TABLES: &[&str] = &[
     "knowledge_chunks",
     "knowledge_receipts",
     "knowledge_canvases",
+    "hub_identity",
+    "hub_invitations",
+    "hub_devices",
+    "hub_nonces",
+    "hub_events",
+    "hub_links",
+    "hub_link_secrets",
+    "hub_outbox",
+    "hub_mirror",
 ];
 
 fn temp_root(name: &str) -> PathBuf {
@@ -120,6 +129,7 @@ fn pre_080_view(meta: &SqliteMetaStore) -> serde_json::Value {
             && !key.starts_with("audio_")
             && !key.starts_with("analytics_")
             && !key.starts_with("knowledge_")
+            && !key.starts_with("hub_")
     });
     snapshot
 }
@@ -558,6 +568,7 @@ fn pre_080_v8_backup_restores_with_empty_browse_tables() {
                 && !k.starts_with("audio_")
                 && !k.starts_with("analytics_")
                 && !k.starts_with("knowledge_")
+                && !k.starts_with("hub_")
         });
         o.insert("schema_version".to_owned(), serde_json::json!(8));
     });

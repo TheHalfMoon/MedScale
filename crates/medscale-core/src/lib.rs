@@ -7,6 +7,7 @@ pub mod authority;
 pub mod cli_session;
 pub mod doctor;
 pub mod effects;
+pub mod hub_sync;
 pub mod ipc;
 pub mod process;
 pub mod release_sbom;

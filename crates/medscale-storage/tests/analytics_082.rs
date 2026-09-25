@@ -77,6 +77,15 @@ fn rewind_to_v10(root: &Path) {
         "knowledge_chunks",
         "knowledge_receipts",
         "knowledge_canvases",
+        "hub_identity",
+        "hub_invitations",
+        "hub_devices",
+        "hub_nonces",
+        "hub_events",
+        "hub_links",
+        "hub_link_secrets",
+        "hub_outbox",
+        "hub_mirror",
     ] {
         conn.execute_batch(&format!("DROP TABLE IF EXISTS {table};"))
             .unwrap();
@@ -101,7 +110,9 @@ fn pre_082_view(meta: &SqliteMetaStore) -> serde_json::Value {
         serde_json::from_slice(&meta.snapshot_bytes().unwrap()).unwrap();
     let object = snapshot.as_object_mut().unwrap();
     object.remove("schema_version");
-    object.retain(|key, _| !key.starts_with("analytics_") && !key.starts_with("knowledge_"));
+    object.retain(|key, _| {
+        !key.starts_with("analytics_") && !key.starts_with("knowledge_") && !key.starts_with("hub_")
+    });
     snapshot
 }
 
@@ -438,7 +449,9 @@ fn pre_082_v10_backup_restores_with_empty_analytics_tables() {
     backup_vault(&vault, &dest).unwrap();
     tamper_backup(&dest, |s| {
         let o = s.as_object_mut().unwrap();
-        o.retain(|k, _| !k.starts_with("analytics_") && !k.starts_with("knowledge_"));
+        o.retain(|k, _| {
+            !k.starts_with("analytics_") && !k.starts_with("knowledge_") && !k.starts_with("hub_")
+        });
         o.insert("schema_version".to_owned(), serde_json::json!(10));
     });
     restore_vault(&dest, &root.join("restored")).unwrap();

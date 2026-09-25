@@ -19,6 +19,7 @@ mod audio;
 mod browse;
 mod collaboration;
 mod data_source;
+mod hub;
 mod knowledge;
 mod medagent;
 mod model_fleet;
@@ -185,6 +186,11 @@ enum Commands {
     Knowledge {
         #[command(subcommand)]
         action: Box<knowledge::KnowledgeCmd>,
+    },
+    /// MedScale Hub foundation (Spec 084; local-socket IPC only, no network).
+    Hub {
+        #[command(subcommand)]
+        action: Box<hub::HubCmd>,
     },
     /// AudioFlow Foundation (Spec 081; local audio import, capture and
     /// transcript lineage).
@@ -1217,6 +1223,7 @@ fn run() -> Result<()> {
         Commands::Audio { action } => audio::run_audio(*action),
         Commands::Analytics { action } => analytics::run_analytics(*action),
         Commands::Knowledge { action } => knowledge::run_knowledge(*action),
+        Commands::Hub { action } => hub::run_hub(*action),
         Commands::DataSource { action } => data_source::run_data_source(*action),
         Commands::Snapshot { action } => data_source::run_snapshot(*action),
         Commands::DataView { action } => data_source::run_data_view(*action),

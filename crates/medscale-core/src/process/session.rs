@@ -75,6 +75,17 @@ impl SessionRegistry {
         }
     }
 
+    /// Revokes every session bound to `holder_id` (Spec 084 device
+    /// revocation).
+    pub fn revoke_holder(&self, holder_id: &OpaqueId) {
+        let mut state = self.lock();
+        for session in state.sessions.values_mut() {
+            if &session.holder_id == holder_id {
+                session.revoked = true;
+            }
+        }
+    }
+
     /// Validates a live session for vault + capability.
     pub fn validate(
         &self,
