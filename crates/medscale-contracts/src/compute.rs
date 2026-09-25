@@ -108,7 +108,9 @@ impl ComputeJobKind {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum ComputeParams {
-    ColumnProfile,
+    /// An empty struct variant, not a unit variant: serde ignores unknown
+    /// fields on unit variants of internally tagged enums.
+    ColumnProfile {},
     SortedProjection {
         columns: Vec<String>,
         sort_by: Vec<String>,
@@ -139,7 +141,7 @@ impl ComputeParams {
     #[must_use]
     pub const fn kind(&self) -> ComputeJobKind {
         match self {
-            Self::ColumnProfile => ComputeJobKind::ColumnProfile,
+            Self::ColumnProfile {} => ComputeJobKind::ColumnProfile,
             Self::SortedProjection { .. } => ComputeJobKind::SortedProjection,
         }
     }
@@ -147,7 +149,7 @@ impl ComputeParams {
     /// Checks bounds that do not depend on the input.
     pub fn validate(&self) -> Result<(), String> {
         match self {
-            Self::ColumnProfile => Ok(()),
+            Self::ColumnProfile {} => Ok(()),
             Self::SortedProjection {
                 columns, sort_by, ..
             } => {
@@ -161,7 +163,7 @@ impl ComputeParams {
     #[must_use]
     pub fn columns_exist(&self, fields: &[SchemaField]) -> bool {
         match self {
-            Self::ColumnProfile => true,
+            Self::ColumnProfile {} => true,
             Self::SortedProjection {
                 columns, sort_by, ..
             } => columns
@@ -962,14 +964,14 @@ pub fn execute(
 ) -> Result<ResultTableDoc, WorkerRefusal> {
     params.validate().map_err(|_| WorkerRefusal::BadParams)?;
     let rows_out = match params {
-        ComputeParams::ColumnProfile => doc.fields.len() as u64,
+        ComputeParams::ColumnProfile {} => doc.fields.len() as u64,
         ComputeParams::SortedProjection { .. } => doc.rows.len() as u64,
     };
     if rows_out > max_output_rows {
         return Err(WorkerRefusal::RowLimitExceeded);
     }
     match params {
-        ComputeParams::ColumnProfile => Ok(column_profile(doc)),
+        ComputeParams::ColumnProfile {} => Ok(column_profile(doc)),
         ComputeParams::SortedProjection {
             columns,
             sort_by,
@@ -1035,7 +1037,7 @@ pub fn validate_output(
         }
     }
     match params {
-        ComputeParams::ColumnProfile => {
+        ComputeParams::ColumnProfile {} => {
             let expected: Vec<(&str, &str)> = table
                 .columns
                 .iter()
@@ -1227,11 +1229,19 @@ mod tests {
                 .is_err()
         );
         assert!(serde_json::from_str::<NetworkPosture>(r#""allowed""#).is_err());
+        assert_eq!(
+            serde_json::from_str::<ComputeParams>(r#"{"kind":"column_profile"}"#).unwrap(),
+            ComputeParams::ColumnProfile {}
+        );
+        assert_eq!(
+            serde_json::to_string(&ComputeParams::ColumnProfile {}).unwrap(),
+            r#"{"kind":"column_profile"}"#
+        );
     }
 
     #[test]
     fn column_profile_matches_hand_computed_values() {
-        let table = execute(&ComputeParams::ColumnProfile, &doc(), 100).unwrap();
+        let table = execute(&ComputeParams::ColumnProfile {}, &doc(), 100).unwrap();
         assert_eq!(table.rows.len(), 3);
         assert_eq!(
             table.rows[0],
@@ -1253,7 +1263,7 @@ mod tests {
         assert_eq!(table.rows[2][5], CellValue::Float(2.5));
         assert_eq!(table.rows[2][7], CellValue::Float(3.0));
         let (fields, _) = fixture();
-        validate_output(&ComputeParams::ColumnProfile, &fields, 3, &table).unwrap();
+        validate_output(&ComputeParams::ColumnProfile {}, &fields, 3, &table).unwrap();
     }
 
     #[test]
@@ -1312,7 +1322,7 @@ mod tests {
 
     #[test]
     fn worker_responses_are_deterministic_and_checked() {
-        let req = request(ComputeParams::ColumnProfile);
+        let req = request(ComputeParams::ColumnProfile {});
         let a = respond(&req, applied());
         let b = respond(&req, applied());
         assert_eq!(
@@ -1383,9 +1393,9 @@ mod tests {
         let mut ragged = good;
         ragged.rows[0].push(CellValue::Null);
         assert!(validate_output(&params, &fields, 3, &ragged).is_err());
-        let mut profile = execute(&ComputeParams::ColumnProfile, &doc(), 100).unwrap();
+        let mut profile = execute(&ComputeParams::ColumnProfile {}, &doc(), 100).unwrap();
         profile.rows[0][3] = CellValue::Integer(5);
-        assert!(validate_output(&ComputeParams::ColumnProfile, &fields, 3, &profile).is_err());
+        assert!(validate_output(&ComputeParams::ColumnProfile {}, &fields, 3, &profile).is_err());
     }
 
     #[test]

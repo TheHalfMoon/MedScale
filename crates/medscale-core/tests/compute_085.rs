@@ -142,7 +142,7 @@ fn jobs_run_in_the_worker_and_match_hand_computed_fixtures() {
     let mut lab = setup("fixtures");
     let before = lab.s.snapshot_get(lab.snapshot.clone()).unwrap();
 
-    let req = request(&lab, ComputeParams::ColumnProfile);
+    let req = request(&lab, ComputeParams::ColumnProfile {});
 
     let profile = submit_and_run(&mut lab, req);
     assert_eq!(profile.job.state, ComputeState::Completed, "{profile:?}");
@@ -236,7 +236,7 @@ fn jobs_run_in_the_worker_and_match_hand_computed_fixtures() {
     );
 
     // Deterministic: the same job again yields byte-identical output.
-    let req = request(&lab, ComputeParams::ColumnProfile);
+    let req = request(&lab, ComputeParams::ColumnProfile {});
     let again = submit_and_run(&mut lab, req);
     assert_eq!(
         again.output.as_ref().unwrap().content_digest,
@@ -270,14 +270,14 @@ fn admission_refuses_with_receipts_and_runs_nothing() {
         (
             ComputeJobRequest {
                 snapshot_id: OpaqueId::new("snapshot-999"),
-                ..request(&lab, ComputeParams::ColumnProfile)
+                ..request(&lab, ComputeParams::ColumnProfile {})
             },
             ComputeDenyReason::InputUnavailable,
         ),
         (
             ComputeJobRequest {
                 snapshot_id: foreign,
-                ..request(&lab, ComputeParams::ColumnProfile)
+                ..request(&lab, ComputeParams::ColumnProfile {})
             },
             ComputeDenyReason::InputUnavailable,
         ),
@@ -303,7 +303,7 @@ fn admission_refuses_with_receipts_and_runs_nothing() {
                     timeout_ms: 1,
                     ..ResourceCeilings::default()
                 }),
-                ..request(&lab, ComputeParams::ColumnProfile)
+                ..request(&lab, ComputeParams::ColumnProfile {})
             },
             ComputeDenyReason::BadLimits,
         ),
@@ -313,7 +313,7 @@ fn admission_refuses_with_receipts_and_runs_nothing() {
                     max_input_bytes: 16,
                     ..ResourceCeilings::default()
                 }),
-                ..request(&lab, ComputeParams::ColumnProfile)
+                ..request(&lab, ComputeParams::ColumnProfile {})
             },
             ComputeDenyReason::InputTooLarge,
         ),
@@ -339,7 +339,7 @@ fn admission_refuses_with_receipts_and_runs_nothing() {
         lab.s
             .compute_submit(ComputeJobRequest {
                 project_id: OpaqueId::new("project-999"),
-                ..request(&lab, ComputeParams::ColumnProfile)
+                ..request(&lab, ComputeParams::ColumnProfile {})
             })
             .is_err()
     );
@@ -349,7 +349,7 @@ fn admission_refuses_with_receipts_and_runs_nothing() {
 #[test]
 fn a_job_runs_at_most_once_and_cancelled_jobs_never_run() {
     let mut lab = setup("once");
-    let req = request(&lab, ComputeParams::ColumnProfile);
+    let req = request(&lab, ComputeParams::ColumnProfile {});
     let done = submit_and_run(&mut lab, req);
     assert_eq!(done.job.state, ComputeState::Completed);
     let id = done.job.header.id.clone();
@@ -368,7 +368,7 @@ fn a_job_runs_at_most_once_and_cancelled_jobs_never_run() {
 
     let queued = lab
         .s
-        .compute_submit(request(&lab, ComputeParams::ColumnProfile))
+        .compute_submit(request(&lab, ComputeParams::ColumnProfile {}))
         .unwrap();
     let cancelled = lab.s.compute_cancel(queued.job.header.id.clone()).unwrap();
     assert_eq!(cancelled.job.state, ComputeState::Cancelled);
@@ -397,7 +397,7 @@ fn inputs_are_re_verified_before_staging() {
     // Input replacement after submission: the stored bytes change.
     let replaced = lab
         .s
-        .compute_submit(request(&lab, ComputeParams::ColumnProfile))
+        .compute_submit(request(&lab, ComputeParams::ColumnProfile {}))
         .unwrap();
     let digest = replaced
         .job
@@ -429,7 +429,7 @@ fn inputs_are_re_verified_before_staging() {
     // Stale reference: the snapshot is no longer this Project's.
     let stale = lab
         .s
-        .compute_submit(request(&lab, ComputeParams::ColumnProfile))
+        .compute_submit(request(&lab, ComputeParams::ColumnProfile {}))
         .unwrap();
     let other = lab
         .s
@@ -483,55 +483,55 @@ fn faulty_workers_are_contained_and_commit_nothing() {
     let cases: Vec<(&str, ComputeParams, ComputeState, ComputeFailure)> = vec![
         (
             "hang",
-            ComputeParams::ColumnProfile,
+            ComputeParams::ColumnProfile {},
             ComputeState::TimedOut,
             ComputeFailure::TimeLimit,
         ),
         (
             "flood-stdout",
-            ComputeParams::ColumnProfile,
+            ComputeParams::ColumnProfile {},
             ComputeState::ResourceExhausted,
             ComputeFailure::OutputTooLarge,
         ),
         (
             "crash",
-            ComputeParams::ColumnProfile,
+            ComputeParams::ColumnProfile {},
             ComputeState::Failed,
             ComputeFailure::WorkerCrashed,
         ),
         (
             "partial",
-            ComputeParams::ColumnProfile,
+            ComputeParams::ColumnProfile {},
             ComputeState::Corrupt,
             ComputeFailure::MalformedProtocol,
         ),
         (
             "malformed",
-            ComputeParams::ColumnProfile,
+            ComputeParams::ColumnProfile {},
             ComputeState::Corrupt,
             ComputeFailure::MalformedProtocol,
         ),
         (
             "trailing",
-            ComputeParams::ColumnProfile,
+            ComputeParams::ColumnProfile {},
             ComputeState::Corrupt,
             ComputeFailure::MalformedProtocol,
         ),
         (
             "wrong-job",
-            ComputeParams::ColumnProfile,
+            ComputeParams::ColumnProfile {},
             ComputeState::Corrupt,
             ComputeFailure::JobMismatch,
         ),
         (
             "wrong-digest",
-            ComputeParams::ColumnProfile,
+            ComputeParams::ColumnProfile {},
             ComputeState::Corrupt,
             ComputeFailure::OutputDigestMismatch,
         ),
         (
             "noncanonical",
-            ComputeParams::ColumnProfile,
+            ComputeParams::ColumnProfile {},
             ComputeState::Corrupt,
             ComputeFailure::OutputInvalid,
         ),
@@ -543,25 +543,25 @@ fn faulty_workers_are_contained_and_commit_nothing() {
         ),
         (
             "claims-qualified",
-            ComputeParams::ColumnProfile,
+            ComputeParams::ColumnProfile {},
             ComputeState::Corrupt,
             ComputeFailure::MalformedProtocol,
         ),
         (
             "env-leak",
-            ComputeParams::ColumnProfile,
+            ComputeParams::ColumnProfile {},
             ComputeState::Unavailable,
             ComputeFailure::EnvironmentNotCleared,
         ),
         (
             "no-sandbox",
-            ComputeParams::ColumnProfile,
+            ComputeParams::ColumnProfile {},
             ComputeState::Unavailable,
             ComputeFailure::SandboxUnavailable,
         ),
         (
             "no-sandbox-completes",
-            ComputeParams::ColumnProfile,
+            ComputeParams::ColumnProfile {},
             ComputeState::Unavailable,
             ComputeFailure::SandboxUnavailable,
         ),
@@ -584,7 +584,7 @@ fn faulty_workers_are_contained_and_commit_nothing() {
 
     // Stderr is bounded and never stored as text; the job still completes.
     lab.s.set_compute_runtime(fault("flood-stderr"));
-    let req = request(&lab, ComputeParams::ColumnProfile);
+    let req = request(&lab, ComputeParams::ColumnProfile {});
     let view = submit_and_run(&mut lab, req);
     assert_eq!(view.job.state, ComputeState::Completed, "{view:?}");
     let r = view.receipt.as_ref().unwrap();
@@ -598,7 +598,7 @@ fn faulty_workers_are_contained_and_commit_nothing() {
     lab.s.set_compute_runtime(fault("no-sandbox"));
     let req = ComputeJobRequest {
         sandbox: Some(SandboxRequirement::ProcessIsolationOnly),
-        ..request(&lab, ComputeParams::ColumnProfile)
+        ..request(&lab, ComputeParams::ColumnProfile {})
     };
     let view = submit_and_run(&mut lab, req);
     assert_eq!(view.job.state, ComputeState::Completed, "{view:?}");
@@ -611,7 +611,7 @@ fn faulty_workers_are_contained_and_commit_nothing() {
         lab.dir.join("no-such-worker"),
         vec![],
     ));
-    let req = request(&lab, ComputeParams::ColumnProfile);
+    let req = request(&lab, ComputeParams::ColumnProfile {});
     let view = submit_and_run(&mut lab, req);
     assert_eq!(view.job.state, ComputeState::Unavailable);
     assert_eq!(
@@ -628,7 +628,7 @@ fn a_running_job_cancels_through_its_handle() {
     lab.s.set_compute_runtime(fault("slow"));
     let job = lab
         .s
-        .compute_submit(request(&lab, ComputeParams::ColumnProfile))
+        .compute_submit(request(&lab, ComputeParams::ColumnProfile {}))
         .unwrap();
     let canceller = lab.s.compute_canceller();
     let finished = Arc::new(AtomicBool::new(false));
@@ -654,7 +654,7 @@ fn a_running_job_cancels_through_its_handle() {
     assert!(started.elapsed() < Duration::from_secs(15));
     // The next run starts with a fresh handle and is not cancelled.
     lab.s.set_compute_runtime(ComputeRuntime::resolve());
-    let req = request(&lab, ComputeParams::ColumnProfile);
+    let req = request(&lab, ComputeParams::ColumnProfile {});
     let view = submit_and_run(&mut lab, req);
     assert_eq!(view.job.state, ComputeState::Completed, "{view:?}");
 }
@@ -682,14 +682,14 @@ fn jobs_orphaned_by_a_crash_are_interrupted_not_rerun() {
     let mut lab = setup("recover");
     let orphan = lab
         .s
-        .compute_submit(request(&lab, ComputeParams::ColumnProfile))
+        .compute_submit(request(&lab, ComputeParams::ColumnProfile {}))
         .unwrap()
         .job
         .header
         .id;
     let second = lab
         .s
-        .compute_submit(request(&lab, ComputeParams::ColumnProfile))
+        .compute_submit(request(&lab, ComputeParams::ColumnProfile {}))
         .unwrap()
         .job
         .header
@@ -723,7 +723,7 @@ fn jobs_orphaned_by_a_crash_are_interrupted_not_rerun() {
     // A run also recovers orphans first, then runs only its own job.
     let third = lab
         .s
-        .compute_submit(request(&lab, ComputeParams::ColumnProfile))
+        .compute_submit(request(&lab, ComputeParams::ColumnProfile {}))
         .unwrap()
         .job
         .header

@@ -84,7 +84,7 @@ fn build_params(
             if columns.is_some() || sort_by.is_some() || descending {
                 return Err("column_profile takes no columns or sort keys".to_owned());
             }
-            Ok(ComputeParams::ColumnProfile)
+            Ok(ComputeParams::ColumnProfile {})
         }
         ComputeJobKind::SortedProjection => Ok(ComputeParams::SortedProjection {
             columns: split_names(columns),
@@ -415,7 +415,7 @@ mod tests {
     fn params_parse_strictly() {
         assert_eq!(
             build_params("column_profile", None, None, false).unwrap(),
-            ComputeParams::ColumnProfile
+            ComputeParams::ColumnProfile {}
         );
         assert!(build_params("column_profile", Some("a"), None, false).is_err());
         assert!(build_params("shell", None, None, false).is_err());
@@ -509,7 +509,7 @@ mod tests {
             .compute_submit(ComputeJobRequest {
                 project_id: project.clone(),
                 snapshot_id: snapshot.clone(),
-                params: ComputeParams::ColumnProfile,
+                params: ComputeParams::ColumnProfile {},
                 sandbox: None,
                 limits: None,
             })

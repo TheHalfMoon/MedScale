@@ -88,7 +88,7 @@ fn job(n: u32) -> ComputeJob {
         job_id: id(&format!("compute-job-{n}")),
         project_id: id("proj-1"),
         kind,
-        params: ComputeParams::ColumnProfile,
+        params: ComputeParams::ColumnProfile {},
         requested_snapshot_id: id("snapshot-1"),
         input: Some(input()),
         runtime: RuntimeIdentity::current(kind),

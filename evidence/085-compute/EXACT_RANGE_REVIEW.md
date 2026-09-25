@@ -34,3 +34,5 @@ PLATFORM   = Windows 11 workstation, git for Windows, 2026-09-26
 | 0bbfaed | exact-range review | manual loop counter in the consistency check (would fail Clippy) | `7adf90f` |
 | 7adf90f | exact-range review | a scripted edit rewrote `medscale-cli/src/main.rs` from CRLF to LF (1,623-line diff) | `e26a773` |
 | 7adf90f | CI (Clippy) | assertions on constants in schema tests | `7560ad5` |
+| 7560ad5 | CI (compile, all OSes) | Core test helper borrowed the lab mutably while building its request | `9f173fe` |
+| 9f173fe | CI (contract test) | `{"kind":"column_profile","code":"x"}` parsed: serde ignores unknown fields on unit variants of internally tagged enums, so the closed-params claim did not hold for that kind | `ColumnProfile {}` is an empty struct variant; unknown fields are refused (next head) |
