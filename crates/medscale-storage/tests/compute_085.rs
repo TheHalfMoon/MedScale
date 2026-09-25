@@ -201,7 +201,7 @@ fn migration_v13_to_v14_is_additive() {
     drop(conn);
     assert!(!table_exists(&root, "compute_jobs"));
     let meta = open_meta(&root);
-    assert!(CURRENT_META_SCHEMA_VERSION >= 14);
+    assert_eq!(CURRENT_META_SCHEMA_VERSION, 14);
     assert_eq!(
         meta.migration_journal().unwrap().finished_version,
         CURRENT_META_SCHEMA_VERSION

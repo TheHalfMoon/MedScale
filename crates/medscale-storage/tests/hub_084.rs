@@ -272,7 +272,6 @@ fn migration_v12_to_v13_is_additive() {
         meta.migration_journal().unwrap().finished_version,
         CURRENT_META_SCHEMA_VERSION
     );
-    assert!(CURRENT_META_SCHEMA_VERSION >= 13);
     for table in HUB_TABLES {
         assert!(table_exists(&root, table), "{table}");
     }
