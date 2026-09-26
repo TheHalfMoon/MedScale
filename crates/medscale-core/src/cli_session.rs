@@ -3676,6 +3676,19 @@ impl CliSession {
         }
     }
 
+    pub fn adapter_list(
+        &mut self,
+        project_id: OpaqueId,
+    ) -> Result<Vec<medscale_contracts::institutional::InstitutionalAdapter>, AuthorityError> {
+        match self.dispatch(
+            Capability::AdapterRead,
+            RequestBody::AdapterList { project_id },
+        )? {
+            ResponseBody::Adapters { adapters } => Ok(adapters),
+            _ => Err(Self::unexpected("adapters")),
+        }
+    }
+
     pub fn adapter_get(
         &mut self,
         adapter_id: OpaqueId,

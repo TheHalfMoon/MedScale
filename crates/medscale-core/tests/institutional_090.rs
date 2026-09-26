@@ -137,8 +137,11 @@ fn a_write_is_intended_sent_and_confirmed_with_receipts() {
     );
     assert_eq!(again.receipt.refusal, Some(WriteRefusal::AlreadyConfirmed));
     assert_eq!(lab.store.puts(), 1);
-    let view = lab.s.adapter_get(adapter).unwrap();
+    let view = lab.s.adapter_get(adapter.clone()).unwrap();
     assert!(view.receipts.len() >= 4);
+    let listed = lab.s.adapter_list(lab.project.clone()).unwrap();
+    assert_eq!(listed.len(), 1);
+    assert_eq!(listed[0].header.id, adapter);
 }
 
 #[test]

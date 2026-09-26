@@ -1665,6 +1665,9 @@ pub enum RequestBody {
     AdapterGet {
         adapter_id: OpaqueId,
     },
+    AdapterList {
+        project_id: OpaqueId,
+    },
 }
 
 impl RequestBody {
@@ -2330,6 +2333,9 @@ pub enum ResponseBody {
     },
     Adapter {
         view: Box<crate::institutional::AdapterView>,
+    },
+    Adapters {
+        adapters: Vec<crate::institutional::InstitutionalAdapter>,
     },
 }
 

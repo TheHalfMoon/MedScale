@@ -3510,6 +3510,16 @@ impl CoreFacade {
                     result: Box::new(result),
                 })
             }
+            RequestBody::AdapterList { project_id } => {
+                let adapters = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |d| d.adapter_list(&project_id),
+                )?;
+                Ok(ResponseBody::Adapters { adapters })
+            }
             RequestBody::AdapterGet { adapter_id } => {
                 let view = self.ds(
                     &req.vault_id,
@@ -5606,7 +5616,10 @@ fn capability_matches(cap: &Capability, body: &RequestBody) -> bool {
             | (Capability::HuddleAct, RequestBody::HuddleAct { .. })
             | (Capability::PackAdmin, RequestBody::PackAct { .. })
             | (Capability::AdapterAdmin, RequestBody::AdapterAct { .. })
-            | (Capability::AdapterRead, RequestBody::AdapterGet { .. })
+            | (
+                Capability::AdapterRead,
+                RequestBody::AdapterGet { .. } | RequestBody::AdapterList { .. }
+            )
             | (
                 Capability::PackRead,
                 RequestBody::PackCatalog
