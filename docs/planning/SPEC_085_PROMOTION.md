@@ -2,7 +2,7 @@
 
 **Status:** `PROMOTED_IMPLEMENTATION_AUTHORIZED`
 **Promotion date:** 2026-09-26
-**Canonical base:** `__BASE__` (Spec 084 closure)
+**Canonical base:** `434d1c71f9739d74e886b235a237cb741ddc51b5` (Spec 084 closure PR #150)
 **Target branch:** `spec/085-compute`
 
 ## Authority
@@ -17,7 +17,11 @@ Live verification at promotion time:
 
 - Spec 084 is `CLOSED_CANONICAL`: final head `1c98478` passed exact-head
   run `36033616030` (6/6); PR #147 merged as `6caa698`; post-merge main run
-  `36193194092` passed 6/6 (`evidence/084-hub/CLOSURE.md`).
+  `36193194092` passed 6/6 (`evidence/084-hub/CLOSURE.md`). Closure PR #150
+  (exact-head run `36199070870`, 6/6 on `bafea22`) merged as `434d1c7`; its
+  post-main run is `36203706536`, verified before this spec's
+  implementation PR merges (recorded in
+  `evidence/085-compute/POST_MERGE_VERIFICATION.md`).
 - Specs 077 and 079 are `CLOSED_CANONICAL` (see `BUILD_QUEUE.md`).
 
 Dependency proof: `RESEARCH_OS_V2_SPEC_IMPLEMENTATION_CONTRACTS.md` and
@@ -96,11 +100,11 @@ as `platform_qualified`.
   `protocol_version`, `kind_version`), an execution policy, resource
   ceilings, and a `manifest_digest` over all of these. The manifest never
   changes after submission.
-- Execution policy fields are fixed values validated on every read:
-  `network=denied`, `shell=denied`, `user_code=denied`,
-  `environment=cleared`, `inherited_handles=stdio_pipes_only`,
-  `filesystem=empty_scratch_only`, plus `sandbox_requirement`
-  (`ready_base_required` by default, or `process_isolation_only`).
+- Execution policy fields are single-value vocabularies checked on every
+  parse: `network=denied`, `code=closed_kinds_only` (no shell, interpreter
+  or user code), `environment=cleared`, `handles=stdio_pipes_only`,
+  `filesystem=empty_scratch_only`, plus `sandbox` (`ready_base_required` by
+  default, or `process_isolation_only`).
 - Ceilings (all bounded by hard maxima): input bytes, output bytes, output
   rows, stderr bytes, timeout in milliseconds.
 - States (closed; never collapsed): `queued`, `running`, `completed`,
@@ -125,8 +129,8 @@ as `platform_qualified`.
 3. A job runs at most once: a second run of a non-queued job is refused
    and executes nothing; a cancelled job never runs.
 4. A staged input whose bytes no longer match the pinned digest is not
-   executed and ends `corrupt`; a snapshot removed after submission ends
-   `denied` (stale reference).
+   executed and ends `corrupt`; a snapshot that is no longer the
+   Project's after submission ends `denied` (stale reference).
 5. A worker that hangs ends `timed_out`; one that floods stdout ends
    `resource_exhausted`; one that floods stderr is bounded and its text is
    not stored; one that crashes ends `failed`; one that writes malformed,

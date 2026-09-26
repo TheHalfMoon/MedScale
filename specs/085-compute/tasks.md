@@ -1,7 +1,7 @@
 # Tasks — Spec 085 MedScale Compute
 
 ## T085-00 — Live truth and promotion
-- [ ] Record base SHA (Spec 084 closure main), open PRs, CI state, schema version and sandbox qualification state.
+- [x] Record base SHA (Spec 084 closure main), open PRs, CI state, schema version and sandbox qualification state.
 
 ## T085-01 — Contracts and worker
 - [ ] `compute.rs` contracts, closed vocabularies, job kinds, worker protocol, output validation; worker and fault-harness binaries; unit tests.
