@@ -3556,6 +3556,102 @@ impl CliSession {
     }
 
     // ---------------------------------------------------------------------
+    // Spec 085: MedScale Compute
+    // ---------------------------------------------------------------------
+
+    /// Replaces the Compute worker (qualification harnesses only).
+    pub fn set_compute_runtime(&mut self, runtime: crate::compute_supervisor::ComputeRuntime) {
+        self.facade.set_compute_runtime(runtime);
+    }
+
+    /// Cancels the compute run in progress from another thread.
+    #[must_use]
+    pub fn compute_canceller(&self) -> crate::compute_supervisor::CancelSlot {
+        self.facade.compute_canceller()
+    }
+
+    fn compute_view(
+        &mut self,
+        capability: Capability,
+        body: RequestBody,
+    ) -> Result<medscale_contracts::compute::ComputeJobView, AuthorityError> {
+        match self.dispatch(capability, body)? {
+            ResponseBody::ComputeJob { view } => Ok(*view),
+            _ => Err(Self::unexpected("compute job view")),
+        }
+    }
+
+    pub fn compute_submit(
+        &mut self,
+        request: medscale_contracts::compute::ComputeJobRequest,
+    ) -> Result<medscale_contracts::compute::ComputeJobView, AuthorityError> {
+        self.compute_view(
+            Capability::ComputeSubmit,
+            RequestBody::ComputeSubmit {
+                request: Box::new(request),
+            },
+        )
+    }
+
+    pub fn compute_run(
+        &mut self,
+        job_id: OpaqueId,
+    ) -> Result<medscale_contracts::compute::ComputeJobView, AuthorityError> {
+        self.compute_view(Capability::ComputeRun, RequestBody::ComputeRun { job_id })
+    }
+
+    pub fn compute_cancel(
+        &mut self,
+        job_id: OpaqueId,
+    ) -> Result<medscale_contracts::compute::ComputeJobView, AuthorityError> {
+        self.compute_view(
+            Capability::ComputeSubmit,
+            RequestBody::ComputeCancel { job_id },
+        )
+    }
+
+    pub fn compute_job(
+        &mut self,
+        job_id: OpaqueId,
+    ) -> Result<medscale_contracts::compute::ComputeJobView, AuthorityError> {
+        self.compute_view(
+            Capability::ComputeRead,
+            RequestBody::ComputeJobGet { job_id },
+        )
+    }
+
+    pub fn compute_recover(
+        &mut self,
+    ) -> Result<Vec<medscale_contracts::compute::ComputeJobView>, AuthorityError> {
+        match self.dispatch(Capability::ComputeRun, RequestBody::ComputeRecover)? {
+            ResponseBody::ComputeRecovered { views } => Ok(views),
+            _ => Err(Self::unexpected("recovered compute jobs")),
+        }
+    }
+
+    pub fn compute_jobs(
+        &mut self,
+        project_id: OpaqueId,
+    ) -> Result<Vec<medscale_contracts::compute::ComputeJob>, AuthorityError> {
+        match self.dispatch(
+            Capability::ComputeRead,
+            RequestBody::ComputeJobList { project_id },
+        )? {
+            ResponseBody::ComputeJobs { jobs } => Ok(jobs),
+            _ => Err(Self::unexpected("compute jobs")),
+        }
+    }
+
+    pub fn compute_status(
+        &mut self,
+    ) -> Result<medscale_contracts::compute::ComputeStatus, AuthorityError> {
+        match self.dispatch(Capability::ComputeRead, RequestBody::ComputeStatus)? {
+            ResponseBody::ComputeStatus { status } => Ok(status),
+            _ => Err(Self::unexpected("compute status")),
+        }
+    }
+
+    // ---------------------------------------------------------------------
     // Spec 082: Analytics Gate
     // ---------------------------------------------------------------------
 

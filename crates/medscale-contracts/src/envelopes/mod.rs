@@ -23,6 +23,7 @@ use crate::collaboration::{
     ParticipantIdentity, ParticipantKind, Room, RoomMembership, RoomStatus, Task, TaskStatus,
     ThreadRef, ThreadStatus,
 };
+use crate::compute::{ComputeJob, ComputeJobRequest, ComputeJobView, ComputeStatus};
 use crate::data_sources::{
     DataSourceManifest, DataSourceSummary, DataViewKind, DatasetReleaseSummary, FilterExpr,
     RefreshReceipt, ReleaseManifest, SavedDataView, SavedViewSummary, SnapshotRowPage,
@@ -258,6 +259,10 @@ pub enum Capability {
     HubBootstrap,
     HubSync,
     HubClient,
+    // Spec 085: MedScale Compute (local bounded worker).
+    ComputeSubmit,
+    ComputeRun,
+    ComputeRead,
 }
 
 impl Capability {
@@ -320,6 +325,7 @@ impl Capability {
                 | Self::AnalyticsRead
                 | Self::KnowledgeRead
                 | Self::HubRead
+                | Self::ComputeRead
         )
     }
 
@@ -486,6 +492,9 @@ impl Capability {
             Self::HubAdmin,
             Self::HubRead,
             Self::HubClient,
+            Self::ComputeSubmit,
+            Self::ComputeRun,
+            Self::ComputeRead,
         ]
     }
 }
@@ -1487,6 +1496,27 @@ pub enum RequestBody {
         after: u64,
         limit: u32,
     },
+    // Spec 085: MedScale Compute (closed job kinds; no arbitrary code).
+    ComputeSubmit {
+        request: Box<ComputeJobRequest>,
+    },
+    /// Runs one queued job in the MedScale worker (synchronous).
+    ComputeRun {
+        job_id: OpaqueId,
+    },
+    /// Cancels a queued job.
+    ComputeCancel {
+        job_id: OpaqueId,
+    },
+    /// Marks jobs orphaned in `running` as `interrupted`.
+    ComputeRecover,
+    ComputeJobGet {
+        job_id: OpaqueId,
+    },
+    ComputeJobList {
+        project_id: OpaqueId,
+    },
+    ComputeStatus,
 }
 
 impl RequestBody {
@@ -2066,6 +2096,19 @@ pub enum ResponseBody {
         events: Vec<HubEvent>,
     },
     HubRecorded,
+    // Spec 085: MedScale Compute.
+    ComputeJob {
+        view: Box<ComputeJobView>,
+    },
+    ComputeJobs {
+        jobs: Vec<ComputeJob>,
+    },
+    ComputeRecovered {
+        views: Vec<ComputeJobView>,
+    },
+    ComputeStatus {
+        status: ComputeStatus,
+    },
 }
 
 /// Authority error vocabulary (fail closed).

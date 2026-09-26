@@ -18,6 +18,7 @@ mod analytics;
 mod audio;
 mod browse;
 mod collaboration;
+mod compute;
 mod data_source;
 mod hub;
 mod knowledge;
@@ -186,6 +187,12 @@ enum Commands {
     Knowledge {
         #[command(subcommand)]
         action: Box<knowledge::KnowledgeCmd>,
+    },
+    /// MedScale Compute (Spec 085; closed job kinds in the MedScale worker,
+    /// no arbitrary code, no network).
+    Compute {
+        #[command(subcommand)]
+        action: Box<compute::ComputeCmd>,
     },
     /// MedScale Hub foundation (Spec 084; local-socket IPC only, no network).
     Hub {
@@ -1224,6 +1231,7 @@ fn run() -> Result<()> {
         Commands::Analytics { action } => analytics::run_analytics(*action),
         Commands::Knowledge { action } => knowledge::run_knowledge(*action),
         Commands::Hub { action } => hub::run_hub(*action),
+        Commands::Compute { action } => compute::run_compute(*action),
         Commands::DataSource { action } => data_source::run_data_source(*action),
         Commands::Snapshot { action } => data_source::run_snapshot(*action),
         Commands::DataView { action } => data_source::run_data_view(*action),

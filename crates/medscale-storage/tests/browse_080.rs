@@ -55,6 +55,9 @@ const LATER_VERSION_TABLES: &[&str] = &[
     "hub_link_secrets",
     "hub_outbox",
     "hub_mirror",
+    "compute_jobs",
+    "compute_receipts",
+    "compute_outputs",
 ];
 
 fn temp_root(name: &str) -> PathBuf {
@@ -130,6 +133,7 @@ fn pre_080_view(meta: &SqliteMetaStore) -> serde_json::Value {
             && !key.starts_with("analytics_")
             && !key.starts_with("knowledge_")
             && !key.starts_with("hub_")
+            && !key.starts_with("compute_")
     });
     snapshot
 }
@@ -569,6 +573,7 @@ fn pre_080_v8_backup_restores_with_empty_browse_tables() {
                 && !k.starts_with("analytics_")
                 && !k.starts_with("knowledge_")
                 && !k.starts_with("hub_")
+                && !k.starts_with("compute_")
         });
         o.insert("schema_version".to_owned(), serde_json::json!(8));
     });

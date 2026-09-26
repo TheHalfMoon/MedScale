@@ -8,6 +8,7 @@ mod blob;
 mod browse;
 mod claim;
 mod collaboration;
+mod compute;
 mod data_sources;
 mod encrypted_vault;
 mod gc;
@@ -30,6 +31,7 @@ pub use backup::{backup_vault, restore_vault};
 pub use blob::FsBlobStore;
 pub use browse::{BrowseDownloadRow, BrowseEvidenceRow, BrowseSessionCommit};
 pub use claim::{ClaimError, assert_claim_path};
+pub use compute::{COMPUTE_TABLES, ComputeOutputRow};
 pub use data_sources::{
     EXTERNAL_TABLES_MAX, ExternalCell, ExternalTable, RECEIPT_KIND_IMPORT, RECEIPT_KIND_REFRESH,
     RECEIPT_KIND_TRANSFORMATION, SnapshotRecord, TransformationRecord, list_external_sqlite_tables,
@@ -51,7 +53,7 @@ pub use sqlite_meta::{AuthorityObjectRow, MetaError, SourceMeta, SqliteMetaStore
 pub use vault::{SyntheticVault, VaultError};
 pub use writer_lock::{WriterLock, WriterLockError};
 
-/// Top metadata schema version written by this build (Spec 084: v13). Tests of
+/// Top metadata schema version written by this build (Spec 085: v14). Tests of
 /// earlier specs assert against this constant so a later additive migration
 /// does not require editing them.
-pub const CURRENT_META_SCHEMA_VERSION: u32 = 13;
+pub const CURRENT_META_SCHEMA_VERSION: u32 = 14;

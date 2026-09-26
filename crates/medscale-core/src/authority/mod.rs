@@ -5,6 +5,7 @@ mod analytics;
 mod audio;
 mod browse;
 mod collaboration;
+mod compute;
 mod corpus;
 mod data_acquire;
 mod data_sources;

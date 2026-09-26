@@ -106,7 +106,9 @@ pub fn restore_vault(src: &Path, dest_vault_root: &Path) -> Result<(u64, u64), S
     let snapshot_schema = snapshot_value
         .get("schema_version")
         .and_then(|v| v.as_u64());
-    if snapshot_schema == Some(13) {
+    if snapshot_schema == Some(14) {
+        restore_v14(&vault, &snapshot_value, &mut sources)?;
+    } else if snapshot_schema == Some(13) {
         restore_v13(&vault, &snapshot_value, &mut sources)?;
     } else if snapshot_schema == Some(12) {
         restore_v12(&vault, &snapshot_value, &mut sources)?;
@@ -629,6 +631,32 @@ fn restore_required_rows<T: serde::de::DeserializeOwned>(
         return Err(format!("tampered metadata snapshot: {key} is missing"));
     }
     restore_rows(snapshot, key, restore)
+}
+
+fn restore_v14(
+    vault: &SyntheticVault,
+    snapshot: &serde_json::Value,
+    sources: &mut u64,
+) -> Result<(), String> {
+    restore_v13(vault, snapshot, sources)?;
+    // Spec 085 rows replay through plain-INSERT paths; output bytes are
+    // re-checked against their digests and canonical encoding; cross-row
+    // invariants are re-verified once every family is replayed. A job
+    // backed up while `running` restores as `running` and is recovered as
+    // `interrupted` by Core, never re-executed.
+    let meta = &vault.meta;
+    restore_required_rows(snapshot, "compute_jobs", |row| {
+        meta.restore_compute_job_row(row)
+    })?;
+    restore_required_rows(snapshot, "compute_receipts", |row| {
+        meta.restore_compute_receipt_row(row)
+    })?;
+    restore_required_rows(snapshot, "compute_outputs", |row| {
+        meta.restore_compute_output_row(row)
+    })?;
+    meta.verify_compute_consistency()
+        .map_err(|e| e.to_string())?;
+    Ok(())
 }
 
 fn restore_v13(

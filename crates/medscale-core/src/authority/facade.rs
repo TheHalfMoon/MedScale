@@ -51,6 +51,11 @@ pub struct CoreFacade {
     asr_engine: AsrEngineBox,
     /// Spec 081: capture sessions started by this process.
     live_captures: Mutex<std::collections::HashSet<String>>,
+    /// Spec 085: the Compute worker (default: the MedScale worker next to
+    /// this executable; never configurable through a request).
+    compute_runtime: crate::compute_supervisor::ComputeRuntime,
+    /// Spec 085: cancels the compute run in progress, if any.
+    compute_cancel: crate::compute_supervisor::CancelSlot,
 }
 
 /// Speech engine holder. `Debug` prints no configuration.
@@ -107,6 +112,8 @@ impl CoreFacade {
             browse_transport: BrowseTransportBox(Box::new(medscale_network::UreqBrowseTransport)),
             asr_engine: AsrEngineBox(None),
             live_captures: Mutex::new(std::collections::HashSet::new()),
+            compute_runtime: crate::compute_supervisor::ComputeRuntime::resolve(),
+            compute_cancel: crate::compute_supervisor::CancelSlot::default(),
         }
     }
 
@@ -144,6 +151,21 @@ impl CoreFacade {
     /// policy stays in Core; there is never a remote engine.
     pub fn set_asr_engine(&mut self, engine: Box<dyn super::audio::AsrEngine>) {
         self.asr_engine = AsrEngineBox(Some(engine));
+    }
+
+    /// Replaces the Spec 085 Compute worker (qualification harnesses name
+    /// a fault-injecting worker here). Admission, validation and commit
+    /// stay in Core.
+    pub fn set_compute_runtime(&mut self, runtime: crate::compute_supervisor::ComputeRuntime) {
+        self.compute_runtime = runtime;
+    }
+
+    /// Cancels whichever Spec 085 compute run is in progress (each run
+    /// installs a fresh handle when it starts). In-process only; usable
+    /// from another thread while the run holds the facade.
+    #[must_use]
+    pub fn compute_canceller(&self) -> crate::compute_supervisor::CancelSlot {
+        self.compute_cancel.clone()
     }
 
     /// Active session enforcement mode (Spec 024).
@@ -3257,6 +3279,89 @@ impl CoreFacade {
                 )?;
                 Ok(ResponseBody::Canvases { canvases: value })
             }
+            // Spec 085 MedScale Compute: runs on the Spec 075 data-source
+            // authority; the worker receives staged bytes, never the vault.
+            RequestBody::ComputeSubmit { request } => {
+                let value = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut d| d.compute_submit(*request),
+                )?;
+                Ok(ResponseBody::ComputeJob {
+                    view: Box::new(value),
+                })
+            }
+            RequestBody::ComputeRun { job_id } => {
+                let cancel = self.compute_cancel.fresh();
+                let runtime = &self.compute_runtime;
+                let value = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut d| d.compute_run(&job_id, runtime, &cancel),
+                )?;
+                Ok(ResponseBody::ComputeJob {
+                    view: Box::new(value),
+                })
+            }
+            RequestBody::ComputeCancel { job_id } => {
+                let value = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut d| d.compute_cancel(&job_id),
+                )?;
+                Ok(ResponseBody::ComputeJob {
+                    view: Box::new(value),
+                })
+            }
+            RequestBody::ComputeRecover => {
+                let views = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut d| d.compute_recover(),
+                )?;
+                Ok(ResponseBody::ComputeRecovered { views })
+            }
+            RequestBody::ComputeJobGet { job_id } => {
+                let value = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |d| d.compute_job(&job_id),
+                )?;
+                Ok(ResponseBody::ComputeJob {
+                    view: Box::new(value),
+                })
+            }
+            RequestBody::ComputeJobList { project_id } => {
+                let jobs = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |d| d.compute_jobs(&project_id),
+                )?;
+                Ok(ResponseBody::ComputeJobs { jobs })
+            }
+            RequestBody::ComputeStatus => {
+                let runtime = &self.compute_runtime;
+                let status = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |d| d.compute_status(runtime),
+                )?;
+                Ok(ResponseBody::ComputeStatus { status })
+            }
             // Spec 084 MedScale Hub foundation: Hub side (operator and
             // device) and client side (links, outbox, mirror).
             RequestBody::HubInit => {
@@ -5060,6 +5165,20 @@ fn capability_matches(cap: &Capability, body: &RequestBody) -> bool {
                     | RequestBody::HubSignHandshake { .. }
                     | RequestBody::HubRecordOutcomes { .. }
                     | RequestBody::HubMirrorAppend { .. }
+            )
+            | (
+                Capability::ComputeSubmit,
+                RequestBody::ComputeSubmit { .. } | RequestBody::ComputeCancel { .. }
+            )
+            | (
+                Capability::ComputeRun,
+                RequestBody::ComputeRun { .. } | RequestBody::ComputeRecover
+            )
+            | (
+                Capability::ComputeRead,
+                RequestBody::ComputeJobGet { .. }
+                    | RequestBody::ComputeJobList { .. }
+                    | RequestBody::ComputeStatus
             )
     )
 }

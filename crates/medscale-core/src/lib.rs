@@ -5,6 +5,7 @@
 
 pub mod authority;
 pub mod cli_session;
+pub mod compute_supervisor;
 pub mod doctor;
 pub mod effects;
 pub mod hub_sync;
