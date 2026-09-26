@@ -23,6 +23,7 @@ mod data_source;
 mod extensions;
 mod hub;
 mod huddles;
+mod institutional;
 mod knowledge;
 mod medagent;
 mod model_fleet;
@@ -221,6 +222,12 @@ enum Commands {
     Pack {
         #[command(subcommand)]
         action: Box<research_packs::PackCmd>,
+    },
+    /// Institutional adapters (Spec 090; explicit optional external writes
+    /// with durable effect states; no network transport in this build).
+    Adapter {
+        #[command(subcommand)]
+        action: Box<institutional::AdapterCmd>,
     },
     /// MedScale Hub foundation (Spec 084; local-socket IPC only, no network).
     Hub {
@@ -1264,6 +1271,7 @@ fn run() -> Result<()> {
         Commands::Extension { action } => extensions::run_extension(*action),
         Commands::Huddle { action } => huddles::run_huddle(*action),
         Commands::Pack { action } => research_packs::run_pack(*action),
+        Commands::Adapter { action } => institutional::run_adapter(*action),
         Commands::DataSource { action } => data_source::run_data_source(*action),
         Commands::Snapshot { action } => data_source::run_snapshot(*action),
         Commands::DataView { action } => data_source::run_data_view(*action),
