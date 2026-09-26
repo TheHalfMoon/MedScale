@@ -32,33 +32,34 @@ This index is the entry point for the Research OS expansion proposal after Progr
 16. [`RESEARCH_OS_SOURCE_LEDGER.md`](./RESEARCH_OS_SOURCE_LEDGER.md) — source universe and source-governance context.
 17. [`SOURCE_ADOPTION_MATRIX.md`](./SOURCE_ADOPTION_MATRIX.md) — V2 donor/source roles including Kaggle, Hugging Face datasets, Arrow/R, Posit/renv, Obsidian, Wasmtime/Extism, Himsat and MESC patterns.
 18. [`RESEARCH_OS_DONOR_RULE.md`](./RESEARCH_OS_DONOR_RULE.md) — provenance/adoption minimums.
-19. [`RESEARCH_OS_DECISION_RESOLUTION_REGISTER.md`](./RESEARCH_OS_DECISION_RESOLUTION_REGISTER.md) — original V1 safe defaults; use the V2 Decision Register for V2 additions and renumbered ownership.
+19. [`RESEARCH_OS_V2_ORCA_DONOR_ADDENDUM.md`](./RESEARCH_OS_V2_ORCA_DONOR_ADDENDUM.md) — qualified planning posture for `stablyai/orca`; maps reusable agent-workbench, parallel-lane, terminal/review and browser-surface components into candidate Specs 077/078/080 without changing Spec 074 or transferring authority.
+20. [`RESEARCH_OS_DECISION_RESOLUTION_REGISTER.md`](./RESEARCH_OS_DECISION_RESOLUTION_REGISTER.md) — original V1 safe defaults; use the V2 Decision Register for V2 additions and renumbered ownership.
 
 ### D. Implementation contract
 
-20. [`RESEARCH_OS_MASTER_IMPLEMENTATION_CONTRACT.md`](./RESEARCH_OS_MASTER_IMPLEMENTATION_CONTRACT.md) — original program-wide authority rules that remain inherited unless V2 explicitly refines them.
-21. [`RESEARCH_OS_V2_IMPLEMENTATION_CONTRACT_ADDENDUM.md`](./RESEARCH_OS_V2_IMPLEMENTATION_CONTRACT_ADDENDUM.md) — V2 shared contracts for Data Source Fabric, R Workspace, Community Extensions and cross-plane behavior.
-22. [`RESEARCH_OS_V2_SPEC_IMPLEMENTATION_CONTRACTS.md`](./RESEARCH_OS_V2_SPEC_IMPLEMENTATION_CONTRACTS.md) — per-candidate implementation contracts for 075-092. This is the current per-spec planning truth for 075+.
-23. [`RESEARCH_OS_REPOSITORY_IMPLEMENTATION_MAP.md`](./RESEARCH_OS_REPOSITORY_IMPLEMENTATION_MAP.md) — original repository/crate map.
-24. [`RESEARCH_OS_V2_REPOSITORY_MAP_ADDENDUM.md`](./RESEARCH_OS_V2_REPOSITORY_MAP_ADDENDUM.md) — V2 ownership direction for source adapters, R staging/Compute, extension host/runtime/registry and renumbered planes.
-25. [`RESEARCH_OS_SPEC_IMPLEMENTATION_CONTRACTS.md`](./RESEARCH_OS_SPEC_IMPLEMENTATION_CONTRACTS.md) — original V1 074-089 implementation shapes; historical for candidate 075+ when conflicting with V2.
-26. [`RESEARCH_OS_IMPLEMENTER_INSTRUCTIONS.md`](./RESEARCH_OS_IMPLEMENTER_INSTRUCTIONS.md) — mandatory implementer discipline after promotion.
-27. [`RESEARCH_OS_FUTURE_SPEC_TEMPLATE.md`](./RESEARCH_OS_FUTURE_SPEC_TEMPLATE.md) — required content for any future promoted spec.
-28. [`RESEARCH_OS_MIGRATION_STRATEGY.md`](./RESEARCH_OS_MIGRATION_STRATEGY.md) — compatibility/migration/recovery posture inherited by V2.
-29. [`RESEARCH_OS_EVIDENCE_RECEIPTS.md`](./RESEARCH_OS_EVIDENCE_RECEIPTS.md) — original typed receipt families; V2 contracts add source/R/extension receipt families.
+21. [`RESEARCH_OS_MASTER_IMPLEMENTATION_CONTRACT.md`](./RESEARCH_OS_MASTER_IMPLEMENTATION_CONTRACT.md) — original program-wide authority rules that remain inherited unless V2 explicitly refines them.
+22. [`RESEARCH_OS_V2_IMPLEMENTATION_CONTRACT_ADDENDUM.md`](./RESEARCH_OS_V2_IMPLEMENTATION_CONTRACT_ADDENDUM.md) — V2 shared contracts for Data Source Fabric, R Workspace, Community Extensions and cross-plane behavior.
+23. [`RESEARCH_OS_V2_SPEC_IMPLEMENTATION_CONTRACTS.md`](./RESEARCH_OS_V2_SPEC_IMPLEMENTATION_CONTRACTS.md) — per-candidate implementation contracts for 075-092. This is the current per-spec planning truth for 075+.
+24. [`RESEARCH_OS_REPOSITORY_IMPLEMENTATION_MAP.md`](./RESEARCH_OS_REPOSITORY_IMPLEMENTATION_MAP.md) — original repository/crate map.
+25. [`RESEARCH_OS_V2_REPOSITORY_MAP_ADDENDUM.md`](./RESEARCH_OS_V2_REPOSITORY_MAP_ADDENDUM.md) — V2 ownership direction for source adapters, R staging/Compute, extension host/runtime/registry and renumbered planes.
+26. [`RESEARCH_OS_SPEC_IMPLEMENTATION_CONTRACTS.md`](./RESEARCH_OS_SPEC_IMPLEMENTATION_CONTRACTS.md) — original V1 074-089 implementation shapes; historical for candidate 075+ when conflicting with V2.
+27. [`RESEARCH_OS_IMPLEMENTER_INSTRUCTIONS.md`](./RESEARCH_OS_IMPLEMENTER_INSTRUCTIONS.md) — mandatory implementer discipline after promotion.
+28. [`RESEARCH_OS_FUTURE_SPEC_TEMPLATE.md`](./RESEARCH_OS_FUTURE_SPEC_TEMPLATE.md) — required content for any future promoted spec.
+29. [`RESEARCH_OS_MIGRATION_STRATEGY.md`](./RESEARCH_OS_MIGRATION_STRATEGY.md) — compatibility/migration/recovery posture inherited by V2.
+30. [`RESEARCH_OS_EVIDENCE_RECEIPTS.md`](./RESEARCH_OS_EVIDENCE_RECEIPTS.md) — original typed receipt families; V2 contracts add source/R/extension receipt families.
 
 ### E. Verification and execution
 
-30. [`RESEARCH_OS_ACCEPTANCE_FRAMEWORK.md`](./RESEARCH_OS_ACCEPTANCE_FRAMEWORK.md) — universal/subsystem gates inherited by V2.
-31. [`RESEARCH_OS_VERIFICATION_MATRIX.md`](./RESEARCH_OS_VERIFICATION_MATRIX.md) — original verification layers.
-32. [`RESEARCH_OS_V2_VERIFICATION_ADDENDUM.md`](./RESEARCH_OS_V2_VERIFICATION_ADDENDUM.md) — Data Source, R, Extensions and cross-plane V2 qualification campaigns.
-33. [`RESEARCH_OS_DEFINITION_OF_READY.md`](./RESEARCH_OS_DEFINITION_OF_READY.md) — when a future unit may be implemented.
-34. [`RESEARCH_OS_BUILD_RULES.md`](./RESEARCH_OS_BUILD_RULES.md) — build/execution discipline.
-35. [`RESEARCH_OS_COMPLETION_CRITERIA.md`](./RESEARCH_OS_COMPLETION_CRITERIA.md) — original program-level planning completion semantics.
-36. [`RESEARCH_OS_GAP_CLOSURE_REVIEW.md`](./RESEARCH_OS_GAP_CLOSURE_REVIEW.md) — V1 gap review.
-37. [`RESEARCH_OS_V2_GAP_CLOSURE_REVIEW.md`](./RESEARCH_OS_V2_GAP_CLOSURE_REVIEW.md) — V2 cross-plane/stale-numbering/data/R/extensions gap audit.
-38. [`RESEARCH_OS_REVIEW_CHECKLIST.md`](./RESEARCH_OS_REVIEW_CHECKLIST.md) — review checklist.
-39. [`RESEARCH_OS_FINAL_PLANNING_ASSERTIONS.md`](./RESEARCH_OS_FINAL_PLANNING_ASSERTIONS.md) — current summary assertions after Amendment 001.
+31. [`RESEARCH_OS_ACCEPTANCE_FRAMEWORK.md`](./RESEARCH_OS_ACCEPTANCE_FRAMEWORK.md) — universal/subsystem gates inherited by V2.
+32. [`RESEARCH_OS_VERIFICATION_MATRIX.md`](./RESEARCH_OS_VERIFICATION_MATRIX.md) — original verification layers.
+33. [`RESEARCH_OS_V2_VERIFICATION_ADDENDUM.md`](./RESEARCH_OS_V2_VERIFICATION_ADDENDUM.md) — Data Source, R, Extensions and cross-plane V2 qualification campaigns.
+34. [`RESEARCH_OS_DEFINITION_OF_READY.md`](./RESEARCH_OS_DEFINITION_OF_READY.md) — when a future unit may be implemented.
+35. [`RESEARCH_OS_BUILD_RULES.md`](./RESEARCH_OS_BUILD_RULES.md) — build/execution discipline.
+36. [`RESEARCH_OS_COMPLETION_CRITERIA.md`](./RESEARCH_OS_COMPLETION_CRITERIA.md) — original program-level planning completion semantics.
+37. [`RESEARCH_OS_GAP_CLOSURE_REVIEW.md`](./RESEARCH_OS_GAP_CLOSURE_REVIEW.md) — V1 gap review.
+38. [`RESEARCH_OS_V2_GAP_CLOSURE_REVIEW.md`](./RESEARCH_OS_V2_GAP_CLOSURE_REVIEW.md) — V2 cross-plane/stale-numbering/data/R/extensions gap audit.
+39. [`RESEARCH_OS_REVIEW_CHECKLIST.md`](./RESEARCH_OS_REVIEW_CHECKLIST.md) — review checklist.
+40. [`RESEARCH_OS_FINAL_PLANNING_ASSERTIONS.md`](./RESEARCH_OS_FINAL_PLANNING_ASSERTIONS.md) — current summary assertions after Amendment 001.
 
 ### F. Supporting context
 
@@ -81,6 +82,8 @@ Before any candidate 075+ promotion:
 5. resolve technology choices through the V2 Decision Register and evidence, not implementer preference;
 6. define migration/recovery/rollback/security/evidence;
 7. authorize only one bounded dependency-ready unit.
+
+For candidate Specs 077, 078 or 080, the Orca donor addendum is an additional required planning input whenever Orca-derived code or patterns are considered. It does not itself authorize code transfer; the owning promoted spec must pin exact upstream paths/revision and satisfy normal donor qualification.
 
 ## Current program numbering
 
