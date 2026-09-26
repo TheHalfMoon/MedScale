@@ -12,7 +12,7 @@ closure); until then rows are `PENDING`.
 | Q4 | Outage -> failed; lost answer -> unknown; no blind retry; reconciliation confirms, re-arms or fails | core `uncertain_writes_become_unknown_and_reconcile_never_blindly_retries` | PENDING |
 | Q5 | Suspend, terminal revoke, reconfigure and rollback | core `revocation_and_rollback_are_explicit_and_final` | PENDING |
 | Q6 | The product transport sends nothing | core `the_product_transport_sends_nothing` | PENDING |
-| Q7 | Restart recovery (`sent -> unknown`), backup/restore | `whole_platform_092` (restore and restart); storage consistency | PENDING |
+| Q7 | Crash recovery (`sent -> unknown`, no resend); storage v19 migration, CAS, tamper refusal, backup/restore | core `a_crash_after_sent_recovers_as_unknown_never_as_a_resend`; storage `migration_to_v19_is_additive`, `intents_are_bound_and_changes_are_compare_and_set`, `backup_restore_round_trips_adapter_rows`, `tampered_adapter_backups_are_refused` | PENDING |
 | Q8 | CLI through Core with a closed act vocabulary | CLI `acts_parse_strictly` | PENDING |
 | Q9 | Exact-head and post-main CI | - | PENDING |
 

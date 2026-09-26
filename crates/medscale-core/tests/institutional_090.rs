@@ -22,6 +22,7 @@ struct Lab {
     s: CliSession,
     project: OpaqueId,
     store: Arc<InProcessStore>,
+    dir: std::path::PathBuf,
 }
 
 fn setup(name: &str, with_store: bool) -> Lab {
@@ -35,7 +36,12 @@ fn setup(name: &str, with_store: bool) -> Lab {
         s.set_institutional_transport(store.clone());
     }
     let project = s.project_create("lab".to_owned(), None).unwrap().header.id;
-    Lab { s, project, store }
+    Lab {
+        s,
+        project,
+        store,
+        dir,
+    }
 }
 
 fn config(ceiling: DataClass) -> AdapterConfig {
@@ -362,4 +368,48 @@ fn the_product_transport_sends_nothing() {
         r.receipt.transport_outcome,
         Some(TransportOutcome::Unreachable)
     );
+}
+
+#[test]
+fn a_crash_after_sent_recovers_as_unknown_never_as_a_resend() {
+    let mut lab = setup("crash", true);
+    let adapter = register(&mut lab, DataClass::Public);
+    let art = artifact(&mut lab, b"{}", Some(DataClass::Public));
+    let i = intend(&mut lab, &adapter, &art, "k.json").intent.unwrap();
+    // Simulate a crash between the durable `sent` and the transport's
+    // answer: the row says `sent`, nothing reached the store.
+    let conn = rusqlite::Connection::open(lab.dir.join("meta.sqlite3")).unwrap();
+    conn.execute(
+        "UPDATE ia_intents SET state = 'sent', body_json = replace(body_json, '\"state\":\"pending\"', '\"state\":\"sent\"') WHERE intent_id = ?1",
+        [i.header.id.as_str()],
+    )
+    .unwrap();
+    drop(conn);
+    let r = act(
+        &mut lab,
+        AdapterActRequest::Send {
+            intent_id: i.header.id.clone(),
+        },
+    );
+    assert_eq!(
+        r.receipt.refusal,
+        Some(WriteRefusal::UnknownRequiresReconcile)
+    );
+    assert_eq!(lab.store.puts(), 0, "no blind resend");
+    let view = lab.s.adapter_get(adapter).unwrap();
+    assert_eq!(view.intents[0].state, EffectState::Unknown);
+    let r = act(
+        &mut lab,
+        AdapterActRequest::Reconcile {
+            intent_id: i.header.id.clone(),
+        },
+    );
+    assert_eq!(r.intent.unwrap().state, EffectState::Pending);
+    let r = act(
+        &mut lab,
+        AdapterActRequest::Send {
+            intent_id: i.header.id,
+        },
+    );
+    assert_eq!(r.intent.unwrap().state, EffectState::Confirmed);
 }
