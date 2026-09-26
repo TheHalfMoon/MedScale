@@ -69,6 +69,10 @@ use crate::project_graph::{
     GraphNeighborPage, Project, ProjectArtifactRef, ProjectContext, ProjectGraphEdge,
     ProjectGraphPredicate, ProjectStatus, ProjectSummary, ReferenceResolution, ResolvedArtifactRef,
 };
+use crate::r_workspace::{
+    RLaunchReceipt, RLaunchRequest, RPublishRequest, RPublishView, RRunReceipt, RRunRequest,
+    RStageRequest, RWorkspace, RWorkspaceHistory, RWorkspaceStatus, WorkspaceInspection,
+};
 use crate::workflow::DisclosureRecord;
 
 /// Capability required to execute a facade operation.
@@ -263,6 +267,11 @@ pub enum Capability {
     ComputeSubmit,
     ComputeRun,
     ComputeRead,
+    // Spec 086: R Workspace (staging, external launch, explicit publish).
+    RWorkspaceStage,
+    RWorkspaceRun,
+    RWorkspacePublish,
+    RWorkspaceRead,
 }
 
 impl Capability {
@@ -326,6 +335,7 @@ impl Capability {
                 | Self::KnowledgeRead
                 | Self::HubRead
                 | Self::ComputeRead
+                | Self::RWorkspaceRead
         )
     }
 
@@ -495,6 +505,10 @@ impl Capability {
             Self::ComputeSubmit,
             Self::ComputeRun,
             Self::ComputeRead,
+            Self::RWorkspaceStage,
+            Self::RWorkspaceRun,
+            Self::RWorkspacePublish,
+            Self::RWorkspaceRead,
         ]
     }
 }
@@ -1517,6 +1531,34 @@ pub enum RequestBody {
         project_id: OpaqueId,
     },
     ComputeStatus,
+    // Spec 086: R Workspace. Paths and programs come from host
+    // configuration, never from a request.
+    RWorkspaceStage {
+        request: Box<RStageRequest>,
+    },
+    RWorkspaceInspect {
+        workspace_id: OpaqueId,
+    },
+    RWorkspaceLaunch {
+        request: RLaunchRequest,
+    },
+    /// Recorded and refused: managed R execution is not admitted.
+    RWorkspaceRun {
+        request: RRunRequest,
+    },
+    RWorkspacePublish {
+        request: Box<RPublishRequest>,
+    },
+    RWorkspaceGet {
+        workspace_id: OpaqueId,
+    },
+    RWorkspaceList {
+        project_id: OpaqueId,
+    },
+    RWorkspacePublished {
+        table_id: OpaqueId,
+    },
+    RWorkspaceStatus,
 }
 
 impl RequestBody {
@@ -2108,6 +2150,31 @@ pub enum ResponseBody {
     },
     ComputeStatus {
         status: ComputeStatus,
+    },
+    // Spec 086: R Workspace.
+    RWorkspace {
+        workspace: Box<RWorkspace>,
+    },
+    RWorkspaceInspection {
+        inspection: WorkspaceInspection,
+    },
+    RLaunch {
+        receipt: Box<RLaunchReceipt>,
+    },
+    RRun {
+        receipt: Box<RRunReceipt>,
+    },
+    RPublish {
+        view: Box<RPublishView>,
+    },
+    RWorkspaceHistory {
+        history: Box<RWorkspaceHistory>,
+    },
+    RWorkspaces {
+        workspaces: Vec<RWorkspace>,
+    },
+    RWorkspaceStatus {
+        status: RWorkspaceStatus,
     },
 }
 

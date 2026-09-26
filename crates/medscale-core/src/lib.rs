@@ -11,6 +11,7 @@ pub mod effects;
 pub mod hub_sync;
 pub mod ipc;
 pub mod process;
+pub mod r_workspace_host;
 pub mod release_sbom;
 pub mod text;
 pub mod validate;

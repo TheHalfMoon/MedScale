@@ -3652,6 +3652,132 @@ impl CliSession {
     }
 
     // ---------------------------------------------------------------------
+    // Spec 086: R Workspace
+    // ---------------------------------------------------------------------
+
+    /// Sets where workspaces are staged and which programs may open them.
+    pub fn set_r_workspace_host(&mut self, host: crate::r_workspace_host::RWorkspaceHost) {
+        self.facade.set_r_workspace_host(host);
+    }
+
+    pub fn r_stage(
+        &mut self,
+        request: medscale_contracts::r_workspace::RStageRequest,
+    ) -> Result<medscale_contracts::r_workspace::RWorkspace, AuthorityError> {
+        match self.dispatch(
+            Capability::RWorkspaceStage,
+            RequestBody::RWorkspaceStage {
+                request: Box::new(request),
+            },
+        )? {
+            ResponseBody::RWorkspace { workspace } => Ok(*workspace),
+            _ => Err(Self::unexpected("R workspace")),
+        }
+    }
+
+    pub fn r_inspect(
+        &mut self,
+        workspace_id: OpaqueId,
+    ) -> Result<medscale_contracts::r_workspace::WorkspaceInspection, AuthorityError> {
+        match self.dispatch(
+            Capability::RWorkspaceRead,
+            RequestBody::RWorkspaceInspect { workspace_id },
+        )? {
+            ResponseBody::RWorkspaceInspection { inspection } => Ok(inspection),
+            _ => Err(Self::unexpected("R workspace inspection")),
+        }
+    }
+
+    pub fn r_launch(
+        &mut self,
+        request: medscale_contracts::r_workspace::RLaunchRequest,
+    ) -> Result<medscale_contracts::r_workspace::RLaunchReceipt, AuthorityError> {
+        match self.dispatch(
+            Capability::RWorkspaceStage,
+            RequestBody::RWorkspaceLaunch { request },
+        )? {
+            ResponseBody::RLaunch { receipt } => Ok(*receipt),
+            _ => Err(Self::unexpected("R launch receipt")),
+        }
+    }
+
+    pub fn r_run(
+        &mut self,
+        request: medscale_contracts::r_workspace::RRunRequest,
+    ) -> Result<medscale_contracts::r_workspace::RRunReceipt, AuthorityError> {
+        match self.dispatch(
+            Capability::RWorkspaceRun,
+            RequestBody::RWorkspaceRun { request },
+        )? {
+            ResponseBody::RRun { receipt } => Ok(*receipt),
+            _ => Err(Self::unexpected("R run receipt")),
+        }
+    }
+
+    pub fn r_publish(
+        &mut self,
+        request: medscale_contracts::r_workspace::RPublishRequest,
+    ) -> Result<medscale_contracts::r_workspace::RPublishView, AuthorityError> {
+        match self.dispatch(
+            Capability::RWorkspacePublish,
+            RequestBody::RWorkspacePublish {
+                request: Box::new(request),
+            },
+        )? {
+            ResponseBody::RPublish { view } => Ok(*view),
+            _ => Err(Self::unexpected("R publication")),
+        }
+    }
+
+    pub fn r_workspace(
+        &mut self,
+        workspace_id: OpaqueId,
+    ) -> Result<medscale_contracts::r_workspace::RWorkspaceHistory, AuthorityError> {
+        match self.dispatch(
+            Capability::RWorkspaceRead,
+            RequestBody::RWorkspaceGet { workspace_id },
+        )? {
+            ResponseBody::RWorkspaceHistory { history } => Ok(*history),
+            _ => Err(Self::unexpected("R workspace history")),
+        }
+    }
+
+    pub fn r_workspaces(
+        &mut self,
+        project_id: OpaqueId,
+    ) -> Result<Vec<medscale_contracts::r_workspace::RWorkspace>, AuthorityError> {
+        match self.dispatch(
+            Capability::RWorkspaceRead,
+            RequestBody::RWorkspaceList { project_id },
+        )? {
+            ResponseBody::RWorkspaces { workspaces } => Ok(workspaces),
+            _ => Err(Self::unexpected("R workspaces")),
+        }
+    }
+
+    pub fn r_published(
+        &mut self,
+        table_id: OpaqueId,
+    ) -> Result<medscale_contracts::r_workspace::RPublishView, AuthorityError> {
+        match self.dispatch(
+            Capability::RWorkspaceRead,
+            RequestBody::RWorkspacePublished { table_id },
+        )? {
+            ResponseBody::RPublish { view } => Ok(*view),
+            _ => Err(Self::unexpected("R published table")),
+        }
+    }
+
+    pub fn r_status(
+        &mut self,
+    ) -> Result<medscale_contracts::r_workspace::RWorkspaceStatus, AuthorityError> {
+        match self.dispatch(Capability::RWorkspaceRead, RequestBody::RWorkspaceStatus)? {
+            ResponseBody::RWorkspaceStatus { status } => Ok(status),
+            _ => Err(Self::unexpected("R workspace status")),
+        }
+    }
+
+    // ---------------------------------------------------------------------
     // Spec 082: Analytics Gate
     // ---------------------------------------------------------------------
 
