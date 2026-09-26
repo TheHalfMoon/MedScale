@@ -106,7 +106,11 @@ pub fn restore_vault(src: &Path, dest_vault_root: &Path) -> Result<(u64, u64), S
     let snapshot_schema = snapshot_value
         .get("schema_version")
         .and_then(|v| v.as_u64());
-    if snapshot_schema == Some(15) {
+    if snapshot_schema == Some(17) {
+        restore_v17(&vault, &snapshot_value, &mut sources)?;
+    } else if snapshot_schema == Some(16) {
+        restore_v16(&vault, &snapshot_value, &mut sources)?;
+    } else if snapshot_schema == Some(15) {
         restore_v15(&vault, &snapshot_value, &mut sources)?;
     } else if snapshot_schema == Some(14) {
         restore_v14(&vault, &snapshot_value, &mut sources)?;
@@ -633,6 +637,67 @@ fn restore_required_rows<T: serde::de::DeserializeOwned>(
         return Err(format!("tampered metadata snapshot: {key} is missing"));
     }
     restore_rows(snapshot, key, restore)
+}
+
+fn restore_v17(
+    vault: &SyntheticVault,
+    snapshot: &serde_json::Value,
+    sources: &mut u64,
+) -> Result<(), String> {
+    restore_v16(vault, snapshot, sources)?;
+    // Spec 088 rows replay through plain-insert paths; cross-row
+    // invariants (including media against Spec 081 sources) are
+    // re-verified once every family is replayed.
+    let meta = &vault.meta;
+    restore_required_rows(snapshot, "hud_huddles", |row| meta.restore_huddle_row(row))?;
+    restore_required_rows(snapshot, "hud_participants", |row| {
+        meta.restore_huddle_participant_row(row)
+    })?;
+    restore_required_rows(snapshot, "hud_media", |row| {
+        meta.restore_huddle_media_row(row)
+    })?;
+    restore_required_rows(snapshot, "hud_proposals", |row| {
+        meta.restore_huddle_proposal_row(row)
+    })?;
+    restore_required_rows(snapshot, "hud_receipts", |row| {
+        meta.restore_huddle_receipt_row(row)
+    })?;
+    meta.verify_huddle_consistency()
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+fn restore_v16(
+    vault: &SyntheticVault,
+    snapshot: &serde_json::Value,
+    sources: &mut u64,
+) -> Result<(), String> {
+    restore_v15(vault, snapshot, sources)?;
+    // Spec 087 rows replay through plain-insert paths (installs keep their
+    // revision); release bytes are re-checked; cross-row invariants are
+    // re-verified once every family is replayed.
+    let meta = &vault.meta;
+    restore_required_rows(snapshot, "ext_publishers", |row| {
+        meta.restore_ext_publisher_row(row)
+    })?;
+    restore_required_rows(snapshot, "ext_releases", |row| {
+        meta.restore_ext_release_row(row)
+    })?;
+    restore_required_rows(snapshot, "ext_installs", |row| {
+        meta.restore_ext_install_row(row)
+    })?;
+    restore_required_rows(snapshot, "ext_grants", |row| {
+        meta.restore_ext_grant_row(row)
+    })?;
+    restore_required_rows(snapshot, "ext_lifecycle_receipts", |row| {
+        meta.restore_ext_lifecycle_row(row)
+    })?;
+    restore_required_rows(snapshot, "ext_runtime_receipts", |row| {
+        meta.restore_ext_runtime_row(row)
+    })?;
+    meta.verify_extension_consistency()
+        .map_err(|e| e.to_string())?;
+    Ok(())
 }
 
 fn restore_v15(

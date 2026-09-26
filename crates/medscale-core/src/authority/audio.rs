@@ -365,7 +365,7 @@ pub struct Audio<'a> {
 }
 
 impl Audio<'_> {
-    fn actor(&self) -> Result<OpaqueId, AuthorityError> {
+    pub(super) fn actor(&self) -> Result<OpaqueId, AuthorityError> {
         if let Some(holder) = self
             .session_id
             .as_ref()
@@ -378,7 +378,11 @@ impl Audio<'_> {
             .ok_or(AuthorityError::LeaseRequired)
     }
 
-    fn audit(&mut self, action: &str, targets: Vec<OpaqueId>) -> Result<(), AuthorityError> {
+    pub(super) fn audit(
+        &mut self,
+        action: &str,
+        targets: Vec<OpaqueId>,
+    ) -> Result<(), AuthorityError> {
         let actor = self.actor()?;
         let id = self.store.alloc_id("audit");
         let record = medscale_contracts::objects::ActionAuditRecord {
@@ -409,14 +413,14 @@ impl Audio<'_> {
         }
     }
 
-    fn in_scope(&self, header: &ObjectHeader) -> Result<(), AuthorityError> {
+    pub(super) fn in_scope(&self, header: &ObjectHeader) -> Result<(), AuthorityError> {
         if header.realm_id != self.realm || header.authority_scope_id != self.scope {
             return Err(AuthorityError::WrongScope);
         }
         Ok(())
     }
 
-    fn scoped_project(&self, id: &OpaqueId) -> Result<(), AuthorityError> {
+    pub(super) fn scoped_project(&self, id: &OpaqueId) -> Result<(), AuthorityError> {
         let project = self.meta.get_project(id).map_err(meta_err)?;
         self.in_scope(&project.header)
     }

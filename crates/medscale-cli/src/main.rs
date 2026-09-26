@@ -20,7 +20,9 @@ mod browse;
 mod collaboration;
 mod compute;
 mod data_source;
+mod extensions;
 mod hub;
+mod huddles;
 mod knowledge;
 mod medagent;
 mod model_fleet;
@@ -200,6 +202,18 @@ enum Commands {
     R {
         #[command(subcommand)]
         action: Box<r_workspace::RCmd>,
+    },
+    /// Community Extensions (Spec 087; signed declarative packs, explicit
+    /// publisher trust and grants; no extension code runs).
+    Extension {
+        #[command(subcommand)]
+        action: Box<extensions::ExtensionCmd>,
+    },
+    /// AudioFlow Advanced huddles (Spec 088; per-act consent, synthetic
+    /// labeling, retention and deletion; no speech synthesis).
+    Huddle {
+        #[command(subcommand)]
+        action: Box<huddles::HuddleCmd>,
     },
     /// MedScale Hub foundation (Spec 084; local-socket IPC only, no network).
     Hub {
@@ -1240,6 +1254,8 @@ fn run() -> Result<()> {
         Commands::Hub { action } => hub::run_hub(*action),
         Commands::Compute { action } => compute::run_compute(*action),
         Commands::R { action } => r_workspace::run_r(*action),
+        Commands::Extension { action } => extensions::run_extension(*action),
+        Commands::Huddle { action } => huddles::run_huddle(*action),
         Commands::DataSource { action } => data_source::run_data_source(*action),
         Commands::Snapshot { action } => data_source::run_snapshot(*action),
         Commands::DataView { action } => data_source::run_data_view(*action),

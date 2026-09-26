@@ -453,7 +453,12 @@ fn pre_085_v13_backup_restores_with_empty_compute_tables() {
     backup_vault(&vault, &dest).unwrap();
     tamper_backup(&dest, |s| {
         let o = s.as_object_mut().unwrap();
-        o.retain(|k, _| !k.starts_with("compute_") && !k.starts_with("rws_"));
+        o.retain(|k, _| {
+            !k.starts_with("compute_")
+                && !k.starts_with("rws_")
+                && !k.starts_with("ext_")
+                && !k.starts_with("hud_")
+        });
         o.insert("schema_version".to_owned(), serde_json::json!(13));
     });
     restore_vault(&dest, &root.join("restored")).unwrap();
