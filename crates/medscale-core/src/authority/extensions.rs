@@ -21,7 +21,9 @@ use medscale_contracts::extensions::{
 };
 use medscale_contracts::objects::{DigestSha256, ObjectHeader, OpaqueId};
 use medscale_contracts::privacy_gate::DataClass;
-use medscale_keys::{DeviceKeyError, sign_device_payload, verify_device_signature};
+use medscale_keys::{
+    DeviceKeyError, generate_device_key, sign_device_payload, verify_device_signature,
+};
 use medscale_storage::{InstallChange, MetaError};
 
 use super::data_sources::DataSources;
@@ -70,6 +72,21 @@ pub fn sign_extension_pack(
         manifest_json,
         signature_hex,
     })
+}
+
+/// A fresh publisher key pair as `(secret_hex, public_hex)` (Extension SDK).
+#[must_use]
+pub fn generate_publisher_key() -> (String, String) {
+    generate_device_key()
+}
+
+/// Everything recorded for one Project's extensions.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct ExtensionProjectView {
+    pub installs: Vec<ExtensionInstallRecord>,
+    pub grants: Vec<ExtensionGrant>,
+    pub lifecycle: Vec<ExtensionLifecycleReceipt>,
+    pub runs: Vec<ExtensionRuntimeReceipt>,
 }
 
 /// Result of an invocation.
@@ -678,6 +695,46 @@ impl DataSources<'_> {
             "extension.grant",
         )?;
         Ok(receipt)
+    }
+
+    /// Installs, grants and receipts of one Project (this realm and scope).
+    pub fn ext_list(&self, project_id: &OpaqueId) -> Result<ExtensionProjectView, AuthorityError> {
+        self.require_project(project_id)?;
+        let mine = |h: &ObjectHeader| h.realm_id == self.realm && h.authority_scope_id == self.scope;
+        let installs: Vec<ExtensionInstallRecord> = self
+            .meta()
+            .list_ext_installs()
+            .map_err(meta_err)?
+            .into_iter()
+            .filter(|i| &i.project_id == project_id && mine(&i.header))
+            .collect();
+        let grants = self
+            .meta()
+            .list_ext_grants(None)
+            .map_err(meta_err)?
+            .into_iter()
+            .filter(|g| &g.project_id == project_id && mine(&g.header))
+            .collect();
+        let lifecycle = self
+            .meta()
+            .list_ext_lifecycle_receipts()
+            .map_err(meta_err)?
+            .into_iter()
+            .filter(|r| &r.project_id == project_id && mine(&r.header))
+            .collect();
+        let runs = self
+            .meta()
+            .list_ext_runtime_receipts()
+            .map_err(meta_err)?
+            .into_iter()
+            .filter(|r| &r.project_id == project_id && mine(&r.header))
+            .collect();
+        Ok(ExtensionProjectView {
+            installs,
+            grants,
+            lifecycle,
+            runs,
+        })
     }
 
     // ----- invocation -----
