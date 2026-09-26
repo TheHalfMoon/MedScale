@@ -26,6 +26,7 @@ mod medagent;
 mod model_fleet;
 mod privacy_gate;
 mod project;
+mod r_workspace;
 
 #[derive(Debug, Parser)]
 #[command(
@@ -193,6 +194,12 @@ enum Commands {
     Compute {
         #[command(subcommand)]
         action: Box<compute::ComputeCmd>,
+    },
+    /// R Workspace (Spec 086; exact snapshot staging, external IDE launch,
+    /// explicit publication; MedScale does not run R).
+    R {
+        #[command(subcommand)]
+        action: Box<r_workspace::RCmd>,
     },
     /// MedScale Hub foundation (Spec 084; local-socket IPC only, no network).
     Hub {
@@ -1232,6 +1239,7 @@ fn run() -> Result<()> {
         Commands::Knowledge { action } => knowledge::run_knowledge(*action),
         Commands::Hub { action } => hub::run_hub(*action),
         Commands::Compute { action } => compute::run_compute(*action),
+        Commands::R { action } => r_workspace::run_r(*action),
         Commands::DataSource { action } => data_source::run_data_source(*action),
         Commands::Snapshot { action } => data_source::run_snapshot(*action),
         Commands::DataView { action } => data_source::run_data_view(*action),

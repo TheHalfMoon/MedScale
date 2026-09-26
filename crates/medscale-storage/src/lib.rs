@@ -20,6 +20,7 @@ mod model_fleet;
 mod privacy_gate;
 mod privacy_probes;
 mod project_graph;
+mod r_workspace;
 mod sealed_blob;
 mod sqlite_meta;
 mod vault;
@@ -48,12 +49,13 @@ pub use privacy_probes::{
     crash_sidecar_leftovers_present, probe_os_privacy_surfaces, residual_risk_classes_open,
     scan_vault_work_leftovers,
 };
+pub use r_workspace::{R_WORKSPACE_TABLES, RPublishedTableRow};
 pub use sealed_blob::SealedBlobStore;
 pub use sqlite_meta::{AuthorityObjectRow, MetaError, SourceMeta, SqliteMetaStore};
 pub use vault::{SyntheticVault, VaultError};
 pub use writer_lock::{WriterLock, WriterLockError};
 
-/// Top metadata schema version written by this build (Spec 085: v14). Tests of
+/// Top metadata schema version written by this build (Spec 086: v15). Tests of
 /// earlier specs assert against this constant so a later additive migration
 /// does not require editing them.
-pub const CURRENT_META_SCHEMA_VERSION: u32 = 14;
+pub const CURRENT_META_SCHEMA_VERSION: u32 = 15;
