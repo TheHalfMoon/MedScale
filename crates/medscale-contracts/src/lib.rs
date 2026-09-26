@@ -30,6 +30,7 @@ pub mod packs;
 pub mod presentation;
 pub mod privacy_gate;
 pub mod project_graph;
+pub mod r_workspace;
 pub mod text;
 pub mod worker_policy;
 pub mod workflow;

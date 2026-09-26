@@ -106,7 +106,9 @@ pub fn restore_vault(src: &Path, dest_vault_root: &Path) -> Result<(u64, u64), S
     let snapshot_schema = snapshot_value
         .get("schema_version")
         .and_then(|v| v.as_u64());
-    if snapshot_schema == Some(14) {
+    if snapshot_schema == Some(15) {
+        restore_v15(&vault, &snapshot_value, &mut sources)?;
+    } else if snapshot_schema == Some(14) {
         restore_v14(&vault, &snapshot_value, &mut sources)?;
     } else if snapshot_schema == Some(13) {
         restore_v13(&vault, &snapshot_value, &mut sources)?;
@@ -631,6 +633,38 @@ fn restore_required_rows<T: serde::de::DeserializeOwned>(
         return Err(format!("tampered metadata snapshot: {key} is missing"));
     }
     restore_rows(snapshot, key, restore)
+}
+
+fn restore_v15(
+    vault: &SyntheticVault,
+    snapshot: &serde_json::Value,
+    sources: &mut u64,
+) -> Result<(), String> {
+    restore_v14(vault, snapshot, sources)?;
+    // Spec 086 rows replay through plain-INSERT paths; published table
+    // bytes are re-checked against their digests and canonical encoding;
+    // cross-row invariants are re-verified once every family is replayed.
+    // Staged directories are not part of a backup: a restored workspace
+    // whose directory is absent inspects as `missing`.
+    let meta = &vault.meta;
+    restore_required_rows(snapshot, "rws_workspaces", |row| {
+        meta.restore_r_workspace_row(row)
+    })?;
+    restore_required_rows(snapshot, "rws_launch_receipts", |row| {
+        meta.restore_r_launch_row(row)
+    })?;
+    restore_required_rows(snapshot, "rws_run_receipts", |row| {
+        meta.restore_r_run_row(row)
+    })?;
+    restore_required_rows(snapshot, "rws_publish_receipts", |row| {
+        meta.restore_r_publish_row(row)
+    })?;
+    restore_required_rows(snapshot, "rws_published_tables", |row| {
+        meta.restore_r_table_row(row)
+    })?;
+    meta.verify_r_workspace_consistency()
+        .map_err(|e| e.to_string())?;
+    Ok(())
 }
 
 fn restore_v14(

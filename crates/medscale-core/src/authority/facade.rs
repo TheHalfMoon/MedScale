@@ -56,6 +56,9 @@ pub struct CoreFacade {
     compute_runtime: crate::compute_supervisor::ComputeRuntime,
     /// Spec 085: cancels the compute run in progress, if any.
     compute_cancel: crate::compute_supervisor::CancelSlot,
+    /// Spec 086: staging directory and external programs (host
+    /// configuration; never set through a request).
+    r_host: crate::r_workspace_host::RWorkspaceHost,
 }
 
 /// Speech engine holder. `Debug` prints no configuration.
@@ -114,6 +117,7 @@ impl CoreFacade {
             live_captures: Mutex::new(std::collections::HashSet::new()),
             compute_runtime: crate::compute_supervisor::ComputeRuntime::resolve(),
             compute_cancel: crate::compute_supervisor::CancelSlot::default(),
+            r_host: crate::r_workspace_host::RWorkspaceHost::platform_default(),
         }
     }
 
@@ -158,6 +162,12 @@ impl CoreFacade {
     /// stay in Core.
     pub fn set_compute_runtime(&mut self, runtime: crate::compute_supervisor::ComputeRuntime) {
         self.compute_runtime = runtime;
+    }
+
+    /// Replaces the Spec 086 R Workspace host configuration (the CLI sets
+    /// it from its flags and environment; tests name temporary paths).
+    pub fn set_r_workspace_host(&mut self, host: crate::r_workspace_host::RWorkspaceHost) {
+        self.r_host = host;
     }
 
     /// Cancels whichever Spec 085 compute run is in progress (each run
@@ -3362,6 +3372,114 @@ impl CoreFacade {
                 )?;
                 Ok(ResponseBody::ComputeStatus { status })
             }
+            // Spec 086 R Workspace: staging, external launch, recorded run
+            // refusal and explicit publication on the Spec 075 authority.
+            RequestBody::RWorkspaceStage { request } => {
+                let host = &self.r_host;
+                let workspace = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut d| d.r_stage(host, *request),
+                )?;
+                Ok(ResponseBody::RWorkspace {
+                    workspace: Box::new(workspace),
+                })
+            }
+            RequestBody::RWorkspaceInspect { workspace_id } => {
+                let inspection = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |d| d.r_inspect(&workspace_id),
+                )?;
+                Ok(ResponseBody::RWorkspaceInspection { inspection })
+            }
+            RequestBody::RWorkspaceLaunch { request } => {
+                let host = &self.r_host;
+                let receipt = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut d| d.r_launch(host, request),
+                )?;
+                Ok(ResponseBody::RLaunch {
+                    receipt: Box::new(receipt),
+                })
+            }
+            RequestBody::RWorkspaceRun { request } => {
+                let host = &self.r_host;
+                let receipt = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut d| d.r_run(host, request),
+                )?;
+                Ok(ResponseBody::RRun {
+                    receipt: Box::new(receipt),
+                })
+            }
+            RequestBody::RWorkspacePublish { request } => {
+                let view = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut d| d.r_publish(*request),
+                )?;
+                Ok(ResponseBody::RPublish {
+                    view: Box::new(view),
+                })
+            }
+            RequestBody::RWorkspaceGet { workspace_id } => {
+                let history = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |d| d.r_workspace(&workspace_id),
+                )?;
+                Ok(ResponseBody::RWorkspaceHistory {
+                    history: Box::new(history),
+                })
+            }
+            RequestBody::RWorkspaceList { project_id } => {
+                let workspaces = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |d| d.r_workspaces(&project_id),
+                )?;
+                Ok(ResponseBody::RWorkspaces { workspaces })
+            }
+            RequestBody::RWorkspacePublished { table_id } => {
+                let view = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |d| d.r_published(&table_id),
+                )?;
+                Ok(ResponseBody::RPublish {
+                    view: Box::new(view),
+                })
+            }
+            RequestBody::RWorkspaceStatus => {
+                let host = &self.r_host;
+                let status = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |d| Ok(d.r_status(host)),
+                )?;
+                Ok(ResponseBody::RWorkspaceStatus { status })
+            }
             // Spec 084 MedScale Hub foundation: Hub side (operator and
             // device) and client side (links, outbox, mirror).
             RequestBody::HubInit => {
@@ -5179,6 +5297,23 @@ fn capability_matches(cap: &Capability, body: &RequestBody) -> bool {
                 RequestBody::ComputeJobGet { .. }
                     | RequestBody::ComputeJobList { .. }
                     | RequestBody::ComputeStatus
+            )
+            | (
+                Capability::RWorkspaceStage,
+                RequestBody::RWorkspaceStage { .. } | RequestBody::RWorkspaceLaunch { .. }
+            )
+            | (Capability::RWorkspaceRun, RequestBody::RWorkspaceRun { .. })
+            | (
+                Capability::RWorkspacePublish,
+                RequestBody::RWorkspacePublish { .. }
+            )
+            | (
+                Capability::RWorkspaceRead,
+                RequestBody::RWorkspaceInspect { .. }
+                    | RequestBody::RWorkspaceGet { .. }
+                    | RequestBody::RWorkspaceList { .. }
+                    | RequestBody::RWorkspacePublished { .. }
+                    | RequestBody::RWorkspaceStatus
             )
     )
 }

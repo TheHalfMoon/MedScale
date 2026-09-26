@@ -41,3 +41,7 @@ path = "src/bin/compute_worker.rs"
 [[bin]]
 name = "medscale-compute-fault-worker"
 path = "src/bin/compute_fault_worker.rs"
+
+[[bin]]
+name = "medscale-r-fake-ide"
+path = "src/bin/r_fake_ide.rs"

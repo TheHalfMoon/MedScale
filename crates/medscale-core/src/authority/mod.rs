@@ -25,6 +25,7 @@ mod privacy_gate;
 mod privacy_recognizers;
 mod project_graph;
 mod promote;
+mod r_workspace;
 mod retrieval;
 mod source_ops;
 mod store;

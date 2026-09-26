@@ -282,6 +282,12 @@ impl SqliteMetaStore {
             self.conn.execute_batch(crate::compute::V14_DDL)?;
             self.finish_migration(14)?;
         }
+        let journal = self.migration_journal()?;
+        if journal.finished_version < 15 {
+            self.begin_migration(15)?;
+            self.conn.execute_batch(crate::r_workspace::V15_DDL)?;
+            self.finish_migration(15)?;
+        }
         Ok(())
     }
 
@@ -633,6 +639,10 @@ impl SqliteMetaStore {
         }
         // Spec 085: Compute rows (output bytes as hex).
         for (key, value) in self.compute_backup_families()? {
+            payload[key] = value;
+        }
+        // Spec 086: R Workspace rows (published table bytes as hex).
+        for (key, value) in self.r_workspace_backup_families()? {
             payload[key] = value;
         }
         Ok(serde_json::to_vec(&payload).unwrap_or_default())

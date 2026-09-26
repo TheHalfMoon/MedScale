@@ -989,6 +989,11 @@ impl DataSources<'_> {
         Ok(doc)
     }
 
+    /// The vault directory (Spec 086: staging must stay outside it).
+    pub(super) fn vault_dir(&self) -> &Path {
+        self.backend.vault_root()
+    }
+
     /// The exact stored canonical bytes of a snapshot (Spec 085 staging).
     pub(super) fn snapshot_bytes(
         &self,
