@@ -37,6 +37,12 @@ closed job kinds.
 | A crash between claim and commit | recovery marks the job `interrupted`; it is never re-run automatically, and a run recovers orphans first |
 | Environment leakage | the environment is cleared and the worker reports the count it sees; any non-zero count ends `unavailable` |
 
+## Defect found by qualification
+
+| Finding | Fix |
+|---|---|
+| The contract test showed `{"kind":"column_profile","code":"x"}` parsing: serde ignores unknown fields on unit variants of internally tagged enums, so the closed-parameters claim did not hold for that kind (nothing would have executed the extra field) | `ColumnProfile {}` is an empty struct variant; unknown fields are refused and the JSON shape is unchanged (`3bd00d1`) |
+
 ## Honest residuals
 
 - The worker's OS mechanism is `ReadyBaseMeasured` only; `platform_qualified=false`.
