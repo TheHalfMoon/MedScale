@@ -18,6 +18,7 @@ pub mod fixture_ui;
 pub mod hub;
 pub mod huddles;
 pub mod ingest;
+pub mod institutional;
 pub mod knowledge;
 pub mod legal;
 pub mod medagent;
