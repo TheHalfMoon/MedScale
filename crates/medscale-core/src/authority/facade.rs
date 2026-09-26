@@ -59,6 +59,10 @@ pub struct CoreFacade {
     /// Spec 086: staging directory and external programs (host
     /// configuration; never set through a request).
     r_host: crate::r_workspace_host::RWorkspaceHost,
+    /// Spec 090: institutional transport (product default: unavailable;
+    /// never set through a request).
+    institutional_transport:
+        std::sync::Arc<dyn crate::institutional_transport::InstitutionalTransport>,
 }
 
 /// Speech engine holder. `Debug` prints no configuration.
@@ -118,6 +122,9 @@ impl CoreFacade {
             compute_runtime: crate::compute_supervisor::ComputeRuntime::resolve(),
             compute_cancel: crate::compute_supervisor::CancelSlot::default(),
             r_host: crate::r_workspace_host::RWorkspaceHost::platform_default(),
+            institutional_transport: std::sync::Arc::new(
+                crate::institutional_transport::UnavailableTransport,
+            ),
         }
     }
 
@@ -162,6 +169,15 @@ impl CoreFacade {
     /// stay in Core.
     pub fn set_compute_runtime(&mut self, runtime: crate::compute_supervisor::ComputeRuntime) {
         self.compute_runtime = runtime;
+    }
+
+    /// Replaces the Spec 090 institutional transport (qualification
+    /// harnesses name an in-process store; the product has none).
+    pub fn set_institutional_transport(
+        &mut self,
+        transport: std::sync::Arc<dyn crate::institutional_transport::InstitutionalTransport>,
+    ) {
+        self.institutional_transport = transport;
     }
 
     /// Replaces the Spec 086 R Workspace host configuration (the CLI sets
@@ -3480,6 +3496,32 @@ impl CoreFacade {
                 )?;
                 Ok(ResponseBody::RWorkspaceStatus { status })
             }
+            // Spec 090 institutional adapters on the Spec 075 authority.
+            RequestBody::AdapterAct { act } => {
+                let transport = self.institutional_transport.clone();
+                let result = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut d| d.adapter_act(*act, transport.as_ref()),
+                )?;
+                Ok(ResponseBody::AdapterActed {
+                    result: Box::new(result),
+                })
+            }
+            RequestBody::AdapterGet { adapter_id } => {
+                let view = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |d| d.adapter_view(&adapter_id),
+                )?;
+                Ok(ResponseBody::Adapter {
+                    view: Box::new(view),
+                })
+            }
             // Spec 089 Research Packs on the Spec 075 authority.
             RequestBody::PackAct { act } => {
                 let result = self.ds(
@@ -5563,6 +5605,8 @@ fn capability_matches(cap: &Capability, body: &RequestBody) -> bool {
             | (Capability::ExtensionRead, RequestBody::ExtensionList { .. })
             | (Capability::HuddleAct, RequestBody::HuddleAct { .. })
             | (Capability::PackAdmin, RequestBody::PackAct { .. })
+            | (Capability::AdapterAdmin, RequestBody::AdapterAct { .. })
+            | (Capability::AdapterRead, RequestBody::AdapterGet { .. })
             | (
                 Capability::PackRead,
                 RequestBody::PackCatalog

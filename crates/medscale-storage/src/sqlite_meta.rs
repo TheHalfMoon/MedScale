@@ -306,6 +306,12 @@ impl SqliteMetaStore {
             self.conn.execute_batch(crate::research_packs::V18_DDL)?;
             self.finish_migration(18)?;
         }
+        let journal = self.migration_journal()?;
+        if journal.finished_version < 19 {
+            self.begin_migration(19)?;
+            self.conn.execute_batch(crate::institutional::V19_DDL)?;
+            self.finish_migration(19)?;
+        }
         Ok(())
     }
 
@@ -673,6 +679,10 @@ impl SqliteMetaStore {
         }
         // Spec 089: Research Pack rows.
         for (key, value) in self.research_pack_backup_families()? {
+            payload[key] = value;
+        }
+        // Spec 090: institutional adapter rows (credential handles only).
+        for (key, value) in self.institutional_backup_families()? {
             payload[key] = value;
         }
         Ok(serde_json::to_vec(&payload).unwrap_or_default())

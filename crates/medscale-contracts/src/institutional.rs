@@ -213,7 +213,9 @@ pub fn validate_object_key(key: &str) -> Result<(), String> {
     let ok = !key.is_empty()
         && key.chars().count() <= OBJECT_KEY_MAX_CHARS
         && !key.starts_with('/')
-        && !key.split('/').any(|p| p.is_empty() || p == "." || p == "..")
+        && !key
+            .split('/')
+            .any(|p| p.is_empty() || p == "." || p == "..")
         && key
             .chars()
             .all(|c| c.is_ascii_alphanumeric() || matches!(c, '-' | '_' | '.' | '/'));
@@ -463,6 +465,9 @@ mod tests {
         let k1 = idempotency_key(&a, "s3://b", "k", &DigestSha256::of(b"x"));
         let k2 = idempotency_key(&a, "s3://b", "k", &DigestSha256::of(b"y"));
         assert_ne!(k1, k2);
-        assert_eq!(k1, idempotency_key(&a, "s3://b", "k", &DigestSha256::of(b"x")));
+        assert_eq!(
+            k1,
+            idempotency_key(&a, "s3://b", "k", &DigestSha256::of(b"x"))
+        );
     }
 }

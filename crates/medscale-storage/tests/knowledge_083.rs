@@ -107,6 +107,9 @@ fn rewind_to_v11(root: &Path) {
         "rp_installs",
         "rp_artifacts",
         "rp_receipts",
+        "ia_adapters",
+        "ia_intents",
+        "ia_receipts",
     ] {
         conn.execute_batch(&format!("DROP TABLE IF EXISTS {table};"))
             .unwrap();
@@ -139,6 +142,7 @@ fn pre_083_view(meta: &SqliteMetaStore) -> serde_json::Value {
             && !key.starts_with("ext_")
             && !key.starts_with("hud_")
             && !key.starts_with("rp_")
+            && !key.starts_with("ia_")
     });
     snapshot
 }
@@ -615,6 +619,7 @@ fn pre_083_v11_backup_restores_with_empty_knowledge_tables() {
                 && !k.starts_with("ext_")
                 && !k.starts_with("hud_")
                 && !k.starts_with("rp_")
+                && !k.starts_with("ia_")
         });
         o.insert("schema_version".to_owned(), serde_json::json!(11));
     });

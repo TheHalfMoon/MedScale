@@ -510,6 +510,7 @@ fn pre_086_v14_backup_restores_with_empty_r_workspace_tables() {
                 && !k.starts_with("ext_")
                 && !k.starts_with("hud_")
                 && !k.starts_with("rp_")
+                && !k.starts_with("ia_")
         });
         o.insert("schema_version".to_owned(), serde_json::json!(14));
     });

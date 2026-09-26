@@ -18,6 +18,7 @@ mod hub;
 mod huddles;
 mod identity;
 mod ingest_ops;
+mod institutional;
 mod knowledge;
 mod medagent;
 mod model_fleet;

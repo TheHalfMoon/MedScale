@@ -3652,6 +3652,44 @@ impl CliSession {
     }
 
     // ---------------------------------------------------------------------
+    // Spec 090: institutional adapters
+    // ---------------------------------------------------------------------
+
+    /// Replaces the institutional transport (qualification harnesses only).
+    pub fn set_institutional_transport(
+        &mut self,
+        transport: std::sync::Arc<dyn crate::institutional_transport::InstitutionalTransport>,
+    ) {
+        self.facade.set_institutional_transport(transport);
+    }
+
+    pub fn adapter_act(
+        &mut self,
+        act: medscale_contracts::institutional::AdapterActRequest,
+    ) -> Result<medscale_contracts::institutional::AdapterActResult, AuthorityError> {
+        match self.dispatch(
+            Capability::AdapterAdmin,
+            RequestBody::AdapterAct { act: Box::new(act) },
+        )? {
+            ResponseBody::AdapterActed { result } => Ok(*result),
+            _ => Err(Self::unexpected("adapter act result")),
+        }
+    }
+
+    pub fn adapter_get(
+        &mut self,
+        adapter_id: OpaqueId,
+    ) -> Result<medscale_contracts::institutional::AdapterView, AuthorityError> {
+        match self.dispatch(
+            Capability::AdapterRead,
+            RequestBody::AdapterGet { adapter_id },
+        )? {
+            ResponseBody::Adapter { view } => Ok(*view),
+            _ => Err(Self::unexpected("adapter view")),
+        }
+    }
+
+    // ---------------------------------------------------------------------
     // Spec 089: Research Packs
     // ---------------------------------------------------------------------
 

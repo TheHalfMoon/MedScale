@@ -14,7 +14,7 @@
 
 use medscale_contracts::envelopes::AuthorityError;
 use medscale_contracts::institutional::{
-    AdapterAction, AdapterActRequest, AdapterActResult, AdapterCapability, AdapterConfig,
+    AdapterActRequest, AdapterActResult, AdapterAction, AdapterCapability, AdapterConfig,
     AdapterReceipt, AdapterState, AdapterView, ExternalWriteIntent, INSTITUTIONAL_SCHEMA_VERSION,
     InstitutionalAdapter, PAYLOAD_BYTES_MAX, TransportOutcome, WriteRefusal, idempotency_key,
     validate_object_key,
@@ -59,7 +59,10 @@ impl DataSources<'_> {
     }
 
     fn ia_adapter(&self, id: &OpaqueId) -> Result<InstitutionalAdapter, AuthorityError> {
-        let a = self.meta().get_institutional_adapter(id).map_err(meta_err)?;
+        let a = self
+            .meta()
+            .get_institutional_adapter(id)
+            .map_err(meta_err)?;
         if a.header.realm_id != self.realm || a.header.authority_scope_id != self.scope {
             return Err(AuthorityError::WrongScope);
         }
@@ -93,13 +96,11 @@ impl DataSources<'_> {
         })
     }
 
-    fn ia_commit(
-        &mut self,
-        change: AdapterChange<'_>,
-        audit: &str,
-    ) -> Result<(), AuthorityError> {
+    fn ia_commit(&mut self, change: AdapterChange<'_>, audit: &str) -> Result<(), AuthorityError> {
         let target = change.receipt.map(|r| r.header.id.clone());
-        self.meta().commit_adapter_change(&change).map_err(meta_err)?;
+        self.meta()
+            .commit_adapter_change(&change)
+            .map_err(meta_err)?;
         self.audit(audit, target.into_iter().collect())
     }
 
@@ -232,7 +233,10 @@ impl DataSources<'_> {
     }
 
     /// Returns to the previous configuration (as a new revision).
-    pub fn adapter_rollback(&mut self, adapter_id: &OpaqueId) -> Result<AdapterActResult, AuthorityError> {
+    pub fn adapter_rollback(
+        &mut self,
+        adapter_id: &OpaqueId,
+    ) -> Result<AdapterActResult, AuthorityError> {
         let old = self.ia_adapter(adapter_id)?;
         self.ia_not_revoked(&old)?;
         let Some(previous) = old.previous_config.clone() else {
@@ -485,7 +489,11 @@ impl DataSources<'_> {
         {
             return self.ia_refuse(&adapter, receipt, WriteRefusal::CapabilityMissing);
         }
-        let outcome = transport.head(&intent.destination, &intent.object_key, &intent.payload_digest);
+        let outcome = transport.head(
+            &intent.destination,
+            &intent.object_key,
+            &intent.payload_digest,
+        );
         let to = match outcome {
             TransportOutcome::PresentMatching => EffectState::Confirmed,
             // Not there: safe to send again (explicitly, as a new attempt).
@@ -509,7 +517,10 @@ impl DataSources<'_> {
     }
 
     /// Re-arms a `failed` write as `pending` (explicit, never automatic).
-    pub fn adapter_retry(&mut self, intent_id: &OpaqueId) -> Result<AdapterActResult, AuthorityError> {
+    pub fn adapter_retry(
+        &mut self,
+        intent_id: &OpaqueId,
+    ) -> Result<AdapterActResult, AuthorityError> {
         let intent = self.ia_intent(intent_id)?;
         let adapter = self.ia_adapter(&intent.adapter_id)?;
         if intent.state != EffectState::Failed {

@@ -8,7 +8,9 @@
 
 use std::collections::HashMap;
 
-use medscale_contracts::institutional::{AdapterReceipt, ExternalWriteIntent, InstitutionalAdapter};
+use medscale_contracts::institutional::{
+    AdapterReceipt, ExternalWriteIntent, InstitutionalAdapter,
+};
 use medscale_contracts::objects::{EffectState, OpaqueId};
 use rusqlite::{OptionalExtension, params};
 use serde::Serialize;
@@ -85,7 +87,9 @@ fn check(column: &str, body: &str, what: &str) -> Result<(), MetaError> {
     if column == body {
         Ok(())
     } else {
-        Err(corrupt(format!("{what} row columns disagree with its body")))
+        Err(corrupt(format!(
+            "{what} row columns disagree with its body"
+        )))
     }
 }
 
@@ -213,7 +217,8 @@ impl SqliteMetaStore {
         a: &InstitutionalAdapter,
         expected: Option<u64>,
     ) -> Result<(), MetaError> {
-        a.validate().map_err(|e| invalid("institutional adapter", e))?;
+        a.validate()
+            .map_err(|e| invalid("institutional adapter", e))?;
         match expected {
             None => map_insert(
                 conn.execute(
@@ -293,7 +298,11 @@ impl SqliteMetaStore {
         )
     }
 
-    fn ia_apply(&self, change: &AdapterChange<'_>, receipt: &AdapterReceipt) -> Result<(), MetaError> {
+    fn ia_apply(
+        &self,
+        change: &AdapterChange<'_>,
+        receipt: &AdapterReceipt,
+    ) -> Result<(), MetaError> {
         let tx = self.conn().unchecked_transaction()?;
         if let Some((a, e)) = change.adapter {
             Self::ia_write_adapter_on(&tx, a, e)?;
@@ -314,7 +323,10 @@ impl SqliteMetaStore {
         self.ia_apply(change, receipt)
     }
 
-    pub fn get_institutional_adapter(&self, id: &OpaqueId) -> Result<InstitutionalAdapter, MetaError> {
+    pub fn get_institutional_adapter(
+        &self,
+        id: &OpaqueId,
+    ) -> Result<InstitutionalAdapter, MetaError> {
         self.ia_rows(
             &format!("SELECT {ADAPTER_COLUMNS} FROM ia_adapters WHERE adapter_id = ?1"),
             &[&id.as_str()],
@@ -350,7 +362,9 @@ impl SqliteMetaStore {
     ) -> Result<Vec<ExternalWriteIntent>, MetaError> {
         match adapter_id {
             Some(a) => self.ia_rows(
-                &format!("SELECT {INTENT_COLUMNS} FROM ia_intents WHERE adapter_id = ?1 ORDER BY rowid"),
+                &format!(
+                    "SELECT {INTENT_COLUMNS} FROM ia_intents WHERE adapter_id = ?1 ORDER BY rowid"
+                ),
                 &[&a.as_str()],
                 decode_intent,
             ),
@@ -368,7 +382,9 @@ impl SqliteMetaStore {
     ) -> Result<Vec<AdapterReceipt>, MetaError> {
         match adapter_id {
             Some(a) => self.ia_rows(
-                &format!("SELECT {RECEIPT_COLUMNS} FROM ia_receipts WHERE adapter_id = ?1 ORDER BY rowid"),
+                &format!(
+                    "SELECT {RECEIPT_COLUMNS} FROM ia_receipts WHERE adapter_id = ?1 ORDER BY rowid"
+                ),
                 &[&a.as_str()],
                 decode_receipt,
             ),
@@ -441,7 +457,10 @@ impl SqliteMetaStore {
         ])
     }
 
-    pub fn restore_institutional_adapter_row(&self, a: &InstitutionalAdapter) -> Result<(), MetaError> {
+    pub fn restore_institutional_adapter_row(
+        &self,
+        a: &InstitutionalAdapter,
+    ) -> Result<(), MetaError> {
         restore_conflict_is_corrupt(Self::ia_write_adapter_on(self.conn(), a, None))
     }
 

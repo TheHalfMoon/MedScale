@@ -283,6 +283,9 @@ pub enum Capability {
     // Spec 089: Research Packs (declarative domain semantics).
     PackAdmin,
     PackRead,
+    // Spec 090: institutional adapters (explicit, optional external writes).
+    AdapterAdmin,
+    AdapterRead,
 }
 
 impl Capability {
@@ -350,6 +353,7 @@ impl Capability {
                 | Self::ExtensionRead
                 | Self::HuddleRead
                 | Self::PackRead
+                | Self::AdapterRead
         )
     }
 
@@ -530,6 +534,8 @@ impl Capability {
             Self::HuddleRead,
             Self::PackAdmin,
             Self::PackRead,
+            Self::AdapterAdmin,
+            Self::AdapterRead,
         ]
     }
 }
@@ -1652,6 +1658,13 @@ pub enum RequestBody {
         project_id: OpaqueId,
         pack_id: String,
     },
+    // Spec 090: institutional adapters.
+    AdapterAct {
+        act: Box<crate::institutional::AdapterActRequest>,
+    },
+    AdapterGet {
+        adapter_id: OpaqueId,
+    },
 }
 
 impl RequestBody {
@@ -2310,6 +2323,13 @@ pub enum ResponseBody {
     },
     PackArtifacts {
         artifacts: Vec<crate::research_packs::ResearchArtifact>,
+    },
+    // Spec 090: institutional adapters.
+    AdapterActed {
+        result: Box<crate::institutional::AdapterActResult>,
+    },
+    Adapter {
+        view: Box<crate::institutional::AdapterView>,
     },
 }
 
