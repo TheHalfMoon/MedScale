@@ -1,59 +1,99 @@
 # MedScale Brand Identity System
 
-**Status:** CANONICAL_SPEC_073
+**Status:** CANONICAL_SPEC_093
 **Owner:** MedScale product identity
-**Product category:** Clinical Intelligence OS
+**Product category:** Research and Clinical Intelligence OS
 
 ## Brand thesis
 
-MedScale turns clinical data, model output, and workflow state into inspectable evidence before anything becomes authority.
+MedScale turns medical knowledge, data, model output, and workflow state into inspectable evidence and useful work without hiding authority boundaries.
 
-**Brand promise:** Evidence-native clinical intelligence.
+**Brand promise:** Knowledge for a healthier tomorrow.
 **Operating line:** Evidence first. Action second.
+**Product line:** From research to real-world impact.
 **Design test:** The work is the interface.
-
-MedScale is not an AI scribe, generic healthcare dashboard, chatbot shell, EHR skin, or readiness claim.
 
 ## Character
 
-MedScale is precise, calm, technically serious, clinical without hospital clichés, intelligent without AI spectacle, and premium without decorative luxury treatment.
+MedScale is intelligent, precise, human, research-grade, evidence-native, optimistic without hype, and visually confident without becoming an AI spectacle.
 
-## Approved identity
+The identity has two deliberate modes:
+- **Brand mode:** memorable ScaleFold M, MedScale Spectrum, large editorial type, controlled motion, and high-recognition intro moments.
+- **Work mode:** calm neutral surfaces, clear hierarchy, local provenance, readable density, explicit state, and restrained solid accents.
 
-The master mark is a black circular field with a soft-white rounded continuous `M`. Its proprietary visual cue is the **MedScale Shelf**: a short measured baseline at the inner center before the steeper right return. The mark is monochrome and does not change color for product state.
+The transition between those modes is a defining MedScale behavior. Brand color attracts attention; the workspace gives attention back to the work.
 
-Brand color is black, white, and gray. Functional product colors are restrained Mist Blue (interaction/focus), Sage (positive semantics), amber (warning/review), and red (danger/failure). Product color must always carry meaning and must never become a supporting rainbow palette.
+## ScaleFold M
 
-Forbidden brand treatments include purple logo variants, gradients, glows, glassmorphism, colored icon tiles, heartbeat/cross/shield/brain/sparkle motifs, mascots, and literal octopus imagery.
+The master mark is the founder-approved geometric `ScaleFold M`: three measured vertical/folded forms with repeated 45-degree shoulders and a shorter final pillar. It reads as an `M` through rhythm and negative space instead of drawing a conventional letterform.
+
+The three forms intentionally support multiple truthful readings without becoming literal pictograms:
+- data → intelligence → impact;
+- source → evidence → action;
+- research → validation → care;
+- scale as repeated structured growth.
+
+The geometry itself is the trademark cue. Do not add a medical cross, heartbeat, brain, shield, sparkle, or mascot to explain it.
+
+## ScaleFold Language
+
+The mark is the seed of a larger original visual grammar defined in `SCALEFOLD_LANGUAGE.md`. Pillar, Fold, Step, Gap, and Rhythm can generate supergraphics, patterns, display treatments, motion, section markers, report covers, and restrained structural cues.
+
+This is a recognition system, not logo repetition. Brand compositions should remain recognizably MedScale with the complete mark removed.
+
+ScaleFold Display is a treatment derived from the existing Instrument Sans family, not a new typeface. It is reserved for rare brand-scale words and launch/editorial moments. Product UI typography remains unchanged.
+
+## MedScale Spectrum
+
+The signature spectrum is an independently defined transition from Azure through Cobalt/Iris/Violet to Magenta/Pink. It is intentionally energetic in the logo, intro, and bounded brand moments.
+
+The product UI does not become a gradient dashboard. Semantic product state uses separate success, warning, danger, and interaction colors.
 
 ## Theme
 
-Light mode is the primary design target: warm off-white canvas, quiet paper surfaces, neutral ink, and subtle borders. Dark mode follows the operating-system theme where supported and uses layered charcoal surfaces. The permanent icon rail may remain black in both modes.
+Light mode is a first-class product target, not a white version of dark mode. It uses cool near-white canvas, white working surfaces, midnight ink, and quiet blue-gray metadata.
+
+Dark mode uses navy-black canvas, layered graphite/navy surfaces, soft white ink, and restrained cool-gray metadata. It should feel deep, not pitch-black and neon everywhere.
+
+The dark rail may remain stable across both themes so the ScaleFold M has one predictable home.
 
 ## Typography
 
-Instrument Sans is the UI/product family. Source Serif 4 is the selected long-form clinical/writing family. Platform monospace is used for terminal output and machine-readable identifiers.
+- **Instrument Sans** — product UI, navigation, headings, metrics, controls, and wordmark treatment.
+- **Source Serif 4** — selective editorial, narrative, evidence-reading, and long-form writing surfaces.
+- **Platform monospace** — CLI, code, commands, digests, hashes, model IDs, evidence IDs, and machine-readable identifiers.
 
-Geist/Geist Mono were part of the historical Spec 068 direction and are not active MedScale identity fonts under Spec 073.
+Typography carries much of the brand. Headings are confident, compact, and tightly spaced; dense product text remains comfortably readable.
+
+## Icon grammar
+
+Native product icons are simple outlined forms with rounded joins/caps and distinguishable silhouettes. The interface does not wrap every icon in a decorative colored square. Feature/onboarding moments may use a soft tint or one spectrum accent.
 
 ## Product signature
 
-MedScale should remain recognizable without its logo through:
-- the narrow black icon rail plus adaptive named-route dock;
-- warm, continuous light work surfaces and calm layered charcoal dark surfaces;
-- Mist Blue reserved for interaction/focus rather than branding spectacle;
-- evidence/source metadata near generated or derived material;
-- restrained geometry and thin structural dividers;
+MedScale should remain recognizable without the logo through:
+- cool light and deep navy dark surfaces;
+- an obsidian navigation rail with precise icon rhythm;
+- compact confident Instrument Sans headings;
+- evidence/source metadata kept near derived output;
+- quiet separators and medium-radius surfaces rather than excessive cards;
+- solid indigo interaction color separated from semantic status color;
 - explicit truth language such as `PROVEN`, `REVIEW REQUIRED`, `UNKNOWN`, `NOT ADMITTED`, and `UNMEASURED`.
+
+## Color boundaries
+
+Gradient is identity. Semantic color is state. Never use one as the other.
+
+Do not let Pink mean error, Green mean brand success, or a gradient imply higher model quality. Model/provider color must never override authority/evidence semantics.
 
 ## Positioning boundaries
 
-Do not claim superiority, clinical authority, production readiness, WCAG conformance, or release readiness without bound evidence. Do not create fake activity, impact, or patient-outcome metrics.
+Do not claim clinical authority, comparative superiority, production readiness, WCAG conformance, release readiness, or measured impact without bound evidence.
 
-MESC is a separate project and is not a MedScale gate, integration dependency, residual, or completion condition.
+MESC is a separate project and is not a MedScale release gate, identity dependency, or completion condition.
 
 ## Reference discipline
 
-Abridge, Linear, Apple, Vercel, Cohere, Mistral, OpenMed, and Impeccable may inform craft/research. None is visual authority for MedScale, and no proprietary visual asset is copied.
+JetBrains, Abridge, Cohere, and other high-craft products may inform design principles. Their proprietary logos, icons, illustrations, layouts, typography assets, and brand systems are not MedScale assets and are not copied.
 
-Impeccable contributes critique discipline. Historical Spec 068 evidence remains historical and must not be rewritten to imply it used the Spec 073 identity.
+The founder-selected direction is implemented as original MedScale geometry and an independently specified token system.
