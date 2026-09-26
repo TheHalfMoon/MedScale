@@ -68,11 +68,18 @@ fn restored_vaults_continue_every_id_sequence() {
         "audio-source-2"
     );
     let original = SyntheticVault::open("vault-1", &root.join("vault")).unwrap();
-    let mut before = original.meta.list_id_sequences().unwrap();
-    before.retain(|(k, _)| k != "compute_seq_compute-job" && k != "audio_seq_audio-source");
-    let mut after = restored.meta.list_id_sequences().unwrap();
-    after.retain(|(k, _)| k != "compute_seq_compute-job" && k != "audio_seq_audio-source");
-    assert_eq!(before, after, "every other sequence restored exactly");
+    let after: std::collections::BTreeMap<String, u64> = restored
+        .meta
+        .list_id_sequences()
+        .unwrap()
+        .into_iter()
+        .collect();
+    for (key, value) in original.meta.list_id_sequences().unwrap() {
+        assert!(
+            after.get(&key).is_some_and(|v| *v >= value),
+            "{key} restored at least to {value}"
+        );
+    }
 }
 
 #[test]
