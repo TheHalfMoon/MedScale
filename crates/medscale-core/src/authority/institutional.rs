@@ -573,6 +573,25 @@ impl DataSources<'_> {
         }
     }
 
+    /// Adapters of one Project in this realm and scope.
+    pub fn adapter_list(
+        &self,
+        project_id: &OpaqueId,
+    ) -> Result<Vec<InstitutionalAdapter>, AuthorityError> {
+        self.require_project(project_id)?;
+        Ok(self
+            .meta()
+            .list_institutional_adapters()
+            .map_err(meta_err)?
+            .into_iter()
+            .filter(|a| {
+                &a.project_id == project_id
+                    && a.header.realm_id == self.realm
+                    && a.header.authority_scope_id == self.scope
+            })
+            .collect())
+    }
+
     pub fn adapter_view(&self, adapter_id: &OpaqueId) -> Result<AdapterView, AuthorityError> {
         let adapter = self.ia_adapter(adapter_id)?;
         Ok(AdapterView {
