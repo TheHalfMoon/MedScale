@@ -78,6 +78,10 @@ worker process:
   reports `unavailable`.
 - No remote or self-hosted worker, GPU, scheduler, R or Python (later
   slices; arbitrary code waits for platform qualification).
+- Compute outputs carry no Spec 079 classification row (as Spec 082
+  derived tables); they have no egress or export path, and any later
+  export must treat them at least as restrictively as their input, whose
+  unclassified default is `local_phi`.
 - No Desktop surface; no rendered Desktop evidence.
 - No local compile or test run completed on this workstation; GitHub
   Actions is the compiler of record.
