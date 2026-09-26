@@ -15,7 +15,7 @@ use medscale_contracts::institutional::TransportOutcome;
 use medscale_contracts::objects::DigestSha256;
 
 /// Moves one payload to an institutional destination.
-pub trait InstitutionalTransport: Send + Sync {
+pub trait InstitutionalTransport: Send + Sync + std::fmt::Debug {
     /// Stores `bytes` at `key` under `idempotency_key`. Must not store
     /// different bytes for a key it has already stored.
     fn put(
