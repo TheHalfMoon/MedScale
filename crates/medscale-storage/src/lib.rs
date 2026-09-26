@@ -11,6 +11,7 @@ mod collaboration;
 mod compute;
 mod data_sources;
 mod encrypted_vault;
+mod extensions;
 mod gc;
 mod hub;
 mod knowledge;
@@ -39,6 +40,7 @@ pub use data_sources::{
     read_external_sqlite_table, validate_external_identifier,
 };
 pub use encrypted_vault::{EncryptedVault, EncryptedVaultError, default_vault_root};
+pub use extensions::{EXTENSION_TABLES, InstallChange};
 pub use gc::{GcStats, run_gc};
 pub use hub::{MirrorRow, SeqClaim, event_claims_seq};
 pub use knowledge::IndexVersionRow;
@@ -55,7 +57,7 @@ pub use sqlite_meta::{AuthorityObjectRow, MetaError, SourceMeta, SqliteMetaStore
 pub use vault::{SyntheticVault, VaultError};
 pub use writer_lock::{WriterLock, WriterLockError};
 
-/// Top metadata schema version written by this build (Spec 086: v15). Tests of
+/// Top metadata schema version written by this build (Spec 087: v16). Tests of
 /// earlier specs assert against this constant so a later additive migration
 /// does not require editing them.
-pub const CURRENT_META_SCHEMA_VERSION: u32 = 15;
+pub const CURRENT_META_SCHEMA_VERSION: u32 = 16;

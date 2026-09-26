@@ -63,6 +63,12 @@ const LATER_VERSION_TABLES: &[&str] = &[
     "rws_run_receipts",
     "rws_publish_receipts",
     "rws_published_tables",
+    "ext_publishers",
+    "ext_releases",
+    "ext_installs",
+    "ext_grants",
+    "ext_lifecycle_receipts",
+    "ext_runtime_receipts",
 ];
 
 fn temp_root(name: &str) -> PathBuf {
@@ -140,6 +146,7 @@ fn pre_080_view(meta: &SqliteMetaStore) -> serde_json::Value {
             && !key.starts_with("hub_")
             && !key.starts_with("compute_")
             && !key.starts_with("rws_")
+            && !key.starts_with("ext_")
     });
     snapshot
 }
@@ -581,6 +588,7 @@ fn pre_080_v8_backup_restores_with_empty_browse_tables() {
                 && !k.starts_with("hub_")
                 && !k.starts_with("compute_")
                 && !k.starts_with("rws_")
+                && !k.starts_with("ext_")
         });
         o.insert("schema_version".to_owned(), serde_json::json!(8));
     });
