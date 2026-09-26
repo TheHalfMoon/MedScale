@@ -155,7 +155,8 @@ fn pre_080_view(meta: &SqliteMetaStore) -> serde_json::Value {
             && !key.starts_with("compute_")
             && !key.starts_with("rws_")
             && !key.starts_with("ext_")
-            && !key.starts_with("hud_") && !key.starts_with("rp_")
+            && !key.starts_with("hud_")
+            && !key.starts_with("rp_")
     });
     snapshot
 }
@@ -598,7 +599,8 @@ fn pre_080_v8_backup_restores_with_empty_browse_tables() {
                 && !k.starts_with("compute_")
                 && !k.starts_with("rws_")
                 && !k.starts_with("ext_")
-                && !k.starts_with("hud_") && !k.starts_with("rp_")
+                && !k.starts_with("hud_")
+                && !k.starts_with("rp_")
         });
         o.insert("schema_version".to_owned(), serde_json::json!(8));
     });

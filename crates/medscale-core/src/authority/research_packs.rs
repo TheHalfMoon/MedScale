@@ -14,9 +14,9 @@ use std::collections::BTreeMap;
 use medscale_contracts::envelopes::AuthorityError;
 use medscale_contracts::objects::{ObjectHeader, OpaqueId};
 use medscale_contracts::research_packs::{
-    EvidenceAssessment, FieldValue, PackAction, PackInstallState, PackReceipt,
-    RESEARCH_PACK_SCHEMA_VERSION, ResearchArtifact, ResearchPackInstall, ResearchPackManifest,
-    ResearchPackMigration, clinical_research_pack,
+    EvidenceAssessment, FieldValue, PackActRequest, PackActResult, PackAction, PackInstallState,
+    PackReceipt, RESEARCH_PACK_SCHEMA_VERSION, ResearchArtifact, ResearchPackInstall,
+    ResearchPackManifest, ResearchPackMigration, clinical_research_pack,
 };
 use medscale_storage::{MetaError, PackChange};
 
@@ -64,7 +64,11 @@ impl DataSources<'_> {
         targets: Vec<OpaqueId>,
     ) -> Result<PackReceipt, AuthorityError> {
         Ok(PackReceipt {
-            header: self.rp_header(self.meta().alloc_pack_id("pack-receipt").map_err(meta_err)?),
+            header: self.rp_header(
+                self.meta()
+                    .alloc_pack_id("pack-receipt")
+                    .map_err(meta_err)?,
+            ),
             project_id: project_id.clone(),
             pack_id: pack_id.to_owned(),
             action,
@@ -108,7 +112,8 @@ impl DataSources<'_> {
         match self.rp_install_of(project_id, pack_id)? {
             Some(i) if i.state == PackInstallState::Enabled => Ok(i),
             Some(_) => Err(AuthorityError::Conflict {
-                message: "the pack is uninstalled in this project; its data is read-only".to_owned(),
+                message: "the pack is uninstalled in this project; its data is read-only"
+                    .to_owned(),
             }),
             None => Err(AuthorityError::NotFound),
         }
@@ -157,7 +162,9 @@ impl DataSources<'_> {
                 (
                     ResearchPackInstall {
                         header: self.rp_header(
-                            self.meta().alloc_pack_id("pack-install").map_err(meta_err)?,
+                            self.meta()
+                                .alloc_pack_id("pack-install")
+                                .map_err(meta_err)?,
                         ),
                         project_id: project_id.clone(),
                         pack_id: pack_id.to_owned(),
@@ -285,13 +292,19 @@ impl DataSources<'_> {
         let install = self.rp_enabled(project_id, pack_id)?;
         let m = manifest(pack_id, install.version)?;
         m.check_fields(type_id, &fields).map_err(invalid)?;
-        let schema = m.schema(type_id).ok_or_else(|| invalid("unknown artifact type"))?;
+        let schema = m
+            .schema(type_id)
+            .ok_or_else(|| invalid("unknown artifact type"))?;
         let initial = m
             .workflow(&schema.workflow_id)
             .map(|w| w.initial.clone())
             .ok_or_else(|| invalid("unknown workflow"))?;
         let artifact = ResearchArtifact {
-            header: self.rp_header(self.meta().alloc_pack_id("research-artifact").map_err(meta_err)?),
+            header: self.rp_header(
+                self.meta()
+                    .alloc_pack_id("research-artifact")
+                    .map_err(meta_err)?,
+            ),
             project_id: project_id.clone(),
             pack_id: pack_id.to_owned(),
             pack_version: install.version,
@@ -363,11 +376,16 @@ impl DataSources<'_> {
         expected_revision: u64,
         fields: BTreeMap<String, FieldValue>,
     ) -> Result<ResearchArtifact, AuthorityError> {
-        self.artifact_change(artifact_id, expected_revision, PackAction::Update, |m, a| {
-            m.check_fields(&a.type_id, &fields).map_err(invalid)?;
-            a.fields = fields;
-            Ok(())
-        })
+        self.artifact_change(
+            artifact_id,
+            expected_revision,
+            PackAction::Update,
+            |m, a| {
+                m.check_fields(&a.type_id, &fields).map_err(invalid)?;
+                a.fields = fields;
+                Ok(())
+            },
+        )
     }
 
     /// Moves an artifact along its Pack workflow.
@@ -377,20 +395,25 @@ impl DataSources<'_> {
         expected_revision: u64,
         to: &str,
     ) -> Result<ResearchArtifact, AuthorityError> {
-        self.artifact_change(artifact_id, expected_revision, PackAction::Transition, |m, a| {
-            let workflow = m
-                .schema(&a.type_id)
-                .and_then(|s| m.workflow(&s.workflow_id))
-                .ok_or_else(|| invalid("unknown workflow"))?;
-            if !workflow.allows(&a.workflow_state, to) {
-                return Err(invalid(format!(
-                    "the workflow does not allow {} -> {to}",
-                    a.workflow_state
-                )));
-            }
-            a.workflow_state = to.to_owned();
-            Ok(())
-        })
+        self.artifact_change(
+            artifact_id,
+            expected_revision,
+            PackAction::Transition,
+            |m, a| {
+                let workflow = m
+                    .schema(&a.type_id)
+                    .and_then(|s| m.workflow(&s.workflow_id))
+                    .ok_or_else(|| invalid("unknown workflow"))?;
+                if !workflow.allows(&a.workflow_state, to) {
+                    return Err(invalid(format!(
+                        "the workflow does not allow {} -> {to}",
+                        a.workflow_state
+                    )));
+                }
+                a.workflow_state = to.to_owned();
+                Ok(())
+            },
+        )
     }
 
     /// Records one evidence assessment on an artifact.
@@ -401,9 +424,61 @@ impl DataSources<'_> {
         assessment: EvidenceAssessment,
     ) -> Result<ResearchArtifact, AuthorityError> {
         assessment.validate().map_err(invalid)?;
-        self.artifact_change(artifact_id, expected_revision, PackAction::Assess, |_, a| {
-            a.assessments.push(assessment);
-            Ok(())
+        self.artifact_change(
+            artifact_id,
+            expected_revision,
+            PackAction::Assess,
+            |_, a| {
+                a.assessments.push(assessment);
+                Ok(())
+            },
+        )
+    }
+
+    /// Runs one act.
+    pub fn pack_act(&mut self, act: PackActRequest) -> Result<PackActResult, AuthorityError> {
+        let install = |i| PackActResult {
+            install: Some(i),
+            artifact: None,
+        };
+        let artifact = |a| PackActResult {
+            install: None,
+            artifact: Some(a),
+        };
+        Ok(match act {
+            PackActRequest::Install {
+                project_id,
+                pack_id,
+            } => install(self.pack_install(&project_id, &pack_id)?),
+            PackActRequest::Upgrade {
+                project_id,
+                pack_id,
+            } => install(self.pack_upgrade(&project_id, &pack_id)?),
+            PackActRequest::Uninstall {
+                project_id,
+                pack_id,
+            } => install(self.pack_uninstall(&project_id, &pack_id)?),
+            PackActRequest::Create {
+                project_id,
+                pack_id,
+                type_id,
+                fields,
+            } => artifact(self.artifact_create(&project_id, &pack_id, &type_id, fields)?),
+            PackActRequest::Update {
+                artifact_id,
+                expected_revision,
+                fields,
+            } => artifact(self.artifact_update(&artifact_id, expected_revision, fields)?),
+            PackActRequest::Transition {
+                artifact_id,
+                expected_revision,
+                to,
+            } => artifact(self.artifact_transition(&artifact_id, expected_revision, &to)?),
+            PackActRequest::Assess {
+                artifact_id,
+                expected_revision,
+                assessment,
+            } => artifact(self.artifact_assess(&artifact_id, expected_revision, assessment)?),
         })
     }
 
@@ -422,7 +497,9 @@ impl DataSources<'_> {
             .list_research_artifacts(Some((project_id, pack_id)))
             .map_err(meta_err)?
             .into_iter()
-            .filter(|a| a.header.realm_id == self.realm && a.header.authority_scope_id == self.scope)
+            .filter(|a| {
+                a.header.realm_id == self.realm && a.header.authority_scope_id == self.scope
+            })
             .collect())
     }
 

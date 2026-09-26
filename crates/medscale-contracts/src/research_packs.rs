@@ -543,6 +543,53 @@ mod tests {
     }
 }
 
+/// One Research Pack act.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case", tag = "act", deny_unknown_fields)]
+pub enum PackActRequest {
+    Install {
+        project_id: OpaqueId,
+        pack_id: String,
+    },
+    Upgrade {
+        project_id: OpaqueId,
+        pack_id: String,
+    },
+    Uninstall {
+        project_id: OpaqueId,
+        pack_id: String,
+    },
+    Create {
+        project_id: OpaqueId,
+        pack_id: String,
+        type_id: String,
+        fields: BTreeMap<String, FieldValue>,
+    },
+    Update {
+        artifact_id: OpaqueId,
+        expected_revision: u64,
+        fields: BTreeMap<String, FieldValue>,
+    },
+    Transition {
+        artifact_id: OpaqueId,
+        expected_revision: u64,
+        to: String,
+    },
+    Assess {
+        artifact_id: OpaqueId,
+        expected_revision: u64,
+        assessment: EvidenceAssessment,
+    },
+}
+
+/// What an act produced.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PackActResult {
+    pub install: Option<ResearchPackInstall>,
+    pub artifact: Option<ResearchArtifact>,
+}
+
 // ---------------------------------------------------------------------
 // Built-in first-party Pack: Clinical Research.
 // ---------------------------------------------------------------------
@@ -582,7 +629,11 @@ pub fn clinical_research_pack(version: u32) -> Option<ResearchPackManifest> {
     };
     let mut protocol_fields = vec![
         field("title", FieldKind::Text, true),
-        field("phase", choice(&["1", "2", "3", "4", "observational"]), true),
+        field(
+            "phase",
+            choice(&["1", "2", "3", "4", "observational"]),
+            true,
+        ),
         field("primary_outcome", FieldKind::Text, true),
         field("start_date", FieldKind::Date, false),
     ];
@@ -598,7 +649,10 @@ pub fn clinical_research_pack(version: u32) -> Option<ResearchPackManifest> {
         let registry = field("registry_id", FieldKind::Text, false);
         protocol_fields.push(registry.clone());
         protocol_states.push("suspended".to_owned());
-        protocol_moves.extend(moves(&[("approved", "suspended"), ("suspended", "approved")]));
+        protocol_moves.extend(moves(&[
+            ("approved", "suspended"),
+            ("suspended", "approved"),
+        ]));
         migrations = vec![
             ResearchPackMigration::AddField {
                 type_id: "study_protocol".to_owned(),

@@ -86,7 +86,9 @@ fn check(column: &str, body: &str, what: &str) -> Result<(), MetaError> {
     if column == body {
         Ok(())
     } else {
-        Err(corrupt(format!("{what} row columns disagree with its body")))
+        Err(corrupt(format!(
+            "{what} row columns disagree with its body"
+        )))
     }
 }
 
@@ -334,7 +336,9 @@ impl SqliteMetaStore {
         pack_id: &str,
     ) -> Result<ResearchPackInstall, MetaError> {
         self.rp_rows(
-            &format!("SELECT {INSTALL_COLUMNS} FROM rp_installs WHERE project_id = ?1 AND pack_id = ?2"),
+            &format!(
+                "SELECT {INSTALL_COLUMNS} FROM rp_installs WHERE project_id = ?1 AND pack_id = ?2"
+            ),
             &[&project_id.as_str(), &pack_id],
             decode_install,
         )?
@@ -408,7 +412,9 @@ impl SqliteMetaStore {
             if project.header.realm_id != i.header.realm_id
                 || project.header.authority_scope_id != i.header.authority_scope_id
             {
-                return Err(corrupt("pack install is outside its project's scope".to_owned()));
+                return Err(corrupt(
+                    "pack install is outside its project's scope".to_owned(),
+                ));
             }
         }
         for a in self.list_research_artifacts(None)? {
@@ -416,7 +422,9 @@ impl SqliteMetaStore {
                 .get(&(a.project_id.as_str().to_owned(), a.pack_id.clone()))
                 .ok_or_else(|| corrupt("artifact of a pack that is not installed".to_owned()))?;
             if a.pack_version != i.version {
-                return Err(corrupt("artifact is not at its install's version".to_owned()));
+                return Err(corrupt(
+                    "artifact is not at its install's version".to_owned(),
+                ));
             }
         }
         Ok(())
@@ -429,12 +437,18 @@ impl SqliteMetaStore {
         let v =
             |r: Result<serde_json::Value, serde_json::Error>| r.map_err(|e| corrupt(e.to_string()));
         Ok(vec![
-            ("rp_installs", v(serde_json::to_value(self.list_pack_installs()?))?),
+            (
+                "rp_installs",
+                v(serde_json::to_value(self.list_pack_installs()?))?,
+            ),
             (
                 "rp_artifacts",
                 v(serde_json::to_value(self.list_research_artifacts(None)?))?,
             ),
-            ("rp_receipts", v(serde_json::to_value(self.list_pack_receipts()?))?),
+            (
+                "rp_receipts",
+                v(serde_json::to_value(self.list_pack_receipts()?))?,
+            ),
         ])
     }
 
