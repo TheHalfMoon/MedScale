@@ -42,10 +42,11 @@ fn fake_ide() -> PathBuf {
 }
 
 fn host(stage: &Path) -> RWorkspaceHost {
-    let mut host = RWorkspaceHost::default();
-    host.stage_dir = Some(stage.to_path_buf());
-    host.programs.insert(IdeKind::Folder, fake_ide());
-    host
+    RWorkspaceHost {
+        stage_dir: Some(stage.to_path_buf()),
+        programs: [(IdeKind::Folder, fake_ide())].into_iter().collect(),
+        rscript: None,
+    }
 }
 
 fn setup(name: &str) -> Lab {

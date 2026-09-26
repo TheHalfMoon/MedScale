@@ -397,7 +397,7 @@ pub fn run_r(cmd: RCmd) -> anyhow::Result<()> {
                 println!(
                     "run: {} {} refused={}",
                     r.header.id.as_str(),
-                    r.script,
+                    r.script.escape_debug(),
                     r.refusal.as_str()
                 );
             }
@@ -405,7 +405,7 @@ pub fn run_r(cmd: RCmd) -> anyhow::Result<()> {
                 println!(
                     "publish: {} {} {}",
                     p.header.id.as_str(),
-                    p.output_name,
+                    p.output_name.escape_debug(),
                     p.state.as_str()
                 );
             }
