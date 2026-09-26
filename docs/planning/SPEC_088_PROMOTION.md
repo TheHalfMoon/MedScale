@@ -1,8 +1,8 @@
 # Spec 088 Promotion — AudioFlow Advanced (huddle foundation)
 
 **Status:** `PROMOTED_IMPLEMENTATION_AUTHORIZED`
-**Promotion date:** PROMOTION_DATE_PENDING
-**Canonical base:** BASE_SHA_PENDING (Spec 087 closure merge)
+**Promotion date:** 2026-09-26
+**Canonical base:** `a40bd1efc05e355c6249f9f3452c953dde62bccc` (Spec 087 closure PR #161 merge; exact-head run `36268277485` 6/6 on `ac2f433`)
 **Target branch:** `spec/088-audioflow-advanced`
 
 ## Authority
