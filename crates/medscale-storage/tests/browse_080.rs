@@ -153,6 +153,9 @@ fn pre_080_view(meta: &SqliteMetaStore) -> serde_json::Value {
         serde_json::from_slice(&meta.snapshot_bytes().unwrap()).unwrap();
     let object = snapshot.as_object_mut().unwrap();
     object.remove("schema_version");
+    // Id sequences are allocation counters, not rows; their backup and
+    // restore are covered by `id_sequences_restore`.
+    object.remove("id_sequences");
     object.retain(|key, _| {
         !key.starts_with("browse_")
             && !key.starts_with("audio_")

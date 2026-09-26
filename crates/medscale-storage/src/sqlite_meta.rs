@@ -464,6 +464,55 @@ impl SqliteMetaStore {
         Ok(rows.next()?.is_some())
     }
 
+    /// Every id sequence in `store_state` except the authority store's own
+    /// `next_seq` (which travels with the authority rows).
+    pub fn list_id_sequences(&self) -> Result<Vec<(String, u64)>, MetaError> {
+        let mut stmt = self
+            .conn
+            .prepare("SELECT key, value FROM store_state WHERE key <> 'next_seq' ORDER BY key")?;
+        let rows = stmt.query_map([], |row| {
+            Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+        })?;
+        let mut out = Vec::new();
+        for row in rows {
+            let (key, value) = row?;
+            let value = value.parse::<u64>().map_err(|_| {
+                MetaError::CorruptObjectBody(format!("id sequence {key} is not numeric"))
+            })?;
+            out.push((key, value));
+        }
+        Ok(out)
+    }
+
+    /// Restores id sequences, never lowering one already present.
+    pub fn restore_id_sequences(
+        &self,
+        sequences: &std::collections::BTreeMap<String, u64>,
+    ) -> Result<(), MetaError> {
+        let tx = self.conn.unchecked_transaction()?;
+        for (key, value) in sequences {
+            if key == "next_seq" || key.is_empty() || key.len() > 256 {
+                return Err(MetaError::CorruptObjectBody(
+                    "tampered backup: invalid id sequence key".to_owned(),
+                ));
+            }
+            let current: Option<String> = tx
+                .query_row(
+                    "SELECT value FROM store_state WHERE key = ?1",
+                    params![key],
+                    |row| row.get(0),
+                )
+                .optional()?;
+            let current = current.and_then(|c| c.parse::<u64>().ok()).unwrap_or(0);
+            tx.execute(
+                "INSERT OR REPLACE INTO store_state(key, value) VALUES (?1, ?2)",
+                params![key, current.max(*value).to_string()],
+            )?;
+        }
+        tx.commit()?;
+        Ok(())
+    }
+
     pub fn snapshot_bytes(&self) -> Result<Vec<u8>, MetaError> {
         let sources = self.list_sources()?;
         let source_payload: Vec<_> = sources
@@ -695,6 +744,11 @@ impl SqliteMetaStore {
         for (key, value) in self.federation_backup_families()? {
             payload[key] = value;
         }
+        // Id sequences: without them a restored vault would hand out ids
+        // that restored rows already use.
+        let sequences: std::collections::BTreeMap<String, u64> =
+            self.list_id_sequences()?.into_iter().collect();
+        payload["id_sequences"] = serde_json::json!(sequences);
         Ok(serde_json::to_vec(&payload).unwrap_or_default())
     }
 
