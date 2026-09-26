@@ -11,8 +11,10 @@ mod collaboration;
 mod compute;
 mod data_sources;
 mod encrypted_vault;
+mod extensions;
 mod gc;
 mod hub;
+mod huddles;
 mod knowledge;
 mod medagent;
 mod migrate;
@@ -21,6 +23,7 @@ mod privacy_gate;
 mod privacy_probes;
 mod project_graph;
 mod r_workspace;
+mod research_packs;
 mod sealed_blob;
 mod sqlite_meta;
 mod vault;
@@ -39,8 +42,10 @@ pub use data_sources::{
     read_external_sqlite_table, validate_external_identifier,
 };
 pub use encrypted_vault::{EncryptedVault, EncryptedVaultError, default_vault_root};
+pub use extensions::{EXTENSION_TABLES, InstallChange};
 pub use gc::{GcStats, run_gc};
 pub use hub::{MirrorRow, SeqClaim, event_claims_seq};
+pub use huddles::{HUDDLE_TABLES, HuddleChange};
 pub use knowledge::IndexVersionRow;
 pub use migrate::MigrationJournal;
 pub use privacy_gate::{DeidTransformCommit, PseudonymEntryRow};
@@ -50,12 +55,13 @@ pub use privacy_probes::{
     scan_vault_work_leftovers,
 };
 pub use r_workspace::{R_WORKSPACE_TABLES, RPublishedTableRow};
+pub use research_packs::{PackChange, RESEARCH_PACK_TABLES};
 pub use sealed_blob::SealedBlobStore;
 pub use sqlite_meta::{AuthorityObjectRow, MetaError, SourceMeta, SqliteMetaStore};
 pub use vault::{SyntheticVault, VaultError};
 pub use writer_lock::{WriterLock, WriterLockError};
 
-/// Top metadata schema version written by this build (Spec 086: v15). Tests of
+/// Top metadata schema version written by this build (Spec 089: v18). Tests of
 /// earlier specs assert against this constant so a later additive migration
 /// does not require editing them.
-pub const CURRENT_META_SCHEMA_VERSION: u32 = 15;
+pub const CURRENT_META_SCHEMA_VERSION: u32 = 18;

@@ -11,9 +11,11 @@ mod data_acquire;
 mod data_sources;
 mod document_ops;
 mod durable;
+mod extensions;
 mod facade;
 mod handles;
 mod hub;
+mod huddles;
 mod identity;
 mod ingest_ops;
 mod knowledge;
@@ -26,6 +28,7 @@ mod privacy_recognizers;
 mod project_graph;
 mod promote;
 mod r_workspace;
+mod research_packs;
 mod retrieval;
 mod source_ops;
 mod store;
@@ -40,6 +43,7 @@ pub use corpus::{
     build_synthetic_lexical_scale_corpus, default_synthetic_corpus, scale_synthetic_corpus_10k,
 };
 pub use document_ops::{document_worker_policy, mime_decision, voice_worker_policy};
+pub use extensions::{generate_publisher_key, sign_extension_pack, valid_public_key};
 pub use facade::CoreFacade;
 pub use handles::assert_no_secret_handles;
 pub use source_ops::{create_source_record, overwrite_source_bytes, verify_source_digest};
