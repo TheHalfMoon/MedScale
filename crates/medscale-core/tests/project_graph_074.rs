@@ -811,15 +811,18 @@ fn high_frequency_ops_leave_memory_snapshot_identical() {
         Some(edge.header.id.as_str()),
         "{edges:?}"
     );
-    // Authority proof: strip the receipt sections; everything else (memory-
-    // derived authority state: objects, projects, sources, experiments,
-    // counters) must be byte-identical through all four high-frequency ops.
+    // Authority proof: strip the receipt sections and the durable id
+    // sequences they allocate from (sqlite rows, not memory state);
+    // everything else (memory-derived authority state: objects, projects,
+    // sources, experiments, the `next_seq` counter) must be byte-identical
+    // through all four high-frequency ops.
     let mut before_stripped = before;
     let mut after_stripped = after;
     for snapshot in [&mut before_stripped, &mut after_stripped] {
         let obj = snapshot.as_object_mut().expect("snapshot object");
         obj.remove("refs");
         obj.remove("edges");
+        obj.remove("id_sequences");
     }
     assert_eq!(after_stripped, before_stripped);
 }
