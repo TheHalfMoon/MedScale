@@ -19,8 +19,8 @@
 - [x] fmt, dependency direction, Clippy, workspace tests, cargo-deny.
 - [x] Deterministic exact-range scope record and security challenge.
 - [x] Evidence files.
-- [ ] Exact-head CI on the final head; merge; post-main CI.
-- [ ] Closure PR; recompute the next unit.
+- [x] Exact-head CI on the final head; merge; post-main CI.
+- [x] Closure PR; recompute the next unit.
 
 Reconciled 2026-09-26 against implementation, tests and CI: T085-01 to
 T085-04 and the first three T085-05 items are complete on code head
@@ -28,3 +28,8 @@ T085-04 and the first three T085-05 items are complete on code head
 windows 871 / 0 / 1 with Clippy and Test green, macOS green; see
 `evidence/085-compute/EXACT_HEAD_QUALIFICATION.md`). T085-00 is complete:
 promotion base `434d1c7` (`evidence/085-compute/LIVE_TRUTH.md`).
+
+Closed 2026-09-26: final head `68c20d5` passed run `36203947745` (6/6);
+PR #149 merged as `91021e2`; post-main run `36208910691` (6/6). See
+`evidence/085-compute/CLOSURE.md` and `POST_MERGE_VERIFICATION.md`. Next unit
+recomputed in `docs/planning/BUILD_QUEUE.md`.
