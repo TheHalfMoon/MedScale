@@ -1,7 +1,7 @@
 # Tasks — Spec 086 R Workspace
 
 ## T086-00 — Live truth and promotion
-- [ ] Record base SHA (Spec 085 closure main), open PRs, CI state, schema version and sandbox qualification state.
+- [x] Record base SHA (Spec 085 closure main), open PRs, CI state, schema version and sandbox qualification state (`evidence/086-r-workspace/LIVE_TRUTH.md`).
 
 ## T086-01 — Contracts
 - [x] `r_workspace.rs` contracts, closed vocabularies, manifest validation, launch allowlist, renderers; unit tests; fake-IDE harness binary.
