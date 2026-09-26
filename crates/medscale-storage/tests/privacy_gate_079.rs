@@ -145,6 +145,12 @@ const LATER_VERSION_TABLES: &[&str] = &[
     "rws_run_receipts",
     "rws_publish_receipts",
     "rws_published_tables",
+    "ext_publishers",
+    "ext_releases",
+    "ext_installs",
+    "ext_grants",
+    "ext_lifecycle_receipts",
+    "ext_runtime_receipts",
 ];
 
 /// Rewinds the file to exactly what a v7 build leaves on disk.
@@ -188,6 +194,7 @@ fn pre_079_view(meta: &SqliteMetaStore) -> serde_json::Value {
             && !key.starts_with("hub_")
             && !key.starts_with("compute_")
             && !key.starts_with("rws_")
+            && !key.starts_with("ext_")
     });
     snapshot
 }
@@ -731,6 +738,7 @@ fn pre_079_v7_backup_restores_with_empty_079_tables() {
                 && !key.starts_with("hub_")
                 && !key.starts_with("compute_")
                 && !key.starts_with("rws_")
+                && !key.starts_with("ext_")
         });
         object.insert("schema_version".to_owned(), serde_json::json!(7));
     });

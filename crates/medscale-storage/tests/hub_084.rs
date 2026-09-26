@@ -580,7 +580,10 @@ fn pre_084_v12_backup_restores_with_empty_hub_tables() {
     tamper_backup(&dest, |s| {
         let o = s.as_object_mut().unwrap();
         o.retain(|k, _| {
-            !k.starts_with("hub_") && !k.starts_with("compute_") && !k.starts_with("rws_")
+            !k.starts_with("hub_")
+                && !k.starts_with("compute_")
+                && !k.starts_with("rws_")
+                && !k.starts_with("ext_")
         });
         o.insert("schema_version".to_owned(), serde_json::json!(12));
     });

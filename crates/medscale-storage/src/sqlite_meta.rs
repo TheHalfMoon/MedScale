@@ -288,6 +288,12 @@ impl SqliteMetaStore {
             self.conn.execute_batch(crate::r_workspace::V15_DDL)?;
             self.finish_migration(15)?;
         }
+        let journal = self.migration_journal()?;
+        if journal.finished_version < 16 {
+            self.begin_migration(16)?;
+            self.conn.execute_batch(crate::extensions::V16_DDL)?;
+            self.finish_migration(16)?;
+        }
         Ok(())
     }
 
@@ -643,6 +649,10 @@ impl SqliteMetaStore {
         }
         // Spec 086: R Workspace rows (published table bytes as hex).
         for (key, value) in self.r_workspace_backup_families()? {
+            payload[key] = value;
+        }
+        // Spec 087: Community Extensions rows.
+        for (key, value) in self.extension_backup_families()? {
             payload[key] = value;
         }
         Ok(serde_json::to_vec(&payload).unwrap_or_default())

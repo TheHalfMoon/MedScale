@@ -3480,6 +3480,157 @@ impl CoreFacade {
                 )?;
                 Ok(ResponseBody::RWorkspaceStatus { status })
             }
+            // Spec 087 Community Extensions (declarative only) on the Spec
+            // 075 authority: verification, lifecycle, grants, invocation.
+            RequestBody::ExtensionTrustPublisher {
+                publisher_id,
+                key_hex,
+            } => {
+                let publisher = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut d| d.ext_trust_publisher(publisher_id, key_hex),
+                )?;
+                Ok(ResponseBody::ExtensionPublisher {
+                    publisher: Box::new(publisher),
+                })
+            }
+            RequestBody::ExtensionRevokePublisher { publisher_id } => {
+                let receipts = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut d| d.ext_revoke_publisher(&publisher_id),
+                )?;
+                Ok(ResponseBody::ExtensionLifecycles { receipts })
+            }
+            RequestBody::ExtensionRevokeRelease { digest } => {
+                let receipts = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut d| d.ext_revoke_release(&digest),
+                )?;
+                Ok(ResponseBody::ExtensionLifecycles { receipts })
+            }
+            RequestBody::ExtensionInstall {
+                project_id,
+                pack_json,
+                upgrade,
+            } => {
+                let receipt = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut d| {
+                        if upgrade {
+                            d.ext_upgrade(&project_id, &pack_json)
+                        } else {
+                            d.ext_install(&project_id, &pack_json)
+                        }
+                    },
+                )?;
+                Ok(ResponseBody::ExtensionLifecycle {
+                    receipt: Box::new(receipt),
+                })
+            }
+            RequestBody::ExtensionRollback {
+                project_id,
+                extension_id,
+            } => {
+                let receipt = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut d| d.ext_rollback(&project_id, &extension_id),
+                )?;
+                Ok(ResponseBody::ExtensionLifecycle {
+                    receipt: Box::new(receipt),
+                })
+            }
+            RequestBody::ExtensionSetEnabled {
+                project_id,
+                extension_id,
+                enabled,
+            } => {
+                let receipt = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut d| d.ext_set_enabled(&project_id, &extension_id, enabled),
+                )?;
+                Ok(ResponseBody::ExtensionLifecycle {
+                    receipt: Box::new(receipt),
+                })
+            }
+            RequestBody::ExtensionUninstall {
+                project_id,
+                extension_id,
+            } => {
+                let receipt = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut d| d.ext_uninstall(&project_id, &extension_id),
+                )?;
+                Ok(ResponseBody::ExtensionLifecycle {
+                    receipt: Box::new(receipt),
+                })
+            }
+            RequestBody::ExtensionGrant {
+                project_id,
+                extension_id,
+                capability,
+                ceiling,
+            } => {
+                let receipt = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut d| d.ext_grant(&project_id, &extension_id, capability, ceiling),
+                )?;
+                Ok(ResponseBody::ExtensionLifecycle {
+                    receipt: Box::new(receipt),
+                })
+            }
+            RequestBody::ExtensionInvoke {
+                project_id,
+                extension_id,
+                command,
+                target,
+            } => {
+                let outcome = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut d| d.ext_invoke(&project_id, &extension_id, &command, target),
+                )?;
+                Ok(ResponseBody::ExtensionInvocation {
+                    outcome: Box::new(outcome),
+                })
+            }
+            RequestBody::ExtensionList { project_id } => {
+                let view = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |d| d.ext_list(&project_id),
+                )?;
+                Ok(ResponseBody::ExtensionProject {
+                    view: Box::new(view),
+                })
+            }
             // Spec 084 MedScale Hub foundation: Hub side (operator and
             // device) and client side (links, outbox, mirror).
             RequestBody::HubInit => {
@@ -5303,6 +5454,22 @@ fn capability_matches(cap: &Capability, body: &RequestBody) -> bool {
                 RequestBody::RWorkspaceStage { .. } | RequestBody::RWorkspaceLaunch { .. }
             )
             | (Capability::RWorkspaceRun, RequestBody::RWorkspaceRun { .. })
+            | (
+                Capability::ExtensionAdmin,
+                RequestBody::ExtensionTrustPublisher { .. }
+                    | RequestBody::ExtensionRevokePublisher { .. }
+                    | RequestBody::ExtensionRevokeRelease { .. }
+                    | RequestBody::ExtensionInstall { .. }
+                    | RequestBody::ExtensionRollback { .. }
+                    | RequestBody::ExtensionSetEnabled { .. }
+                    | RequestBody::ExtensionUninstall { .. }
+                    | RequestBody::ExtensionGrant { .. }
+            )
+            | (
+                Capability::ExtensionInvoke,
+                RequestBody::ExtensionInvoke { .. }
+            )
+            | (Capability::ExtensionRead, RequestBody::ExtensionList { .. })
             | (
                 Capability::RWorkspacePublish,
                 RequestBody::RWorkspacePublish { .. }
