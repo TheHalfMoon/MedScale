@@ -15,6 +15,7 @@ mod extensions;
 mod facade;
 mod handles;
 mod hub;
+mod huddles;
 mod identity;
 mod ingest_ops;
 mod knowledge;

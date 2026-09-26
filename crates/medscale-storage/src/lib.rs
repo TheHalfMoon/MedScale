@@ -14,6 +14,7 @@ mod encrypted_vault;
 mod extensions;
 mod gc;
 mod hub;
+mod huddles;
 mod knowledge;
 mod medagent;
 mod migrate;
@@ -43,6 +44,7 @@ pub use encrypted_vault::{EncryptedVault, EncryptedVaultError, default_vault_roo
 pub use extensions::{EXTENSION_TABLES, InstallChange};
 pub use gc::{GcStats, run_gc};
 pub use hub::{MirrorRow, SeqClaim, event_claims_seq};
+pub use huddles::{HUDDLE_TABLES, HuddleChange};
 pub use knowledge::IndexVersionRow;
 pub use migrate::MigrationJournal;
 pub use privacy_gate::{DeidTransformCommit, PseudonymEntryRow};
@@ -57,7 +59,7 @@ pub use sqlite_meta::{AuthorityObjectRow, MetaError, SourceMeta, SqliteMetaStore
 pub use vault::{SyntheticVault, VaultError};
 pub use writer_lock::{WriterLock, WriterLockError};
 
-/// Top metadata schema version written by this build (Spec 087: v16). Tests of
+/// Top metadata schema version written by this build (Spec 088: v17). Tests of
 /// earlier specs assert against this constant so a later additive migration
 /// does not require editing them.
-pub const CURRENT_META_SCHEMA_VERSION: u32 = 16;
+pub const CURRENT_META_SCHEMA_VERSION: u32 = 17;

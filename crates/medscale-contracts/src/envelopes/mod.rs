@@ -277,6 +277,9 @@ pub enum Capability {
     ExtensionAdmin,
     ExtensionInvoke,
     ExtensionRead,
+    // Spec 088: AudioFlow Advanced huddles.
+    HuddleAct,
+    HuddleRead,
 }
 
 impl Capability {
@@ -342,6 +345,7 @@ impl Capability {
                 | Self::ComputeRead
                 | Self::RWorkspaceRead
                 | Self::ExtensionRead
+                | Self::HuddleRead
         )
     }
 
@@ -518,6 +522,8 @@ impl Capability {
             Self::ExtensionAdmin,
             Self::ExtensionInvoke,
             Self::ExtensionRead,
+            Self::HuddleAct,
+            Self::HuddleRead,
         ]
     }
 }
@@ -1614,6 +1620,16 @@ pub enum RequestBody {
     ExtensionList {
         project_id: OpaqueId,
     },
+    // Spec 088: AudioFlow Advanced huddles (consent-gated acts).
+    HuddleAct {
+        act: Box<crate::huddles::HuddleActRequest>,
+    },
+    HuddleGet {
+        huddle_id: OpaqueId,
+    },
+    HuddleList {
+        project_id: OpaqueId,
+    },
 }
 
 impl RequestBody {
@@ -2246,6 +2262,16 @@ pub enum ResponseBody {
     },
     ExtensionProject {
         view: Box<crate::extensions::ExtensionProjectView>,
+    },
+    // Spec 088: AudioFlow Advanced huddles.
+    HuddleActed {
+        result: Box<crate::huddles::HuddleActResult>,
+    },
+    Huddle {
+        view: Box<crate::huddles::HuddleView>,
+    },
+    Huddles {
+        huddles: Vec<crate::huddles::Huddle>,
     },
 }
 
