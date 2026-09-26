@@ -2,7 +2,7 @@
 
 **Status:** `PROMOTED_IMPLEMENTATION_AUTHORIZED`
 **Promotion date:** 2026-09-26
-**Canonical base:** BASE_SHA_PENDING (Spec 085 closure PR #151 merge)
+**Canonical base:** `61855e4b33ec5691bf53a673c7f08e9f62117c69` (Spec 085 closure PR #151 merge; exact-head run `36233451671` 6/6 on `1f12c74`)
 **Target branch:** `spec/086-r-workspace`
 
 ## Authority
