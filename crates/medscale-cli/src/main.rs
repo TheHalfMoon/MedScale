@@ -20,13 +20,17 @@ mod browse;
 mod collaboration;
 mod compute;
 mod data_source;
+mod extensions;
 mod hub;
+mod huddles;
+mod institutional;
 mod knowledge;
 mod medagent;
 mod model_fleet;
 mod privacy_gate;
 mod project;
 mod r_workspace;
+mod research_packs;
 
 #[derive(Debug, Parser)]
 #[command(
@@ -200,6 +204,30 @@ enum Commands {
     R {
         #[command(subcommand)]
         action: Box<r_workspace::RCmd>,
+    },
+    /// Community Extensions (Spec 087; signed declarative packs, explicit
+    /// publisher trust and grants; no extension code runs).
+    Extension {
+        #[command(subcommand)]
+        action: Box<extensions::ExtensionCmd>,
+    },
+    /// AudioFlow Advanced huddles (Spec 088; per-act consent, synthetic
+    /// labeling, retention and deletion; no speech synthesis).
+    Huddle {
+        #[command(subcommand)]
+        action: Box<huddles::HuddleCmd>,
+    },
+    /// Research Packs (Spec 089; declarative domain schemas, workflows and
+    /// evidence assessments; no code, no capability grants).
+    Pack {
+        #[command(subcommand)]
+        action: Box<research_packs::PackCmd>,
+    },
+    /// Institutional adapters (Spec 090; explicit optional external writes
+    /// with durable effect states; no network transport in this build).
+    Adapter {
+        #[command(subcommand)]
+        action: Box<institutional::AdapterCmd>,
     },
     /// MedScale Hub foundation (Spec 084; local-socket IPC only, no network).
     Hub {
@@ -1240,6 +1268,10 @@ fn run() -> Result<()> {
         Commands::Hub { action } => hub::run_hub(*action),
         Commands::Compute { action } => compute::run_compute(*action),
         Commands::R { action } => r_workspace::run_r(*action),
+        Commands::Extension { action } => extensions::run_extension(*action),
+        Commands::Huddle { action } => huddles::run_huddle(*action),
+        Commands::Pack { action } => research_packs::run_pack(*action),
+        Commands::Adapter { action } => institutional::run_adapter(*action),
         Commands::DataSource { action } => data_source::run_data_source(*action),
         Commands::Snapshot { action } => data_source::run_snapshot(*action),
         Commands::DataView { action } => data_source::run_data_view(*action),

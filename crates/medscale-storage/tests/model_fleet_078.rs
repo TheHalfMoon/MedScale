@@ -352,6 +352,23 @@ const LATER_VERSION_TABLES: &[&str] = &[
     "rws_run_receipts",
     "rws_publish_receipts",
     "rws_published_tables",
+    "ext_publishers",
+    "ext_releases",
+    "ext_installs",
+    "ext_grants",
+    "ext_lifecycle_receipts",
+    "ext_runtime_receipts",
+    "hud_huddles",
+    "hud_participants",
+    "hud_media",
+    "hud_proposals",
+    "hud_receipts",
+    "rp_installs",
+    "rp_artifacts",
+    "rp_receipts",
+    "ia_adapters",
+    "ia_intents",
+    "ia_receipts",
 ];
 
 fn table_exists(root: &Path, table: &str) -> bool {
@@ -382,6 +399,10 @@ fn pre_078_view(meta: &SqliteMetaStore) -> serde_json::Value {
             && !key.starts_with("hub_")
             && !key.starts_with("compute_")
             && !key.starts_with("rws_")
+            && !key.starts_with("ext_")
+            && !key.starts_with("hud_")
+            && !key.starts_with("rp_")
+            && !key.starts_with("ia_")
     });
     snapshot
 }
@@ -1065,6 +1086,10 @@ fn pre_078_v6_backup_restores_with_empty_078_tables() {
                 && !key.starts_with("hub_")
                 && !key.starts_with("compute_")
                 && !key.starts_with("rws_")
+                && !key.starts_with("ext_")
+                && !key.starts_with("hud_")
+                && !key.starts_with("rp_")
+                && !key.starts_with("ia_")
         });
         object.insert("schema_version".to_owned(), 6.into());
     });

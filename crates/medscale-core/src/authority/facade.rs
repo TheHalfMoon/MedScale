@@ -59,6 +59,10 @@ pub struct CoreFacade {
     /// Spec 086: staging directory and external programs (host
     /// configuration; never set through a request).
     r_host: crate::r_workspace_host::RWorkspaceHost,
+    /// Spec 090: institutional transport (product default: unavailable;
+    /// never set through a request).
+    institutional_transport:
+        std::sync::Arc<dyn crate::institutional_transport::InstitutionalTransport>,
 }
 
 /// Speech engine holder. `Debug` prints no configuration.
@@ -118,6 +122,9 @@ impl CoreFacade {
             compute_runtime: crate::compute_supervisor::ComputeRuntime::resolve(),
             compute_cancel: crate::compute_supervisor::CancelSlot::default(),
             r_host: crate::r_workspace_host::RWorkspaceHost::platform_default(),
+            institutional_transport: std::sync::Arc::new(
+                crate::institutional_transport::UnavailableTransport,
+            ),
         }
     }
 
@@ -162,6 +169,15 @@ impl CoreFacade {
     /// stay in Core.
     pub fn set_compute_runtime(&mut self, runtime: crate::compute_supervisor::ComputeRuntime) {
         self.compute_runtime = runtime;
+    }
+
+    /// Replaces the Spec 090 institutional transport (qualification
+    /// harnesses name an in-process store; the product has none).
+    pub fn set_institutional_transport(
+        &mut self,
+        transport: std::sync::Arc<dyn crate::institutional_transport::InstitutionalTransport>,
+    ) {
+        self.institutional_transport = transport;
     }
 
     /// Replaces the Spec 086 R Workspace host configuration (the CLI sets
@@ -3480,6 +3496,239 @@ impl CoreFacade {
                 )?;
                 Ok(ResponseBody::RWorkspaceStatus { status })
             }
+            // Spec 090 institutional adapters on the Spec 075 authority.
+            RequestBody::AdapterAct { act } => {
+                let transport = self.institutional_transport.clone();
+                let result = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut d| d.adapter_act(*act, transport.as_ref()),
+                )?;
+                Ok(ResponseBody::AdapterActed {
+                    result: Box::new(result),
+                })
+            }
+            RequestBody::AdapterGet { adapter_id } => {
+                let view = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |d| d.adapter_view(&adapter_id),
+                )?;
+                Ok(ResponseBody::Adapter {
+                    view: Box::new(view),
+                })
+            }
+            // Spec 089 Research Packs on the Spec 075 authority.
+            RequestBody::PackAct { act } => {
+                let result = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut d| d.pack_act(*act),
+                )?;
+                Ok(ResponseBody::PackActed {
+                    result: Box::new(result),
+                })
+            }
+            RequestBody::PackCatalog => Ok(ResponseBody::PackCatalog {
+                packs: super::data_sources::DataSources::pack_catalog(),
+            }),
+            RequestBody::PackInstallGet {
+                project_id,
+                pack_id,
+            } => {
+                let install = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |d| d.pack_install_get(&project_id, &pack_id),
+                )?;
+                Ok(ResponseBody::PackInstall {
+                    install: Box::new(install),
+                })
+            }
+            RequestBody::PackArtifactGet { artifact_id } => {
+                let artifact = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |d| d.artifact_get(&artifact_id),
+                )?;
+                Ok(ResponseBody::PackArtifact {
+                    artifact: Box::new(artifact),
+                })
+            }
+            RequestBody::PackArtifactList {
+                project_id,
+                pack_id,
+            } => {
+                let artifacts = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |d| d.artifact_list(&project_id, &pack_id),
+                )?;
+                Ok(ResponseBody::PackArtifacts { artifacts })
+            }
+            // Spec 087 Community Extensions (declarative only) on the Spec
+            // 075 authority: verification, lifecycle, grants, invocation.
+            RequestBody::ExtensionTrustPublisher {
+                publisher_id,
+                key_hex,
+            } => {
+                let publisher = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut d| d.ext_trust_publisher(publisher_id, key_hex),
+                )?;
+                Ok(ResponseBody::ExtensionPublisher {
+                    publisher: Box::new(publisher),
+                })
+            }
+            RequestBody::ExtensionRevokePublisher { publisher_id } => {
+                let receipts = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut d| d.ext_revoke_publisher(&publisher_id),
+                )?;
+                Ok(ResponseBody::ExtensionLifecycles { receipts })
+            }
+            RequestBody::ExtensionRevokeRelease { digest } => {
+                let receipts = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut d| d.ext_revoke_release(&digest),
+                )?;
+                Ok(ResponseBody::ExtensionLifecycles { receipts })
+            }
+            RequestBody::ExtensionInstall {
+                project_id,
+                pack_json,
+                upgrade,
+            } => {
+                let receipt = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut d| {
+                        if upgrade {
+                            d.ext_upgrade(&project_id, &pack_json)
+                        } else {
+                            d.ext_install(&project_id, &pack_json)
+                        }
+                    },
+                )?;
+                Ok(ResponseBody::ExtensionLifecycle {
+                    receipt: Box::new(receipt),
+                })
+            }
+            RequestBody::ExtensionRollback {
+                project_id,
+                extension_id,
+            } => {
+                let receipt = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut d| d.ext_rollback(&project_id, &extension_id),
+                )?;
+                Ok(ResponseBody::ExtensionLifecycle {
+                    receipt: Box::new(receipt),
+                })
+            }
+            RequestBody::ExtensionSetEnabled {
+                project_id,
+                extension_id,
+                enabled,
+            } => {
+                let receipt = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut d| d.ext_set_enabled(&project_id, &extension_id, enabled),
+                )?;
+                Ok(ResponseBody::ExtensionLifecycle {
+                    receipt: Box::new(receipt),
+                })
+            }
+            RequestBody::ExtensionUninstall {
+                project_id,
+                extension_id,
+            } => {
+                let receipt = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut d| d.ext_uninstall(&project_id, &extension_id),
+                )?;
+                Ok(ResponseBody::ExtensionLifecycle {
+                    receipt: Box::new(receipt),
+                })
+            }
+            RequestBody::ExtensionGrant {
+                project_id,
+                extension_id,
+                capability,
+                ceiling,
+            } => {
+                let receipt = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut d| d.ext_grant(&project_id, &extension_id, capability, ceiling),
+                )?;
+                Ok(ResponseBody::ExtensionLifecycle {
+                    receipt: Box::new(receipt),
+                })
+            }
+            RequestBody::ExtensionInvoke {
+                project_id,
+                extension_id,
+                command,
+                target,
+            } => {
+                let outcome = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut d| d.ext_invoke(&project_id, &extension_id, &command, target),
+                )?;
+                Ok(ResponseBody::ExtensionInvocation {
+                    outcome: Box::new(outcome),
+                })
+            }
+            RequestBody::ExtensionList { project_id } => {
+                let view = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |d| d.ext_list(&project_id),
+                )?;
+                Ok(ResponseBody::ExtensionProject {
+                    view: Box::new(view),
+                })
+            }
             // Spec 084 MedScale Hub foundation: Hub side (operator and
             // device) and client side (links, outbox, mirror).
             RequestBody::HubInit => {
@@ -3831,6 +4080,41 @@ impl CoreFacade {
             RequestBody::AudioRouteList => Ok(ResponseBody::AudioRoutes {
                 routes: super::audio::route_statuses(self.asr_engine.0.is_some()),
             }),
+            // Spec 088 AudioFlow Advanced huddles on the Spec 081 authority.
+            RequestBody::HuddleAct { act } => {
+                let result = self.audio(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut a| a.huddle_act(*act),
+                )?;
+                Ok(ResponseBody::HuddleActed {
+                    result: Box::new(result),
+                })
+            }
+            RequestBody::HuddleGet { huddle_id } => {
+                let view = self.audio(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |a| a.huddle_view(&huddle_id),
+                )?;
+                Ok(ResponseBody::Huddle {
+                    view: Box::new(view),
+                })
+            }
+            RequestBody::HuddleList { project_id } => {
+                let huddles = self.audio(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |a| a.huddle_list(&project_id),
+                )?;
+                Ok(ResponseBody::Huddles { huddles })
+            }
             RequestBody::AudioTranscribe { request } => {
                 let value = self.audio(
                     &req.vault_id,
@@ -5303,6 +5587,37 @@ fn capability_matches(cap: &Capability, body: &RequestBody) -> bool {
                 RequestBody::RWorkspaceStage { .. } | RequestBody::RWorkspaceLaunch { .. }
             )
             | (Capability::RWorkspaceRun, RequestBody::RWorkspaceRun { .. })
+            | (
+                Capability::ExtensionAdmin,
+                RequestBody::ExtensionTrustPublisher { .. }
+                    | RequestBody::ExtensionRevokePublisher { .. }
+                    | RequestBody::ExtensionRevokeRelease { .. }
+                    | RequestBody::ExtensionInstall { .. }
+                    | RequestBody::ExtensionRollback { .. }
+                    | RequestBody::ExtensionSetEnabled { .. }
+                    | RequestBody::ExtensionUninstall { .. }
+                    | RequestBody::ExtensionGrant { .. }
+            )
+            | (
+                Capability::ExtensionInvoke,
+                RequestBody::ExtensionInvoke { .. }
+            )
+            | (Capability::ExtensionRead, RequestBody::ExtensionList { .. })
+            | (Capability::HuddleAct, RequestBody::HuddleAct { .. })
+            | (Capability::PackAdmin, RequestBody::PackAct { .. })
+            | (Capability::AdapterAdmin, RequestBody::AdapterAct { .. })
+            | (Capability::AdapterRead, RequestBody::AdapterGet { .. })
+            | (
+                Capability::PackRead,
+                RequestBody::PackCatalog
+                    | RequestBody::PackInstallGet { .. }
+                    | RequestBody::PackArtifactGet { .. }
+                    | RequestBody::PackArtifactList { .. }
+            )
+            | (
+                Capability::HuddleRead,
+                RequestBody::HuddleGet { .. } | RequestBody::HuddleList { .. }
+            )
             | (
                 Capability::RWorkspacePublish,
                 RequestBody::RWorkspacePublish { .. }

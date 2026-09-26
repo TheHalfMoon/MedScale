@@ -34,6 +34,7 @@ use crate::documents::{
     AsrStubRequest, DocumentIntakeRequest, DocumentIntakeResult, MediaStubResult, OcrStubRequest,
 };
 use crate::evidence::{LexicalRetrieveRequest, LexicalRetrieveResult};
+use crate::extensions::{ExtensionCapability, ExtensionLifecycleReceipt, ExtensionPublisher};
 use crate::hub::{
     DeviceIdentity, HubChallenge, HubEvent, HubEventPage, HubHandshake, HubIdentity, HubInvitation,
     HubInvitationCode, HubLink, HubOutboxEntry, HubSession, HubStatus, SyncEnvelope, SyncIntent,
@@ -272,6 +273,19 @@ pub enum Capability {
     RWorkspaceRun,
     RWorkspacePublish,
     RWorkspaceRead,
+    // Spec 087: Community Extensions (declarative only).
+    ExtensionAdmin,
+    ExtensionInvoke,
+    ExtensionRead,
+    // Spec 088: AudioFlow Advanced huddles.
+    HuddleAct,
+    HuddleRead,
+    // Spec 089: Research Packs (declarative domain semantics).
+    PackAdmin,
+    PackRead,
+    // Spec 090: institutional adapters (explicit, optional external writes).
+    AdapterAdmin,
+    AdapterRead,
 }
 
 impl Capability {
@@ -336,6 +350,10 @@ impl Capability {
                 | Self::HubRead
                 | Self::ComputeRead
                 | Self::RWorkspaceRead
+                | Self::ExtensionRead
+                | Self::HuddleRead
+                | Self::PackRead
+                | Self::AdapterRead
         )
     }
 
@@ -509,6 +527,15 @@ impl Capability {
             Self::RWorkspaceRun,
             Self::RWorkspacePublish,
             Self::RWorkspaceRead,
+            Self::ExtensionAdmin,
+            Self::ExtensionInvoke,
+            Self::ExtensionRead,
+            Self::HuddleAct,
+            Self::HuddleRead,
+            Self::PackAdmin,
+            Self::PackRead,
+            Self::AdapterAdmin,
+            Self::AdapterRead,
         ]
     }
 }
@@ -1559,6 +1586,85 @@ pub enum RequestBody {
         table_id: OpaqueId,
     },
     RWorkspaceStatus,
+    // Spec 087: Community Extensions. Packs travel as bytes; no request
+    // carries a path, and no extension code runs.
+    ExtensionTrustPublisher {
+        publisher_id: String,
+        key_hex: String,
+    },
+    ExtensionRevokePublisher {
+        publisher_id: String,
+    },
+    ExtensionRevokeRelease {
+        digest: DigestSha256,
+    },
+    ExtensionInstall {
+        project_id: OpaqueId,
+        pack_json: String,
+        upgrade: bool,
+    },
+    ExtensionRollback {
+        project_id: OpaqueId,
+        extension_id: String,
+    },
+    ExtensionSetEnabled {
+        project_id: OpaqueId,
+        extension_id: String,
+        enabled: bool,
+    },
+    ExtensionUninstall {
+        project_id: OpaqueId,
+        extension_id: String,
+    },
+    /// `ceiling = None` revokes the capability.
+    ExtensionGrant {
+        project_id: OpaqueId,
+        extension_id: String,
+        capability: ExtensionCapability,
+        ceiling: Option<crate::privacy_gate::DataClass>,
+    },
+    ExtensionInvoke {
+        project_id: OpaqueId,
+        extension_id: String,
+        command: String,
+        target: Option<OpaqueId>,
+    },
+    ExtensionList {
+        project_id: OpaqueId,
+    },
+    // Spec 088: AudioFlow Advanced huddles (consent-gated acts).
+    HuddleAct {
+        act: Box<crate::huddles::HuddleActRequest>,
+    },
+    HuddleGet {
+        huddle_id: OpaqueId,
+    },
+    HuddleList {
+        project_id: OpaqueId,
+    },
+    // Spec 089: Research Packs.
+    PackAct {
+        act: Box<crate::research_packs::PackActRequest>,
+    },
+    PackCatalog,
+    PackInstallGet {
+        project_id: OpaqueId,
+        pack_id: String,
+    },
+    PackArtifactGet {
+        artifact_id: OpaqueId,
+    },
+    PackArtifactList {
+        project_id: OpaqueId,
+        pack_id: String,
+    },
+    // Spec 090: institutional adapters.
+    AdapterAct {
+        act: Box<crate::institutional::AdapterActRequest>,
+    },
+    AdapterGet {
+        adapter_id: OpaqueId,
+    },
 }
 
 impl RequestBody {
@@ -2175,6 +2281,55 @@ pub enum ResponseBody {
     },
     RWorkspaceStatus {
         status: RWorkspaceStatus,
+    },
+    // Spec 087: Community Extensions.
+    ExtensionPublisher {
+        publisher: Box<ExtensionPublisher>,
+    },
+    ExtensionLifecycle {
+        receipt: Box<ExtensionLifecycleReceipt>,
+    },
+    ExtensionLifecycles {
+        receipts: Vec<ExtensionLifecycleReceipt>,
+    },
+    ExtensionInvocation {
+        outcome: Box<crate::extensions::ExtensionInvocation>,
+    },
+    ExtensionProject {
+        view: Box<crate::extensions::ExtensionProjectView>,
+    },
+    // Spec 088: AudioFlow Advanced huddles.
+    HuddleActed {
+        result: Box<crate::huddles::HuddleActResult>,
+    },
+    Huddle {
+        view: Box<crate::huddles::HuddleView>,
+    },
+    Huddles {
+        huddles: Vec<crate::huddles::Huddle>,
+    },
+    // Spec 089: Research Packs.
+    PackActed {
+        result: Box<crate::research_packs::PackActResult>,
+    },
+    PackCatalog {
+        packs: Vec<crate::research_packs::ResearchPackManifest>,
+    },
+    PackInstall {
+        install: Box<crate::research_packs::ResearchPackInstall>,
+    },
+    PackArtifact {
+        artifact: Box<crate::research_packs::ResearchArtifact>,
+    },
+    PackArtifacts {
+        artifacts: Vec<crate::research_packs::ResearchArtifact>,
+    },
+    // Spec 090: institutional adapters.
+    AdapterActed {
+        result: Box<crate::institutional::AdapterActResult>,
+    },
+    Adapter {
+        view: Box<crate::institutional::AdapterView>,
     },
 }
 
