@@ -39,12 +39,6 @@ fn invalid(message: String) -> AuthorityError {
     AuthorityError::InvalidArgument { message }
 }
 
-/// Result of an act: its receipt and (when applied) what it changed.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct HuddleOutcome {
-    pub receipt: HuddleReceipt,
-}
-
 impl Audio<'_> {
     fn hud_header(&self, id: OpaqueId) -> ObjectHeader {
         ObjectHeader {
