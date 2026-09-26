@@ -13,10 +13,10 @@
 use medscale_contracts::audio::{AudioRoute, AudioRouteRequest, SpeakerLabel, VoiceInputMode};
 use medscale_contracts::envelopes::AuthorityError;
 use medscale_contracts::huddles::{
-    ConsentAct, ConsentSet, HUDDLE_SCHEMA_VERSION, Huddle, HuddleAction, HuddleExport,
-    HuddleMedia, HuddleParticipant, HuddleParticipantKind, HuddleProposal, HuddleReceipt,
-    HuddleRefusal, HuddleState, HuddleView, MediaOrigin, MediaState, PARTICIPANTS_MAX,
-    ProposalKind, ProposalState,
+    ConsentAct, ConsentSet, HUDDLE_SCHEMA_VERSION, Huddle, HuddleActRequest, HuddleActResult,
+    HuddleAction, HuddleExport, HuddleMedia, HuddleParticipant, HuddleParticipantKind,
+    HuddleProposal, HuddleReceipt, HuddleRefusal, HuddleState, HuddleView, MediaOrigin, MediaState,
+    PARTICIPANTS_MAX, ProposalKind, ProposalState,
 };
 use medscale_contracts::objects::{ObjectHeader, OpaqueId};
 use medscale_storage::{HuddleChange, MetaError};
@@ -89,11 +89,7 @@ impl Audio<'_> {
         Ok(receipt)
     }
 
-    fn hud_commit(
-        &mut self,
-        change: HuddleChange<'_>,
-        audit: &str,
-    ) -> Result<(), AuthorityError> {
+    fn hud_commit(&mut self, change: HuddleChange<'_>, audit: &str) -> Result<(), AuthorityError> {
         let receipt_id = change
             .receipt
             .map(|r| r.header.id.clone())
@@ -104,7 +100,11 @@ impl Audio<'_> {
 
     /// Whether every human participant has joined and consented to `act`
     /// (and there is at least one human).
-    fn humans_consent(&self, huddle_id: &OpaqueId, act: ConsentAct) -> Result<bool, AuthorityError> {
+    fn humans_consent(
+        &self,
+        huddle_id: &OpaqueId,
+        act: ConsentAct,
+    ) -> Result<bool, AuthorityError> {
         let people = self
             .meta
             .list_huddle_participants(Some(huddle_id))
@@ -259,7 +259,9 @@ impl Audio<'_> {
             return self.hud_refuse(receipt, HuddleRefusal::HuddleEnded);
         }
         let source = match self.meta.get_audio_source(source_id) {
-            Ok((s, _)) if s.project_id == huddle.project_id && self.in_scope(&s.header).is_ok() => s,
+            Ok((s, _)) if s.project_id == huddle.project_id && self.in_scope(&s.header).is_ok() => {
+                s
+            }
             _ => return self.hud_refuse(receipt, HuddleRefusal::SourceNotInProject),
         };
         let origin = match agent {
@@ -269,7 +271,9 @@ impl Audio<'_> {
                     .list_huddle_participants(Some(huddle_id))
                     .map_err(meta_err)?
                     .iter()
-                    .any(|p| p.header.id == participant_id && p.kind == HuddleParticipantKind::Agent);
+                    .any(|p| {
+                        p.header.id == participant_id && p.kind == HuddleParticipantKind::Agent
+                    });
                 if !is_agent {
                     return self.hud_refuse(receipt, HuddleRefusal::NotAParticipant);
                 }
@@ -454,13 +458,19 @@ impl Audio<'_> {
         let huddle = self.scoped_huddle(huddle_id)?;
         let mut receipt = self.hud_receipt(&huddle, HuddleAction::Export)?;
         let Some(media) = self.present_media(huddle_id, media_id) else {
-            return Ok((self.hud_refuse(receipt, HuddleRefusal::NotAParticipant)?, None));
+            return Ok((
+                self.hud_refuse(receipt, HuddleRefusal::NotAParticipant)?,
+                None,
+            ));
         };
         if media.state == MediaState::Deleted {
             return Ok((self.hud_refuse(receipt, HuddleRefusal::MediaDeleted)?, None));
         }
         if !self.humans_consent(huddle_id, ConsentAct::Export)? {
-            return Ok((self.hud_refuse(receipt, HuddleRefusal::ConsentMissing)?, None));
+            return Ok((
+                self.hud_refuse(receipt, HuddleRefusal::ConsentMissing)?,
+                None,
+            ));
         }
         let Some(latest) = self.transcripts(&media.source_id)?.into_iter().last() else {
             return Ok((self.hud_refuse(receipt, HuddleRefusal::NoTranscript)?, None));
@@ -536,7 +546,10 @@ impl Audio<'_> {
 
     /// Deletes every present media item older than its huddle's retention
     /// (`today` is days since the Unix epoch, supplied by the host).
-    pub fn huddle_retention_sweep(&mut self, today: u32) -> Result<Vec<HuddleReceipt>, AuthorityError> {
+    pub fn huddle_retention_sweep(
+        &mut self,
+        today: u32,
+    ) -> Result<Vec<HuddleReceipt>, AuthorityError> {
         let mut out = Vec::new();
         for huddle in self.meta.list_huddles().map_err(meta_err)? {
             if self.in_scope(&huddle.header).is_err() {
@@ -592,6 +605,94 @@ impl Audio<'_> {
             "huddle.end",
         )?;
         Ok(receipt)
+    }
+
+    /// Runs one act and reports what it produced.
+    pub fn huddle_act(&mut self, act: HuddleActRequest) -> Result<HuddleActResult, AuthorityError> {
+        let one = |receipt: HuddleReceipt| HuddleActResult {
+            huddle: None,
+            receipts: vec![receipt],
+            export: None,
+        };
+        Ok(match act {
+            HuddleActRequest::Create {
+                project_id,
+                title,
+                retention_days,
+            } => {
+                let huddle = self.huddle_create(project_id, title, retention_days)?;
+                let receipts = self
+                    .meta
+                    .list_huddle_receipts(Some(&huddle.header.id))
+                    .map_err(meta_err)?;
+                HuddleActResult {
+                    huddle: Some(huddle),
+                    receipts,
+                    export: None,
+                }
+            }
+            HuddleActRequest::AddParticipant {
+                huddle_id,
+                display_name,
+                kind,
+            } => one(self.huddle_add_participant(&huddle_id, display_name, kind)?),
+            HuddleActRequest::Consent {
+                huddle_id,
+                participant_id,
+                consent_act,
+                value,
+            } => one(self.huddle_consent(&huddle_id, &participant_id, consent_act, value)?),
+            HuddleActRequest::Attach {
+                huddle_id,
+                source_id,
+                agent,
+                day,
+            } => one(self.huddle_attach(&huddle_id, &source_id, agent, day)?),
+            HuddleActRequest::Transcribe {
+                huddle_id,
+                media_id,
+                route,
+            } => one(self.huddle_transcribe(&huddle_id, &media_id, route)?),
+            HuddleActRequest::Propose {
+                huddle_id,
+                transcript_revision_id,
+                segments,
+                kind,
+                text,
+            } => one(self.huddle_propose(
+                &huddle_id,
+                &transcript_revision_id,
+                segments,
+                kind,
+                text,
+            )?),
+            HuddleActRequest::Review {
+                huddle_id,
+                proposal_id,
+                accept,
+            } => one(self.huddle_review(&huddle_id, &proposal_id, accept)?),
+            HuddleActRequest::Export {
+                huddle_id,
+                media_id,
+            } => {
+                let (receipt, export) = self.huddle_export(&huddle_id, &media_id)?;
+                HuddleActResult {
+                    huddle: None,
+                    receipts: vec![receipt],
+                    export,
+                }
+            }
+            HuddleActRequest::DeleteMedia {
+                huddle_id,
+                media_id,
+            } => one(self.huddle_delete_media(&huddle_id, &media_id)?),
+            HuddleActRequest::RetentionSweep { today } => HuddleActResult {
+                huddle: None,
+                receipts: self.huddle_retention_sweep(today)?,
+                export: None,
+            },
+            HuddleActRequest::End { huddle_id } => one(self.huddle_end(&huddle_id)?),
+        })
     }
 
     pub fn huddle_view(&self, huddle_id: &OpaqueId) -> Result<HuddleView, AuthorityError> {

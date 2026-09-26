@@ -378,7 +378,11 @@ impl Audio<'_> {
             .ok_or(AuthorityError::LeaseRequired)
     }
 
-    pub(super) fn audit(&mut self, action: &str, targets: Vec<OpaqueId>) -> Result<(), AuthorityError> {
+    pub(super) fn audit(
+        &mut self,
+        action: &str,
+        targets: Vec<OpaqueId>,
+    ) -> Result<(), AuthorityError> {
         let actor = self.actor()?;
         let id = self.store.alloc_id("audit");
         let record = medscale_contracts::objects::ActionAuditRecord {

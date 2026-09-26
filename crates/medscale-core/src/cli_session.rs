@@ -3652,6 +3652,46 @@ impl CliSession {
     }
 
     // ---------------------------------------------------------------------
+    // Spec 088: AudioFlow Advanced huddles
+    // ---------------------------------------------------------------------
+
+    pub fn huddle_act(
+        &mut self,
+        act: medscale_contracts::huddles::HuddleActRequest,
+    ) -> Result<medscale_contracts::huddles::HuddleActResult, AuthorityError> {
+        match self.dispatch(
+            Capability::HuddleAct,
+            RequestBody::HuddleAct { act: Box::new(act) },
+        )? {
+            ResponseBody::HuddleActed { result } => Ok(*result),
+            _ => Err(Self::unexpected("huddle act result")),
+        }
+    }
+
+    pub fn huddle_get(
+        &mut self,
+        huddle_id: OpaqueId,
+    ) -> Result<medscale_contracts::huddles::HuddleView, AuthorityError> {
+        match self.dispatch(Capability::HuddleRead, RequestBody::HuddleGet { huddle_id })? {
+            ResponseBody::Huddle { view } => Ok(*view),
+            _ => Err(Self::unexpected("huddle view")),
+        }
+    }
+
+    pub fn huddle_list(
+        &mut self,
+        project_id: OpaqueId,
+    ) -> Result<Vec<medscale_contracts::huddles::Huddle>, AuthorityError> {
+        match self.dispatch(
+            Capability::HuddleRead,
+            RequestBody::HuddleList { project_id },
+        )? {
+            ResponseBody::Huddles { huddles } => Ok(huddles),
+            _ => Err(Self::unexpected("huddles")),
+        }
+    }
+
+    // ---------------------------------------------------------------------
     // Spec 087: Community Extensions
     // ---------------------------------------------------------------------
 

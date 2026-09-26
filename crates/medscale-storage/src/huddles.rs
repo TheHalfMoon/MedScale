@@ -104,7 +104,9 @@ fn check(column: &str, body: &str, what: &str) -> Result<(), MetaError> {
     if column == body {
         Ok(())
     } else {
-        Err(corrupt(format!("{what} row columns disagree with its body")))
+        Err(corrupt(format!(
+            "{what} row columns disagree with its body"
+        )))
     }
 }
 
@@ -154,7 +156,8 @@ fn decode_media(row: &rusqlite::Row<'_>) -> Result<HuddleMedia, MetaError> {
     check(&huddle_id, v.huddle_id.as_str(), "huddle media")?;
     check(&source_id, v.source_id.as_str(), "huddle media")?;
     check(&state, v.state.as_str(), "huddle media")?;
-    v.validate().map_err(|e| corrupt(format!("huddle media: {e}")))?;
+    v.validate()
+        .map_err(|e| corrupt(format!("huddle media: {e}")))?;
     Ok(v)
 }
 
@@ -278,7 +281,9 @@ impl SqliteMetaStore {
                 if changed == 1 {
                     Ok(())
                 } else {
-                    Err(MetaError::Conflict("huddle changed concurrently".to_owned()))
+                    Err(MetaError::Conflict(
+                        "huddle changed concurrently".to_owned(),
+                    ))
                 }
             }
         }
@@ -362,7 +367,9 @@ impl SqliteMetaStore {
             if changed == 1 {
                 Ok(())
             } else {
-                Err(MetaError::Conflict("proposal was already reviewed".to_owned()))
+                Err(MetaError::Conflict(
+                    "proposal was already reviewed".to_owned(),
+                ))
             }
         } else {
             map_insert(
@@ -451,7 +458,10 @@ impl SqliteMetaStore {
     /// Commits one huddle change and its receipt in a single transaction.
     pub fn commit_huddle_change(&self, change: &HuddleChange<'_>) -> Result<(), MetaError> {
         let Some(receipt) = change.receipt else {
-            return Err(invalid("huddle change", "a change carries its receipt".to_owned()));
+            return Err(invalid(
+                "huddle change",
+                "a change carries its receipt".to_owned(),
+            ));
         };
         let deleting = !change.delete_media.is_empty();
         if deleting {
@@ -515,7 +525,9 @@ impl SqliteMetaStore {
     ) -> Result<Vec<HuddleMedia>, MetaError> {
         match huddle_id {
             Some(h) => self.hud_rows(
-                &format!("SELECT {MEDIA_COLUMNS} FROM hud_media WHERE huddle_id = ?1 ORDER BY rowid"),
+                &format!(
+                    "SELECT {MEDIA_COLUMNS} FROM hud_media WHERE huddle_id = ?1 ORDER BY rowid"
+                ),
                 &[&h.as_str()],
                 decode_media,
             ),
@@ -551,7 +563,9 @@ impl SqliteMetaStore {
     ) -> Result<Vec<HuddleReceipt>, MetaError> {
         match huddle_id {
             Some(h) => self.hud_rows(
-                &format!("SELECT {RECEIPT_COLUMNS} FROM hud_receipts WHERE huddle_id = ?1 ORDER BY rowid"),
+                &format!(
+                    "SELECT {RECEIPT_COLUMNS} FROM hud_receipts WHERE huddle_id = ?1 ORDER BY rowid"
+                ),
                 &[&h.as_str()],
                 decode_receipt,
             ),
@@ -615,7 +629,9 @@ impl SqliteMetaStore {
                     return Err(corrupt("present huddle media has no source".to_owned()));
                 }
                 (MediaState::Deleted, Ok(_)) => {
-                    return Err(corrupt("deleted huddle media still has its source".to_owned()));
+                    return Err(corrupt(
+                        "deleted huddle media still has its source".to_owned(),
+                    ));
                 }
                 (MediaState::Deleted, Err(_)) => {}
             }
@@ -630,7 +646,10 @@ impl SqliteMetaStore {
         let v =
             |r: Result<serde_json::Value, serde_json::Error>| r.map_err(|e| corrupt(e.to_string()));
         Ok(vec![
-            ("hud_huddles", v(serde_json::to_value(self.list_huddles()?))?),
+            (
+                "hud_huddles",
+                v(serde_json::to_value(self.list_huddles()?))?,
+            ),
             (
                 "hud_participants",
                 v(serde_json::to_value(self.list_huddle_participants(None)?))?,

@@ -3982,6 +3982,41 @@ impl CoreFacade {
             RequestBody::AudioRouteList => Ok(ResponseBody::AudioRoutes {
                 routes: super::audio::route_statuses(self.asr_engine.0.is_some()),
             }),
+            // Spec 088 AudioFlow Advanced huddles on the Spec 081 authority.
+            RequestBody::HuddleAct { act } => {
+                let result = self.audio(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut a| a.huddle_act(*act),
+                )?;
+                Ok(ResponseBody::HuddleActed {
+                    result: Box::new(result),
+                })
+            }
+            RequestBody::HuddleGet { huddle_id } => {
+                let view = self.audio(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |a| a.huddle_view(&huddle_id),
+                )?;
+                Ok(ResponseBody::Huddle {
+                    view: Box::new(view),
+                })
+            }
+            RequestBody::HuddleList { project_id } => {
+                let huddles = self.audio(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |a| a.huddle_list(&project_id),
+                )?;
+                Ok(ResponseBody::Huddles { huddles })
+            }
             RequestBody::AudioTranscribe { request } => {
                 let value = self.audio(
                     &req.vault_id,
@@ -5470,6 +5505,11 @@ fn capability_matches(cap: &Capability, body: &RequestBody) -> bool {
                 RequestBody::ExtensionInvoke { .. }
             )
             | (Capability::ExtensionRead, RequestBody::ExtensionList { .. })
+            | (Capability::HuddleAct, RequestBody::HuddleAct { .. })
+            | (
+                Capability::HuddleRead,
+                RequestBody::HuddleGet { .. } | RequestBody::HuddleList { .. }
+            )
             | (
                 Capability::RWorkspacePublish,
                 RequestBody::RWorkspacePublish { .. }

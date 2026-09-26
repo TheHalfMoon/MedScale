@@ -100,6 +100,11 @@ fn rewind_to_v10(root: &Path) {
         "ext_grants",
         "ext_lifecycle_receipts",
         "ext_runtime_receipts",
+        "hud_huddles",
+        "hud_participants",
+        "hud_media",
+        "hud_proposals",
+        "hud_receipts",
     ] {
         conn.execute_batch(&format!("DROP TABLE IF EXISTS {table};"))
             .unwrap();
@@ -131,6 +136,7 @@ fn pre_082_view(meta: &SqliteMetaStore) -> serde_json::Value {
             && !key.starts_with("compute_")
             && !key.starts_with("rws_")
             && !key.starts_with("ext_")
+            && !key.starts_with("hud_")
     });
     snapshot
 }
@@ -475,6 +481,7 @@ fn pre_082_v10_backup_restores_with_empty_analytics_tables() {
                 && !k.starts_with("compute_")
                 && !k.starts_with("rws_")
                 && !k.starts_with("ext_")
+                && !k.starts_with("hud_")
         });
         o.insert("schema_version".to_owned(), serde_json::json!(10));
     });

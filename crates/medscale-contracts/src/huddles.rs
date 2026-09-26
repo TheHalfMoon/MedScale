@@ -54,9 +54,7 @@ macro_rules! closed_vocabulary {
 }
 
 fn printable(value: &str, max: usize, what: &str) -> Result<(), String> {
-    if value.trim().is_empty()
-        || value.chars().count() > max
-        || value.chars().any(char::is_control)
+    if value.trim().is_empty() || value.chars().count() > max || value.chars().any(char::is_control)
     {
         return Err(format!("{what} must be 1-{max} printable characters"));
     }
@@ -185,7 +183,11 @@ pub struct HuddleParticipant {
 
 impl HuddleParticipant {
     pub fn validate(&self) -> Result<(), String> {
-        printable(&self.display_name, PARTICIPANT_NAME_MAX_CHARS, "participant name")?;
+        printable(
+            &self.display_name,
+            PARTICIPANT_NAME_MAX_CHARS,
+            "participant name",
+        )?;
         self.consents.validate()?;
         if self.revision == 0 {
             return Err("participant revision starts at 1".to_owned());
@@ -396,6 +398,76 @@ pub struct HuddleView {
     pub receipts: Vec<HuddleReceipt>,
 }
 
+/// One act on huddles (one request type keeps the envelope small).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case", tag = "act", deny_unknown_fields)]
+pub enum HuddleActRequest {
+    Create {
+        project_id: OpaqueId,
+        title: String,
+        retention_days: u32,
+    },
+    AddParticipant {
+        huddle_id: OpaqueId,
+        display_name: String,
+        kind: HuddleParticipantKind,
+    },
+    Consent {
+        huddle_id: OpaqueId,
+        participant_id: OpaqueId,
+        consent_act: ConsentAct,
+        value: bool,
+    },
+    /// `agent` names the agent participant for synthetic audio.
+    Attach {
+        huddle_id: OpaqueId,
+        source_id: OpaqueId,
+        agent: Option<OpaqueId>,
+        day: u32,
+    },
+    Transcribe {
+        huddle_id: OpaqueId,
+        media_id: OpaqueId,
+        route: crate::audio::AudioRoute,
+    },
+    Propose {
+        huddle_id: OpaqueId,
+        transcript_revision_id: OpaqueId,
+        segments: Vec<u32>,
+        kind: ProposalKind,
+        text: String,
+    },
+    Review {
+        huddle_id: OpaqueId,
+        proposal_id: OpaqueId,
+        accept: bool,
+    },
+    Export {
+        huddle_id: OpaqueId,
+        media_id: OpaqueId,
+    },
+    DeleteMedia {
+        huddle_id: OpaqueId,
+        media_id: OpaqueId,
+    },
+    /// `today` is days since the Unix epoch, supplied by the host.
+    RetentionSweep {
+        today: u32,
+    },
+    End {
+        huddle_id: OpaqueId,
+    },
+}
+
+/// What an act produced.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct HuddleActResult {
+    pub huddle: Option<Huddle>,
+    pub receipts: Vec<HuddleReceipt>,
+    pub export: Option<HuddleExport>,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -434,7 +506,9 @@ mod tests {
         assert!(media(agent.clone(), false).validate().is_err());
         media(agent, true).validate().unwrap();
         assert!(media(MediaOrigin::HumanRecording, true).validate().is_err());
-        media(MediaOrigin::HumanRecording, false).validate().unwrap();
+        media(MediaOrigin::HumanRecording, false)
+            .validate()
+            .unwrap();
     }
 
     #[test]
