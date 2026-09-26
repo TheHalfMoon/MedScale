@@ -3652,6 +3652,32 @@ impl CliSession {
     }
 
     // ---------------------------------------------------------------------
+    // Spec 091: federation
+    // ---------------------------------------------------------------------
+
+    pub fn federation_act(
+        &mut self,
+        act: medscale_contracts::federation::FederationActRequest,
+    ) -> Result<medscale_contracts::federation::FederationActResult, AuthorityError> {
+        match self.dispatch(
+            Capability::FederationAdmin,
+            RequestBody::FederationAct { act: Box::new(act) },
+        )? {
+            ResponseBody::FederationActed { result } => Ok(*result),
+            _ => Err(Self::unexpected("federation act result")),
+        }
+    }
+
+    pub fn federation_get(
+        &mut self,
+    ) -> Result<medscale_contracts::federation::FederationView, AuthorityError> {
+        match self.dispatch(Capability::FederationRead, RequestBody::FederationGet)? {
+            ResponseBody::Federation { view } => Ok(*view),
+            _ => Err(Self::unexpected("federation view")),
+        }
+    }
+
+    // ---------------------------------------------------------------------
     // Spec 090: institutional adapters
     // ---------------------------------------------------------------------
 

@@ -312,6 +312,12 @@ impl SqliteMetaStore {
             self.conn.execute_batch(crate::institutional::V19_DDL)?;
             self.finish_migration(19)?;
         }
+        let journal = self.migration_journal()?;
+        if journal.finished_version < 20 {
+            self.begin_migration(20)?;
+            self.conn.execute_batch(crate::federation::V20_DDL)?;
+            self.finish_migration(20)?;
+        }
         Ok(())
     }
 
@@ -683,6 +689,10 @@ impl SqliteMetaStore {
         }
         // Spec 090: institutional adapter rows (credential handles only).
         for (key, value) in self.institutional_backup_families()? {
+            payload[key] = value;
+        }
+        // Spec 091: federation rows (identity secret never exported).
+        for (key, value) in self.federation_backup_families()? {
             payload[key] = value;
         }
         Ok(serde_json::to_vec(&payload).unwrap_or_default())

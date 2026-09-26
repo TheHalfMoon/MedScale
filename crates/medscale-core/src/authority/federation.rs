@@ -15,7 +15,7 @@ use std::collections::BTreeSet;
 use medscale_contracts::envelopes::AuthorityError;
 use medscale_contracts::federation::{
     BUNDLE_BYTES_MAX, BUNDLE_FORMAT_VERSION, BUNDLE_ITEMS_MAX, BundleBody, BundleItem,
-    FEDERATION_SCHEMA_VERSION, FederationAction, FederationActRequest, FederationActResult,
+    FEDERATION_SCHEMA_VERSION, FederationActRequest, FederationActResult, FederationAction,
     FederationBundle, FederationIdentity, FederationPeer, FederationReceipt, FederationRefusal,
     FederationView, ImportedItem, ImportedState, PeerState, ProvenanceStep,
     validate_institution_id,
@@ -100,7 +100,11 @@ impl DataSources<'_> {
         }
     }
 
-    fn fed_commit(&mut self, change: FederationChange<'_>, audit: &str) -> Result<(), AuthorityError> {
+    fn fed_commit(
+        &mut self,
+        change: FederationChange<'_>,
+        audit: &str,
+    ) -> Result<(), AuthorityError> {
         let target = change.receipt.map(|r| r.header.id.clone());
         self.meta()
             .commit_federation_change(&change)
@@ -191,8 +195,13 @@ impl DataSources<'_> {
         Ok(result)
     }
 
-    pub fn fed_revoke_peer(&mut self, institution_id: &str) -> Result<FederationActResult, AuthorityError> {
-        let old = self.fed_peer(institution_id)?.ok_or(AuthorityError::NotFound)?;
+    pub fn fed_revoke_peer(
+        &mut self,
+        institution_id: &str,
+    ) -> Result<FederationActResult, AuthorityError> {
+        let old = self
+            .fed_peer(institution_id)?
+            .ok_or(AuthorityError::NotFound)?;
         if old.state == PeerState::Revoked {
             return Err(AuthorityError::Conflict {
                 message: "peer is already revoked".to_owned(),
@@ -267,7 +276,8 @@ impl DataSources<'_> {
         let mut items = Vec::new();
         let mut total = 0_u64;
         for artifact_id in artifact_ids {
-            let Some((bytes, media_type, class)) = self.fed_artifact(project_id, artifact_id) else {
+            let Some((bytes, media_type, class)) = self.fed_artifact(project_id, artifact_id)
+            else {
                 return self.fed_refuse(receipt, FederationRefusal::ItemMissing);
             };
             if !peer.admits(class) {
@@ -298,10 +308,11 @@ impl DataSources<'_> {
             items,
             tombstones,
         };
-        let signature_hex = sign_device_payload(&secret, &body.signing_payload())
-            .map_err(|e| AuthorityError::Internal {
+        let signature_hex = sign_device_payload(&secret, &body.signing_payload()).map_err(|e| {
+            AuthorityError::Internal {
                 message: e.to_string(),
-            })?;
+            }
+        })?;
         let bundle = FederationBundle {
             body_json: String::from_utf8(body.canonical_bytes()).map_err(|e| {
                 AuthorityError::Internal {
@@ -327,11 +338,12 @@ impl DataSources<'_> {
             "federation.export",
         )?;
         let mut result = Self::fed_result(receipt);
-        result.bundle_json = Some(serde_json::to_string(&bundle).map_err(|e| {
-            AuthorityError::Internal {
-                message: e.to_string(),
-            }
-        })?);
+        result.bundle_json =
+            Some(
+                serde_json::to_string(&bundle).map_err(|e| AuthorityError::Internal {
+                    message: e.to_string(),
+                })?,
+            );
         Ok(result)
     }
 
@@ -393,8 +405,7 @@ impl DataSources<'_> {
                 return self.fed_refuse(receipt, FederationRefusal::BundleInvalid);
             };
             if DigestSha256::of(&bytes) != item.digest
-                || item.provenance.last().map(|p| &p.institution_id)
-                    != Some(&body.from_institution)
+                || item.provenance.last().map(|p| &p.institution_id) != Some(&body.from_institution)
             {
                 return self.fed_refuse(receipt, FederationRefusal::BundleInvalid);
             }
@@ -406,7 +417,9 @@ impl DataSources<'_> {
         let existing = self.meta().list_imported_items().map_err(meta_err)?;
         let already: BTreeSet<String> = existing
             .iter()
-            .filter(|r| &r.item.project_id == project_id && r.item.from_institution == peer.institution_id)
+            .filter(|r| {
+                &r.item.project_id == project_id && r.item.from_institution == peer.institution_id
+            })
             .map(|r| r.item.digest.to_hex())
             .collect();
         let mut new_items = Vec::new();
@@ -465,7 +478,10 @@ impl DataSources<'_> {
         Ok(result)
     }
 
-    pub fn fed_act(&mut self, act: FederationActRequest) -> Result<FederationActResult, AuthorityError> {
+    pub fn fed_act(
+        &mut self,
+        act: FederationActRequest,
+    ) -> Result<FederationActResult, AuthorityError> {
         match act {
             FederationActRequest::CreateIdentity { institution_id } => {
                 self.fed_create_identity(institution_id)

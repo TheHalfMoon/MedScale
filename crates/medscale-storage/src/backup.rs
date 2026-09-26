@@ -106,7 +106,9 @@ pub fn restore_vault(src: &Path, dest_vault_root: &Path) -> Result<(u64, u64), S
     let snapshot_schema = snapshot_value
         .get("schema_version")
         .and_then(|v| v.as_u64());
-    if snapshot_schema == Some(19) {
+    if snapshot_schema == Some(20) {
+        restore_v20(&vault, &snapshot_value, &mut sources)?;
+    } else if snapshot_schema == Some(19) {
         restore_v19(&vault, &snapshot_value, &mut sources)?;
     } else if snapshot_schema == Some(18) {
         restore_v18(&vault, &snapshot_value, &mut sources)?;
@@ -641,6 +643,32 @@ fn restore_required_rows<T: serde::de::DeserializeOwned>(
         return Err(format!("tampered metadata snapshot: {key} is missing"));
     }
     restore_rows(snapshot, key, restore)
+}
+
+fn restore_v20(
+    vault: &SyntheticVault,
+    snapshot: &serde_json::Value,
+    sources: &mut u64,
+) -> Result<(), String> {
+    restore_v19(vault, snapshot, sources)?;
+    // Spec 091 rows replay through plain-insert paths. The identity comes
+    // back without its secret: exporting needs a new identity.
+    let meta = &vault.meta;
+    restore_required_rows(snapshot, "fed_identity", |row| {
+        meta.restore_federation_identity_row(row)
+    })?;
+    restore_required_rows(snapshot, "fed_peers", |row| {
+        meta.restore_federation_peer_row(row)
+    })?;
+    restore_required_rows(snapshot, "fed_imported", |row| {
+        meta.restore_imported_item_row(row)
+    })?;
+    restore_required_rows(snapshot, "fed_receipts", |row| {
+        meta.restore_federation_receipt_row(row)
+    })?;
+    meta.verify_federation_consistency()
+        .map_err(|e| e.to_string())?;
+    Ok(())
 }
 
 fn restore_v19(

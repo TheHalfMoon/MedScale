@@ -101,7 +101,9 @@ fn check(column: &str, body: &str, what: &str) -> Result<(), MetaError> {
     if column == body {
         Ok(())
     } else {
-        Err(corrupt(format!("{what} row columns disagree with its body")))
+        Err(corrupt(format!(
+            "{what} row columns disagree with its body"
+        )))
     }
 }
 
@@ -342,7 +344,9 @@ impl SqliteMetaStore {
                 params![to_json(&t)?, t.header.id.as_str()],
             )?;
             if changed != 1 {
-                return Err(MetaError::Conflict("item was already tombstoned".to_owned()));
+                return Err(MetaError::Conflict(
+                    "item was already tombstoned".to_owned(),
+                ));
             }
         }
         Self::fed_insert_receipt_on(&tx, receipt)?;
@@ -352,9 +356,12 @@ impl SqliteMetaStore {
 
     /// Commits one change with its receipt in a single transaction.
     pub fn commit_federation_change(&self, change: &FederationChange<'_>) -> Result<(), MetaError> {
-        let receipt = change
-            .receipt
-            .ok_or_else(|| invalid("federation change", "a change carries its receipt".to_owned()))?;
+        let receipt = change.receipt.ok_or_else(|| {
+            invalid(
+                "federation change",
+                "a change carries its receipt".to_owned(),
+            )
+        })?;
         self.fed_apply(change, receipt)
     }
 
@@ -457,16 +464,21 @@ impl SqliteMetaStore {
     ) -> Result<Vec<(&'static str, serde_json::Value)>, MetaError> {
         let v =
             |r: Result<serde_json::Value, serde_json::Error>| r.map_err(|e| corrupt(e.to_string()));
-        let identity: Vec<FederationIdentity> = self
-            .fed_rows(
-                "SELECT identity_id, body_json FROM fed_identity",
-                &[],
-                decode_identity,
-            )?;
+        let identity: Vec<FederationIdentity> = self.fed_rows(
+            "SELECT identity_id, body_json FROM fed_identity",
+            &[],
+            decode_identity,
+        )?;
         Ok(vec![
             ("fed_identity", v(serde_json::to_value(identity))?),
-            ("fed_peers", v(serde_json::to_value(self.list_federation_peers()?))?),
-            ("fed_imported", v(serde_json::to_value(self.list_imported_items()?))?),
+            (
+                "fed_peers",
+                v(serde_json::to_value(self.list_federation_peers()?))?,
+            ),
+            (
+                "fed_imported",
+                v(serde_json::to_value(self.list_imported_items()?))?,
+            ),
             (
                 "fed_receipts",
                 v(serde_json::to_value(self.list_federation_receipts()?))?,
