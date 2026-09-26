@@ -29,6 +29,7 @@ mod model_fleet;
 mod privacy_gate;
 mod project;
 mod r_workspace;
+mod research_packs;
 
 #[derive(Debug, Parser)]
 #[command(
@@ -214,6 +215,12 @@ enum Commands {
     Huddle {
         #[command(subcommand)]
         action: Box<huddles::HuddleCmd>,
+    },
+    /// Research Packs (Spec 089; declarative domain schemas, workflows and
+    /// evidence assessments; no code, no capability grants).
+    Pack {
+        #[command(subcommand)]
+        action: Box<research_packs::PackCmd>,
     },
     /// MedScale Hub foundation (Spec 084; local-socket IPC only, no network).
     Hub {
@@ -1256,6 +1263,7 @@ fn run() -> Result<()> {
         Commands::R { action } => r_workspace::run_r(*action),
         Commands::Extension { action } => extensions::run_extension(*action),
         Commands::Huddle { action } => huddles::run_huddle(*action),
+        Commands::Pack { action } => research_packs::run_pack(*action),
         Commands::DataSource { action } => data_source::run_data_source(*action),
         Commands::Snapshot { action } => data_source::run_snapshot(*action),
         Commands::DataView { action } => data_source::run_data_view(*action),
