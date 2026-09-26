@@ -25,7 +25,7 @@ Desktop accessibility.
 | 2 | Project isolation | PROVEN | Cross-project refusals in 085-091 tests (snapshots, extensions, huddles, packs, adapters, federation) |
 | 3 | Storage integrity (column/body checks, fail-closed reads) | PROVEN | Per-spec tampered-row tests; `whole_platform_092` runs every verifier after restore |
 | 4 | Migration v1 -> v20 (additive, journaled) | PROVEN | Per-version rewind tests (`migration_v*_is_additive`), older-backup restores |
-| 5 | Backup / restore with tamper refusal | PROVEN | Per-spec tamper suites; `whole_platform_092` round trip across all planes |
+| 5 | Backup / restore with tamper refusal | PROVEN (after fix #160) | Per-spec tamper suites; `whole_platform_092` round trip across all planes, then new work in the restored vault. Backups written before #160 carry no id sequences (residual: new ids of a used kind collide and fail closed) |
 | 6 | Restart / recovery of interrupted work | PROVEN | Compute `running -> interrupted`; adapter `sent -> unknown`; restart through Core in `whole_platform_092` |
 | 7 | Upgrade / rollback of domain objects | PROVEN | Extensions (re-consent, rollback), Research Packs (non-destructive migration), adapters (config rollback) |
 | 8 | Product upgrade / rollback between MedScale releases | PARTIAL | Storage forward-migration proven; downgrade of an upgraded vault is not supported (forward-only schema) |
@@ -56,6 +56,15 @@ Desktop accessibility.
 | 33 | Platform-specific behavior | PARTIAL | Linux/Windows/macOS hosted CI green; some link-safety tests Unix-only; Windows link check length-based (086) |
 | 34 | Terminology content | EXTERNAL | SNOMED/LOINC/ICD/ATC/UMLS license gates |
 | 35 | Partner EHR / NPHIES / SMART live | EXTERNAL | `PARTNER_EHR_NPHIES_ENDPOINT`, `SMART_LIVE_PARTNER_AUTHORIZATION` |
+
+## Defects found by the campaign
+
+- **Id sequences lost on restore** (all planes allocating from
+  `store_state`): after a restore, the first new object of an already-used
+  kind collided with a restored row and was refused. Found by
+  `whole_platform_092` (federation receipt after restore); fixed forward in
+  #160 (`fix(storage): carry id sequences through backup and restore`) with
+  the regression test `id_sequences_restore`.
 
 Terminal values (this spec cannot set any of them to true):
 
