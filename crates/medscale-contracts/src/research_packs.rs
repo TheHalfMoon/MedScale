@@ -542,3 +542,166 @@ mod tests {
         assert!(w.validate().is_err());
     }
 }
+
+// ---------------------------------------------------------------------
+// Built-in first-party Pack: Clinical Research.
+// ---------------------------------------------------------------------
+
+/// Identifier of the first-party Clinical Research Pack.
+pub const CLINICAL_RESEARCH_PACK_ID: &str = "medscale.clinical-research";
+/// Highest version of it this build ships.
+pub const CLINICAL_RESEARCH_PACK_LATEST: u32 = 2;
+
+fn field(name: &str, kind: FieldKind, required: bool) -> FieldSpec {
+    FieldSpec {
+        name: name.to_owned(),
+        kind,
+        required,
+    }
+}
+
+fn states(names: &[&str]) -> Vec<String> {
+    names.iter().map(|s| (*s).to_owned()).collect()
+}
+
+fn moves(pairs: &[(&str, &str)]) -> Vec<(String, String)> {
+    pairs
+        .iter()
+        .map(|(a, b)| ((*a).to_owned(), (*b).to_owned()))
+        .collect()
+}
+
+/// The first-party Clinical Research Pack at `version` (1 or 2).
+#[must_use]
+pub fn clinical_research_pack(version: u32) -> Option<ResearchPackManifest> {
+    if version == 0 || version > CLINICAL_RESEARCH_PACK_LATEST {
+        return None;
+    }
+    let choice = |values: &[&str]| FieldKind::Choice {
+        values: values.iter().map(|v| (*v).to_owned()).collect(),
+    };
+    let mut protocol_fields = vec![
+        field("title", FieldKind::Text, true),
+        field("phase", choice(&["1", "2", "3", "4", "observational"]), true),
+        field("primary_outcome", FieldKind::Text, true),
+        field("start_date", FieldKind::Date, false),
+    ];
+    let mut protocol_states = states(&["draft", "submitted", "approved", "closed"]);
+    let mut protocol_moves = moves(&[
+        ("draft", "submitted"),
+        ("submitted", "draft"),
+        ("submitted", "approved"),
+        ("approved", "closed"),
+    ]);
+    let mut migrations = Vec::new();
+    if version >= 2 {
+        let registry = field("registry_id", FieldKind::Text, false);
+        protocol_fields.push(registry.clone());
+        protocol_states.push("suspended".to_owned());
+        protocol_moves.extend(moves(&[("approved", "suspended"), ("suspended", "approved")]));
+        migrations = vec![
+            ResearchPackMigration::AddField {
+                type_id: "study_protocol".to_owned(),
+                field: registry,
+                default: FieldValue::Unknown,
+            },
+            ResearchPackMigration::AddWorkflowState {
+                workflow_id: "protocol_review".to_owned(),
+                state: "suspended".to_owned(),
+                transitions: moves(&[("approved", "suspended"), ("suspended", "approved")]),
+            },
+        ];
+    }
+    Some(ResearchPackManifest {
+        pack_id: CLINICAL_RESEARCH_PACK_ID.to_owned(),
+        version,
+        title: "Clinical Research".to_owned(),
+        domain: ResearchDomain::ClinicalResearch,
+        schemas: vec![
+            ResearchArtifactSchema {
+                type_id: "study_protocol".to_owned(),
+                title: "Study protocol".to_owned(),
+                fields: protocol_fields,
+                workflow_id: "protocol_review".to_owned(),
+            },
+            ResearchArtifactSchema {
+                type_id: "adverse_event".to_owned(),
+                title: "Adverse event report".to_owned(),
+                fields: vec![
+                    field("description", FieldKind::Text, true),
+                    field("onset_date", FieldKind::Date, true),
+                    field("seriousness", choice(&["non_serious", "serious"]), true),
+                    field(
+                        "causality",
+                        choice(&["unrelated", "possible", "probable", "definite"]),
+                        false,
+                    ),
+                    field("expected", FieldKind::Boolean, false),
+                ],
+                workflow_id: "event_review".to_owned(),
+            },
+            ResearchArtifactSchema {
+                type_id: "evidence_claim".to_owned(),
+                title: "Evidence claim".to_owned(),
+                fields: vec![field("claim", FieldKind::Text, true)],
+                workflow_id: "claim_review".to_owned(),
+            },
+        ],
+        workflows: vec![
+            ResearchWorkflowDescriptor {
+                workflow_id: "protocol_review".to_owned(),
+                states: protocol_states,
+                initial: "draft".to_owned(),
+                transitions: protocol_moves,
+            },
+            ResearchWorkflowDescriptor {
+                workflow_id: "event_review".to_owned(),
+                states: states(&["reported", "assessed", "closed"]),
+                initial: "reported".to_owned(),
+                transitions: moves(&[("reported", "assessed"), ("assessed", "closed")]),
+            },
+            ResearchWorkflowDescriptor {
+                workflow_id: "claim_review".to_owned(),
+                states: states(&["proposed", "reviewed"]),
+                initial: "proposed".to_owned(),
+                transitions: moves(&[("proposed", "reviewed")]),
+            },
+        ],
+        migrations,
+    })
+}
+
+#[cfg(test)]
+mod pack_tests {
+    use super::*;
+
+    #[test]
+    fn built_in_pack_versions_validate_and_migrate_forward_only() {
+        let v1 = clinical_research_pack(1).unwrap();
+        let v2 = clinical_research_pack(2).unwrap();
+        v1.validate().unwrap();
+        v2.validate().unwrap();
+        assert!(clinical_research_pack(3).is_none());
+        assert!(v1.migrations.is_empty());
+        assert_ne!(v1.digest(), v2.digest());
+        // Every v1 field and state survives in v2 (non-destructive).
+        for s in &v1.schemas {
+            let s2 = v2.schema(&s.type_id).unwrap();
+            assert!(s.fields.iter().all(|f| s2.fields.contains(f)));
+        }
+        for w in &v1.workflows {
+            let w2 = v2.workflow(&w.workflow_id).unwrap();
+            assert!(w.states.iter().all(|st| w2.states.contains(st)));
+        }
+        let mut fields = BTreeMap::new();
+        fields.insert("title".to_owned(), FieldValue::Text("LDL".to_owned()));
+        fields.insert("phase".to_owned(), FieldValue::Choice("2".to_owned()));
+        fields.insert("primary_outcome".to_owned(), FieldValue::Unknown);
+        v1.check_fields("study_protocol", &fields).unwrap();
+        fields.insert("registry_id".to_owned(), FieldValue::Unknown);
+        assert!(v1.check_fields("study_protocol", &fields).is_err());
+        v2.check_fields("study_protocol", &fields).unwrap();
+        fields.remove("title");
+        assert!(v2.check_fields("study_protocol", &fields).is_err());
+    }
+}
