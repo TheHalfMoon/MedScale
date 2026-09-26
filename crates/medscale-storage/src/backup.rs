@@ -106,7 +106,9 @@ pub fn restore_vault(src: &Path, dest_vault_root: &Path) -> Result<(u64, u64), S
     let snapshot_schema = snapshot_value
         .get("schema_version")
         .and_then(|v| v.as_u64());
-    if snapshot_schema == Some(17) {
+    if snapshot_schema == Some(18) {
+        restore_v18(&vault, &snapshot_value, &mut sources)?;
+    } else if snapshot_schema == Some(17) {
         restore_v17(&vault, &snapshot_value, &mut sources)?;
     } else if snapshot_schema == Some(16) {
         restore_v16(&vault, &snapshot_value, &mut sources)?;
@@ -637,6 +639,30 @@ fn restore_required_rows<T: serde::de::DeserializeOwned>(
         return Err(format!("tampered metadata snapshot: {key} is missing"));
     }
     restore_rows(snapshot, key, restore)
+}
+
+fn restore_v18(
+    vault: &SyntheticVault,
+    snapshot: &serde_json::Value,
+    sources: &mut u64,
+) -> Result<(), String> {
+    restore_v17(vault, snapshot, sources)?;
+    // Spec 089 rows replay through plain-insert paths; each is re-checked
+    // against the shipped Pack version it names; cross-row invariants are
+    // re-verified once every family is replayed.
+    let meta = &vault.meta;
+    restore_required_rows(snapshot, "rp_installs", |row| {
+        meta.restore_pack_install_row(row)
+    })?;
+    restore_required_rows(snapshot, "rp_artifacts", |row| {
+        meta.restore_research_artifact_row(row)
+    })?;
+    restore_required_rows(snapshot, "rp_receipts", |row| {
+        meta.restore_pack_receipt_row(row)
+    })?;
+    meta.verify_research_pack_consistency()
+        .map_err(|e| e.to_string())?;
+    Ok(())
 }
 
 fn restore_v17(

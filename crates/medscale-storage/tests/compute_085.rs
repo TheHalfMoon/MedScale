@@ -457,7 +457,7 @@ fn pre_085_v13_backup_restores_with_empty_compute_tables() {
             !k.starts_with("compute_")
                 && !k.starts_with("rws_")
                 && !k.starts_with("ext_")
-                && !k.starts_with("hud_")
+                && !k.starts_with("hud_") && !k.starts_with("rp_")
         });
         o.insert("schema_version".to_owned(), serde_json::json!(13));
     });

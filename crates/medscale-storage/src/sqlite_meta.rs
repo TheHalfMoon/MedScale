@@ -300,6 +300,12 @@ impl SqliteMetaStore {
             self.conn.execute_batch(crate::huddles::V17_DDL)?;
             self.finish_migration(17)?;
         }
+        let journal = self.migration_journal()?;
+        if journal.finished_version < 18 {
+            self.begin_migration(18)?;
+            self.conn.execute_batch(crate::research_packs::V18_DDL)?;
+            self.finish_migration(18)?;
+        }
         Ok(())
     }
 
@@ -663,6 +669,10 @@ impl SqliteMetaStore {
         }
         // Spec 088: AudioFlow Advanced huddle rows.
         for (key, value) in self.huddle_backup_families()? {
+            payload[key] = value;
+        }
+        // Spec 089: Research Pack rows.
+        for (key, value) in self.research_pack_backup_families()? {
             payload[key] = value;
         }
         Ok(serde_json::to_vec(&payload).unwrap_or_default())
