@@ -38,7 +38,11 @@ fn ext_fail(err: &AuthorityError, json: bool) -> anyhow::Error {
     fail_json(code, message, json)
 }
 
-fn open_session(vault_id: &str, vault_root: &std::path::Path, json: bool) -> anyhow::Result<CliSession> {
+fn open_session(
+    vault_id: &str,
+    vault_root: &std::path::Path,
+    json: bool,
+) -> anyhow::Result<CliSession> {
     let mut session = CliSession::connect(vault_id).map_err(|err| ext_fail(&err, json))?;
     session
         .open_synthetic_vault(&vault_root.display().to_string())
@@ -49,7 +53,11 @@ fn open_session(vault_id: &str, vault_root: &std::path::Path, json: bool) -> any
 fn read_pack(path: &std::path::Path, json: bool) -> anyhow::Result<String> {
     let meta = std::fs::metadata(path).map_err(|e| fail_json("invalid", e.to_string(), json))?;
     if meta.len() > PACK_BYTES_MAX {
-        return Err(fail_json("invalid", "pack file is too large".to_owned(), json));
+        return Err(fail_json(
+            "invalid",
+            "pack file is too large".to_owned(),
+            json,
+        ));
     }
     std::fs::read_to_string(path).map_err(|e| fail_json("invalid", e.to_string(), json))
 }
@@ -215,16 +223,21 @@ pub fn run_extension(cmd: ExtensionCmd) -> anyhow::Result<()> {
         } => {
             let raw = std::fs::read_to_string(&manifest)
                 .map_err(|e| fail_json("invalid", e.to_string(), json))?;
-            let m: ExtensionManifest =
-                serde_json::from_str(&raw).map_err(|e| fail_json("invalid", e.to_string(), json))?;
+            let m: ExtensionManifest = serde_json::from_str(&raw)
+                .map_err(|e| fail_json("invalid", e.to_string(), json))?;
             let secret = std::fs::read_to_string(&secret)
                 .map_err(|e| fail_json("invalid", e.to_string(), json))?;
-            let pack = sign_extension_pack(&m, secret.trim()).map_err(|e| fail_json("invalid", e, json))?;
-            let bytes = serde_json::to_vec(&pack).map_err(|e| fail_json("internal", e.to_string(), json))?;
+            let pack = sign_extension_pack(&m, secret.trim())
+                .map_err(|e| fail_json("invalid", e, json))?;
+            let bytes = serde_json::to_vec(&pack)
+                .map_err(|e| fail_json("internal", e.to_string(), json))?;
             std::fs::write(&out, &bytes).map_err(|e| fail_json("invalid", e.to_string(), json))?;
             let digest = DigestSha256::of(pack.manifest_json.as_bytes());
             if json {
-                return print_json_or_debug(&serde_json::json!({ "release_sha256": digest.to_hex() }), true);
+                return print_json_or_debug(
+                    &serde_json::json!({ "release_sha256": digest.to_hex() }),
+                    true,
+                );
             }
             println!("release_sha256: {}", digest.to_hex());
             Ok(())
@@ -277,7 +290,11 @@ pub fn run_extension(cmd: ExtensionCmd) -> anyhow::Result<()> {
                 "disable" => s.ext_set_enabled(project, extension_id, false),
                 "uninstall" => s.ext_uninstall(project, extension_id),
                 other => {
-                    return Err(fail_json("invalid", format!("unknown action {other}"), json));
+                    return Err(fail_json(
+                        "invalid",
+                        format!("unknown action {other}"),
+                        json,
+                    ));
                 }
             }
             .map_err(|err| ext_fail(&err, json))?;
@@ -293,11 +310,13 @@ pub fn run_extension(cmd: ExtensionCmd) -> anyhow::Result<()> {
             revoke,
             json,
         } => {
-            let capability =
-                ExtensionCapability::parse(&capability).map_err(|e| fail_json("invalid", e, json))?;
+            let capability = ExtensionCapability::parse(&capability)
+                .map_err(|e| fail_json("invalid", e, json))?;
             let ceiling = match (revoke, ceiling.as_deref()) {
                 (true, None) => None,
-                (false, Some(c)) => Some(DataClass::parse(c).map_err(|e| fail_json("invalid", e, json))?),
+                (false, Some(c)) => {
+                    Some(DataClass::parse(c).map_err(|e| fail_json("invalid", e, json))?)
+                }
                 _ => {
                     return Err(fail_json(
                         "invalid",

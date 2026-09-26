@@ -3652,6 +3652,172 @@ impl CliSession {
     }
 
     // ---------------------------------------------------------------------
+    // Spec 087: Community Extensions
+    // ---------------------------------------------------------------------
+
+    fn ext_lifecycle(
+        &mut self,
+        body: RequestBody,
+    ) -> Result<medscale_contracts::extensions::ExtensionLifecycleReceipt, AuthorityError> {
+        match self.dispatch(Capability::ExtensionAdmin, body)? {
+            ResponseBody::ExtensionLifecycle { receipt } => Ok(*receipt),
+            _ => Err(Self::unexpected("extension lifecycle receipt")),
+        }
+    }
+
+    fn ext_lifecycles(
+        &mut self,
+        body: RequestBody,
+    ) -> Result<Vec<medscale_contracts::extensions::ExtensionLifecycleReceipt>, AuthorityError>
+    {
+        match self.dispatch(Capability::ExtensionAdmin, body)? {
+            ResponseBody::ExtensionLifecycles { receipts } => Ok(receipts),
+            _ => Err(Self::unexpected("extension lifecycle receipts")),
+        }
+    }
+
+    pub fn ext_trust_publisher(
+        &mut self,
+        publisher_id: String,
+        key_hex: String,
+    ) -> Result<medscale_contracts::extensions::ExtensionPublisher, AuthorityError> {
+        match self.dispatch(
+            Capability::ExtensionAdmin,
+            RequestBody::ExtensionTrustPublisher {
+                publisher_id,
+                key_hex,
+            },
+        )? {
+            ResponseBody::ExtensionPublisher { publisher } => Ok(*publisher),
+            _ => Err(Self::unexpected("extension publisher")),
+        }
+    }
+
+    pub fn ext_revoke_publisher(
+        &mut self,
+        publisher_id: String,
+    ) -> Result<Vec<medscale_contracts::extensions::ExtensionLifecycleReceipt>, AuthorityError>
+    {
+        self.ext_lifecycles(RequestBody::ExtensionRevokePublisher { publisher_id })
+    }
+
+    pub fn ext_revoke_release(
+        &mut self,
+        digest: medscale_contracts::objects::DigestSha256,
+    ) -> Result<Vec<medscale_contracts::extensions::ExtensionLifecycleReceipt>, AuthorityError>
+    {
+        self.ext_lifecycles(RequestBody::ExtensionRevokeRelease { digest })
+    }
+
+    pub fn ext_install(
+        &mut self,
+        project_id: OpaqueId,
+        pack_json: String,
+    ) -> Result<medscale_contracts::extensions::ExtensionLifecycleReceipt, AuthorityError> {
+        self.ext_lifecycle(RequestBody::ExtensionInstall {
+            project_id,
+            pack_json,
+            upgrade: false,
+        })
+    }
+
+    pub fn ext_upgrade(
+        &mut self,
+        project_id: OpaqueId,
+        pack_json: String,
+    ) -> Result<medscale_contracts::extensions::ExtensionLifecycleReceipt, AuthorityError> {
+        self.ext_lifecycle(RequestBody::ExtensionInstall {
+            project_id,
+            pack_json,
+            upgrade: true,
+        })
+    }
+
+    pub fn ext_rollback(
+        &mut self,
+        project_id: OpaqueId,
+        extension_id: String,
+    ) -> Result<medscale_contracts::extensions::ExtensionLifecycleReceipt, AuthorityError> {
+        self.ext_lifecycle(RequestBody::ExtensionRollback {
+            project_id,
+            extension_id,
+        })
+    }
+
+    pub fn ext_set_enabled(
+        &mut self,
+        project_id: OpaqueId,
+        extension_id: String,
+        enabled: bool,
+    ) -> Result<medscale_contracts::extensions::ExtensionLifecycleReceipt, AuthorityError> {
+        self.ext_lifecycle(RequestBody::ExtensionSetEnabled {
+            project_id,
+            extension_id,
+            enabled,
+        })
+    }
+
+    pub fn ext_uninstall(
+        &mut self,
+        project_id: OpaqueId,
+        extension_id: String,
+    ) -> Result<medscale_contracts::extensions::ExtensionLifecycleReceipt, AuthorityError> {
+        self.ext_lifecycle(RequestBody::ExtensionUninstall {
+            project_id,
+            extension_id,
+        })
+    }
+
+    pub fn ext_grant(
+        &mut self,
+        project_id: OpaqueId,
+        extension_id: String,
+        capability: medscale_contracts::extensions::ExtensionCapability,
+        ceiling: Option<medscale_contracts::privacy_gate::DataClass>,
+    ) -> Result<medscale_contracts::extensions::ExtensionLifecycleReceipt, AuthorityError> {
+        self.ext_lifecycle(RequestBody::ExtensionGrant {
+            project_id,
+            extension_id,
+            capability,
+            ceiling,
+        })
+    }
+
+    pub fn ext_invoke(
+        &mut self,
+        project_id: OpaqueId,
+        extension_id: String,
+        command: String,
+        target: Option<OpaqueId>,
+    ) -> Result<medscale_contracts::extensions::ExtensionInvocation, AuthorityError> {
+        match self.dispatch(
+            Capability::ExtensionInvoke,
+            RequestBody::ExtensionInvoke {
+                project_id,
+                extension_id,
+                command,
+                target,
+            },
+        )? {
+            ResponseBody::ExtensionInvocation { outcome } => Ok(*outcome),
+            _ => Err(Self::unexpected("extension invocation")),
+        }
+    }
+
+    pub fn ext_list(
+        &mut self,
+        project_id: OpaqueId,
+    ) -> Result<medscale_contracts::extensions::ExtensionProjectView, AuthorityError> {
+        match self.dispatch(
+            Capability::ExtensionRead,
+            RequestBody::ExtensionList { project_id },
+        )? {
+            ResponseBody::ExtensionProject { view } => Ok(*view),
+            _ => Err(Self::unexpected("extension project view")),
+        }
+    }
+
+    // ---------------------------------------------------------------------
     // Spec 086: R Workspace
     // ---------------------------------------------------------------------
 

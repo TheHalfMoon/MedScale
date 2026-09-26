@@ -34,6 +34,7 @@ use crate::documents::{
     AsrStubRequest, DocumentIntakeRequest, DocumentIntakeResult, MediaStubResult, OcrStubRequest,
 };
 use crate::evidence::{LexicalRetrieveRequest, LexicalRetrieveResult};
+use crate::extensions::{ExtensionCapability, ExtensionLifecycleReceipt, ExtensionPublisher};
 use crate::hub::{
     DeviceIdentity, HubChallenge, HubEvent, HubEventPage, HubHandshake, HubIdentity, HubInvitation,
     HubInvitationCode, HubLink, HubOutboxEntry, HubSession, HubStatus, SyncEnvelope, SyncIntent,
@@ -272,6 +273,10 @@ pub enum Capability {
     RWorkspaceRun,
     RWorkspacePublish,
     RWorkspaceRead,
+    // Spec 087: Community Extensions (declarative only).
+    ExtensionAdmin,
+    ExtensionInvoke,
+    ExtensionRead,
 }
 
 impl Capability {
@@ -336,6 +341,7 @@ impl Capability {
                 | Self::HubRead
                 | Self::ComputeRead
                 | Self::RWorkspaceRead
+                | Self::ExtensionRead
         )
     }
 
@@ -509,6 +515,9 @@ impl Capability {
             Self::RWorkspaceRun,
             Self::RWorkspacePublish,
             Self::RWorkspaceRead,
+            Self::ExtensionAdmin,
+            Self::ExtensionInvoke,
+            Self::ExtensionRead,
         ]
     }
 }
@@ -1559,6 +1568,52 @@ pub enum RequestBody {
         table_id: OpaqueId,
     },
     RWorkspaceStatus,
+    // Spec 087: Community Extensions. Packs travel as bytes; no request
+    // carries a path, and no extension code runs.
+    ExtensionTrustPublisher {
+        publisher_id: String,
+        key_hex: String,
+    },
+    ExtensionRevokePublisher {
+        publisher_id: String,
+    },
+    ExtensionRevokeRelease {
+        digest: DigestSha256,
+    },
+    ExtensionInstall {
+        project_id: OpaqueId,
+        pack_json: String,
+        upgrade: bool,
+    },
+    ExtensionRollback {
+        project_id: OpaqueId,
+        extension_id: String,
+    },
+    ExtensionSetEnabled {
+        project_id: OpaqueId,
+        extension_id: String,
+        enabled: bool,
+    },
+    ExtensionUninstall {
+        project_id: OpaqueId,
+        extension_id: String,
+    },
+    /// `ceiling = None` revokes the capability.
+    ExtensionGrant {
+        project_id: OpaqueId,
+        extension_id: String,
+        capability: ExtensionCapability,
+        ceiling: Option<crate::privacy_gate::DataClass>,
+    },
+    ExtensionInvoke {
+        project_id: OpaqueId,
+        extension_id: String,
+        command: String,
+        target: Option<OpaqueId>,
+    },
+    ExtensionList {
+        project_id: OpaqueId,
+    },
 }
 
 impl RequestBody {
@@ -2175,6 +2230,22 @@ pub enum ResponseBody {
     },
     RWorkspaceStatus {
         status: RWorkspaceStatus,
+    },
+    // Spec 087: Community Extensions.
+    ExtensionPublisher {
+        publisher: Box<ExtensionPublisher>,
+    },
+    ExtensionLifecycle {
+        receipt: Box<ExtensionLifecycleReceipt>,
+    },
+    ExtensionLifecycles {
+        receipts: Vec<ExtensionLifecycleReceipt>,
+    },
+    ExtensionInvocation {
+        outcome: Box<crate::extensions::ExtensionInvocation>,
+    },
+    ExtensionProject {
+        view: Box<crate::extensions::ExtensionProjectView>,
     },
 }
 

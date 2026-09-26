@@ -14,10 +14,10 @@ use std::collections::BTreeSet;
 use medscale_contracts::envelopes::AuthorityError;
 use medscale_contracts::extensions::{
     EXTENSION_SCHEMA_VERSION, ExtensionCapability, ExtensionGrant, ExtensionInstallRecord,
-    ExtensionLifecycleReceipt, ExtensionManifest, ExtensionPack, ExtensionPublisher,
-    ExtensionRefusal, ExtensionRelease, ExtensionRuntimeReceipt, HostOperation, InstallState,
-    InvocationDenial, LifecycleAction, PACK_BYTES_MAX, PUBLIC_KEY_HEX_LEN, PublisherState,
-    signing_payload,
+    ExtensionInvocation, ExtensionLifecycleReceipt, ExtensionManifest, ExtensionPack,
+    ExtensionProjectView, ExtensionPublisher, ExtensionRefusal, ExtensionRelease,
+    ExtensionRuntimeReceipt, HostOperation, InstallState, InvocationDenial, LifecycleAction,
+    PACK_BYTES_MAX, PUBLIC_KEY_HEX_LEN, PublisherState, signing_payload,
 };
 use medscale_contracts::objects::{DigestSha256, ObjectHeader, OpaqueId};
 use medscale_contracts::privacy_gate::DataClass;
@@ -66,8 +66,8 @@ pub fn sign_extension_pack(
     manifest.validate()?;
     let manifest_json = String::from_utf8(manifest.canonical_bytes()).map_err(|e| e.to_string())?;
     let digest = DigestSha256::of(manifest_json.as_bytes());
-    let signature_hex = sign_device_payload(secret_hex, &signing_payload(&digest))
-        .map_err(|e| e.to_string())?;
+    let signature_hex =
+        sign_device_payload(secret_hex, &signing_payload(&digest)).map_err(|e| e.to_string())?;
     Ok(ExtensionPack {
         manifest_json,
         signature_hex,
@@ -78,22 +78,6 @@ pub fn sign_extension_pack(
 #[must_use]
 pub fn generate_publisher_key() -> (String, String) {
     generate_device_key()
-}
-
-/// Everything recorded for one Project's extensions.
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub struct ExtensionProjectView {
-    pub installs: Vec<ExtensionInstallRecord>,
-    pub grants: Vec<ExtensionGrant>,
-    pub lifecycle: Vec<ExtensionLifecycleReceipt>,
-    pub runs: Vec<ExtensionRuntimeReceipt>,
-}
-
-/// Result of an invocation.
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
-pub struct InvocationOutcome {
-    pub receipt: ExtensionRuntimeReceipt,
-    pub result: Option<serde_json::Value>,
 }
 
 impl DataSources<'_> {
@@ -169,9 +153,9 @@ impl DataSources<'_> {
     ) -> Result<ExtensionPublisher, AuthorityError> {
         if publisher_id.is_empty()
             || publisher_id.chars().count() > 64
-            || !publisher_id
-                .chars()
-                .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || matches!(c, '.' | '-' | '_'))
+            || !publisher_id.chars().all(|c| {
+                c.is_ascii_lowercase() || c.is_ascii_digit() || matches!(c, '.' | '-' | '_')
+            })
         {
             return Err(invalid("publisher id must be a plain lowercase identifier"));
         }
@@ -187,7 +171,10 @@ impl DataSources<'_> {
         self.meta()
             .insert_ext_publisher(&publisher)
             .map_err(meta_err)?;
-        self.audit("extension.trust_publisher", vec![publisher.header.id.clone()])?;
+        self.audit(
+            "extension.trust_publisher",
+            vec![publisher.header.id.clone()],
+        )?;
         Ok(publisher)
     }
 
@@ -195,8 +182,7 @@ impl DataSources<'_> {
     fn ext_quarantine_plan(
         &self,
         affected: impl Fn(&ExtensionInstallRecord) -> bool,
-    ) -> Result<Vec<(ExtensionInstallRecord, u64, ExtensionLifecycleReceipt)>, AuthorityError>
-    {
+    ) -> Result<Vec<(ExtensionInstallRecord, u64, ExtensionLifecycleReceipt)>, AuthorityError> {
         let mut plan = Vec::new();
         for install in self.meta().list_ext_installs().map_err(meta_err)? {
             if install.header.realm_id != self.realm
@@ -213,8 +199,11 @@ impl DataSources<'_> {
             let mut next = install;
             next.state = InstallState::Quarantined;
             next.revision = expected + 1;
-            let mut receipt =
-                self.ext_receipt(&next.project_id, LifecycleAction::Quarantine, &next.extension_id)?;
+            let mut receipt = self.ext_receipt(
+                &next.project_id,
+                LifecycleAction::Quarantine,
+                &next.extension_id,
+            )?;
             receipt.release = Some(next.active_release.clone());
             receipt.install_id = Some(next.header.id.clone());
             receipt.resulting_state = Some(InstallState::Quarantined);
@@ -336,9 +325,7 @@ impl DataSources<'_> {
             return Ok(release);
         }
         release.header.id = self.ext_alloc("extension-release")?;
-        self.meta()
-            .insert_ext_release(&release)
-            .map_err(meta_err)?;
+        self.meta().insert_ext_release(&release).map_err(meta_err)?;
         Ok(release)
     }
 
@@ -360,7 +347,10 @@ impl DataSources<'_> {
                 receipt,
             })
             .map_err(meta_err)?;
-        self.audit(audit, vec![install.header.id.clone(), receipt.header.id.clone()])
+        self.audit(
+            audit,
+            vec![install.header.id.clone(), receipt.header.id.clone()],
+        )
     }
 
     // ----- lifecycle -----
@@ -443,7 +433,12 @@ impl DataSources<'_> {
         receipt.release = Some(release.digest.clone());
         let Some(old) = self
             .ext_scoped_install(project_id, &extension_id)?
-            .filter(|i| !matches!(i.state, InstallState::Uninstalled | InstallState::Quarantined))
+            .filter(|i| {
+                !matches!(
+                    i.state,
+                    InstallState::Uninstalled | InstallState::Quarantined
+                )
+            })
         else {
             return self.ext_refuse(receipt, ExtensionRefusal::NotInstalled);
         };
@@ -502,7 +497,12 @@ impl DataSources<'_> {
         let mut receipt = self.ext_receipt(project_id, LifecycleAction::Rollback, extension_id)?;
         let Some(old) = self
             .ext_scoped_install(project_id, extension_id)?
-            .filter(|i| !matches!(i.state, InstallState::Uninstalled | InstallState::Quarantined))
+            .filter(|i| {
+                !matches!(
+                    i.state,
+                    InstallState::Uninstalled | InstallState::Quarantined
+                )
+            })
         else {
             return self.ext_refuse(receipt, ExtensionRefusal::NotInstalled);
         };
@@ -700,7 +700,8 @@ impl DataSources<'_> {
     /// Installs, grants and receipts of one Project (this realm and scope).
     pub fn ext_list(&self, project_id: &OpaqueId) -> Result<ExtensionProjectView, AuthorityError> {
         self.require_project(project_id)?;
-        let mine = |h: &ObjectHeader| h.realm_id == self.realm && h.authority_scope_id == self.scope;
+        let mine =
+            |h: &ObjectHeader| h.realm_id == self.realm && h.authority_scope_id == self.scope;
         let installs: Vec<ExtensionInstallRecord> = self
             .meta()
             .list_ext_installs()
@@ -746,7 +747,7 @@ impl DataSources<'_> {
         extension_id: &str,
         command: &str,
         target: Option<OpaqueId>,
-    ) -> Result<InvocationOutcome, AuthorityError> {
+    ) -> Result<ExtensionInvocation, AuthorityError> {
         self.require_project(project_id)?;
         let mut receipt = ExtensionRuntimeReceipt {
             header: self.ext_header(self.ext_alloc("extension-run")?),
@@ -759,7 +760,13 @@ impl DataSources<'_> {
             denial: None,
             result_digest: None,
         };
-        let outcome = self.ext_evaluate(project_id, extension_id, command, target.as_ref(), &mut receipt);
+        let outcome = self.ext_evaluate(
+            project_id,
+            extension_id,
+            command,
+            target.as_ref(),
+            &mut receipt,
+        );
         let result = match outcome {
             Ok(value) => {
                 let bytes = serde_json::to_vec(&value).map_err(|e| AuthorityError::Internal {
@@ -777,7 +784,7 @@ impl DataSources<'_> {
             .insert_ext_runtime_receipt(&receipt)
             .map_err(meta_err)?;
         self.audit("extension.invoke", vec![receipt.header.id.clone()])?;
-        Ok(InvocationOutcome { receipt, result })
+        Ok(ExtensionInvocation { receipt, result })
     }
 
     fn ext_evaluate(

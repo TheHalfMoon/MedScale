@@ -524,6 +524,24 @@ impl ExtensionRuntimeReceipt {
     }
 }
 
+/// Result of one invocation: its receipt and, when it ran, the result.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ExtensionInvocation {
+    pub receipt: ExtensionRuntimeReceipt,
+    pub result: Option<serde_json::Value>,
+}
+
+/// Everything recorded for one Project's extensions.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ExtensionProjectView {
+    pub installs: Vec<ExtensionInstallRecord>,
+    pub grants: Vec<ExtensionGrant>,
+    pub lifecycle: Vec<ExtensionLifecycleReceipt>,
+    pub runs: Vec<ExtensionRuntimeReceipt>,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

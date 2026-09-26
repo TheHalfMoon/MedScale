@@ -35,7 +35,11 @@ fn setup(name: &str) -> Lab {
     std::fs::write(dir.join("labs.csv"), LABS).unwrap();
     let mut s = CliSession::connect(&format!("vault-087-{name}")).unwrap();
     s.open_synthetic_vault(&dir.display().to_string()).unwrap();
-    let project = s.project_create("study".to_owned(), None).unwrap().header.id;
+    let project = s
+        .project_create("study".to_owned(), None)
+        .unwrap()
+        .header
+        .id;
     let source = s
         .data_source_create(
             project.clone(),
@@ -111,7 +115,10 @@ fn trusted(name: &str) -> Lab {
 fn a_sample_extension_installs_is_denied_until_granted_and_runs_through_core() {
     let mut lab = trusted("lifecycle");
     let v1 = manifest(&lab, 0, &[ExtensionCapability::SnapshotSchemaRead]);
-    let installed = lab.s.ext_install(lab.project.clone(), pack(&lab, &v1)).unwrap();
+    let installed = lab
+        .s
+        .ext_install(lab.project.clone(), pack(&lab, &v1))
+        .unwrap();
     assert_eq!(installed.resulting_state, Some(InstallState::Enabled));
 
     // Default capabilities are empty.
@@ -194,7 +201,10 @@ fn a_sample_extension_installs_is_denied_until_granted_and_runs_through_core() {
             Some(lab.snapshot.clone()),
         )
         .unwrap();
-    assert_eq!(unknown.receipt.denial, Some(InvocationDenial::UnknownCommand));
+    assert_eq!(
+        unknown.receipt.denial,
+        Some(InvocationDenial::UnknownCommand)
+    );
 
     // Upgrade with a new capability needs re-consent.
     let v2 = manifest(
@@ -205,7 +215,10 @@ fn a_sample_extension_installs_is_denied_until_granted_and_runs_through_core() {
             ExtensionCapability::SnapshotRowsRead,
         ],
     );
-    let upgraded = lab.s.ext_upgrade(lab.project.clone(), pack(&lab, &v2)).unwrap();
+    let upgraded = lab
+        .s
+        .ext_upgrade(lab.project.clone(), pack(&lab, &v2))
+        .unwrap();
     assert_eq!(upgraded.resulting_state, Some(InstallState::PendingConsent));
     assert_eq!(
         upgraded.capability_expansion,
@@ -242,13 +255,19 @@ fn a_sample_extension_installs_is_denied_until_granted_and_runs_through_core() {
         )
         .unwrap();
     assert_eq!(
-        rows.result.as_ref().unwrap()["rows"].as_array().unwrap().len(),
+        rows.result.as_ref().unwrap()["rows"]
+            .as_array()
+            .unwrap()
+            .len(),
         2,
         "bounded by max_rows"
     );
 
     // Downgrade is not an upgrade; rollback returns to v1.
-    let again = lab.s.ext_upgrade(lab.project.clone(), pack(&lab, &v1)).unwrap();
+    let again = lab
+        .s
+        .ext_upgrade(lab.project.clone(), pack(&lab, &v1))
+        .unwrap();
     assert_eq!(again.refusal, Some(ExtensionRefusal::NotAnUpgrade));
     let back = lab
         .s
@@ -270,7 +289,9 @@ fn a_sample_extension_installs_is_denied_until_granted_and_runs_through_core() {
     lab.s
         .ext_uninstall(lab.project.clone(), "org.example.peek".to_owned())
         .unwrap();
-    lab.s.ext_install(lab.project.clone(), pack(&lab, &v1)).unwrap();
+    lab.s
+        .ext_install(lab.project.clone(), pack(&lab, &v1))
+        .unwrap();
     let fresh = lab
         .s
         .ext_invoke(
@@ -302,7 +323,9 @@ fn untrusted_forged_or_incompatible_packs_are_refused() {
         Some(ExtensionRefusal::PublisherUnknown)
     );
     let key = lab.public.clone();
-    lab.s.ext_trust_publisher("example".to_owned(), key).unwrap();
+    lab.s
+        .ext_trust_publisher("example".to_owned(), key)
+        .unwrap();
 
     // Signed by someone else.
     let (other_secret, _) = generate_device_key();
@@ -364,8 +387,7 @@ fn untrusted_forged_or_incompatible_packs_are_refused() {
         Some(ExtensionRefusal::AlreadyInstalled)
     );
     assert!(matches!(
-        lab.s
-            .ext_trust_publisher("bad".to_owned(), "00".repeat(32)),
+        lab.s.ext_trust_publisher("bad".to_owned(), "00".repeat(32)),
         Err(AuthorityError::InvalidArgument { .. })
     ));
 }
@@ -386,7 +408,12 @@ fn revocation_quarantines_and_nothing_crosses_projects() {
         .unwrap();
 
     // A second Project: the first Project's snapshot is not its target.
-    let other = lab.s.project_create("other".to_owned(), None).unwrap().header.id;
+    let other = lab
+        .s
+        .project_create("other".to_owned(), None)
+        .unwrap()
+        .header
+        .id;
     lab.s.ext_install(other.clone(), p.clone()).unwrap();
     lab.s
         .ext_grant(

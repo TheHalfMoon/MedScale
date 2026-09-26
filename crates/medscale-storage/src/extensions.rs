@@ -117,7 +117,9 @@ fn check(column: &str, body: &str, what: &str) -> Result<(), MetaError> {
     if column == body {
         Ok(())
     } else {
-        Err(corrupt(format!("{what} row columns disagree with its body")))
+        Err(corrupt(format!(
+            "{what} row columns disagree with its body"
+        )))
     }
 }
 
@@ -213,7 +215,11 @@ fn decode_lifecycle(row: &rusqlite::Row<'_>) -> Result<ExtensionLifecycleReceipt
     let body: String = row.get(2)?;
     let v: ExtensionLifecycleReceipt = from_json(&body, "extension lifecycle receipt")?;
     check(&id, v.header.id.as_str(), "extension lifecycle receipt")?;
-    check(&project_id, v.project_id.as_str(), "extension lifecycle receipt")?;
+    check(
+        &project_id,
+        v.project_id.as_str(),
+        "extension lifecycle receipt",
+    )?;
     if v.refusal.is_some() == v.resulting_state.is_some() {
         return Err(corrupt(
             "a lifecycle receipt is refused or has a resulting state".to_owned(),
@@ -228,7 +234,11 @@ fn decode_runtime(row: &rusqlite::Row<'_>) -> Result<ExtensionRuntimeReceipt, Me
     let body: String = row.get(2)?;
     let v: ExtensionRuntimeReceipt = from_json(&body, "extension runtime receipt")?;
     check(&id, v.header.id.as_str(), "extension runtime receipt")?;
-    check(&project_id, v.project_id.as_str(), "extension runtime receipt")?;
+    check(
+        &project_id,
+        v.project_id.as_str(),
+        "extension runtime receipt",
+    )?;
     v.validate()
         .map_err(|e| corrupt(format!("extension runtime receipt: {e}")))?;
     Ok(v)
@@ -739,7 +749,9 @@ impl SqliteMetaStore {
                 if r.manifest.extension_id != i.extension_id
                     || r.manifest.publisher_id != i.publisher_id
                 {
-                    return Err(corrupt("install names another extension's release".to_owned()));
+                    return Err(corrupt(
+                        "install names another extension's release".to_owned(),
+                    ));
                 }
             }
             let revoked = publishers
@@ -754,9 +766,7 @@ impl SqliteMetaStore {
                     InstallState::Quarantined | InstallState::Uninstalled
                 )
             {
-                return Err(corrupt(
-                    "a revoked extension is not quarantined".to_owned(),
-                ));
+                return Err(corrupt("a revoked extension is not quarantined".to_owned()));
             }
             by_id.insert(i.header.id.as_str().to_owned(), i);
         }
@@ -840,7 +850,10 @@ impl SqliteMetaStore {
         restore_conflict_is_corrupt(Self::ext_insert_grant_on(self.conn(), g))
     }
 
-    pub fn restore_ext_lifecycle_row(&self, r: &ExtensionLifecycleReceipt) -> Result<(), MetaError> {
+    pub fn restore_ext_lifecycle_row(
+        &self,
+        r: &ExtensionLifecycleReceipt,
+    ) -> Result<(), MetaError> {
         restore_conflict_is_corrupt(Self::ext_insert_lifecycle_on(self.conn(), r))
     }
 

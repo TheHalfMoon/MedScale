@@ -111,7 +111,11 @@ fn install(revision: u64, state: InstallState) -> ExtensionInstallRecord {
     }
 }
 
-fn receipt(n: u32, i: &ExtensionInstallRecord, action: LifecycleAction) -> ExtensionLifecycleReceipt {
+fn receipt(
+    n: u32,
+    i: &ExtensionInstallRecord,
+    action: LifecycleAction,
+) -> ExtensionLifecycleReceipt {
     ExtensionLifecycleReceipt {
         header: h(&format!("extension-receipt-{n}")),
         project_id: id("proj-1"),
