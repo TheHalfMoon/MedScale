@@ -152,6 +152,17 @@ pub fn restore_vault(src: &Path, dest_vault_root: &Path) -> Result<(u64, u64), S
             sources += 1;
         }
     }
+    // Id sequences (backups written since the fix): restored last, so new
+    // ids never collide with restored rows. Older backups have none.
+    if let Some(value) = snapshot_value.get("id_sequences") {
+        let sequences: std::collections::BTreeMap<String, u64> =
+            serde_json::from_value(value.clone())
+                .map_err(|e| format!("tampered metadata snapshot: id_sequences: {e}"))?;
+        vault
+            .meta
+            .restore_id_sequences(&sequences)
+            .map_err(|e| e.to_string())?;
+    }
     let _ = FsBlobStore::open;
     let _ = SqliteMetaStore::open;
     Ok((sources, blobs))
