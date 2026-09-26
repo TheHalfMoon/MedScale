@@ -369,16 +369,18 @@ fn untrusted_forged_or_incompatible_packs_are_refused() {
     let mut future = m.clone();
     future.host_api_min = 2;
     future.host_api_max = 2;
+    let future_pack = pack(&lab, &future);
     assert_eq!(
-        refusal(&mut lab, pack(&lab, &future)),
+        refusal(&mut lab, future_pack),
         Some(ExtensionRefusal::ApiIncompatible)
     );
     // Another key claiming the trusted publisher id.
     let (_, other_public) = generate_device_key();
     let mut impostor = m.clone();
     impostor.publisher_key_hex = other_public;
+    let impostor_pack = pack(&lab, &impostor);
     assert_eq!(
-        refusal(&mut lab, pack(&lab, &impostor)),
+        refusal(&mut lab, impostor_pack),
         Some(ExtensionRefusal::PublisherKeyMismatch)
     );
     assert_eq!(refusal(&mut lab, good.clone()), None);
