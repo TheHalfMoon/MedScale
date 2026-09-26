@@ -16,11 +16,13 @@
 - [x] `medscale r ...` (human and JSON), tests.
 
 ## T086-05 — Qualification and closure
-- [ ] fmt, dependency direction, Clippy, workspace tests, cargo-deny (exact-head CI).
-- [ ] Deterministic exact-range scope record and security challenge.
-- [ ] Evidence files.
-- [ ] Exact-head CI on the final head; merge; post-main CI.
-- [ ] Closure PR; recompute the next unit.
+- [x] fmt, dependency direction, Clippy, workspace tests, cargo-deny (exact-head CI).
+- [x] Deterministic exact-range scope record and security challenge.
+- [x] Evidence files.
+- [x] Exact-head CI on the final head; merge; post-main CI.
+- [x] Closure PR; recompute the next unit.
 
-Items T086-01 to T086-04 are written; they are complete only once CI
-compiles and passes them (no local compile on this workstation).
+Reconciled 2026-09-26: final head `c8e8551` passed exact-head run
+`36241268247` (6/6); PR #152 merged as `16f2d1f`; post-main verification
+in `evidence/086-r-workspace/POST_MERGE_VERIFICATION.md`; closure in
+`CLOSURE.md`.

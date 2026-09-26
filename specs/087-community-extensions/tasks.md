@@ -1,7 +1,7 @@
 # Tasks — Spec 087 Community Extensions
 
 ## T087-00 — Live truth and promotion
-- [ ] Record base SHA (Spec 086 closure main), open PRs, CI state, schema version and sandbox state.
+- [x] Record base SHA (Spec 086 closure main), open PRs, CI state, schema version and sandbox state (`evidence/087-community-extensions/LIVE_TRUTH.md`).
 
 ## T087-01 — Contracts
 - [ ] `extensions.rs` manifest, pack, vocabularies, receipts; unit tests.

@@ -1,8 +1,8 @@
 # Spec 087 Promotion — Community Extensions (declarative foundation)
 
 **Status:** `PROMOTED_IMPLEMENTATION_AUTHORIZED`
-**Promotion date:** PROMOTION_DATE_PENDING
-**Canonical base:** BASE_SHA_PENDING (Spec 086 closure merge)
+**Promotion date:** 2026-09-26
+**Canonical base:** `742a93a76fdb581e1aeb6d253e630015d9c409e9` (Spec 086 closure PR #154 merge; exact-head run `36253473871` 6/6 on `5afada8`)
 **Target branch:** `spec/087-community-extensions`
 
 ## Authority
