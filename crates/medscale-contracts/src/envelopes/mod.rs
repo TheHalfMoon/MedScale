@@ -1671,6 +1671,9 @@ pub enum RequestBody {
     AdapterGet {
         adapter_id: OpaqueId,
     },
+    AdapterList {
+        project_id: OpaqueId,
+    },
     // Spec 091: federation.
     FederationAct {
         act: Box<crate::federation::FederationActRequest>,
@@ -2341,6 +2344,9 @@ pub enum ResponseBody {
     },
     Adapter {
         view: Box<crate::institutional::AdapterView>,
+    },
+    Adapters {
+        adapters: Vec<crate::institutional::InstitutionalAdapter>,
     },
     // Spec 091: federation.
     FederationActed {
