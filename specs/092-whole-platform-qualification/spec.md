@@ -1,8 +1,8 @@
 # Spec 092 — Whole-Platform Qualification
 
 **Status:** `PROMOTED_IMPLEMENTATION_AUTHORIZED`
-**Promotion date:** PROMOTION_DATE_PENDING
-**Canonical base:** BASE_SHA_PENDING (Spec 091 closure merge)
+**Promotion date:** 2026-09-27
+**Canonical base:** `bef016f009fdbe676c342a0b467a2166881c0349` (Spec 091 closure merge)
 **Target branch:** `spec/092-whole-platform-qualification`
 
 ## Authority
