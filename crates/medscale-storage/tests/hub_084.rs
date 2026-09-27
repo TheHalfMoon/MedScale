@@ -586,6 +586,7 @@ fn pre_084_v12_backup_restores_with_empty_hub_tables() {
                 && !k.starts_with("ext_")
                 && !k.starts_with("hud_")
                 && !k.starts_with("rp_")
+                && !k.starts_with("ia_")
         });
         o.insert("schema_version".to_owned(), serde_json::json!(12));
     });

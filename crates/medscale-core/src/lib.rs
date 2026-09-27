@@ -9,6 +9,7 @@ pub mod compute_supervisor;
 pub mod doctor;
 pub mod effects;
 pub mod hub_sync;
+pub mod institutional_transport;
 pub mod ipc;
 pub mod process;
 pub mod r_workspace_host;
