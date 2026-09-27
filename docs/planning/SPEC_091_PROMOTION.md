@@ -1,8 +1,8 @@
 # Spec 091 Promotion — Federation (bounded bundle exchange)
 
 **Status:** `PROMOTED_IMPLEMENTATION_AUTHORIZED`
-**Promotion date:** PROMOTION_DATE_PENDING
-**Canonical base:** BASE_SHA_PENDING (Spec 090 closure merge)
+**Promotion date:** 2026-09-27
+**Canonical base:** `ee7e1d5a77a39580b4314067e0557716cca93bfa` (Spec 090 closure PR #165 merge; exact-head run `36324093538` 6/6 on `88139e0`)
 **Target branch:** `spec/091-federation`
 
 ## Authority
