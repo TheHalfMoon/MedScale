@@ -3652,6 +3652,79 @@ impl CliSession {
     }
 
     // ---------------------------------------------------------------------
+    // Spec 089: Research Packs
+    // ---------------------------------------------------------------------
+
+    pub fn pack_act(
+        &mut self,
+        act: medscale_contracts::research_packs::PackActRequest,
+    ) -> Result<medscale_contracts::research_packs::PackActResult, AuthorityError> {
+        match self.dispatch(
+            Capability::PackAdmin,
+            RequestBody::PackAct { act: Box::new(act) },
+        )? {
+            ResponseBody::PackActed { result } => Ok(*result),
+            _ => Err(Self::unexpected("pack act result")),
+        }
+    }
+
+    pub fn pack_catalog(
+        &mut self,
+    ) -> Result<Vec<medscale_contracts::research_packs::ResearchPackManifest>, AuthorityError> {
+        match self.dispatch(Capability::PackRead, RequestBody::PackCatalog)? {
+            ResponseBody::PackCatalog { packs } => Ok(packs),
+            _ => Err(Self::unexpected("pack catalog")),
+        }
+    }
+
+    pub fn pack_install_get(
+        &mut self,
+        project_id: OpaqueId,
+        pack_id: String,
+    ) -> Result<medscale_contracts::research_packs::ResearchPackInstall, AuthorityError> {
+        match self.dispatch(
+            Capability::PackRead,
+            RequestBody::PackInstallGet {
+                project_id,
+                pack_id,
+            },
+        )? {
+            ResponseBody::PackInstall { install } => Ok(*install),
+            _ => Err(Self::unexpected("pack install")),
+        }
+    }
+
+    pub fn pack_artifact_get(
+        &mut self,
+        artifact_id: OpaqueId,
+    ) -> Result<medscale_contracts::research_packs::ResearchArtifact, AuthorityError> {
+        match self.dispatch(
+            Capability::PackRead,
+            RequestBody::PackArtifactGet { artifact_id },
+        )? {
+            ResponseBody::PackArtifact { artifact } => Ok(*artifact),
+            _ => Err(Self::unexpected("research artifact")),
+        }
+    }
+
+    pub fn pack_artifact_list(
+        &mut self,
+        project_id: OpaqueId,
+        pack_id: String,
+    ) -> Result<Vec<medscale_contracts::research_packs::ResearchArtifact>, AuthorityError> {
+        match self.dispatch(
+            Capability::PackRead,
+            RequestBody::PackArtifactList {
+                project_id,
+                pack_id,
+            },
+        )? {
+            ResponseBody::PackArtifacts { artifacts } => Ok(artifacts),
+            _ => Err(Self::unexpected("research artifacts")),
+        }
+    }
+
+    // ---------------------------------------------------------------------
     // Spec 088: AudioFlow Advanced huddles
     // ---------------------------------------------------------------------
 

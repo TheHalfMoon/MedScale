@@ -280,6 +280,9 @@ pub enum Capability {
     // Spec 088: AudioFlow Advanced huddles.
     HuddleAct,
     HuddleRead,
+    // Spec 089: Research Packs (declarative domain semantics).
+    PackAdmin,
+    PackRead,
 }
 
 impl Capability {
@@ -346,6 +349,7 @@ impl Capability {
                 | Self::RWorkspaceRead
                 | Self::ExtensionRead
                 | Self::HuddleRead
+                | Self::PackRead
         )
     }
 
@@ -524,6 +528,8 @@ impl Capability {
             Self::ExtensionRead,
             Self::HuddleAct,
             Self::HuddleRead,
+            Self::PackAdmin,
+            Self::PackRead,
         ]
     }
 }
@@ -1630,6 +1636,22 @@ pub enum RequestBody {
     HuddleList {
         project_id: OpaqueId,
     },
+    // Spec 089: Research Packs.
+    PackAct {
+        act: Box<crate::research_packs::PackActRequest>,
+    },
+    PackCatalog,
+    PackInstallGet {
+        project_id: OpaqueId,
+        pack_id: String,
+    },
+    PackArtifactGet {
+        artifact_id: OpaqueId,
+    },
+    PackArtifactList {
+        project_id: OpaqueId,
+        pack_id: String,
+    },
 }
 
 impl RequestBody {
@@ -2272,6 +2294,22 @@ pub enum ResponseBody {
     },
     Huddles {
         huddles: Vec<crate::huddles::Huddle>,
+    },
+    // Spec 089: Research Packs.
+    PackActed {
+        result: Box<crate::research_packs::PackActResult>,
+    },
+    PackCatalog {
+        packs: Vec<crate::research_packs::ResearchPackManifest>,
+    },
+    PackInstall {
+        install: Box<crate::research_packs::ResearchPackInstall>,
+    },
+    PackArtifact {
+        artifact: Box<crate::research_packs::ResearchArtifact>,
+    },
+    PackArtifacts {
+        artifacts: Vec<crate::research_packs::ResearchArtifact>,
     },
 }
 

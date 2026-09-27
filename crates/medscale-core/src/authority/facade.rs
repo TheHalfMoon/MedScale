@@ -3480,6 +3480,62 @@ impl CoreFacade {
                 )?;
                 Ok(ResponseBody::RWorkspaceStatus { status })
             }
+            // Spec 089 Research Packs on the Spec 075 authority.
+            RequestBody::PackAct { act } => {
+                let result = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut d| d.pack_act(*act),
+                )?;
+                Ok(ResponseBody::PackActed {
+                    result: Box::new(result),
+                })
+            }
+            RequestBody::PackCatalog => Ok(ResponseBody::PackCatalog {
+                packs: super::data_sources::DataSources::pack_catalog(),
+            }),
+            RequestBody::PackInstallGet {
+                project_id,
+                pack_id,
+            } => {
+                let install = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |d| d.pack_install_get(&project_id, &pack_id),
+                )?;
+                Ok(ResponseBody::PackInstall {
+                    install: Box::new(install),
+                })
+            }
+            RequestBody::PackArtifactGet { artifact_id } => {
+                let artifact = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |d| d.artifact_get(&artifact_id),
+                )?;
+                Ok(ResponseBody::PackArtifact {
+                    artifact: Box::new(artifact),
+                })
+            }
+            RequestBody::PackArtifactList {
+                project_id,
+                pack_id,
+            } => {
+                let artifacts = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |d| d.artifact_list(&project_id, &pack_id),
+                )?;
+                Ok(ResponseBody::PackArtifacts { artifacts })
+            }
             // Spec 087 Community Extensions (declarative only) on the Spec
             // 075 authority: verification, lifecycle, grants, invocation.
             RequestBody::ExtensionTrustPublisher {
@@ -5506,6 +5562,14 @@ fn capability_matches(cap: &Capability, body: &RequestBody) -> bool {
             )
             | (Capability::ExtensionRead, RequestBody::ExtensionList { .. })
             | (Capability::HuddleAct, RequestBody::HuddleAct { .. })
+            | (Capability::PackAdmin, RequestBody::PackAct { .. })
+            | (
+                Capability::PackRead,
+                RequestBody::PackCatalog
+                    | RequestBody::PackInstallGet { .. }
+                    | RequestBody::PackArtifactGet { .. }
+                    | RequestBody::PackArtifactList { .. }
+            )
             | (
                 Capability::HuddleRead,
                 RequestBody::HuddleGet { .. } | RequestBody::HuddleList { .. }
