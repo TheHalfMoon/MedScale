@@ -65,6 +65,14 @@ Desktop accessibility.
   `whole_platform_092` (federation receipt after restore); fixed forward in
   #160 (`fix(storage): carry id sequences through backup and restore`) with
   the regression test `id_sequences_restore`.
+- **Nondeterministic leak check in `privacy_gate_079`**: the corpus
+  leak assertion matched short values (the postal code `10115`) inside
+  unrelated hex digests, ids or timestamps of persisted rows, so the test
+  failed by chance (macOS, Spec 092 exact-head run `36359133877`). No value
+  leaked. Fixed forward in this spec: a match now counts only when not
+  embedded in a longer alphanumeric run, with the unit test
+  `value_matching_ignores_digest_collisions_but_finds_leaks`. The failed
+  run is recorded, not re-run into a pass.
 
 Terminal values (this spec cannot set any of them to true):
 
