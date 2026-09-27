@@ -1,8 +1,8 @@
 # Spec 089 — Research Packs (Clinical Research first)
 
 **Status:** `PROMOTED_IMPLEMENTATION_AUTHORIZED`
-**Promotion date:** PROMOTION_DATE_PENDING
-**Canonical base:** BASE_SHA_PENDING (Spec 088 closure merge)
+**Promotion date:** 2026-09-27
+**Canonical base:** `1ac03622cb28046fc6386adab945578c82920f38` (Spec 088 closure merge)
 **Target branch:** `spec/089-research-packs`
 
 ## Authority
