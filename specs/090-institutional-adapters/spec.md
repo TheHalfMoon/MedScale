@@ -1,8 +1,8 @@
-# Spec 090 Promotion — Institutional Adapters (object storage path)
+# Spec 090 — Institutional Adapters (object storage path)
 
 **Status:** `PROMOTED_IMPLEMENTATION_AUTHORIZED`
 **Promotion date:** 2026-09-27
-**Canonical base:** `8df3e45f1ae402f04a9c000c13ad4af466159b3a` (Spec 089 closure PR #164 merge; exact-head run `36305030636` 6/6 on `e2c2ea2`)
+**Canonical base:** `8df3e45f1ae402f04a9c000c13ad4af466159b3a` (Spec 089 closure merge)
 **Target branch:** `spec/090-institutional-adapters`
 
 ## Authority
