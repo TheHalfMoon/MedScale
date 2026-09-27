@@ -3496,6 +3496,31 @@ impl CoreFacade {
                 )?;
                 Ok(ResponseBody::RWorkspaceStatus { status })
             }
+            // Spec 091 federation on the Spec 075 authority.
+            RequestBody::FederationAct { act } => {
+                let result = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |mut d| d.fed_act(*act),
+                )?;
+                Ok(ResponseBody::FederationActed {
+                    result: Box::new(result),
+                })
+            }
+            RequestBody::FederationGet => {
+                let view = self.ds(
+                    &req.vault_id,
+                    req.realm_id,
+                    req.authority_scope_id,
+                    req.session_id,
+                    |d| d.fed_view(),
+                )?;
+                Ok(ResponseBody::Federation {
+                    view: Box::new(view),
+                })
+            }
             // Spec 090 institutional adapters on the Spec 075 authority.
             RequestBody::AdapterAct { act } => {
                 let transport = self.institutional_transport.clone();
@@ -5620,6 +5645,11 @@ fn capability_matches(cap: &Capability, body: &RequestBody) -> bool {
                 Capability::AdapterRead,
                 RequestBody::AdapterGet { .. } | RequestBody::AdapterList { .. }
             )
+            | (
+                Capability::FederationAdmin,
+                RequestBody::FederationAct { .. }
+            )
+            | (Capability::FederationRead, RequestBody::FederationGet)
             | (
                 Capability::PackRead,
                 RequestBody::PackCatalog

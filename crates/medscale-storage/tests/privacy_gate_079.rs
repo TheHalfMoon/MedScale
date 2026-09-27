@@ -162,6 +162,10 @@ const LATER_VERSION_TABLES: &[&str] = &[
     "ia_adapters",
     "ia_intents",
     "ia_receipts",
+    "fed_identity",
+    "fed_peers",
+    "fed_imported",
+    "fed_receipts",
 ];
 
 /// Rewinds the file to exactly what a v7 build leaves on disk.
@@ -212,6 +216,7 @@ fn pre_079_view(meta: &SqliteMetaStore) -> serde_json::Value {
             && !key.starts_with("hud_")
             && !key.starts_with("rp_")
             && !key.starts_with("ia_")
+            && !key.starts_with("fed_")
     });
     snapshot
 }
@@ -759,6 +764,7 @@ fn pre_079_v7_backup_restores_with_empty_079_tables() {
                 && !key.starts_with("hud_")
                 && !key.starts_with("rp_")
                 && !key.starts_with("ia_")
+                && !key.starts_with("fed_")
         });
         object.insert("schema_version".to_owned(), serde_json::json!(7));
     });

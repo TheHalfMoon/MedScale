@@ -12,6 +12,7 @@ mod compute;
 mod data_sources;
 mod encrypted_vault;
 mod extensions;
+mod federation;
 mod gc;
 mod hub;
 mod huddles;
@@ -44,6 +45,7 @@ pub use data_sources::{
 };
 pub use encrypted_vault::{EncryptedVault, EncryptedVaultError, default_vault_root};
 pub use extensions::{EXTENSION_TABLES, InstallChange};
+pub use federation::{FEDERATION_TABLES, FederationChange, ImportedItemRow};
 pub use gc::{GcStats, run_gc};
 pub use hub::{MirrorRow, SeqClaim, event_claims_seq};
 pub use huddles::{HUDDLE_TABLES, HuddleChange};
@@ -63,7 +65,7 @@ pub use sqlite_meta::{AuthorityObjectRow, MetaError, SourceMeta, SqliteMetaStore
 pub use vault::{SyntheticVault, VaultError};
 pub use writer_lock::{WriterLock, WriterLockError};
 
-/// Top metadata schema version written by this build (Spec 090: v19). Tests of
+/// Top metadata schema version written by this build (Spec 091: v20). Tests of
 /// earlier specs assert against this constant so a later additive migration
 /// does not require editing them.
-pub const CURRENT_META_SCHEMA_VERSION: u32 = 19;
+pub const CURRENT_META_SCHEMA_VERSION: u32 = 20;

@@ -12,6 +12,7 @@ pub mod documents;
 pub mod envelopes;
 pub mod evidence;
 pub mod extensions;
+pub mod federation;
 pub mod ffi_policy;
 pub mod fhir;
 pub mod fixture_ui;

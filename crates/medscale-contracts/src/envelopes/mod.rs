@@ -286,6 +286,9 @@ pub enum Capability {
     // Spec 090: institutional adapters (explicit, optional external writes).
     AdapterAdmin,
     AdapterRead,
+    // Spec 091: federation (signed bundles between trusted institutions).
+    FederationAdmin,
+    FederationRead,
 }
 
 impl Capability {
@@ -354,6 +357,7 @@ impl Capability {
                 | Self::HuddleRead
                 | Self::PackRead
                 | Self::AdapterRead
+                | Self::FederationRead
         )
     }
 
@@ -536,6 +540,8 @@ impl Capability {
             Self::PackRead,
             Self::AdapterAdmin,
             Self::AdapterRead,
+            Self::FederationAdmin,
+            Self::FederationRead,
         ]
     }
 }
@@ -1668,6 +1674,11 @@ pub enum RequestBody {
     AdapterList {
         project_id: OpaqueId,
     },
+    // Spec 091: federation.
+    FederationAct {
+        act: Box<crate::federation::FederationActRequest>,
+    },
+    FederationGet,
 }
 
 impl RequestBody {
@@ -2336,6 +2347,13 @@ pub enum ResponseBody {
     },
     Adapters {
         adapters: Vec<crate::institutional::InstitutionalAdapter>,
+    },
+    // Spec 091: federation.
+    FederationActed {
+        result: Box<crate::federation::FederationActResult>,
+    },
+    Federation {
+        view: Box<crate::federation::FederationView>,
     },
 }
 

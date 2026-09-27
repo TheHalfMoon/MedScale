@@ -13,6 +13,7 @@ mod document_ops;
 mod durable;
 mod extensions;
 mod facade;
+mod federation;
 mod handles;
 mod hub;
 mod huddles;

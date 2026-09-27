@@ -21,6 +21,7 @@ mod collaboration;
 mod compute;
 mod data_source;
 mod extensions;
+mod federation;
 mod hub;
 mod huddles;
 mod institutional;
@@ -228,6 +229,12 @@ enum Commands {
     Adapter {
         #[command(subcommand)]
         action: Box<institutional::AdapterCmd>,
+    },
+    /// Federation (Spec 091; signed bundles between explicitly trusted
+    /// institutions, moved out of band; raw PHI never federates).
+    Federation {
+        #[command(subcommand)]
+        action: Box<federation::FederationCmd>,
     },
     /// MedScale Hub foundation (Spec 084; local-socket IPC only, no network).
     Hub {
@@ -1272,6 +1279,7 @@ fn run() -> Result<()> {
         Commands::Huddle { action } => huddles::run_huddle(*action),
         Commands::Pack { action } => research_packs::run_pack(*action),
         Commands::Adapter { action } => institutional::run_adapter(*action),
+        Commands::Federation { action } => federation::run_federation(*action),
         Commands::DataSource { action } => data_source::run_data_source(*action),
         Commands::Snapshot { action } => data_source::run_snapshot(*action),
         Commands::DataView { action } => data_source::run_data_view(*action),
