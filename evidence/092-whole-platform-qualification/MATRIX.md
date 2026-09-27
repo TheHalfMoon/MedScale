@@ -48,7 +48,7 @@ Desktop accessibility.
 | 25 | Federation | PARTIAL | Two-institution synthetic exchange proven; no federated analysis; identity secret not recoverable from backup (by design) |
 | 26 | Performance budgets on qualified hardware | EXTERNAL | `QUALIFIED_RELEASE_PERFORMANCE_HARDWARE`; hosted CI perf job is a feasibility signal only |
 | 27 | Accessibility (rendered UI, assistive technology) | EXTERNAL | `FINAL_V0_UI_ACCESSIBILITY_QUALIFICATION` |
-| 28 | CLI / Desktop parity for Research OS planes | MISSING | Specs 085-091 ship CLI surfaces only; no Desktop surfaces for Compute, R Workspace, Extensions, Huddles, Packs, Adapters, Federation |
+| 28 | CLI / Desktop parity for Research OS planes | PARTIAL (after Spec 093) | Was `MISSING` at the Spec 092 closure. Spec 093 adds a read-only Desktop Research OS route over all eight planes through Core with explicit empty/unavailable states; Desktop actions for these planes remain CLI-only |
 | 29 | Supply chain (cargo-deny, SBOM, dependency policy) | PROVEN | `cargo-deny` and supply-chain jobs green on every exact head; no dependency added in 085-091 |
 | 30 | Package integrity (portable packages, checksums) | PROVEN | Portable package qualification step green in CI (058) |
 | 31 | Signed packages / notarization | EXTERNAL | `DESKTOP_RELEASE_SIGNING_PROVENANCE`, `MACOS_SIGNED_PRODUCT_QUALIFICATION` |
