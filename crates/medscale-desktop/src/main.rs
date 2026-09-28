@@ -26,6 +26,7 @@ mod population_insights;
 mod privacy_workspace;
 mod product_intelligence;
 mod project_workspace;
+mod research_os_workspace;
 mod utility_surfaces;
 mod workflow_studio;
 
@@ -543,6 +544,35 @@ fn open_model_fleet(ui: &AppWindow, session: &Rc<RefCell<CliSession>>, fleet_id:
             ui.set_fleet_status(model_fleet_workspace::status_message(&err).into());
         }
     }
+}
+
+fn refresh_research_os(ui: &AppWindow, session: &Rc<RefCell<CliSession>>) {
+    let project_id = ui.get_project_active_id().to_string();
+    if project_id.is_empty() {
+        ui.set_research_os_status("Open a project to see Research OS planes".into());
+        ui.set_research_os_rows(ModelRc::new(VecModel::from(Vec::new())));
+        return;
+    }
+    let rows = research_os_workspace::rows(&mut session.borrow_mut(), &project_id);
+    let unavailable = rows.iter().filter(|r| r.state == "unavailable").count();
+    ui.set_research_os_status(
+        format!(
+            "{} planes · {} row{} · {} unavailable · read-only, Core-backed",
+            research_os_workspace::PLANES.len(),
+            rows.len(),
+            if rows.len() == 1 { "" } else { "s" },
+            unavailable
+        )
+        .into(),
+    );
+    ui.set_research_os_rows(ModelRc::new(VecModel::from_iter(rows.iter().map(|row| {
+        ResearchOsRowItem {
+            plane: row.plane.clone().into(),
+            id: row.id.clone().into(),
+            state: row.state.clone().into(),
+            detail: row.detail.clone().into(),
+        }
+    }))));
 }
 
 fn refresh_analytics(ui: &AppWindow, session: &Rc<RefCell<CliSession>>) {
@@ -1795,6 +1825,15 @@ fn main() -> ExitCode {
             } else {
                 ui.set_analytics_status("Analytics unavailable: no Core session".into());
             }
+            return;
+        }
+        // Spec 093 Research OS operations (read-only; Core-backed).
+        if action == "research-os-refresh" {
+            let Some(session) = &project_session_for_actions else {
+                ui.set_research_os_status("Research OS unavailable: no Core session".into());
+                return;
+            };
+            refresh_research_os(&ui, session);
             return;
         }
         if action == "analytics-run" {
