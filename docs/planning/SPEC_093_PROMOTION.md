@@ -1,8 +1,8 @@
 # Spec 093 Promotion — Research OS Desktop parity (read-only slice)
 
 **Status:** `PROMOTED_IMPLEMENTATION_AUTHORIZED`
-**Promotion date:** PROMOTION_DATE_PENDING
-**Canonical base:** BASE_SHA_PENDING (Spec 092 closure merge)
+**Promotion date:** 2026-09-28
+**Canonical base:** `41d2a9aad17d220ffa7798b84794913dbd4cb099` (Spec 092 closure PR #168 merge; exact-head run `36375620139` 6/6 on `3ae32d4`)
 **Target branch:** `spec/093-desktop-parity`
 
 ## Authority
