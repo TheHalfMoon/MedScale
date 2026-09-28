@@ -611,10 +611,34 @@ fn corpus_transforms_write_new_artifacts_and_bind_receipts_without_leaking_value
     for value in &all_values {
         let as_json = serde_json::to_string(value).unwrap();
         assert!(
-            !rows.contains(as_json.trim_matches('"')),
+            !contains_value(&rows, as_json.trim_matches('"')),
             "{value:?} leaked into a Privacy Gate row"
         );
     }
+}
+
+/// Whether `value` occurs in `text` other than inside a longer alphanumeric
+/// run. Short corpus values (a five-digit postal code) otherwise match by
+/// chance inside hex digests, ids and timestamps, which made this check
+/// fail nondeterministically (found by the Spec 092 campaign CI).
+fn contains_value(text: &str, value: &str) -> bool {
+    text.match_indices(value).any(|(at, _)| {
+        let before = text[..at].chars().next_back();
+        let after = text[at + value.len()..].chars().next();
+        !before.is_some_and(char::is_alphanumeric) && !after.is_some_and(char::is_alphanumeric)
+    })
+}
+
+#[test]
+fn value_matching_ignores_digest_collisions_but_finds_leaks() {
+    assert!(!contains_value("\"digest\":\"ab10115cd\"", "10115"));
+    assert!(!contains_value("\"at_ms\":1790101150000", "10115"));
+    assert!(contains_value(
+        "\"text\":\"Hauptstrasse 5, 10115 Berlin\"",
+        "10115"
+    ));
+    assert!(contains_value("\"zip\":\"10115\"", "10115"));
+    assert!(contains_value("Lukas Schneider", "Lukas Schneider"));
 }
 
 #[test]
