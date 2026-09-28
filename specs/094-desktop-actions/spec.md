@@ -1,8 +1,8 @@
 # Spec 094 — Research OS Desktop row actions (reversible slice)
 
 **Status:** `PROMOTED_IMPLEMENTATION_AUTHORIZED`
-**Promotion date:** PROMOTION_DATE_PENDING
-**Canonical base:** BASE_SHA_PENDING (Spec 093 closure merge)
+**Promotion date:** 2026-09-28
+**Canonical base:** `4dfc8ada9d88df4fc818cc49b25f3f6ec278b1b2` (Spec 093 closure merge)
 **Target branch:** `spec/094-desktop-actions`
 
 ## Authority
