@@ -571,6 +571,7 @@ fn refresh_research_os(ui: &AppWindow, session: &Rc<RefCell<CliSession>>) {
             id: row.id.clone().into(),
             state: row.state.clone().into(),
             detail: row.detail.clone().into(),
+            action: row.action.clone().into(),
         }
     }))));
 }
@@ -1827,7 +1828,37 @@ fn main() -> ExitCode {
             }
             return;
         }
-        // Spec 093 Research OS operations (read-only; Core-backed).
+        // Spec 094 Research OS row actions (reversible; Core-backed).
+        if let Some(rest) = action.strip_prefix("research-os-act|") {
+            let Some(session) = &project_session_for_actions else {
+                ui.set_research_os_status("Research OS unavailable: no Core session".into());
+                return;
+            };
+            let mut parts = rest.splitn(3, '|');
+            let (Some(plane), Some(verb), Some(id)) = (parts.next(), parts.next(), parts.next())
+            else {
+                ui.set_research_os_status("Research OS action not understood; nothing changed".into());
+                return;
+            };
+            let project_id = ui.get_project_active_id().to_string();
+            let outcome = research_os_workspace::act(
+                &mut session.borrow_mut(),
+                &project_id,
+                plane,
+                id,
+                verb,
+            );
+            refresh_research_os(&ui, session);
+            ui.set_research_os_status(
+                match outcome {
+                    Ok(state) => format!("{plane} {id}: {verb} done, now {state} (receipt recorded by Core)"),
+                    Err(reason) => format!("{plane} {id}: {verb} not done: {reason}"),
+                }
+                .into(),
+            );
+            return;
+        }
+        // Spec 093 Research OS operations (Core-backed).
         if action == "research-os-refresh" {
             let Some(session) = &project_session_for_actions else {
                 ui.set_research_os_status("Research OS unavailable: no Core session".into());
