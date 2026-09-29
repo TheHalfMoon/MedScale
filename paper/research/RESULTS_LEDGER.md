@@ -104,3 +104,45 @@ C0 is not a new paper-only experiment. It is canonical integrated evidence at th
 - The canonical closure keeps `PLATFORM_QUALIFIED=false`, `CLINICAL_VALIDATION_STATUS=NOT_PERFORMED`, and `REGULATORY_STATUS=NOT_PERFORMED`.
 
 C0 supports an implemented recovery/verification claim at the frozen snapshot but is not converted into a clinical, regulatory, or release-readiness claim.
+
+## Qualifying run Q2 — C1 repeated fresh-vault recovery
+
+- Experimental revision / exact checkout: `e1cf8935f3920c95cf7229221619fbfb24fd0fa4`
+- Scientific base: `1e2b7d94e970256b38bda15fa91f62bc397e825a`
+- Workflow: `paper-evaluation`
+- Run: `36645800815`
+- Overall result: `SUCCESS`
+- Preregistered protocol: `paper/research/C1_PROTOCOL.md`
+- Hosted runners: Linux X64, macOS ARM64, Windows X64.
+- GitHub event SHA recorded in all three manifests: `a9adcd50c48f3d686c75766a7d581bfcde5afe29`; the experimental revision is the explicit checkout SHA above, not the synthetic event revision.
+
+### C1 primary endpoint
+
+The production Spec 092 recovery path `every_plane_survives_backup_restore_and_restart_through_core` was invoked in three separate Cargo test processes per hosted operating system. Each invocation exercises the integrated synthetic vault, backup, restoration into a fresh directory, consistency verification, Core reopen/restart, and post-restart assertions.
+
+| OS | Repeat 1 | Repeat 2 | Repeat 3 | Result |
+|---|---:|---:|---:|---:|
+| Linux | PASS | PASS | PASS | 3/3 |
+| macOS | PASS | PASS | PASS | 3/3 |
+| Windows | PASS | PASS | PASS | 3/3 |
+| **Total** |  |  |  | **9/9 PASS** |
+
+The A0, A1, and B0 steps also completed successfully in Q2, but Q2's preregistered new endpoint is the nine C1 recovery repetitions; Q1 remains the primary evidence record for the 19-case A/B campaign.
+
+### Retained artifact identity
+
+| OS | Artifact ID | GitHub artifact SHA-256 | Runtime evidence |
+|---|---:|---|---|
+| Linux | `11068433415` | `402bcba68d6d3a54190e14f86a62f82bd1068d4cfbb6d02e9b80371d08c5e4dd` | checkout `e1cf8935...`; rustc/cargo 1.97.1; Python 3.12.3 |
+| macOS | `11067938615` | `553d72f82e7c4a8c6eecc40a7f639719e63b943319a5aa23172c5d5aff3503ac` | checkout `e1cf8935...`; rustc/cargo 1.97.1; Python 3.14.7 |
+| Windows | `11068558567` | `c68c69dd98522306faba2e590c239b0447da6b98c802e296adaa292c37baf7bf` | checkout `e1cf8935...`; rustc/cargo 1.97.1; Python 3.12.10 |
+
+C1 raw-log SHA-256 checksums:
+
+- Linux: R1 `cad0eb8693cd84ec15446d9be412e2266e7a43017c94776def4e26a80fa49ea3`; R2 `1abc77fa53fe02ab7890d24a51b03ba862e2628aa05314a7797baa04a02aec17`; R3 `a140452d10c7af367679785d05fc36c9e7f8b81181c287925303ad0217df3524`.
+- macOS: R1 `c4296680dab1bc7d7ba27213773060021e2494a35789de00f4427599192e9815`; R2 `6285587d782af8f3770bfe19e00c29aeb2dc3ec0d19a27af7d6c94a830f5b4a1`; R3 `2a26326e77d89c4f0bc40af0e9691aa7077ee762555cec745bb88f1a610160ef`.
+- Windows: R1 `27319cf2139a8449c5e77c4856c3194b9c55d65d89bb4463a55d75cf8b416ebd`; R2 `dc9b4722bd602fb7a6c8c61db9c5141002363d806bd5c60b8e94bfa803a48cec`; R3 `a5bd91ee8d36cef79f9630f2e70941429442606a8dfe412c3a355eec78eae8c9`.
+
+### Interpretation boundary
+
+Q2 supports the bounded statement preregistered before result inspection: the specified integrated synthetic backup/restore/restart path satisfied its production assertions in three separate process-level repetitions on each of the three hosted operating systems at exact revision `e1cf8935...`. It does **not** establish durability under arbitrary crashes or storage corruption, production disaster-recovery fitness, universal determinism, clinical safety or validity, regulatory compliance, real-PHI readiness, platform qualification, or release readiness.
