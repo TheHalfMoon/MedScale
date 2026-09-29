@@ -37,13 +37,14 @@ No donor/source becomes a MedScale authority plane.
 | R IDE | RStudio Desktop, Positron | `EXTERNAL_TOOL` | launch staged workspace path only |
 | Institutional R | Posit Workbench / Job Launcher | `DEFER` / optional adapter | 090 institutional adapter |
 | Multi-agent/model fleet | `amElnagdy/delegate-skills`, Munder Difflin, Golam | `REFERENCE / ADAPT` | `AgentLane`, `FleetRun`, capability grant |
+| Agent IDE/workbench orchestration | `stablyai/orca` | `COPY_SELECTIVE / ADAPT / REFERENCE` after exact-path qualification | `AgentRun`, `LaneWorkspace`, pane/session/runtime adapter, review surface; browser pieces only through `BrowseSession`/Network Broker |
 | Observable comparison | HarnessMind | `REFERENCE / ADAPT` | observable comparison evidence; unknown remains unknown |
 | Human-agent collaboration | `block/buzz` | `COPY_SELECTIVE / ADAPT` after qualification | Room, ProjectEvent, AgentIdentity, approval/activity |
 | Team/roles/tasks/approvals | Qdrat, Huly, Plane, Zulip | `REFERENCE / ADAPT` | membership/tasks/threads/activity |
 | Audio platform | `debpalash/VoiceStudio`, Himsat, Wispral | `COPY_SELECTIVE / ADAPT / WORKER` after qualification | AudioSession, Audio Pack, VoiceRuntimeRouter |
 | Cross-platform capture | Himsat donors: OpenWhispr, Meetily, OpenSuperWhisper | `REFERENCE` / selective adaptation | CaptureSource, CaptureHealth |
 | Speech runtimes | sherpa-onnx, whisper.cpp, NeMo-Speech.cpp and qualified models | `DEPEND / WORKER` | AudioRuntime / immutable Audio Pack |
-| Browser/tool execution | Ecra, Tarif, Playwright, Browser Use, TinyFish | `DEPEND / ADAPT` | ToolCapability, BrowseReceipt |
+| Browser/tool execution | Ecra, Tarif, Playwright, Browser Use, TinyFish, Orca browser-surface patterns | `DEPEND / ADAPT / COPY_SELECTIVE` by exact component | ToolCapability, BrowseRequest/Route/Receipt; Privacy Gate + Network Broker remain mandatory |
 | Sandboxed execution | OpenSandbox + current OS sandbox work | `REFERENCE / DEPEND / WORKER` | ComputeJob, filesystem/network capability policy |
 | Community plugin UX/policy | Obsidian developer/plugin/community-directory model | `REFERENCE` only | Extension SDK, Community Registry UX; not trust model |
 | WASM extension isolation | Wasmtime | `DEPEND` benchmark/admission candidate after Compute | Extension host runtime; no authority transfer |
@@ -147,6 +148,45 @@ MedScale adds:
 - Community Registry metadata separated from client authority.
 
 Wasmtime/Extism are implementation candidates, not architecture authorities. A promoted extension spec must benchmark/admit the runtime against the stable MedScale Extension Host API contract.
+
+## `stablyai/orca` — selective adoption target
+
+Planning pin: `de15227a1d321840ea35c6bb2d0cc01e3409e5f1` on 2026-09-17. Public repository declares MIT. The founder separately records permission to use the whole Orca source code.
+
+Orca is especially valuable for 077 MedAgent Workbench, 078 Model Fleet + Compare and 080 Governed Browse because it demonstrates a coherent agent IDE/orchestrator with parallel workspaces, terminal splits, file/editor/browser tabs, diff review, CLI automation and multi-agent execution.
+
+Study/adapt/selectively transfer:
+
+- agent adapter/process lifecycle patterns;
+- pane/split/session state and restoration;
+- terminal surfaces and process-status UX;
+- file/editor/markdown/browser tab coordination;
+- prompt/file/image handoff UX;
+- agent completion, unread and notification state;
+- parallel worktree/workspace orchestration;
+- per-lane cancellation and independent state;
+- side-by-side output/review surfaces;
+- AI diff annotation/review patterns;
+- browser tab/session and deterministic element interaction patterns;
+- CLI control of agent/workspace/browser/editor surfaces.
+
+Do **not** inherit by implication:
+
+- Electron as an authority layer;
+- git worktree as a security boundary;
+- ambient shell/filesystem/network access;
+- arbitrary CLI-agent trust;
+- cloud/mobile companion infrastructure;
+- remote SSH execution in the local MedAgent baseline;
+- Orca account/credential semantics;
+- telemetry/usage tracking defaults;
+- direct browser networking outside Privacy Gate + Network Broker;
+- automatic merge/apply of agent output;
+- Orca persistence or external task-system identity as canonical MedScale state.
+
+All transferred code remains behind MedScale contracts. A future implementation must repin an exact reviewed Orca commit and exact paths, audit third-party/transitive obligations, inspect IPC/process/browser/filesystem/network behavior, add MedScale security/behavior tests, and record an update/exit strategy.
+
+See `RESEARCH_OS_V2_ORCA_DONOR_ADDENDUM.md` for the full mapping and qualification packet.
 
 ## `block/buzz` — selective adoption target
 
