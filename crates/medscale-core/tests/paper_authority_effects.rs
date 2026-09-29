@@ -106,7 +106,7 @@ impl Harness {
 
 #[test]
 fn b0_proposal_creation_does_not_grant_promotion_authority() {
-    let mut h = Harness::with_grants(vec![Capability::CreateProposal]);
+    let mut h = Harness::with_grants(vec![Capability::CreateProposal, Capability::ListOutbox]);
     let proposal_id = match h
         .call(
             Capability::CreateProposal,
@@ -139,7 +139,10 @@ fn b0_proposal_creation_does_not_grant_promotion_authority() {
     let ResponseBody::Outbox { entries } = outbox else {
         panic!("expected outbox response");
     };
-    assert!(entries.is_empty(), "proposal creation must not create an external-action intent");
+    assert!(
+        entries.is_empty(),
+        "proposal creation must not create an external-action intent"
+    );
 }
 
 #[test]
@@ -198,7 +201,10 @@ fn b0_separately_authorized_promotion_preserves_proposal_and_reviewer_identity()
 
 #[test]
 fn b0_external_action_intent_starts_pending_and_binds_exact_payload_digest() {
-    let mut h = Harness::with_grants(vec![Capability::CreateExternalActionIntent]);
+    let mut h = Harness::with_grants(vec![
+        Capability::CreateExternalActionIntent,
+        Capability::ListOutbox,
+    ]);
     let (action_id, digest) = h.create_intent(b"paper-approved-payload");
 
     let outbox = h
