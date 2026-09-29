@@ -79,6 +79,27 @@ jobs:
           python paper/artifact/scripts/evidence_io.py run --label b0 --
           cargo test -p medscale-core --test paper_authority_effects --locked -- --nocapture
 
+      - name: Experiment C1.1 — fresh-vault recovery repeat 1
+        if: always()
+        run: >-
+          python paper/artifact/scripts/evidence_io.py run --label c1-r1 --
+          cargo test -p medscale-core --test whole_platform_092 --locked
+          every_plane_survives_backup_restore_and_restart_through_core -- --exact --nocapture
+
+      - name: Experiment C1.2 — fresh-vault recovery repeat 2
+        if: always()
+        run: >-
+          python paper/artifact/scripts/evidence_io.py run --label c1-r2 --
+          cargo test -p medscale-core --test whole_platform_092 --locked
+          every_plane_survives_backup_restore_and_restart_through_core -- --exact --nocapture
+
+      - name: Experiment C1.3 — fresh-vault recovery repeat 3
+        if: always()
+        run: >-
+          python paper/artifact/scripts/evidence_io.py run --label c1-r3 --
+          cargo test -p medscale-core --test whole_platform_092 --locked
+          every_plane_survives_backup_restore_and_restart_through_core -- --exact --nocapture
+
       - name: Hash raw evidence
         if: always()
         run: python paper/artifact/scripts/evidence_io.py hash
