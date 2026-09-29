@@ -18,12 +18,7 @@ const SCOPE_A: &str = "paper-scope-a";
 const SCOPE_B: &str = "paper-scope-b";
 const VAULT: &str = "paper-vault";
 
-fn request(
-    scope: &str,
-    id: u64,
-    capability: Capability,
-    body: RequestBody,
-) -> AuthorityRequest {
+fn request(scope: &str, id: u64, capability: Capability, body: RequestBody) -> AuthorityRequest {
     AuthorityRequest::new(
         OpaqueId::new(format!("paper-a1-req-{id}")),
         VaultId::new(VAULT),
