@@ -35,4 +35,72 @@ This ledger records successful **and failed** paper-evaluation attempts. A faile
 
 ### Claim boundary
 
-P0 may be cited in the research process as evidence that the evaluation harness itself was falsifiable and repaired. It must **not** be used as the manuscript's final cross-platform conformance result. Final result rows require a later exact-head run with retained raw artifacts and checksums.
+P0 may be cited in the research process as evidence that the evaluation harness itself was falsifiable and repaired. It must **not** be used as the manuscript's final cross-platform conformance result.
+
+## Attempt P1 — GitHub Actions run 36641570242
+
+- Intended exact research head: `411390ddf21265ebee820f490c6b76fcee490966`
+- Workflow: `paper-evaluation`
+- Overall result: `NON-QUALIFYING INFRASTRUCTURE ATTEMPT`
+- Ubuntu and macOS completed A0, A1, and B0 successfully.
+- Windows completed A0, but the Python evidence wrapper raised `UnicodeEncodeError` while echoing Cargo output containing Unicode diagnostic characters to a CP1252 console. The wrapper failure prevented Windows A1/B0 from becoming qualifying test results; it is not counted as a MedScale assertion failure.
+- General CI also identified a `rustfmt` delta in the A1 research harness.
+- Repairs: format the A1 harness and force deterministic UTF-8 output/decoding in `paper/artifact/scripts/evidence_io.py`.
+
+P1 is retained to document evaluation-infrastructure falsifiability and is not used as final cross-platform evidence.
+
+## Qualifying run Q1 — GitHub Actions run 36643514848
+
+- Experimental revision / exact checkout: `6a04266ae59bfb75f24d6634becd3bc4d32576c4`
+- Scientific base: `1e2b7d94e970256b38bda15fa91f62bc397e825a`
+- Workflow: `paper-evaluation`
+- Overall result: `SUCCESS`
+- Hosted runners: Linux X64, macOS ARM64, Windows X64.
+- The environment manifests intentionally record both `checkout_sha` and GitHub's pull-request event SHA. The qualifying revision is the `checkout_sha`; the event SHA (`b00cfce18ff6ed45c023ce1a80813b5c434ded2d`) is the synthetic PR merge trigger and is not treated as the experimental revision.
+
+### Cross-platform outcomes
+
+| Experiment | Unique cases | Linux | macOS | Windows | Total platform executions |
+|---|---:|---:|---:|---:|---:|
+| A0 contract provenance controls | 7 | 7/7 PASS | 7/7 PASS | 7/7 PASS | 21/21 PASS |
+| A1 Core provenance/authority binding | 6 | 6/6 PASS | 6/6 PASS | 6/6 PASS | 18/18 PASS |
+| B0 authority/effect conformance | 6 | 6/6 PASS | 6/6 PASS | 6/6 PASS | 18/18 PASS |
+| **Total** | **19** | **19/19 PASS** | **19/19 PASS** | **19/19 PASS** | **57/57 PASS** |
+
+The 57 figure is repeated platform execution of 19 unique cases, not 57 independent unique test designs.
+
+### What Q1 exercises
+
+- A0: source/content identity separation, digest mutation detection, conservative unknown evidence semantics, and invalid/nonexistent/retracted support controls.
+- A1: strict session requirement, capability denial, exact source/transform/version/output digest binding, cross-scope binding/read refusal, and nonexistent-source refusal.
+- B0: proposal-versus-promotion authority separation, reviewer identity retention, payload-bound external action intent, refusal of illegal effect transitions, reconciliation before retry from unknown external effect, and the explicit NPHIES external gate requirement.
+
+### Retained artifact identity
+
+| OS | Artifact ID | Artifact archive SHA-256 | Environment/runtime evidence |
+|---|---:|---|---|
+| Linux | `11067444321` | `8575a05792f1b4941d4fa65940da0fb02d38f6328fc0a7325400be2abfdc5112` | checkout `6a04266...`; rustc/cargo 1.97.1; Python 3.12.3 |
+| macOS | `11067474345` | `64db3cccf604e241632b2ff6894ab67200621466da7036ac1fef1ceb170a8e82` | checkout `6a04266...`; rustc/cargo 1.97.1; Python 3.14.7 |
+| Windows | `11068681168` | `2a2609a69b28bf1d41c115a043944129da11354b668e8bf80060caafda153c04` | checkout `6a04266...`; rustc/cargo 1.97.1; Python 3.12.10 |
+
+Raw-log checksums retained inside each artifact:
+
+- Linux: A0 `4ef88bded708ba3d4396d0e9d90d013d1133d1d7e8d738c39d64d70b9939e414`; A1 `6cec8dad427b7f4075f00652e24bf7df86920a16223759a2a9b776535a525204`; B0 `2939d89aeab84e66cfb3e67232493d3f71b20516350610a430c890ec2ffe1e3a`.
+- macOS: A0 `b54ae3694a97583d625227678e6b25bf6470ea5fc821c1dd235fdb3a9527a7d0`; A1 `944a21dfa3d44890684b6e2fe1fcb8f8adb01f5b0daf285e13aba1904516f184`; B0 `b666c3b8b5eb38bf36d3ffb46a17ac7f7ba1dd48c9b54e41611ff3d50555ce33`.
+- Windows: A0 `620cce25769d8df5bc3872bd8505df43a89c5f87c248e31a760194eb1bcfbef0`; A1 `b4222eab315a04680b69dfb3dddbbf10414d15cced3ef751649f5783777ecca2`; B0 `33fc67a7d0ba03c994bcab393b1f887cd91c5d979d7fee41384ac080d7b572c5`.
+
+### Interpretation boundary
+
+Q1 establishes cross-platform conformance for the 19 specified synthetic cases at experimental revision `6a04266...`. It does **not** establish universal security, clinical safety, clinical validity, regulatory fitness, production-PHI readiness, platform qualification, or the empirical probability of attacks or clinical failures. The mutation/refusal cases are a deliberately constructed conformance suite.
+
+## Pre-existing integrated recovery evidence C0 — Spec 092
+
+C0 is not a new paper-only experiment. It is canonical integrated evidence at the frozen scientific base and is treated separately from Q1.
+
+- Spec 092 classified 35 evidence areas using conservative evidence labels.
+- Its integrated `whole_platform_092` path exercised one synthetic vault across qualified planes, then performed backup, restore into a fresh directory, consistency verification, restart/reopen, and post-restart semantic checks.
+- Exact-head CI run `36360503149` completed 6/6 required jobs; recorded test counts were Ubuntu `967/0/1`, Windows `963/0/1`, and macOS `965/0/1` (passed/failed/ignored as recorded in closure evidence).
+- Qualification discovered two defects before closure: restore ID-sequence loss causing post-restore collision, and a nondeterministic privacy-matcher false positive. Both were repaired with regression evidence; failed runs were retained.
+- The canonical closure keeps `PLATFORM_QUALIFIED=false`, `CLINICAL_VALIDATION_STATUS=NOT_PERFORMED`, and `REGULATORY_STATUS=NOT_PERFORMED`.
+
+C0 supports an implemented recovery/verification claim at the frozen snapshot but is not converted into a clinical, regulatory, or release-readiness claim.
