@@ -1914,7 +1914,7 @@ export component AppWindow inherits Window {
                         }
 
                         if root.active-route == "About": Rectangle {
-                            height: 360px;
+                            height: 270px;
                             border-radius: Theme.radius-panel;
                             border-width: 1px;
                             border-color: Theme.border;
@@ -1926,15 +1926,29 @@ export component AppWindow inherits Window {
                                 spacing: 28px;
                                 VerticalLayout {
                                     width: 360px;
-                                    spacing: 8px;
+                                    alignment: start;
+                                    spacing: 10px;
                                     Image { source: Theme.dark ? @image-url("assets/medscale-mark-white.svg") : @image-url("assets/medscale-mark.svg"); width: 72px; height: 39px; image-fit: contain; }
                                     Text { text: "MedScale"; color: Theme.ink; font-size: 26px; font-weight: 700; }
                                     Text { text: "Local-first healthcare intelligence"; color: Theme.ink-subtle; font-size: 13px; }
                                     Text { text: "Version " + root.product-version; color: Theme.ink-quiet; font-size: 11px; }
-                                    Text { text: "MedScale source is licensed under Apache-2.0. UI toolkit attribution is shown alongside."; color: Theme.ink-subtle; font-size: 11px; wrap: word-wrap; }
+                                    Text { width: 340px; text: "MedScale source is licensed under Apache-2.0. UI toolkit attribution is shown alongside."; color: Theme.ink-subtle; font-size: 11px; wrap: word-wrap; }
                                 }
                                 Rectangle { width: 1px; background: Theme.border; }
-                                AboutSlint { horizontal-stretch: 1; vertical-stretch: 1; }
+                                VerticalLayout {
+                                    horizontal-stretch: 1;
+                                    alignment: start;
+                                    spacing: 8px;
+                                    Text { text: "UI TOOLKIT"; color: Theme.ink-quiet; font-size: Theme.type-caption; letter-spacing: Theme.tracking-label; }
+                                    Rectangle {
+                                        width: 220px;
+                                        height: 120px;
+                                        border-radius: Theme.radius-control;
+                                        background: Theme.brand-white;
+                                        AboutSlint { width: 220px; height: 120px; }
+                                    }
+                                    Text { text: "Slint 1.16.1 · slint.dev"; color: Theme.ink-subtle; font-size: Theme.type-caption; }
+                                }
                             }
                         }
 
