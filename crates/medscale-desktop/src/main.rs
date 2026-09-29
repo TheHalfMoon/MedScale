@@ -1136,6 +1136,10 @@ fn main() -> ExitCode {
             None
         }
     };
+    if render.is_some() && project_session.is_none() {
+        eprintln!("native evidence capture requires an isolated synthetic Core vault");
+        return ExitCode::from(1);
+    }
 
     // Spec 061 keeps patient presentation read-only and routes consequential work to review surfaces.
     // Consequential operations are routed to their owning review surfaces; no action is committed here.

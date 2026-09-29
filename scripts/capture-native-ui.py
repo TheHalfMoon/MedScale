@@ -12,6 +12,14 @@ import uuid
 from PIL import Image
 
 
+def sha256_file(path):
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for block in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--executable", type=Path, required=True)
@@ -37,6 +45,19 @@ def main():
     manifest = json.loads((executable.parent.parent / "package-manifest.json").read_text(encoding="utf-8-sig"))
     if manifest["source"]["tree_sha"] != args.expected_tree:
         parser.error("portable binary source tree does not match candidate tree")
+    candidate_tree = subprocess.run(
+        ["git", "rev-parse", f"{args.candidate_head}^{{tree}}"], cwd=repo,
+        capture_output=True, text=True, timeout=10, check=True,
+    ).stdout.strip()
+    if candidate_tree != args.expected_tree:
+        parser.error("candidate head does not resolve to the portable source tree")
+    payload = [entry for entry in manifest["payload"]
+               if entry["path"] == f"bin/{executable.name}"]
+    if len(payload) != 1:
+        parser.error("portable manifest does not bind the selected executable")
+    binary_sha256 = sha256_file(executable)
+    if binary_sha256 != payload[0]["sha256"]:
+        parser.error("selected executable differs from the qualified package payload")
     raw = output / "raw"
     raw.mkdir(parents=True, exist_ok=True)
     name = f"{args.route.lower().replace(' ', '-')}-{args.theme}-{args.width}x{args.height}{'-compact' if args.compact else ''}"
@@ -60,11 +81,11 @@ def main():
     metadata = {
         "spec": "095-brand-foundation", "method": "Slint Window::take_snapshot of actual shown AppWindow",
         "candidate_head": args.candidate_head, "binary_source_sha": manifest["source"]["git_sha"],
-        "tree_sha": args.expected_tree, "binary_sha256": hashlib.sha256(executable.read_bytes()).hexdigest(),
+        "tree_sha": args.expected_tree, "binary_sha256": binary_sha256,
         "platform": platform.platform(), "route": args.route, "theme": args.theme,
         "logical_width": args.width, "logical_height": args.height, "pixel_width": args.width,
         "pixel_height": args.height, "scale_factor": 1, "compact": args.compact,
-        "fixture": "existing synthetic projections and separate synthetic-vault-095",
+        "fixture": "existing synthetic projections and fresh nonsynced temporary synthetic vault",
         "png_sha256": hashlib.sha256(png.read_bytes()).hexdigest(),
         "stdout": completed.stdout.strip(), "stderr": completed.stderr.strip(),
         "visual_inspection_complete": False, "wcag_qualified": False, "release_ready": False,

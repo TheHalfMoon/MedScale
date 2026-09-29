@@ -21,7 +21,7 @@ fn read(relative: &str) -> String {
 
 fn attribute<'a>(element: &'a str, name: &str) -> &'a str {
     element
-        .split_once(&format!("{name}=\""))
+        .split_once(&format!(" {name}=\""))
         .unwrap_or_else(|| panic!("missing {name} attribute"))
         .1
         .split_once('"')
@@ -31,8 +31,19 @@ fn attribute<'a>(element: &'a str, name: &str) -> &'a str {
 
 fn paired_path(svg: &str) -> &str {
     let id = "id=\"medscale-paired-m\"";
-    assert_eq!(svg.matches(id).count(), 1, "one approved paired mark");
-    let position = svg.find(id).expect("paired mark id");
+    let position = if let Some(position) = svg.find(id) {
+        assert_eq!(svg.matches(id).count(), 1, "one approved paired mark");
+        position
+    } else {
+        // Outlined lockups embed the same mark in a scaled group, without an id.
+        let geometry_start = "d=\"M0 86.60254 L50 0";
+        assert_eq!(
+            svg.matches(geometry_start).count(),
+            1,
+            "one approved paired mark"
+        );
+        svg.find(geometry_start).expect("paired mark path")
+    };
     let start = svg[..position].rfind('<').expect("path start");
     let end = position + svg[position..].find('>').expect("path end") + 1;
     let path = &svg[start..end];
@@ -158,8 +169,8 @@ fn native_assets_and_lockup_inverses_reuse_the_same_approved_geometry() {
         let white = read(&format!("assets/brand/medscale-{layout}-white.svg"));
         assert_eq!(attribute(paired_path(&black), "d"), geometry);
         assert_eq!(attribute(paired_path(&white), "d"), geometry);
-        assert_eq!(attribute(paired_path(&black), "fill"), "#000000");
-        assert_eq!(attribute(paired_path(&white), "fill"), "#FFFFFF");
+        assert!(black.contains("<g fill=\"#000000\">"));
+        assert!(white.contains("<g fill=\"#FFFFFF\">"));
         assert!(
             !black.contains("<text"),
             "lockup must retain actual vector glyphs"

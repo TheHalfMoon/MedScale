@@ -3,6 +3,7 @@
 use std::fs::File;
 use std::io::{self, BufWriter, Write};
 use std::path::{Path, PathBuf};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 pub const ROUTES: [&str; 25] = [
     "Home",
@@ -139,12 +140,16 @@ impl RenderOptions {
         }))
     }
 
-    /// Never use the normal user's vault for screenshot qualification.
+    /// Never use the normal user's vault or a synced workspace for capture.
     pub fn synthetic_vault_root(&self) -> PathBuf {
-        self.output
-            .parent()
-            .expect("absolute file has a parent")
-            .join("synthetic-vault-095")
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("system time must follow Unix epoch")
+            .as_nanos();
+        std::env::temp_dir().join(format!(
+            "medscale-native-capture-095-{}-{nonce}",
+            std::process::id()
+        ))
     }
 }
 
@@ -223,6 +228,11 @@ mod tests {
             );
             assert_eq!(parsed.route, route);
             assert_ne!(parsed.synthetic_vault_root(), parsed.output);
+            assert!(
+                !parsed
+                    .synthetic_vault_root()
+                    .starts_with(parsed.output.parent().unwrap())
+            );
         }
     }
 
