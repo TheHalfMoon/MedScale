@@ -106,7 +106,8 @@ fn web_reference_is_explicitly_documentation_only() {
     assert!(readme.contains("NON_PRODUCTION_REFERENCE"));
     assert!(readme.contains("not a production Web application"));
     assert!(html.contains("NON_PRODUCTION_REFERENCE"));
-    assert!(html.contains("medscale-mark.svg"));
+    assert!(html.contains("medscale-mark-white.svg"));
+    assert!(html.contains("medscale-favicon.svg"));
     for forbidden in ["package.json", "vite.config", "next.config", "node_modules"] {
         assert!(
             !root

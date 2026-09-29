@@ -4,7 +4,7 @@ import { CommandCenter } from "command-center.slint";
 import { AboutSlint, ScrollView } from "std-widgets.slint";
 import { Theme } from "theme.slint";
 export { Theme } from "theme.slint";
-import { AdaptiveLineEdit, HonestyPanel, NavItem, QuickAction, RailAction, SearchField, SegmentTab, ToolbarAction, MetricCard, StatusPill } from "components.slint";
+import { AdaptiveLineEdit, HonestyPanel, NavItem, QuickAction, RailAction, SegmentTab, ToolbarAction, MetricCard, StatusPill } from "components.slint";
 
 export struct PatientTimelineItem {
     date: string,
@@ -649,12 +649,20 @@ export component AppWindow inherits Window {
                         padding-bottom: 10px;
                         spacing: 14px;
 
-                        SearchField {
+                        Rectangle {
                             horizontal-stretch: 1;
-                            placeholder: "Patients · sources · evidence · commands";
-                            accessible-name: "Global search";
-                            accepted(text) => { root.ui-action("search:" + text); }
+                            background: transparent;
+                            Text {
+                                text: "SYNTHETIC WORKSPACE";
+                                color: Theme.ink-quiet;
+                                font-family: Theme.font-ui;
+                                font-size: Theme.type-caption;
+                                letter-spacing: Theme.tracking-label;
+                                height: parent.height;
+                                vertical-alignment: center;
+                            }
                         }
+                        ToolbarAction { label: "Patients"; activated => { root.active-route = "Patients"; } }
 
                         Rectangle {
                             width: 156px;
