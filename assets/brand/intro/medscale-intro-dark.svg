@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" fill="none">
+  <defs>
+    <linearGradient id="spectrum" x1="250" y1="740" x2="1370" y2="160" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0B73FF"/><stop offset=".32" stop-color="#3D5BFF"/><stop offset=".55" stop-color="#6B4EFF"/><stop offset=".78" stop-color="#E12DEA"/><stop offset="1" stop-color="#FF2D78"/>
+    </linearGradient>
+    <radialGradient id="blueGlow" cx="0" cy="0" r="1" gradientTransform="translate(270 170) rotate(35) scale(560 420)" gradientUnits="userSpaceOnUse"><stop stop-color="#174BFF" stop-opacity=".55"/><stop offset="1" stop-color="#174BFF" stop-opacity="0"/></radialGradient>
+    <radialGradient id="pinkGlow" cx="0" cy="0" r="1" gradientTransform="translate(1370 660) rotate(210) scale(520 430)" gradientUnits="userSpaceOnUse"><stop stop-color="#FF2D78" stop-opacity=".42"/><stop offset="1" stop-color="#FF2D78" stop-opacity="0"/></radialGradient>
+  </defs>
+  <rect width="1600" height="900" fill="#070B16"/>
+  <rect width="1600" height="900" fill="url(#blueGlow)"/>
+  <rect width="1600" height="900" fill="url(#pinkGlow)"/>
+  <path d="M0 705C330 630 480 760 805 670C1110 586 1270 390 1600 338V900H0V705Z" fill="url(#spectrum)" opacity=".12"/>
+  <path d="M1040 760V472L1264 248H1418V430L1222 626V760H1040Z" fill="url(#spectrum)" opacity=".13"/>
+  <path d="M1228 760V472L1452 248H1600V458L1416 642V760H1228Z" fill="url(#spectrum)" opacity=".09"/>
+  <g transform="translate(602 298) scale(6.2)" fill="url(#spectrum)"><path d="M7 50V30L23 14H34V27L20 41V50H7Z"/><path d="M25 50V30L41 14H52V29L38 43V50H25Z"/><path d="M47 50V31H57V50H47Z"/></g>
+</svg>

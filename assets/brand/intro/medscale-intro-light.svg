@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" fill="none">
+  <defs>
+    <linearGradient id="spectrum" x1="160" y1="760" x2="1430" y2="120" gradientUnits="userSpaceOnUse"><stop stop-color="#0B73FF"/><stop offset=".35" stop-color="#5B52FF"/><stop offset=".68" stop-color="#C63BEF"/><stop offset="1" stop-color="#FF2D78"/></linearGradient>
+    <linearGradient id="wash" x1="0" y1="0" x2="1600" y2="900" gradientUnits="userSpaceOnUse"><stop stop-color="#EEF3FF"/><stop offset=".52" stop-color="#FFFFFF"/><stop offset="1" stop-color="#FFF0F8"/></linearGradient>
+  </defs>
+  <rect width="1600" height="900" fill="url(#wash)"/>
+  <path d="M0 702C358 548 567 760 868 650C1160 543 1320 310 1600 260V900H0V702Z" fill="url(#spectrum)" opacity=".12"/>
+  <path d="M1115 692V462L1294 283H1416V429L1259 586V692H1115Z" fill="url(#spectrum)" opacity=".09"/>
+  <g transform="translate(602 298) scale(6.2)" fill="url(#spectrum)"><path d="M7 50V30L23 14H34V27L20 41V50H7Z"/><path d="M25 50V30L41 14H52V29L38 43V50H25Z"/><path d="M47 50V31H57V50H47Z"/></g>
+</svg>

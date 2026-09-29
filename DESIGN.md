@@ -1,121 +1,113 @@
 # MedScale Design System
 
-**Canonical authority:** Spec 073 — Final UI Polish
+**Canonical authority:** Spec 093 — Brand Identity System V2
 
-Spec 073 supersedes the Spec 068 active visual identity while preserving Spec 068 as historical product-differentiation evidence. The approved identity is monochrome, light-first, evidence-native, and deliberately quiet. Impeccable remains a review discipline (`shape`, `critique`, `audit`, `distill`, `typeset`, `polish`, `harden`, `optimize`), not a runtime dependency.
+Spec 093 is the founder-approved visual successor to Spec 073. Spec 073 remains historical evidence for the prior identity and its product-safety work. Spec 093 changes visual identity, tokens, typography hierarchy, icon grammar, and presentation rules only; it does not alter clinical authority, privacy, model/runtime authority, network policy, release claims, or evidence semantics.
 
 ## 1. Brand
 
-### Approved mark
-The approved MedScale mark is a black circular field containing a soft-white rounded continuous `M`. Its signature recognition cue is the **MedScale Shelf**, a short measured baseline in the inner center of the letter before the steeper right return. The mark is monochrome. It is not a place for product-state color.
+The approved mark is the **ScaleFold M**: three measured folded geometric forms with repeated diagonal shoulders and a shorter final pillar. Its geometry is the trademark cue; do not add medical or AI clichés to explain it.
 
-Forbidden logo treatments include purple, gradients, medical crosses, ECG/heartbeat traces, shields, brains, sparkles, mascots, and literal octopus imagery. The founder-authorized Spec 073 signature geometry is fixed; it must not be redesigned inside routine product implementation work.
+The signature MedScale Spectrum runs from Azure through Cobalt/Iris/Violet to Magenta/Pink. Use it for the mark, app icon, intro/onboarding, and bounded focal brand moments.
 
-### Product color
-Brand identity is black, white, and gray. Product color communicates state or interaction:
-- **Mist Blue** — primary interaction, selection, and focus.
-- **Sage** — positive/qualified semantics.
-- **Amber** — warning/review semantics.
-- **Red** — danger/failure semantics.
+Brand gradient is identity, not product state. Success, warning, danger, provenance, runtime admission, and clinical/evidence status use independent semantic tokens plus explicit language.
 
-Color is never used as decoration or as the only carrier of meaning.
+Canonical detail:
+- `docs/brand/BRAND_IDENTITY_SYSTEM.md`
+- `docs/brand/LOGO_SPEC.md`
+- `assets/brand/tokens/medscale.tokens.json`
 
 ## 2. Theme
 
-Light mode is the primary/default design target. The application follows the operating-system color scheme through Slint where supported.
+Light and dark are equal first-class themes sharing one component grammar.
 
-Light surfaces use warm off-white canvas, quiet paper work surfaces, neutral ink, and subtle structural borders. Dark mode uses layered charcoal surfaces rather than pure black everywhere. The permanent icon rail and deliberate high-authority panels may use the black/charcoal brand range in either mode.
+Light uses cool near-white canvas, white work surfaces, midnight ink, blue-gray metadata, and restrained indigo interaction. Dark uses deep navy-black canvas, layered graphite/navy surfaces, soft white ink, and cool gray metadata.
 
-No gradients, neon glow, glassmorphism, purple-dashboard language, or decorative colored icon tiles.
+The permanent global rail may remain obsidian in both themes so the ScaleFold M has one stable home. Avoid neon-everywhere dark UI, glassmorphism, decorative glow, or white-page-with-random-gradient-card light UI.
 
 ## 3. Typography
 
-- **Instrument Sans** — native product UI and wordmark treatment.
-- **Source Serif 4** — selected long-form clinical/writing surfaces where reading rhythm benefits from serif text.
-- **Platform monospace** — CLI, commands, hashes, model IDs, evidence IDs, and other machine-readable identifiers.
+- **Instrument Sans** — product UI, navigation, headings, metrics, controls, and wordmark treatment.
+- **Source Serif 4** — selective evidence/editorial/long-form reading surfaces.
+- **Platform monospace** — CLI, commands, hashes, model IDs, evidence IDs, and exact machine-readable values.
 
-The native Desktop package imports the admitted Instrument Sans and Source Serif 4 assets from `assets/brand/fonts/`. Geist and Helvetica are not MedScale identity fonts.
+Do not add another display font for novelty. Distinctiveness comes from composition, weight, tracking, color discipline, and the ScaleFold M.
 
-Detailed rules are in `docs/brand/TYPOGRAPHY_SYSTEM.md`.
+## 4. Product shell
 
-## 4. Layout and navigation
+Desktop launch target remains 1440×900 with 1100×720 functional minimum unless a separately qualified change is required.
 
-Desktop launch target: 1440×900. Functional minimum remains 1100×720 unless a separately qualified change is required.
+The preferred shell is:
+1. narrow obsidian global rail;
+2. adaptive named-route sidebar;
+3. continuous primary workspace;
+4. optional inspector only when the active task benefits.
 
-The shell uses a dual-dock composition:
-1. a narrow black icon rail for stable product areas and global commands;
-2. a refined adaptive sidebar for named routes and local runtime posture;
-3. a continuous work canvas for the active clinical/operator task.
-
-Canonical routes remain: Home, Patients, Documents, Insights, Models, Evidence, Workflows, Tasks, Messages, Audit Trail, Exports, Integrations, Settings, About.
-
-Models and Evidence remain first-class Intelligence routes. Keyboard navigation, explicit focus, and `Cmd/Ctrl+K` command access remain first-class.
+Use split panes for genuine simultaneous inspection such as agent + artifact, model A + model B, source + evidence, or analysis + visualization. Do not create permanent side panels without task value.
 
 ## 5. Workspace grammar
 
-The work is the interface. Prefer whitespace, alignment, sections, rows, and separators over card grids.
+The work is the interface. Prefer hierarchy, whitespace, alignment, rows, tables, and separators before cards.
 
 Priority order:
-1. current context/work;
-2. source and evidence state;
-3. intelligence/model context;
+1. current project/task/context;
+2. source/evidence state;
+3. intelligence/model/runtime context;
 4. reviewable next action;
 5. governance detail on demand.
 
-Home is a clinical workspace, not a KPI dashboard. Patient and evidence surfaces are provenance-forward. AI output remains visibly inspectable and non-authoritative. No fake clinical metrics, fake patient authority, or unsupported AI claims.
-
 ## 6. Components and geometry
 
-Controls use restrained rounding; primary panels use approximately 10 px, compact controls approximately 7–8 px. A rounded boundary must encode an actual interaction or semantic grouping, not merely decoration.
+Canonical geometry comes from `assets/brand/tokens/medscale.tokens.json`:
+- compact radius: 8 px;
+- control radius: 10 px;
+- panel radius: 14 px;
+- large editorial surface radius: 22 px;
+- focus ring: 2 px.
 
-Shared primitives should encode behavior, accessibility, semantics, or reuse. Avoid wrapper components that only add another background/border.
+A rounded boundary must encode grouping or interaction. Pills are reserved for states, filters, and true capsule controls. Avoid card-within-card dashboards.
 
-Status chips are reserved for states that benefit from compact semantic labeling. Do not convert every piece of metadata into a pill.
+Reusable primitives own accessibility, focus, interaction state, spacing, and theme behavior. Pages compose primitives and product patterns rather than inventing a local design system.
 
 ## 7. Icon grammar
 
-MedScale uses a small original monochrome navigation icon family under `crates/medscale-desktop/ui/assets/icons/`.
+MedScale uses an original outline family on a 24×24 grid with rounded joins/caps and approximately 1.7–1.8 px optical stroke. Icons should have distinguishable silhouettes and remain legible at 16–20 px.
 
-Icons use consistent line weight, rounded joins/caps, a 24×24 view box, and no colored tile container. They support navigation recognition; text labels remain the semantic authority in the secondary dock and accessibility tree.
+Do not wrap every icon in a colored tile. Active state comes primarily from the surrounding control state. Marketing/onboarding may use a soft tint or one spectrum accent when it improves grouping.
 
 ## 8. Copy and truth
 
 Preferred language is precise, calm, evidence-linked, and explicit about uncertainty. `Evidence first. Action second.` remains an operating line, not a readiness claim.
 
-Never convert feature presence into release readiness, WCAG conformance, clinical authority, production-model authority, or comparative superiority. MESC is a separate project and is not a MedScale release/completion condition.
+Never convert feature presence into clinical authority, production readiness, WCAG conformance, model superiority, regulatory status, or release readiness. Planned Research OS V2 surfaces must be clearly treated as planned/reference until implemented and qualified.
 
-## 9. CLI
+## 9. Motion
 
-The CLI shares the MedScale voice without becoming decorative terminal UI. Human help/output may use restrained headings and spacing. Machine JSON contracts, field names, exit codes, stdout/stderr roles, and script-safe behavior remain stable.
+Motion explains state transitions and preserves spatial understanding. No perpetual decorative animation. Respect reduced-motion preferences. Intro motion may be richer than product motion but must not delay useful startup.
 
-ANSI color is not required for identity. Platform monospace remains the terminal typography authority.
+## 10. V0 design handoff
 
-## 10. Web reference boundary
+V0 is authorized to implement the visual/reference UI from the Spec 093 package. It is not authorized to invent backend behavior, evidence, runtime state, clinical authority, network permissions, or release claims.
 
-`docs/brand/web-reference/` is a non-production design contract/prototype only. It exists to show how the Spec 073 identity maps to a future web surface. It is not a web application, runtime, build target, release artifact, or capability claim.
+Start with `docs/brand/V0_MASTER_PROMPT.md` and validate against `docs/brand/V0_ACCEPTANCE_CHECKLIST.md`.
 
-## 11. Accessibility and motion
+The Web/V0 output is a design/reference implementation unless separately promoted into production. Native Desktop authority remains governed by the Rust/Slint repository and the active implementation spec.
 
-Every interactive control requires an exposed role/label/action and visible keyboard focus. Status must not rely on color alone. Final assistive-technology/WCAG qualification remains external evidence work.
+## 11. Impeccable review gates
 
-Motion, when used, must explain a state transition; no decorative perpetual animation.
+For every major surface apply: shape → critique → audit → distill → typeset → polish → harden → optimize.
 
-## 12. Impeccable review gates
+Rendered review is required for visual acceptance. A compiler, linter, or token drift check does not establish design quality by itself.
 
-For each primary surface:
-1. **Shape** — one primary user goal and honest default/failure state.
-2. **Critique** — challenge hierarchy, density, generic-SaaS/AI tells, and competitor mimicry.
-3. **Audit** — inspect accessibility semantics, theme contrast, overflow, focus behavior, truth boundaries, and implementation integrity.
-4. **Distill** — remove elements that do not change understanding or action.
-5. **Typeset** — verify hierarchy, measure, rhythm, and reading comfort.
-6. **Polish** — align tokens, spacing, controls, and copy.
-7. **Harden** — test long text, empty/error/conflict states, keyboard paths, minimum size, and theme changes.
-8. **Optimize** — protect native startup, interaction latency, memory, and asset weight.
+## 12. Reference discipline
 
-A green compiler or empty automated detector result does not establish visual acceptance. Rendered native review is mandatory for Spec 073 closure.
+JetBrains, Abridge, Cohere, and other high-craft products may inform transferable principles. Their proprietary logos, icons, illustrations, layouts, typography assets, and visual systems are not MedScale assets and must not be copied.
 
 ## 13. Authority history
 
-- Pre-Spec-068 multicolor direction: `SUPERSEDED_BY_SPEC_068`.
-- Spec 068 Signal/Geist active visual identity: `SUPERSEDED_BY_SPEC_073`.
-- Current active identity: Spec 073 monochrome circular signature M with the MedScale Shelf, Instrument Sans / Source Serif 4, OS-adaptive light-first surfaces, Mist Blue/Sage/amber/red semantic product color, and dual-dock native shell.
+- Pre-Spec-068 multicolor direction: historical.
+- Spec 068 Signal/Geist identity: superseded by Spec 073.
+- Spec 073 monochrome circular signature M: superseded visually by founder-approved Spec 093.
+- Current identity direction: ScaleFold M + MedScale Spectrum + token-governed light/dark system + Instrument Sans / Source Serif 4 + original icon grammar.
+
+MESC remains a separate project and is excluded from MedScale identity, execution, completion, and release criteria.

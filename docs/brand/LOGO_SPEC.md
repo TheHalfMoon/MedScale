@@ -1,48 +1,84 @@
 # MedScale Logo Specification
 
-**Status:** CANONICAL_SPEC_073 — FOUNDER_APPROVED_SIGNATURE_MARK
+**Status:** CANONICAL_SPEC_093 — FOUNDER_APPROVED_SCALEFOLD_M
 
-## Approved master mark
+## Master mark
 
-The MedScale master mark is fixed for Spec 073:
-- black circular field;
-- soft-white/soft-gray continuous rounded `M`;
-- a custom asymmetric inner transition ending in the short **MedScale Shelf** at the center;
-- simple geometry with rounded stroke caps and joins;
-- monochrome only.
+The MedScale master mark is the **ScaleFold M**.
 
-The MedScale Shelf is the recognition cue: the left inner stroke settles into a short measured baseline before the steeper right return. It must remain visible at rail size without becoming a separate symbol, cutout, medical motif, or decorative flourish.
+It uses three vertical geometric forms:
+1. a left folded pillar;
+2. a second folded pillar with the same shoulder logic and slightly shifted rhythm;
+3. a shorter closing pillar.
 
-`crates/medscale-desktop/ui/assets/medscale-mark.svg` is the native runtime source of truth. The same `medscale-signature-m` geometry is used by the app icon and reference surfaces. Routine implementation work must not explore alternate logo directions.
+The repeated diagonal shoulder creates a recognizable family rhythm while the shorter closing form makes the mark asymmetric and memorable. The mark must still read clearly between 20 px and app-icon scale.
+
+Runtime source of truth:
+- `crates/medscale-desktop/ui/assets/medscale-mark.svg`
+- `crates/medscale-desktop/ui/assets/medscale-app-icon.svg`
+
+Monochrome brand assets:
+- `assets/brand/medscale-mark-monochrome-dark.svg`
+- `assets/brand/medscale-mark-monochrome-light.svg`
 
 ## Meaning
 
-The continuous `M` suggests continuity and linked evidence without using a healthcare cliché. The MedScale Shelf adds a measured, ownable rhythm to the center of the letter while preserving immediate `M` recognition. The circle creates a stable compact field that remains legible in rail, window, print, and monochrome contexts.
+The mark is intentionally abstract. It may suggest scale, structured growth, translation from source to action, and repeated evidence layers, but no one metaphor is required for recognition.
+
+The logo is not a chart, hospital symbol, ECG trace, brain, shield, or AI sparkle.
 
 ## Color
 
-Master mark:
-- field: near-black (`#0A0A0A` in the runtime SVG);
-- mark: soft white (`#F4F4F1` in the runtime SVG).
+The primary mark uses the MedScale Spectrum:
+- Azure `#0B73FF`
+- Cobalt `#3D5BFF`
+- Iris `#6B4EFF`
+- Violet `#9C4DFF`
+- Magenta `#E12DEA`
+- Pink `#FF2D78`
 
-No state, vendor, model, or clinical semantic color is applied to the logo.
+The exact runtime SVG gradient may interpolate between these anchors. Monochrome dark and light variants are required for print, legal, low-color, and contrast-constrained use.
 
-## Sizing and clear space
+## Clear space
 
-Preserve clear space of at least 18% of the circle diameter around the mark when it appears in a larger lockup. At small digital sizes, simplify surrounding UI before altering the approved geometry.
+Preserve clear space of at least one quarter of the mark's overall height around the standalone mark. In a wordmark lockup, preserve at least the width of the short closing pillar between the mark and `MedScale`.
+
+## Minimum size
+
+- standalone digital mark: 20 px minimum;
+- preferred navigation/rail size: 28–36 px;
+- app icon: use the dedicated app-icon asset rather than placing the bare mark on an arbitrary tile.
+
+If detail becomes unclear, simplify the surrounding UI before altering the geometry.
 
 ## Wordmark
 
 Canonical written name: `MedScale`.
 
-Use Instrument Sans Medium/Semibold for product lockups. Do not split `Med` and `Scale` by color. Lowercase `medscale` is reserved for technical identifiers/package names.
+Use Instrument Sans Semibold/Bold for large brand lockups and Medium/Semibold for compact product lockups. Keep `MedScale` one color in the product UI; the gradient belongs to the mark, not to individual wordmark letters.
+
+Lowercase `medscale` remains reserved for technical identifiers/package names.
 
 ## App icon
 
-`crates/medscale-desktop/ui/assets/medscale-app-icon.svg` uses the same approved monochrome circular treatment. It must not introduce gradients, colored center points, shadows, glow, or additional healthcare/AI symbols.
+The app icon uses the ScaleFold M on a deep navy-black rounded field with a restrained hairline edge. No extra symbol, glossy badge, fake 3D depth, or medical motif is added.
+
+## Intro treatment
+
+Intro/onboarding may use the full spectrum and enlarged abstract echoes of ScaleFold geometry. The brand intro must not block useful startup longer than actual initialization requires and must respect reduced-motion preferences when animation is introduced.
+
+Reference assets:
+- `assets/brand/intro/medscale-intro-dark.svg`
+- `assets/brand/intro/medscale-intro-light.svg`
 
 ## Forbidden treatments
 
-Never add purple, gradients, a medical cross, ECG/heartbeat trace, shield, stethoscope, brain, sparkle, mascot, literal octopus imagery, vendor logo combination, 3D treatment, or decorative signal waves.
+Do not:
+- redraw the mark as a conventional typed `M`;
+- add a circle merely because a prior identity used one;
+- recolor each pillar as semantic status;
+- add medical crosses, ECG lines, brains, shields, sparkles, stethoscopes, mascots, or vendor marks;
+- stretch, skew, rotate, outline, bevel, or apply arbitrary glow to the master mark;
+- copy a competitor logo construction or product icon.
 
-Any future geometry change requires explicit founder authority plus rendered review at small rail size and app-icon scale. The current signature geometry was explicitly founder-authorized during Spec 073 and supersedes the earlier generic rounded-M geometry.
+Any future geometry change requires explicit founder authority plus review at favicon, rail, app-icon, light, dark, and monochrome scales.

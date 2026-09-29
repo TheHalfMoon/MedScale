@@ -1,0 +1,113 @@
+{
+  "meta": {
+    "name": "MedScale Identity V2",
+    "version": "2.0.0",
+    "authority": "Spec 093",
+    "date": "2026-09-17"
+  },
+  "brand": {
+    "azure": "#0B73FF",
+    "cobalt": "#3D5BFF",
+    "iris": "#6B4EFF",
+    "violet": "#9C4DFF",
+    "magenta": "#E12DEA",
+    "pink": "#FF2D78",
+    "coral": "#FF6B7A",
+    "midnight": "#070B16"
+  },
+  "fixed": {
+    "obsidian": "#070A12",
+    "graphite": "#0C111D",
+    "graphiteRaised": "#151B29",
+    "navText": "#F8FAFF",
+    "navSubtle": "#A7B1C3"
+  },
+  "light": {
+    "canvas": "#F7F8FC",
+    "surface": "#FFFFFF",
+    "surfaceRaised": "#F1F4F9",
+    "surfaceTint": "#F5F3FF",
+    "sidebar": "#F3F5FA",
+    "sidebarSelected": "#E9EDFF",
+    "ink": "#0C1222",
+    "inkSubtle": "#4B566B",
+    "inkQuiet": "#738097",
+    "border": "#DCE2EC",
+    "borderStrong": "#C6CFDD",
+    "accent": "#4D5FFF",
+    "accentHover": "#394DFF",
+    "accentStrong": "#2739DA",
+    "accentSoft": "#EEF0FF",
+    "accentGlow": "#7D8AFF"
+  },
+  "dark": {
+    "canvas": "#080B14",
+    "surface": "#0E1320",
+    "surfaceRaised": "#151C2A",
+    "surfaceTint": "#17152B",
+    "sidebar": "#0B101B",
+    "sidebarSelected": "#1A2233",
+    "ink": "#F7F9FC",
+    "inkSubtle": "#B7C0CF",
+    "inkQuiet": "#8591A5",
+    "border": "#273143",
+    "borderStrong": "#3B465B",
+    "accent": "#8C9AFF",
+    "accentHover": "#A2ADFF",
+    "accentStrong": "#C3CAFF",
+    "accentSoft": "#202746",
+    "accentGlow": "#7889FF"
+  },
+  "semantic": {
+    "light": {
+      "success": "#277A5A",
+      "warning": "#8A5A13",
+      "danger": "#B43A4A"
+    },
+    "dark": {
+      "success": "#6AC39A",
+      "warning": "#E0AF5B",
+      "danger": "#FF8690"
+    }
+  },
+  "geometry": {
+    "radiusControl": 10,
+    "radiusCompact": 8,
+    "radiusPanel": 14,
+    "radiusLarge": 22,
+    "focusWidth": 2
+  },
+  "typography": {
+    "display": 36,
+    "page": 28,
+    "section": 16,
+    "body": 13,
+    "dense": 12,
+    "caption": 11,
+    "micro": 10
+  },
+  "spacing": {
+    "xs": 4,
+    "sm": 8,
+    "md": 12,
+    "lg": 16,
+    "xl": 24,
+    "2xl": 32,
+    "3xl": 48,
+    "4xl": 64
+  },
+  "layout": {
+    "railWidth": 58,
+    "sidebarWidth": 224,
+    "inspectorWidth": 320,
+    "topbarHeight": 52,
+    "workspacePadding": 32
+  },
+  "motionMs": {
+    "hover": 100,
+    "control": 140,
+    "pane": 200,
+    "dialog": 220,
+    "intro": 650
+  }
+}
