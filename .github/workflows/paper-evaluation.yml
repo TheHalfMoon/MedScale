@@ -1,0 +1,109 @@
+name: paper-evaluation
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "paper/**"
+      - "crates/medscale-contracts/tests/paper_*.rs"
+      - "crates/medscale-core/tests/paper_*.rs"
+      - ".github/workflows/paper-evaluation.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: paper-evaluation-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: -Dwarnings
+
+jobs:
+  paper-conformance:
+    name: paper conformance (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@d1031067263f94b142dd6c0ce24c5eb9d02d52a0
+        with:
+          toolchain: "1.97.1"
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6
+
+      - name: Install Perl (Windows OpenSSL vendor build)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          choco install strawberryperl -y --no-progress
+          echo "C:\Strawberry\perl\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Install OpenSSL/Perl (macOS SQLCipher vendor build)
+        if: runner.os == 'macOS'
+        run: |
+          brew install openssl@3 perl
+          echo "OPENSSL_DIR=$(brew --prefix openssl@3)" >> "$GITHUB_ENV"
+          echo "$(brew --prefix perl)/bin" >> "$GITHUB_PATH"
+
+      - name: Capture environment manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p paper/artifact/raw/ci
+          {
+            echo "head_sha=${GITHUB_SHA}"
+            echo "runner_os=${RUNNER_OS}"
+            echo "runner_arch=${RUNNER_ARCH}"
+            echo "rustc=$(rustc --version)"
+            echo "cargo=$(cargo --version)"
+          } > "paper/artifact/raw/ci/environment-${RUNNER_OS}.txt"
+
+      - name: Experiment A0 — contract provenance controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test -p medscale-contracts --test paper_provenance_contracts --locked -- --nocapture 2>&1 \
+            | tee "paper/artifact/raw/ci/a0-${RUNNER_OS}.log"
+
+      - name: Experiment A1 — Core provenance binding
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test -p medscale-core --test paper_provenance_system --locked -- --nocapture 2>&1 \
+            | tee "paper/artifact/raw/ci/a1-${RUNNER_OS}.log"
+
+      - name: Experiment B0 — authority/effect conformance
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test -p medscale-core --test paper_authority_effects --locked -- --nocapture 2>&1 \
+            | tee "paper/artifact/raw/ci/b0-${RUNNER_OS}.log"
+
+      - name: Hash raw evidence
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import hashlib
+          root = Path("paper/artifact/raw/ci")
+          lines = []
+          for path in sorted(p for p in root.iterdir() if p.is_file() and p.name != "checksums.sha256"):
+              lines.append(f"{hashlib.sha256(path.read_bytes()).hexdigest()}  {path.name}")
+          (root / "checksums.sha256").write_text("\n".join(lines) + "\n", encoding="utf-8")
+          PY
+
+      - name: Upload paper evaluation evidence
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v4.6.2
+        with:
+          name: medscale-paper-evaluation-${{ matrix.os }}
+          path: paper/artifact/raw/ci/
+          if-no-files-found: error
