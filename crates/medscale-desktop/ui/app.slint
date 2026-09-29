@@ -1,10 +1,7 @@
+import "../../../assets/brand/fonts/InterVariable.ttf";
+import "../../../assets/brand/fonts/JetBrainsMonoNL-Regular.ttf";
+import { CommandCenter } from "command-center.slint";
 import { AboutSlint, ScrollView } from "std-widgets.slint";
-import "../../../assets/brand/fonts/InstrumentSans-Regular.ttf";
-import "../../../assets/brand/fonts/InstrumentSans-Medium.ttf";
-import "../../../assets/brand/fonts/InstrumentSans-SemiBold.ttf";
-import "../../../assets/brand/fonts/InstrumentSans-Bold.ttf";
-import "../../../assets/brand/fonts/SourceSerif4-Regular.ttf";
-import "../../../assets/brand/fonts/SourceSerif4-Semibold.ttf";
 import { Theme } from "theme.slint";
 export { Theme } from "theme.slint";
 import { AdaptiveLineEdit, HonestyPanel, NavItem, QuickAction, RailAction, SearchField, SegmentTab, ToolbarAction, MetricCard, StatusPill } from "components.slint";
@@ -300,12 +297,13 @@ export struct AgentTurnRowItem {
 
 export component AppWindow inherits Window {
     title: "MedScale";
+    icon: Theme.dark ? @image-url("assets/medscale-app-icon.svg") : @image-url("assets/medscale-app-icon-light.svg");
     preferred-width: 1440px;
     preferred-height: 900px;
     min-width: 1100px;
     min-height: 720px;
     background: Theme.canvas;
-    default-font-family: "Instrument Sans";
+    default-font-family: Theme.font-ui;
     default-font-size: 14px;
 
     in-out property <string> active-route: "Home";
@@ -479,7 +477,7 @@ export component AppWindow inherits Window {
             spacing: 0px;
 
             rail := Rectangle {
-                width: 58px;
+                width: 72px;
                 background: Theme.obsidian;
 
                 VerticalLayout {
@@ -493,9 +491,10 @@ export component AppWindow inherits Window {
                         height: 46px;
                         background: transparent;
                         Image {
-                            source: @image-url("assets/medscale-mark.svg");
-                            width: 36px;
-                            height: 36px;
+                            source: @image-url("assets/medscale-mark-white.svg");
+                            width: 30px;
+                            height: 16.238px;
+                            image-fit: contain;
                             x: (parent.width - self.width) / 2;
                             y: (parent.height - self.height) / 2;
                         }
@@ -567,6 +566,10 @@ export component AppWindow inherits Window {
                         Text { text: "CLINICAL INTELLIGENCE"; color: Theme.ink-quiet; font-size: 11px; letter-spacing: 1.05px; }
                     }
 
+                    ScrollView {
+                        vertical-stretch: 1;
+                        VerticalLayout {
+                            spacing: 6px;
                     Text { text: "WORKSPACE"; color: Theme.ink-quiet; font-size: 11px; letter-spacing: 1.05px; }
                     NavItem { label: "Home"; selected: root.active-route == "Home"; activated => { root.active-route = "Home"; } }
                     NavItem { label: "Patients"; selected: root.active-route == "Patients"; activated => { root.active-route = "Patients"; } }
@@ -601,7 +604,8 @@ export component AppWindow inherits Window {
                     NavItem { label: "Exports"; selected: root.active-route == "Exports"; activated => { root.active-route = "Exports"; } }
                     NavItem { label: "Integrations"; selected: root.active-route == "Integrations"; activated => { root.active-route = "Integrations"; } }
 
-                    Rectangle { vertical-stretch: 1; background: transparent; }
+                        }
+                    }
 
                     Rectangle {
                         height: 64px;
@@ -662,7 +666,7 @@ export component AppWindow inherits Window {
                             accessible-role: text;
                             accessible-label: "Model Fabric status. " + root.model-runtime-summary;
                             Text {
-                                text: "Model Fabric · local";
+                                text: "Local runtime";
                                 color: Theme.ink-subtle;
                                 font-size: 11px;
                                 font-weight: 650;
@@ -679,7 +683,7 @@ export component AppWindow inherits Window {
                             background: Theme.surface-raised;
                             border-width: 1px;
                             border-color: Theme.border;
-                            Text { text: "JD"; color: Theme.ink-subtle; font-size: 11px; font-weight: 700; horizontal-alignment: center; }
+                            Text { text: "MS"; color: Theme.ink-subtle; font-size: 11px; font-weight: 700; horizontal-alignment: center; }
                         }
                     }
                 }
@@ -691,16 +695,16 @@ export component AppWindow inherits Window {
                     vertical-stretch: 1;
 
                     VerticalLayout {
-                        padding: 24px;
-                        spacing: 18px;
+                        padding: Theme.content-padding;
+                        spacing: Theme.section-gap;
 
                         HorizontalLayout {
                             height: 78px;
                             spacing: 16px;
                             VerticalLayout {
                                 spacing: 2px;
-                                Text { text: root.active-route == "Home" ? "Clinical Workspace" : root.active-route == "Patients" ? root.patient-name : root.active-route; color: Theme.ink; font-size: 28px; font-weight: 720; letter-spacing: -0.4px; }
-                                Text { text: root.active-route == "Home" ? "Trusted local clinical intelligence · evidence before authority" : root.active-route == "Patients" ? "Trusted longitudinal workspace · Synthetic demo" : root.active-route == "Insights" ? "Evidence-aware population view · Synthetic demo" : root.active-route == "Models" ? "Local model fabric · provenance, runtime and benchmark state" : root.active-route == "Evidence" ? "Pinned OpenMed evidence · measured claims only · limitations explicit" : root.active-route == "Workflows" ? "Review-first controlled-action studio · Synthetic demo" : root.active-route == "Tasks" ? "Derived outbox review queue · No second task authority" : root.active-route == "Messages" ? "Local review previews · No external transport claim" : root.active-route == "Documents" ? "Bounded document intake posture · Custody is not understanding" : root.active-route == "Projects" ? "Project and artifact organization · Core-backed references, never payload copies" : root.active-route == "Data" ? "Governed datasets · immutable snapshots, saved views and deterministic transforms" : root.active-route == "Collaboration" ? "Local-first rooms, threads and tasks · Core-backed, membership-gated" : root.active-route == "MedAgent" ? "Governed agent runs · bound context, typed tools, evidence-only proposals" : root.active-route == "Model Fleet" ? "Independent agent lanes on one task · factual comparison, never a ranking" : root.active-route == "Privacy" ? "Data classes, de-identification receipts and egress decisions · unclassified stays local" : root.active-route == "Browse" ? "Read-only https retrieval · allowlisted hosts, private networks refused, content is evidence only" : root.active-route == "Audio" ? "Local audio sources and transcript lineage · nothing leaves this device" : root.active-route == "Analytics" ? "Read-only SQL over exact snapshots · every run leaves a receipt" : root.active-route == "Knowledge" ? "Lexical search over exact source revisions · stale evidence is labelled, never served as current" : root.active-route == "Research OS" ? "Hub, Compute, R, extensions, huddles, packs, adapters and federation · through Core; reversible row actions only" : root.active-route == "Audit Trail" ? "Synthetic disclosure history · Core Host remains canonical" : root.active-route == "Exports" ? "Loss-aware FHIR support · No full conformance claim" : root.active-route == "Settings" ? "Doctor truth and evidence-gated readiness" : root.active-route == "Integrations" ? "Brokered integration posture · Default deny" : root.active-route == "About" ? "Native product and attribution details" : "Unrecognized route"; color: Theme.ink-subtle; font-size: 13px; }
+                                Text { text: root.active-route == "Home" ? "Command Center" : root.active-route == "Patients" ? root.patient-name : root.active-route; color: Theme.ink; font-size: 28px; font-weight: 720; letter-spacing: -0.4px; }
+                                Text { text: root.active-route == "Home" ? "Local clinical intelligence · Synthetic demo" : root.active-route == "Patients" ? "Trusted longitudinal workspace · Synthetic demo" : root.active-route == "Insights" ? "Evidence-aware population view · Synthetic demo" : root.active-route == "Models" ? "Local model fabric · provenance, runtime and benchmark state" : root.active-route == "Evidence" ? "Pinned OpenMed evidence · measured claims only · limitations explicit" : root.active-route == "Workflows" ? "Review-first controlled-action studio · Synthetic demo" : root.active-route == "Tasks" ? "Derived outbox review queue · No second task authority" : root.active-route == "Messages" ? "Local review previews · No external transport claim" : root.active-route == "Documents" ? "Bounded document intake posture · Custody is not understanding" : root.active-route == "Projects" ? "Project and artifact organization · Core-backed references, never payload copies" : root.active-route == "Data" ? "Governed datasets · immutable snapshots, saved views and deterministic transforms" : root.active-route == "Collaboration" ? "Local-first rooms, threads and tasks · Core-backed, membership-gated" : root.active-route == "MedAgent" ? "Governed agent runs · bound context, typed tools, evidence-only proposals" : root.active-route == "Model Fleet" ? "Independent agent lanes on one task · factual comparison, never a ranking" : root.active-route == "Privacy" ? "Data classes, de-identification receipts and egress decisions · unclassified stays local" : root.active-route == "Browse" ? "Read-only https retrieval · allowlisted hosts, private networks refused, content is evidence only" : root.active-route == "Audio" ? "Local audio sources and transcript lineage · nothing leaves this device" : root.active-route == "Analytics" ? "Read-only SQL over exact snapshots · every run leaves a receipt" : root.active-route == "Knowledge" ? "Lexical search over exact source revisions · stale evidence is labelled, never served as current" : root.active-route == "Research OS" ? "Hub, Compute, R, extensions, huddles, packs, adapters and federation · through Core; reversible row actions only" : root.active-route == "Audit Trail" ? "Synthetic disclosure history · Core Host remains canonical" : root.active-route == "Exports" ? "Loss-aware FHIR support · No full conformance claim" : root.active-route == "Settings" ? "Doctor truth and evidence-gated readiness" : root.active-route == "Integrations" ? "Brokered integration posture · Default deny" : root.active-route == "About" ? "Native product and attribution details" : "Unrecognized route"; color: Theme.ink-subtle; font-size: 13px; }
                             }
                             Rectangle { horizontal-stretch: 1; background: transparent; }
                             if root.active-route == "Home": Text {
@@ -1915,7 +1919,7 @@ export component AppWindow inherits Window {
                                 VerticalLayout {
                                     width: 360px;
                                     spacing: 8px;
-                                    Image { source: @image-url("assets/medscale-mark.svg"); width: 72px; height: 52px; }
+                                    Image { source: Theme.dark ? @image-url("assets/medscale-mark-white.svg") : @image-url("assets/medscale-mark.svg"); width: 72px; height: 39px; image-fit: contain; }
                                     Text { text: "MedScale"; color: Theme.ink; font-size: 26px; font-weight: 700; }
                                     Text { text: "Local-first healthcare intelligence"; color: Theme.ink-subtle; font-size: 13px; }
                                     Text { text: "Version " + root.product-version; color: Theme.ink-quiet; font-size: 11px; }
@@ -2626,132 +2630,14 @@ export component AppWindow inherits Window {
                             }
                         }
 
-                        if root.active-route == "Home": VerticalLayout {
-                            spacing: 16px;
-
-                            HorizontalLayout {
-                                spacing: 16px;
-
-                                Rectangle {
-                                    horizontal-stretch: 3;
-                                    min-height: 210px;
-                                    border-radius: Theme.radius-panel;
-                                    border-width: 1px;
-                                    border-color: Theme.border;
-                                    background: Theme.surface;
-                                    accessible-role: groupbox;
-                                    accessible-label: "Current clinical workspace for Synthetic Subject A";
-                                    VerticalLayout {
-                                        padding: 20px;
-                                        spacing: 9px;
-                                        Text { text: "Synthetic Subject A"; color: Theme.ink; font-size: 24px; font-weight: 720; letter-spacing: -0.3px; }
-                                        Text { text: "Condition evidence present · coverage unknown · one conflicting source requires review"; color: Theme.ink-subtle; font-family: "Source Serif 4"; font-size: 13px; wrap: word-wrap; }
-                                        Rectangle { height: 1px; background: Theme.border; }
-                                        HorizontalLayout {
-                                            spacing: 18px;
-                                            VerticalLayout { spacing: 2px; Text { text: "SOURCE TRAIL"; color: Theme.ink-quiet; font-size: 11px; letter-spacing: 1px; } Text { text: "3 admitted sources"; color: Theme.ink; font-size: 11px; font-weight: 650; } }
-                                            VerticalLayout { spacing: 2px; Text { text: "IDENTITY"; color: Theme.ink-quiet; font-size: 11px; letter-spacing: 1px; } Text { text: "No silent merge"; color: Theme.ink; font-size: 11px; font-weight: 650; } }
-                                            VerticalLayout { spacing: 2px; Text { text: "AUTHORITY"; color: Theme.ink-quiet; font-size: 11px; letter-spacing: 1px; } Text { text: "Core Host"; color: Theme.ink; font-size: 11px; font-weight: 650; } }
-                                            Rectangle { horizontal-stretch: 1; background: transparent; }
-                                        }
-                                        HorizontalLayout {
-                                            spacing: 10px;
-                                            QuickAction { title: "Open patient record"; subtitle: "Timeline, coverage, sources"; glyph: ""; accent: Theme.signal; activated => { root.active-route = "Patients"; } }
-                                            QuickAction { title: "Review evidence"; subtitle: "Trace claims to sources"; glyph: ""; accent: Theme.signal; activated => { root.active-route = "Evidence"; } }
-                                        }
-                                    }
-                                }
-
-                                Rectangle {
-                                    horizontal-stretch: 2;
-                                    min-height: 210px;
-                                    border-radius: Theme.radius-panel;
-                                    background: Theme.obsidian;
-                                    accessible-role: groupbox;
-                                    accessible-label: "Inspectable AI layer. " + root.model-runtime-summary;
-                                    VerticalLayout {
-                                        padding: 20px;
-                                        spacing: 9px;
-                                        HorizontalLayout {
-                                            Rectangle { horizontal-stretch: 1; background: transparent; }
-                                            StatusPill { label: "INSPECTABLE"; accent: Theme.signal; text-color: Theme.nav-text; }
-                                        }
-                                        Text { text: "AI is visible, not implied."; color: Theme.nav-text; font-size: 18px; font-weight: 700; }
-                                        Text { text: root.model-runtime-summary; color: Theme.nav-subtle; font-size: 11px; wrap: word-wrap; }
-                                        Rectangle { height: 1px; background: Theme.graphite-raised; }
-                                        Text { text: "HF source ≠ runtime authority. Every model must carry task, digest, rights, device and benchmark evidence."; color: Theme.nav-subtle; font-size: 11px; wrap: word-wrap; }
-                                        QuickAction { title: "Inspect Model Center"; subtitle: "Runtime · source · trust · benchmark"; glyph: ""; accent: Theme.signal; activated => { root.active-route = "Models"; } }
-                                    }
-                                }
-                            }
-
-                            VerticalLayout {
-                                spacing: 8px;
-                                Text { text: "Clinical flow"; color: Theme.ink; font-size: 14px; font-weight: 680; }
-                                Rectangle {
-                                    min-height: 132px;
-                                    border-radius: Theme.radius-panel;
-                                    border-width: 1px;
-                                    border-color: Theme.border;
-                                    background: Theme.surface;
-                                    accessible-role: groupbox;
-                                    accessible-label: "Clinical flow: prepare, understand, act";
-                                    HorizontalLayout {
-                                        padding: 18px;
-                                        spacing: 18px;
-                                        VerticalLayout {
-                                            horizontal-stretch: 1; spacing: 5px;
-                                            Text { text: "01  PREPARE"; color: Theme.signal-strong; font-size: 11px; font-weight: 700; letter-spacing: 0.9px; }
-                                            Text { text: "Know the record before the encounter"; color: Theme.ink; font-size: 13px; font-weight: 650; wrap: word-wrap; }
-                                            Text { text: "Surface longitudinal context, source freshness, conflicts and coverage before work begins."; color: Theme.ink-subtle; font-size: 11px; wrap: word-wrap; }
-                                        }
-                                        Rectangle { width: 1px; background: Theme.border; }
-                                        VerticalLayout {
-                                            horizontal-stretch: 1; spacing: 5px;
-                                            Text { text: "02  UNDERSTAND"; color: Theme.signal-strong; font-size: 11px; font-weight: 700; letter-spacing: 0.9px; }
-                                            Text { text: "Keep intelligence tied to evidence"; color: Theme.ink; font-size: 13px; font-weight: 650; wrap: word-wrap; }
-                                            Text { text: "Assistant and model outputs remain inspectable proposals with source links and explicit limits."; color: Theme.ink-subtle; font-size: 11px; wrap: word-wrap; }
-                                        }
-                                        Rectangle { width: 1px; background: Theme.border; }
-                                        VerticalLayout {
-                                            horizontal-stretch: 1; spacing: 5px;
-                                            Text { text: "03  ACT"; color: Theme.signal-strong; font-size: 11px; font-weight: 700; letter-spacing: 0.9px; }
-                                            Text { text: "Review before anything consequential"; color: Theme.ink; font-size: 13px; font-weight: 650; wrap: word-wrap; }
-                                            Text { text: "Controlled actions bind payload identity, durable outbox state and UNKNOWN reconciliation."; color: Theme.ink-subtle; font-size: 11px; wrap: word-wrap; }
-                                        }
-                                    }
-                                }
-                            }
-
-                            Rectangle {
-                                min-height: 286px;
-                                border-radius: Theme.radius-panel;
-                                border-width: 1px;
-                                border-color: Theme.border;
-                                background: Theme.surface;
-                                VerticalLayout {
-                                    padding: 18px;
-                                    spacing: 9px;
-                                    HorizontalLayout {
-                                        Text { text: "Review queue"; color: Theme.ink; font-size: 14px; font-weight: 680; }
-                                        Rectangle { horizontal-stretch: 1; background: transparent; }
-                                        Text { text: "Synthetic demo · not a clinical risk ranking"; color: Theme.ink-quiet; font-size: 11px; }
-                                    }
-                                    Rectangle { height: 1px; background: Theme.border; }
-                                    HorizontalLayout { height: 44px; spacing: 12px; Text { width: 180px; text: "Synthetic Subject A"; color: Theme.ink; font-size: 11px; font-weight: 650; } Text { text: "Condition evidence present"; color: Theme.ink-subtle; font-size: 11px; } Rectangle { horizontal-stretch: 1; background: transparent; } StatusPill { label: "Evidence review"; accent: Theme.warning; } }
-                                    Rectangle { height: 1px; background: Theme.border; }
-                                    HorizontalLayout { height: 44px; spacing: 12px; Text { width: 180px; text: "Synthetic Subject B"; color: Theme.ink; font-size: 11px; font-weight: 650; } Text { text: "Coverage evidence unknown"; color: Theme.ink-subtle; font-size: 11px; } Rectangle { horizontal-stretch: 1; background: transparent; } StatusPill { label: "Coverage gap"; accent: Theme.warning; } }
-                                    Rectangle { height: 1px; background: Theme.border; }
-                                    HorizontalLayout { height: 44px; spacing: 12px; Text { width: 180px; text: "Synthetic Subject C"; color: Theme.ink; font-size: 11px; font-weight: 650; } Text { text: "Observation evidence available"; color: Theme.ink-subtle; font-size: 11px; } Rectangle { horizontal-stretch: 1; background: transparent; } StatusPill { label: "New evidence"; accent: Theme.signal; } }
-                                    Rectangle { height: 1px; background: Theme.border; }
-                                    HorizontalLayout { height: 44px; spacing: 12px; Text { width: 180px; text: "Synthetic Subject D"; color: Theme.ink; font-size: 11px; font-weight: 650; } Text { text: "Conflicting evidence"; color: Theme.ink-subtle; font-size: 11px; } Rectangle { horizontal-stretch: 1; background: transparent; } StatusPill { label: "Unresolved"; accent: Theme.danger; } }
-                                    HorizontalLayout {
-                                        spacing: 10px;
-                                        QuickAction { title: "Open all patients"; subtitle: "Longitudinal workspace"; glyph: ""; accent: Theme.signal; activated => { root.active-route = "Patients"; } }
-                                        QuickAction { title: "Open proof ledger"; subtitle: "Inspect pinned OpenMed claim states"; glyph: ""; accent: Theme.signal; activated => { root.active-route = "Evidence"; } }
-                                    }
-                                }
-                            }
+                        if root.active-route == "Home": CommandCenter {
+                            patient-name: root.patient-name;
+                            subject-ref: root.patient-subject-ref;
+                            condition-summary: root.patient-condition-summary;
+                            coverage-summary: root.patient-coverage-summary;
+                            source-count: root.patient-sources.length;
+                            model-runtime-summary: root.model-runtime-summary;
+                            navigate(route) => { root.active-route = route; }
                         }
                     }
                 }
@@ -2770,9 +2656,9 @@ export component AppWindow inherits Window {
         background: Theme.surface;
         accessible-role: groupbox;
         accessible-label: "MedScale command palette";
-        drop-shadow-blur: 28px;
-        drop-shadow-color: #15182B22;
-        drop-shadow-offset-y: 10px;
+        drop-shadow-blur: 0px;
+        drop-shadow-color: transparent;
+        drop-shadow-offset-y: 0px;
 
         VerticalLayout {
             padding: 16px;

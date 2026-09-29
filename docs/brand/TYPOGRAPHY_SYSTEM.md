@@ -1,40 +1,23 @@
-# MedScale Typography System
+# MedScale typography system
 
-**Status:** CANONICAL_SPEC_073
+**Status:** CANONICAL_SPEC_095. Native source: ui/theme.slint.
 
-## Families
+Inter UI/wordmark and JetBrains Mono NL exact metadata. Inter's text optical size, tabular numerals and differentiated forms fit clinical density and the reference. NL keeps operators/IDs free of code ligatures. Candidate evaluation: specs/095-brand-foundation/research.md.
 
-**Product/UI:** Instrument Sans
-**Long-form clinical/writing:** Source Serif 4
-**Machine/terminal:** platform monospace
+| Role/token | Family | Weight | Size | Line height | Tracking | Usage |
+|---|---|---:|---:|---:|---:|---|
+| Display/type-display | Inter | 600 | 32px | 40px | -0.5px | Editorial/brand, sparing in product |
+| Page/type-page | Inter | 600 | 28px | 36px | -0.3px | Route title |
+| Section/type-section | Inter | 600 | 18px | 26px | -0.2px | Pane heading |
+| Card/type-subsection | Inter | 600 | 14px | 22px | 0 | Semantic group heading |
+| Body/type-body | Inter | 400 | 14px | 22px | 0 | Clinical/research reading |
+| Compact body/type-row | Inter | 400 | 13px | 20px | 0 | Dense tables/lists |
+| Label/type-control | Inter | 500 | 13px | 20px | 0 | Controls/navigation |
+| Caption/type-caption | Inter | 400 | 12px | 18px | 0 | Supporting metadata |
+| Micro/type-micro | Inter | 500 | 11px | 16px | 0.8px uppercase | Section labels |
+| Data/type-code | JetBrains Mono NL | 400 | 12px | 20px | 0 | Numeric/exact values |
+| Evidence metadata/type-code | JetBrains Mono NL | 400 | 12px | 20px | 0 | IDs/hashes/time/operators |
 
-The admitted font binaries and licenses live in `assets/brand/fonts/`. Native Slint imports the branded UI and serif assets directly so rendered identity does not depend on a developer-machine font installation.
+Slint Text uses measured metrics without a CSS line-height property. Allocate this rhythm in row/layout geometry; no native line-height property is claimed. Compact preserves text size. Numeric columns use mono/tabular alignment; names/narrative stay in Inter. Oversized headings must not displace clinical information.
 
-Geist/Geist Mono are historical Spec 068 choices and are not active MedScale identity fonts. Helvetica is not a MedScale identity font.
-
-## Product principles
-
-- Instrument Sans is the default for navigation, controls, tables, headings, and product metadata.
-- Source Serif 4 is selective: narrative clinical/writing passages where reading rhythm benefits from serif text. It is not used for navigation or buttons.
-- Platform monospace is used for CLI, commands, digests, hashes, model/repository IDs, evidence IDs, and other machine-readable identifiers.
-- Prefer medium/semibold hierarchy to excessive bold.
-- Keep clinical narrative comfortably readable; do not shrink it to create artificial density.
-- Uppercase micro-labels are reserved for system layers, section groups, and evidence/state vocabulary.
-
-## Desktop reference scale
-
-- Page: 28–30 px, semibold, restrained negative tracking.
-- Section: 16–18 px, semibold.
-- Subsection: 13–15 px, medium/semibold.
-- Body: 13–14 px.
-- Dense row: 11–12 px.
-- Caption: 10–11 px.
-- Micro: 8–9 px, semibold, tracked when uppercase.
-
-## Machine text
-
-Use platform monospace for exact values only. Do not render patient names, narrative explanations, or normal button labels in monospace.
-
-## Licensing
-
-Instrument Sans is carried with its OFL text. Source Serif 4 is carried with its repository license file. License/NOTICE accounting must remain part of normal repository qualification; this document does not replace legal inventory evidence.
+Only unchanged Inter Variable Roman and JetBrains Mono NL Regular are added, explicitly required/permitted by Spec 095 for offline deterministic rendering. SIL OFL licenses, source hashes and attribution accompany native imports and checksummed portable redistribution. No extra weights, italics, webfonts or font service. Instrument Sans and Source Serif 4 remain historical Spec 073 assets outside the active scale.

@@ -20,21 +20,15 @@ fn approved_monochrome_mark_is_runtime_bound() {
         "crates/medscale-desktop/ui/assets/medscale-app-icon.svg",
     ] {
         let svg = std::fs::read_to_string(root.join(asset)).expect("logo asset");
+        // The founder-approved Spec 095 mark supersedes the historical circular mark forward.
         assert!(
-            svg.contains("<circle"),
-            "approved circular field missing: {asset}"
+            !svg.contains("<circle"),
+            "superseded field returned: {asset}"
         );
+        assert!(svg.contains("#000000"), "approved black missing: {asset}");
         assert!(
-            svg.contains("#0A0A0A"),
-            "approved black field missing: {asset}"
-        );
-        assert!(
-            svg.contains("#F4F4F1"),
-            "approved soft-white M missing: {asset}"
-        );
-        assert!(
-            svg.contains("id=\"medscale-signature-m\""),
-            "MedScale signature geometry missing: {asset}"
+            svg.contains("id=\"medscale-paired-m\""),
+            "MedScale paired geometry missing: {asset}"
         );
         for forbidden in ["#0A66FF", "purple", "gradient", "heartbeat", "sparkle"] {
             assert!(
@@ -56,16 +50,17 @@ fn adaptive_theme_and_admitted_typography_are_active() {
         std::fs::read_to_string(root.join("docs/brand/TYPOGRAPHY_SYSTEM.md")).expect("typography");
 
     assert!(theme.contains("Palette.color-scheme == ColorScheme.dark"));
-    assert!(theme.contains("signal: dark ? #8FADBC : #4F7185"));
-    assert!(theme.contains("success: dark ? #8EAF9B : #4F7562"));
-    assert!(app.contains("default-font-family: \"Instrument Sans\""));
-    assert!(app.contains("InstrumentSans-Regular.ttf"));
-    assert!(app.contains("SourceSerif4-Regular.ttf"));
-    assert!(app.contains("font-family: \"Source Serif 4\""));
+    assert!(theme.contains("signal: ink"));
+    assert!(theme.contains("font-ui: \"Inter\""));
+    assert!(theme.contains("font-mono: \"JetBrains Mono NL\""));
+    assert!(app.contains("default-font-family: Theme.font-ui"));
+    assert!(app.contains("InterVariable.ttf"));
+    assert!(app.contains("JetBrainsMonoNL-Regular.ttf"));
+    assert!(!app.contains("SourceSerif4-Regular.ttf"));
     assert!(!app.contains("default-font-family: \"Geist\""));
-    assert!(typography.contains("CANONICAL_SPEC_073"));
-    assert!(typography.contains("Instrument Sans"));
-    assert!(typography.contains("Source Serif 4"));
+    assert!(typography.contains("CANONICAL_SPEC_095"));
+    assert!(typography.contains("Inter"));
+    assert!(typography.contains("JetBrains Mono"));
 }
 
 #[test]
