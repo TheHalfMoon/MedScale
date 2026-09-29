@@ -227,11 +227,19 @@ mod tests {
                 (1100, 720, 2, true)
             );
             assert_eq!(parsed.route, route);
-            assert_ne!(parsed.synthetic_vault_root(), parsed.output);
+            let synthetic_root = parsed.synthetic_vault_root();
+            assert_ne!(synthetic_root, parsed.output);
+            assert!(synthetic_root.starts_with(std::env::temp_dir()));
+            assert_ne!(
+                synthetic_root,
+                parsed.output.parent().unwrap().join("synthetic-vault-095")
+            );
             assert!(
-                !parsed
-                    .synthetic_vault_root()
-                    .starts_with(parsed.output.parent().unwrap())
+                synthetic_root
+                    .file_name()
+                    .unwrap()
+                    .to_string_lossy()
+                    .starts_with("medscale-native-capture-095-")
             );
         }
     }
