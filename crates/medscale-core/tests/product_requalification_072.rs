@@ -44,7 +44,13 @@ fn rebuilt_native_route_inventory_includes_models_and_evidence() {
     assert!(!ui.contains("This surface is scheduled in a later Desktop slice."));
     assert!(!ui.contains("label: \"MESC\""));
     assert!(!ui.contains("Optional / deferred"));
-    assert!(ui.contains("Synthetic Subject A"));
+    let home = std::fs::read_to_string(
+        repo_root().join("crates/medscale-desktop/ui/command-center.slint"),
+    )
+    .expect("Command Center");
+    assert!(ui.contains("if root.active-route == \"Home\": CommandCenter"));
+    assert!(ui.contains("patient-name: root.patient-name"));
+    assert!(home.contains("Synthetic demo"));
 }
 
 #[test]
