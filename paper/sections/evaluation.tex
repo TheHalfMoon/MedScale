@@ -1,0 +1,18 @@
+\section{Experimental Evaluation}
+
+This section is intentionally result-free until the dedicated paper harness has executed. Tables and figures must be generated from raw artifacts, not entered manually.
+
+\subsection{Experiment A: provenance integrity}
+A controlled synthetic corpus will contain valid controls and single-variable mutations: modified source digest, wrong source identity/revision where applicable, wrong artifact binding, forged or mismatched receipt, cross-project reference, malformed lineage, wrong evidence source, tampered recovery provenance, and receipt/artifact mismatch. Each case records expected outcome, observed outcome, emitted state/error, and exact evidence pointer.
+
+\subsection{Experiment B: adversarial and failure qualification}
+The failure corpus covers malformed inputs, forged signatures where the subsystem signs objects, replay, revoked identity, cross-project access, corrupt backup material, interrupted migration, stale state, malicious digest, invalid classification, unknown external effect, sequence rollback, duplicate submission, unauthorized capability, and corrupted event/state chains when supported by an admitted path.
+
+\subsection{Experiment C: reproducibility and recovery}
+Repeated experiments test whether identical deterministic inputs at the frozen snapshot yield identical expected semantic results/digests, and whether backup $\rightarrow$ verification $\rightarrow$ restore $\rightarrow$ restart preserves pre-specified invariants and permits valid post-restore work. Cross-platform claims are restricted to operations genuinely executed on each hosted CI platform.
+
+\subsection{Experiment D: performance and storage cost}
+Synthetic scales of 100, 1,000, and 10,000 artifacts are the initial targets, subject to safe resource usage. Planned measurements include ingestion, provenance recording/verification, backup/restore, selected retrieval/analytics operations, and storage growth. Larger scales require a separate justification.
+
+\subsection{Experiment E: optional ablation}
+An ablation will be included only if an isolated research fixture can answer a specific scientific question without weakening production code. The current candidate is a comparison between full provenance validation and an intentionally simplified research-only verifier, scored on the same mutation corpus. This experiment remains deferred until its confounding risks are resolved.
