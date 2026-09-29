@@ -13,6 +13,14 @@ import sys
 ROOT = Path("paper/artifact/raw/ci")
 
 
+def _configure_console() -> None:
+    """Use deterministic UTF-8 console output across CI platforms."""
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is not None:
+            reconfigure(encoding="utf-8", errors="replace")
+
+
 def _run_text(command: list[str]) -> str:
     result = subprocess.run(
         command,
@@ -86,6 +94,8 @@ def hash_evidence() -> int:
 
 
 def main() -> int:
+    _configure_console()
+
     parser = argparse.ArgumentParser()
     sub = parser.add_subparsers(dest="mode", required=True)
     sub.add_parser("manifest")
