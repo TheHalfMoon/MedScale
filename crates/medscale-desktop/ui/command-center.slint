@@ -29,7 +29,7 @@ export component CommandCenter inherits Rectangle {
                 Text { text: root.condition-summary; color: Theme.ink-subtle; font-size: 14px; wrap: word-wrap; }
                 VerticalLayout {
                     spacing: 8px;
-                    StateBadge { width: 260px; state: "partial"; label: "Synthetic projection"; }
+                    StateBadge { width: 245px; state: "partial"; label: "Synthetic projection"; }
                     Text { text: root.source-count + " sources · no silent identity merge"; color: Theme.ink-quiet; font-size: 12px; wrap: word-wrap; }
                 }
                 QuickAction {
@@ -46,7 +46,7 @@ export component CommandCenter inherits Rectangle {
                 Text { text: "Evidence before authority"; color: Theme.ink; font-size: 18px; font-weight: 600; }
                 Text { text: root.model-runtime-summary; color: Theme.ink-subtle; font-size: 13px; wrap: word-wrap; }
                 Text { text: "Model output remains a proposal. Source, rights, runtime and benchmark evidence stay inspectable."; color: Theme.ink-quiet; font-size: 12px; wrap: word-wrap; }
-                StateBadge { width: 330px; state: "unmeasured"; label: "Clinical quality unmeasured"; }
+                StateBadge { width: 250px; state: "unmeasured"; label: "Clinical quality"; }
                 ToolbarAction { label: "Inspect models"; activated => { root.navigate("Models"); } }
             }
         }
@@ -62,7 +62,7 @@ export component CommandCenter inherits Rectangle {
                 VerticalLayout {
                     horizontal-stretch: 1;
                     spacing: 8px;
-                    StateBadge { width: 280px; state: "unknown"; label: "Coverage unknown"; }
+                    StateBadge { width: 185px; state: "unknown"; label: "Coverage"; }
                     Text { text: root.coverage-summary; color: Theme.ink-subtle; font-size: 13px; wrap: word-wrap; }
                     ToolbarAction { label: "Inspect coverage"; activated => { root.navigate("Patients"); } }
                 }
@@ -70,7 +70,7 @@ export component CommandCenter inherits Rectangle {
                 VerticalLayout {
                     horizontal-stretch: 1;
                     spacing: 8px;
-                    StateBadge { width: 350px; state: "unmeasured"; label: "Comparative claims unmeasured"; }
+                    StateBadge { width: 275px; state: "unmeasured"; label: "Comparative claims"; }
                     Text { text: "Inspect the pinned comparison ledger, source revisions and each claim's limits."; color: Theme.ink-subtle; font-size: 13px; wrap: word-wrap; }
                     ToolbarAction { label: "Review evidence"; activated => { root.navigate("Evidence"); } }
                 }
