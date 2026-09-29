@@ -31,7 +31,6 @@ export component SearchField inherits Rectangle {
     callback accepted(string);
 
     height: Theme.control-height;
-    min-height: Theme.target-min;
     border-radius: Theme.radius-control;
     border-width: input.has-focus ? Theme.focus-width : Theme.border-width;
     border-color: input.has-focus ? Theme.focus : Theme.border-strong;
@@ -82,7 +81,6 @@ export component RailAction inherits Rectangle {
     forward-focus: interaction;
     width: Theme.rail-target;
     height: Theme.rail-target;
-    min-height: Theme.target-min;
     border-radius: Theme.radius-compact;
     border-width: interaction.has-focus ? Theme.focus-width : 0px;
     border-color: Theme.focus-on-dark;
@@ -119,7 +117,6 @@ export component NavItem inherits Rectangle {
 
     forward-focus: interaction;
     height: Theme.row-height;
-    min-height: Theme.target-min;
     border-radius: Theme.radius-control;
     border-width: interaction.has-focus ? Theme.focus-width : 0px;
     border-color: Theme.focus;
@@ -161,7 +158,6 @@ export component SegmentTab inherits Rectangle {
 
     forward-focus: interaction;
     height: Theme.control-height-small;
-    min-height: Theme.target-min;
     min-width: 92px;
     border-radius: Theme.radius-control;
     border-width: interaction.has-focus ? Theme.focus-width : Theme.border-width;
@@ -221,7 +217,6 @@ export component QuickAction inherits Rectangle {
     forward-focus: interaction;
     min-width: 170px;
     height: Theme.action-height;
-    min-height: Theme.target-min;
     border-radius: Theme.radius-control;
     border-width: interaction.has-focus ? Theme.focus-width : Theme.border-width;
     border-color: interaction.has-focus ? Theme.focus : Theme.border;
@@ -252,7 +247,6 @@ export component ToolbarAction inherits Rectangle {
 
     forward-focus: interaction;
     height: Theme.control-height;
-    min-height: Theme.target-min;
     min-width: 108px;
     border-radius: Theme.radius-control;
     border-width: interaction.has-focus ? Theme.focus-width : Theme.border-width;
@@ -361,7 +355,6 @@ export component AdaptiveLineEdit inherits Rectangle {
     callback accepted(string);
 
     height: Theme.control-height-small;
-    min-height: Theme.target-min;
     border-radius: Theme.radius-control;
     border-width: input.has-focus ? Theme.focus-width : Theme.border-width;
     border-color: input.has-focus ? Theme.focus : Theme.border-strong;
