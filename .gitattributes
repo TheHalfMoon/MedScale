@@ -1,3 +1,4 @@
 evidence/008-local-ai-capability-fabric/fixtures/** text eol=lf
 evidence/012-mesc-artifact-integration/fixtures/** text eol=lf
 assets/brand/fonts/* -text -whitespace
+crates/medscale-desktop/ui/assets/icons-v2/**/*.svg text eol=lf

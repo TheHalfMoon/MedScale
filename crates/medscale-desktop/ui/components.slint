@@ -110,7 +110,7 @@ export component RailAction inherits Rectangle {
 
 export component NavItem inherits Rectangle {
     in property <string> label;
-    in property <string> glyph;
+    in property <image> icon;
     in property <bool> selected: false;
     in property <bool> enabled: true;
     callback activated();
@@ -131,9 +131,16 @@ export component NavItem inherits Rectangle {
         spacing: Theme.space-2;
         alignment: start;
         Rectangle {
-            width: selected ? Theme.border-width-strong : Theme.border-width;
-            height: selected ? Theme.space-4 : Theme.space-2;
-            background: selected ? Theme.ink : Theme.border-strong;
+            width: Theme.border-width-strong;
+            height: Theme.space-4;
+            background: selected ? Theme.ink : transparent;
+        }
+        Image {
+            source: root.icon;
+            width: Theme.icon-size;
+            height: Theme.icon-size;
+            image-fit: contain;
+            opacity: root.enabled ? 1 : 0.5;
         }
         Text {
             text: label;
@@ -150,6 +157,33 @@ export component NavItem inherits Rectangle {
     }
 }
 
+export component CommandResult inherits Rectangle {
+    in property <string> title;
+    in property <string> description;
+    callback activated();
+
+    forward-focus: interaction;
+    height: Theme.compact ? 52px : 60px;
+    border-radius: Theme.radius-compact;
+    border-width: interaction.has-focus ? Theme.focus-width : 0px;
+    border-color: Theme.focus;
+    background: interaction.has-hover ? Theme.surface-raised : transparent;
+    accessible-role: button;
+    accessible-label: title + ". " + description;
+    accessible-action-default => { root.activated(); }
+
+    VerticalLayout {
+        padding-left: Theme.space-3;
+        padding-right: Theme.space-3;
+        padding-top: Theme.space-2;
+        padding-bottom: Theme.space-2;
+        spacing: Theme.space-1;
+        Text { text: root.title; color: Theme.ink; font-family: Theme.font-ui; font-size: Theme.type-control; font-weight: Theme.weight-semibold; }
+        Text { text: root.description; color: Theme.ink-subtle; font-family: Theme.font-ui; font-size: Theme.type-micro; }
+    }
+    interaction := FocusableClickArea { width: 100%; height: 100%; clicked => { root.activated(); } }
+}
+
 export component SegmentTab inherits Rectangle {
     in property <string> label;
     in property <bool> selected: false;
@@ -158,11 +192,11 @@ export component SegmentTab inherits Rectangle {
 
     forward-focus: interaction;
     height: Theme.control-height-small;
-    min-width: 92px;
-    border-radius: Theme.radius-control;
-    border-width: interaction.has-focus ? Theme.focus-width : Theme.border-width;
-    border-color: interaction.has-focus ? Theme.focus : selected ? Theme.border-strong : Theme.border;
-    background: selected ? Theme.sidebar-selected : interaction.has-hover && enabled ? Theme.surface-raised : Theme.surface;
+    min-width: 68px;
+    border-radius: Theme.radius-none;
+    border-width: interaction.has-focus ? Theme.focus-width : 0px;
+    border-color: Theme.focus;
+    background: interaction.has-hover && enabled ? Theme.surface-raised : transparent;
     accessible-role: button;
     accessible-label: label + (selected ? ", selected" : "") + (enabled ? "" : ", unavailable");
     accessible-action-default => { if (root.enabled) { root.activated(); } }
@@ -177,6 +211,13 @@ export component SegmentTab inherits Rectangle {
         font-weight: selected ? Theme.weight-semibold : Theme.weight-medium;
         horizontal-alignment: center;
         vertical-alignment: center;
+    }
+    Rectangle {
+        x: Theme.space-2;
+        y: parent.height - Theme.border-width-strong;
+        width: parent.width - Theme.space-4;
+        height: Theme.border-width-strong;
+        background: selected ? Theme.ink : transparent;
     }
     interaction := FocusableClickArea { width: 100%; height: 100%; enabled: root.enabled; clicked => { root.activated(); } }
 }

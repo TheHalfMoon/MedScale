@@ -39,7 +39,7 @@ export global Theme {
     out property <color> nav-text: brand-white;
     out property <color> nav-subtle: #C2C2C2;
     out property <color> nav-hover: #191919;
-    out property <color> nav-selected: #303030;
+    out property <color> nav-selected: #262626;
 
     out property <color> ink: dark ? brand-white : brand-black;
     out property <color> ink-subtle: dark ? #C7C7C7 : #525252;
@@ -48,11 +48,11 @@ export global Theme {
     out property <color> border: dark ? #3D3D3D : #D7D7D7;
     out property <color> border-strong: dark ? #707070 : #8A8A8A;
     out property <color> canvas: dark ? #101010 : #F7F7F7;
-    out property <color> surface: dark ? #181818 : brand-white;
+    out property <color> surface: dark ? #191919 : brand-white;
     out property <color> surface-raised: dark ? #242424 : #F1F1F1;
     out property <color> surface-recessed: dark ? #121212 : #EDEDED;
-    out property <color> sidebar: dark ? #141414 : #FAFAFA;
-    out property <color> sidebar-selected: dark ? #303030 : #E7E7E7;
+    out property <color> sidebar: dark ? #080808 : #FAFAFA;
+    out property <color> sidebar-selected: dark ? #252525 : #EAEAEA;
     out property <color> selection-background: ink;
     out property <color> selection-foreground: surface;
     out property <color> focus: ink;
@@ -106,6 +106,7 @@ export global Theme {
     out property <length> section-gap: compact ? space-4 : space-6;
     out property <length> stack-gap: compact ? space-2 : space-3;
     out property <length> icon-size: 20px;
+    out property <length> navigation-width: compact ? 208px : 220px;
 
     // The foundation has no decorative elevation or motion. A future bounded
     // transition must explicitly opt in and respect reduced-motion.

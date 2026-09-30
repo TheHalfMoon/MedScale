@@ -4,7 +4,13 @@ import { CommandCenter } from "command-center.slint";
 import { AboutSlint, ScrollView } from "std-widgets.slint";
 import { Theme } from "theme.slint";
 export { Theme } from "theme.slint";
-import { AdaptiveLineEdit, HonestyPanel, NavItem, QuickAction, RailAction, SegmentTab, ToolbarAction, MetricCard, StatusPill } from "components.slint";
+import { AdaptiveLineEdit, CommandResult, HonestyPanel, NavItem, QuickAction, SegmentTab, ToolbarAction, MetricCard, StatusPill } from "components.slint";
+
+export struct NavigationResultItem {
+    id: string,
+    label: string,
+    description: string,
+}
 
 export struct PatientTimelineItem {
     date: string,
@@ -307,7 +313,12 @@ export component AppWindow inherits Window {
     default-font-size: 14px;
 
     in-out property <string> active-route: "Home";
+    in-out property <string> active-area: "Home";
+    in-out property <string> navigation-status: "";
     in-out property <bool> palette-open: false;
+    in-out property <string> palette-query: "";
+    in property <[NavigationResultItem]> palette-results;
+    changed palette-query => { root.palette-query-changed(root.palette-query); }
     in-out property <string> patient-tab: "Overview";
     in property <string> product-version: "0.1.0";
     in property <string> patient-name: "Synthetic subject";
@@ -457,6 +468,8 @@ export component AppWindow inherits Window {
     in-out property <string> privacy-boundary-input: "browse";
     in-out property <string> privacy-last-decision: "";
     callback ui-action(string);
+    callback navigate(string);
+    callback palette-query-changed(string);
 
     forward-focus: global-keys;
 
@@ -476,79 +489,8 @@ export component AppWindow inherits Window {
         HorizontalLayout {
             spacing: 0px;
 
-            rail := Rectangle {
-                width: 72px;
-                background: Theme.obsidian;
-
-                VerticalLayout {
-                    padding-left: 8px;
-                    padding-right: 8px;
-                    padding-top: 12px;
-                    padding-bottom: 12px;
-                    spacing: 7px;
-
-                    Rectangle {
-                        height: 46px;
-                        background: transparent;
-                        Image {
-                            source: @image-url("assets/medscale-mark-white.svg");
-                            width: 30px;
-                            height: 16.238px;
-                            image-fit: contain;
-                            x: (parent.width - self.width) / 2;
-                            y: (parent.height - self.height) / 2;
-                        }
-                    }
-
-                    RailAction {
-                        label: "Home";
-                        icon: @image-url("assets/icons/home.svg");
-                        selected: root.active-route == "Home";
-                        activated => { root.active-route = "Home"; }
-                    }
-                    RailAction {
-                        label: "Patients and documents";
-                        icon: @image-url("assets/icons/patients.svg");
-                        selected: root.active-route == "Patients" || root.active-route == "Documents";
-                        activated => { root.active-route = "Patients"; }
-                    }
-                    RailAction {
-                        label: "Intelligence";
-                        icon: @image-url("assets/icons/intelligence.svg");
-                        selected: root.active-route == "Insights" || root.active-route == "Models" || root.active-route == "Evidence";
-                        activated => { root.active-route = "Insights"; }
-                    }
-                    RailAction {
-                        label: "Operations";
-                        icon: @image-url("assets/icons/workflows.svg");
-                        selected: root.active-route == "Workflows" || root.active-route == "Tasks" || root.active-route == "Messages";
-                        activated => { root.active-route = "Workflows"; }
-                    }
-                    RailAction {
-                        label: "Governance";
-                        icon: @image-url("assets/icons/governance.svg");
-                        selected: root.active-route == "Audit Trail" || root.active-route == "Exports" || root.active-route == "Integrations";
-                        activated => { root.active-route = "Audit Trail"; }
-                    }
-
-                    Rectangle { vertical-stretch: 1; background: transparent; }
-
-                    RailAction {
-                        label: "Commands";
-                        icon: @image-url("assets/icons/commands.svg");
-                        activated => { root.palette-open = true; }
-                    }
-                    RailAction {
-                        label: "Settings";
-                        icon: @image-url("assets/icons/settings.svg");
-                        selected: root.active-route == "Settings" || root.active-route == "About";
-                        activated => { root.active-route = "Settings"; }
-                    }
-                }
-            }
-
             sidebar := Rectangle {
-                width: 204px;
+                width: Theme.navigation-width;
                 background: Theme.sidebar;
                 border-width: 0px;
 
@@ -560,10 +502,19 @@ export component AppWindow inherits Window {
                     spacing: 6px;
 
                     VerticalLayout {
-                        height: 51px;
-                        spacing: 1px;
-                        Text { text: "MedScale"; color: Theme.ink; font-size: 16px; font-weight: 680; letter-spacing: -0.2px; }
-                        Text { text: "CLINICAL INTELLIGENCE"; color: Theme.ink-quiet; font-size: 11px; letter-spacing: 1.05px; }
+                        height: 60px;
+                        spacing: Theme.space-1;
+                        HorizontalLayout {
+                            spacing: Theme.space-2;
+                            Image {
+                                source: Theme.dark ? @image-url("assets/medscale-mark-white.svg") : @image-url("assets/medscale-mark.svg");
+                                width: 30px;
+                                height: 24px;
+                                image-fit: contain;
+                            }
+                            Text { text: "MedScale"; color: Theme.ink; font-family: Theme.font-ui; font-size: 17px; font-weight: Theme.weight-semibold; letter-spacing: Theme.tracking-heading; }
+                        }
+                        Text { text: "LOCAL CLINICAL INTELLIGENCE"; color: Theme.ink-quiet; font-family: Theme.font-ui; font-size: Theme.type-micro; letter-spacing: Theme.tracking-label; }
                     }
 
                     ScrollView {
@@ -571,38 +522,38 @@ export component AppWindow inherits Window {
                         VerticalLayout {
                             spacing: 6px;
                     Text { text: "WORKSPACE"; color: Theme.ink-quiet; font-size: 11px; letter-spacing: 1.05px; }
-                    NavItem { label: "Home"; selected: root.active-route == "Home"; activated => { root.active-route = "Home"; } }
-                    NavItem { label: "Patients"; selected: root.active-route == "Patients"; activated => { root.active-route = "Patients"; } }
-                    NavItem { label: "Documents"; selected: root.active-route == "Documents"; activated => { root.active-route = "Documents"; } }
-                    NavItem { label: "Projects"; selected: root.active-route == "Projects"; activated => { root.active-route = "Projects"; } }
-                    NavItem { label: "Data"; selected: root.active-route == "Data"; activated => { root.active-route = "Data"; } }
+                    NavItem { label: "Home"; icon: Theme.dark ? @image-url("assets/icons-v2/dark/home.svg") : @image-url("assets/icons-v2/light/home.svg"); selected: root.active-route == "Home"; activated => { root.navigate("Home"); } }
+                    NavItem { label: "Patients"; icon: Theme.dark ? @image-url("assets/icons-v2/dark/patients.svg") : @image-url("assets/icons-v2/light/patients.svg"); selected: root.active-route == "Patients"; activated => { root.navigate("Patients"); } }
+                    NavItem { label: "Documents"; icon: Theme.dark ? @image-url("assets/icons-v2/dark/documents.svg") : @image-url("assets/icons-v2/light/documents.svg"); selected: root.active-route == "Documents"; activated => { root.navigate("Documents"); } }
+                    NavItem { label: "Projects"; icon: Theme.dark ? @image-url("assets/icons-v2/dark/projects.svg") : @image-url("assets/icons-v2/light/projects.svg"); selected: root.active-route == "Projects"; activated => { root.navigate("Projects"); } }
+                    NavItem { label: "Data"; icon: Theme.dark ? @image-url("assets/icons-v2/dark/data.svg") : @image-url("assets/icons-v2/light/data.svg"); selected: root.active-route == "Data"; activated => { root.navigate("Data"); } }
 
                     Rectangle { height: 4px; background: transparent; }
                     Text { text: "INTELLIGENCE"; color: Theme.ink-quiet; font-size: 11px; letter-spacing: 1.05px; }
-                    NavItem { label: "Insights"; selected: root.active-route == "Insights"; activated => { root.active-route = "Insights"; } }
-                    NavItem { label: "Models"; selected: root.active-route == "Models"; activated => { root.active-route = "Models"; } }
-                    NavItem { label: "Evidence"; selected: root.active-route == "Evidence"; activated => { root.active-route = "Evidence"; } }
+                    NavItem { label: "Insights"; icon: Theme.dark ? @image-url("assets/icons-v2/dark/insights.svg") : @image-url("assets/icons-v2/light/insights.svg"); selected: root.active-route == "Insights"; activated => { root.navigate("Insights"); } }
+                    NavItem { label: "Models"; icon: Theme.dark ? @image-url("assets/icons-v2/dark/models.svg") : @image-url("assets/icons-v2/light/models.svg"); selected: root.active-route == "Models"; activated => { root.navigate("Models"); } }
+                    NavItem { label: "Evidence"; icon: Theme.dark ? @image-url("assets/icons-v2/dark/evidence.svg") : @image-url("assets/icons-v2/light/evidence.svg"); selected: root.active-route == "Evidence"; activated => { root.navigate("Evidence"); } }
 
                     Rectangle { height: 4px; background: transparent; }
                     Text { text: "OPERATIONS"; color: Theme.ink-quiet; font-size: 11px; letter-spacing: 1.05px; }
-                    NavItem { label: "Workflows"; selected: root.active-route == "Workflows"; activated => { root.active-route = "Workflows"; } }
-                    NavItem { label: "Tasks"; selected: root.active-route == "Tasks"; activated => { root.active-route = "Tasks"; } }
-                    NavItem { label: "Messages"; selected: root.active-route == "Messages"; activated => { root.active-route = "Messages"; } }
-                    NavItem { label: "Collaboration"; selected: root.active-route == "Collaboration"; activated => { root.active-route = "Collaboration"; } }
-                    NavItem { label: "MedAgent"; selected: root.active-route == "MedAgent"; activated => { root.active-route = "MedAgent"; } }
-                    NavItem { label: "Model Fleet"; selected: root.active-route == "Model Fleet"; activated => { root.active-route = "Model Fleet"; } }
-                    NavItem { label: "Browse"; selected: root.active-route == "Browse"; activated => { root.active-route = "Browse"; } }
-                    NavItem { label: "Audio"; selected: root.active-route == "Audio"; activated => { root.active-route = "Audio"; } }
-                    NavItem { label: "Analytics"; selected: root.active-route == "Analytics"; activated => { root.active-route = "Analytics"; } }
-                    NavItem { label: "Knowledge"; selected: root.active-route == "Knowledge"; activated => { root.active-route = "Knowledge"; } }
-                    NavItem { label: "Research OS"; selected: root.active-route == "Research OS"; activated => { root.active-route = "Research OS"; } }
+                    NavItem { label: "Workflows"; icon: Theme.dark ? @image-url("assets/icons-v2/dark/workflows.svg") : @image-url("assets/icons-v2/light/workflows.svg"); selected: root.active-route == "Workflows"; activated => { root.navigate("Workflows"); } }
+                    NavItem { label: "Tasks"; icon: Theme.dark ? @image-url("assets/icons-v2/dark/workflows.svg") : @image-url("assets/icons-v2/light/workflows.svg"); selected: root.active-route == "Tasks"; activated => { root.navigate("Tasks"); } }
+                    NavItem { label: "Messages"; icon: Theme.dark ? @image-url("assets/icons-v2/dark/notes.svg") : @image-url("assets/icons-v2/light/notes.svg"); selected: root.active-route == "Messages"; activated => { root.navigate("Messages"); } }
+                    NavItem { label: "Collaboration"; icon: Theme.dark ? @image-url("assets/icons-v2/dark/workspace.svg") : @image-url("assets/icons-v2/light/workspace.svg"); selected: root.active-route == "Collaboration"; activated => { root.navigate("Collaboration"); } }
+                    NavItem { label: "MedAgent"; icon: Theme.dark ? @image-url("assets/icons-v2/dark/models.svg") : @image-url("assets/icons-v2/light/models.svg"); selected: root.active-route == "MedAgent"; activated => { root.navigate("MedAgent"); } }
+                    NavItem { label: "Model Fleet"; icon: Theme.dark ? @image-url("assets/icons-v2/dark/models.svg") : @image-url("assets/icons-v2/light/models.svg"); selected: root.active-route == "Model Fleet"; activated => { root.navigate("Model Fleet"); } }
+                    NavItem { label: "Browse"; icon: Theme.dark ? @image-url("assets/icons-v2/dark/search.svg") : @image-url("assets/icons-v2/light/search.svg"); selected: root.active-route == "Browse"; activated => { root.navigate("Browse"); } }
+                    NavItem { label: "Audio"; icon: Theme.dark ? @image-url("assets/icons-v2/dark/runtime.svg") : @image-url("assets/icons-v2/light/runtime.svg"); selected: root.active-route == "Audio"; activated => { root.navigate("Audio"); } }
+                    NavItem { label: "Analytics"; icon: Theme.dark ? @image-url("assets/icons-v2/dark/analytics.svg") : @image-url("assets/icons-v2/light/analytics.svg"); selected: root.active-route == "Analytics"; activated => { root.navigate("Analytics"); } }
+                    NavItem { label: "Knowledge"; icon: Theme.dark ? @image-url("assets/icons-v2/dark/research.svg") : @image-url("assets/icons-v2/light/research.svg"); selected: root.active-route == "Knowledge"; activated => { root.navigate("Knowledge"); } }
+                    NavItem { label: "Research OS"; icon: Theme.dark ? @image-url("assets/icons-v2/dark/research.svg") : @image-url("assets/icons-v2/light/research.svg"); selected: root.active-route == "Research OS"; activated => { root.navigate("Research OS"); } }
 
                     Rectangle { height: 4px; background: transparent; }
                     Text { text: "GOVERNANCE"; color: Theme.ink-quiet; font-size: 11px; letter-spacing: 1.05px; }
-                    NavItem { label: "Privacy"; selected: root.active-route == "Privacy"; activated => { root.active-route = "Privacy"; } }
-                    NavItem { label: "Audit Trail"; selected: root.active-route == "Audit Trail"; activated => { root.active-route = "Audit Trail"; } }
-                    NavItem { label: "Exports"; selected: root.active-route == "Exports"; activated => { root.active-route = "Exports"; } }
-                    NavItem { label: "Integrations"; selected: root.active-route == "Integrations"; activated => { root.active-route = "Integrations"; } }
+                    NavItem { label: "Privacy"; icon: Theme.dark ? @image-url("assets/icons-v2/dark/privacy.svg") : @image-url("assets/icons-v2/light/privacy.svg"); selected: root.active-route == "Privacy"; activated => { root.navigate("Privacy"); } }
+                    NavItem { label: "Audit Trail"; icon: Theme.dark ? @image-url("assets/icons-v2/dark/notes.svg") : @image-url("assets/icons-v2/light/notes.svg"); selected: root.active-route == "Audit Trail"; activated => { root.navigate("Audit Trail"); } }
+                    NavItem { label: "Exports"; icon: Theme.dark ? @image-url("assets/icons-v2/dark/documents.svg") : @image-url("assets/icons-v2/light/documents.svg"); selected: root.active-route == "Exports"; activated => { root.navigate("Exports"); } }
+                    NavItem { label: "Integrations"; icon: Theme.dark ? @image-url("assets/icons-v2/dark/workspace.svg") : @image-url("assets/icons-v2/light/workspace.svg"); selected: root.active-route == "Integrations"; activated => { root.navigate("Integrations"); } }
 
                         }
                     }
@@ -627,8 +578,9 @@ export component AppWindow inherits Window {
                         }
                     }
 
-                    NavItem { label: "Settings"; selected: root.active-route == "Settings"; activated => { root.active-route = "Settings"; } }
-                    NavItem { label: "About"; selected: root.active-route == "About"; activated => { root.active-route = "About"; } }
+                    NavItem { label: "Commands"; icon: Theme.dark ? @image-url("assets/icons-v2/dark/commands.svg") : @image-url("assets/icons-v2/light/commands.svg"); activated => { root.palette-open = true; } }
+                    NavItem { label: "Settings"; icon: Theme.dark ? @image-url("assets/icons-v2/dark/settings.svg") : @image-url("assets/icons-v2/light/settings.svg"); selected: root.active-route == "Settings"; activated => { root.navigate("Settings"); } }
+                    NavItem { label: "About"; icon: Theme.dark ? @image-url("assets/icons-v2/dark/about.svg") : @image-url("assets/icons-v2/light/about.svg"); selected: root.active-route == "About"; activated => { root.navigate("About"); } }
                 }
             }
 
@@ -653,7 +605,7 @@ export component AppWindow inherits Window {
                             horizontal-stretch: 1;
                             background: transparent;
                             Text {
-                                text: "SYNTHETIC WORKSPACE";
+                                text: root.navigation-status == "" ? "SYNTHETIC WORKSPACE  /  " + root.active-area : root.navigation-status;
                                 color: Theme.ink-quiet;
                                 font-family: Theme.font-ui;
                                 font-size: Theme.type-caption;
@@ -662,7 +614,7 @@ export component AppWindow inherits Window {
                                 vertical-alignment: center;
                             }
                         }
-                        ToolbarAction { label: "Patients"; activated => { root.active-route = "Patients"; } }
+                        ToolbarAction { label: "Patients"; activated => { root.navigate("Patients"); } }
 
                         Rectangle {
                             width: 156px;
@@ -685,14 +637,6 @@ export component AppWindow inherits Window {
 
                         ToolbarAction { label: "Commands"; activated => { root.palette-open = true; } }
 
-                        Rectangle {
-                            width: 40px;
-                            border-radius: 20px;
-                            background: Theme.surface-raised;
-                            border-width: 1px;
-                            border-color: Theme.border;
-                            Text { text: "MS"; color: Theme.ink-subtle; font-size: 11px; font-weight: 700; horizontal-alignment: center; }
-                        }
                     }
                 }
 
@@ -2386,8 +2330,8 @@ export component AppWindow inherits Window {
                                     spacing: 12px;
                                     HonestyPanel { title: "Authority boundary"; body: root.workflow-action-boundary; accent: Theme.success; }
                                     HonestyPanel { title: "Task semantics"; body: root.workflow-task-boundary; accent: Theme.signal; }
-                                    QuickAction { title: "Open review tasks"; subtitle: "Derived from durable outbox state"; glyph: "✓"; accent: Theme.signal; activated => { root.active-route = "Tasks"; } }
-                                    QuickAction { title: "Open message previews"; subtitle: "No external send from this UI"; glyph: "✉"; accent: Theme.success; activated => { root.active-route = "Messages"; } }
+                                    QuickAction { title: "Open review tasks"; subtitle: "Derived from durable outbox state"; glyph: "✓"; accent: Theme.signal; activated => { root.navigate("Tasks"); } }
+                                    QuickAction { title: "Open message previews"; subtitle: "No external send from this UI"; glyph: "✉"; accent: Theme.success; activated => { root.navigate("Messages"); } }
                                 }
                             }
                         }
@@ -2647,7 +2591,7 @@ export component AppWindow inherits Window {
                                     Text { text: "Current trusted posture is intentionally narrow. A file may be admitted to local custody without becoming a clinical fact or an understood document."; color: Theme.ink-subtle; font-size: 12px; wrap: word-wrap; }
                                     HonestyPanel { title: "Understanding"; body: "OCR/ASR remain bounded stubs unless separately qualified. No document-derived clinical interpretation is claimed."; accent: Theme.warning; }
                                     HonestyPanel { title: "Authority"; body: "Source custody, extraction evidence, and clinical authority remain separate. Review is required before any consequential use."; accent: Theme.success; }
-                                    QuickAction { title: "Open patient documents"; subtitle: "View the current synthetic subject boundary"; glyph: "→"; accent: Theme.signal; activated => { root.patient-tab = "Documents"; root.active-route = "Patients"; } }
+                                    QuickAction { title: "Open patient documents"; subtitle: "View the current synthetic subject boundary"; glyph: "→"; accent: Theme.signal; activated => { root.patient-tab = "Documents"; root.navigate("Patients"); } }
                                 }
                             }
                         }
@@ -2659,7 +2603,7 @@ export component AppWindow inherits Window {
                             coverage-summary: root.patient-coverage-summary;
                             source-count: root.patient-sources.length;
                             model-runtime-summary: root.model-runtime-summary;
-                            navigate(route) => { root.active-route = route; }
+                            navigate(route) => { root.navigate(route); }
                         }
                     }
                 }
@@ -2685,11 +2629,26 @@ export component AppWindow inherits Window {
         VerticalLayout {
             padding: 16px;
             spacing: 8px;
-            Text { text: "Command palette"; color: Theme.ink; font-size: 16px; font-weight: 700; }
-            palette-search := AdaptiveLineEdit { placeholder: "Search commands…"; accessible-name: "Command palette search"; }
-            QuickAction { title: "Go to Patients"; subtitle: "Open patient workspace"; glyph: ""; accent: Theme.signal; activated => { root.active-route = "Patients"; root.palette-open = false; } }
-            QuickAction { title: "Open Models"; subtitle: "Inspect local model/runtime truth"; glyph: ""; accent: Theme.signal; activated => { root.active-route = "Models"; root.palette-open = false; } }
-            QuickAction { title: "Open Evidence"; subtitle: "MedScale × OpenMed proof ledger"; glyph: ""; accent: Theme.signal; activated => { root.active-route = "Evidence"; root.palette-open = false; } }
+            Text { text: "Go to route"; color: Theme.ink; font-family: Theme.font-ui; font-size: Theme.type-subsection; font-weight: Theme.weight-semibold; }
+            palette-search := AdaptiveLineEdit { text <=> root.palette-query; placeholder: "Find a route"; accessible-name: "Find a route"; }
+            ScrollView {
+                vertical-stretch: 1;
+                VerticalLayout {
+                    spacing: Theme.space-1;
+                    for result in root.palette-results: CommandResult {
+                        title: result.label;
+                        description: result.description;
+                        activated => { root.navigate(result.id); root.palette-open = false; }
+                    }
+                    if root.palette-results.length == 0: Text {
+                        text: "No matching route. Try a route name or topic.";
+                        color: Theme.ink-subtle;
+                        font-family: Theme.font-ui;
+                        font-size: Theme.type-body;
+                        wrap: word-wrap;
+                    }
+                }
+            }
         }
     }
 }
