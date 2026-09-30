@@ -21,16 +21,13 @@ MedScale turns trusted longitudinal health data into understandable, source-awar
 7. Synthetic/permitted fixtures only until REAL_PHI authorization is explicitly granted.
 
 ## Experience target
-The product should feel like a top-tier clinical operating system: precise, quiet, premium, fast, inspectable, and unmistakably MedScale. The prior blurple/multicolor direction was explicitly rejected and is not product authority. The current direction uses the MedScale Signal identity: obsidian/graphite structure, ice-white work surfaces, one signal-blue product accent, semantic state colors only, strong typography hierarchy, and evidence-rich information density without generic AI-dashboard decoration.
+The product should feel like a precise, quiet, premium, inspectable clinical intelligence workspace. The founder-approved paired-M board and `docs/planning/PRODUCTIZATION_PROGRAM.md` supersede the older MedScale Signal visuals. Current identity uses black and white, layered neutral light/dark surfaces, Inter and JetBrains Mono NL, compact information density, and visible evidence boundaries. Focus and selection stay monochrome; any functional state accent is supplemental and never becomes the brand. The approved black Patients panel is the dark-mode visual north star, and the light board is the equal-quality light-mode reference.
 
 Models are a first-class product concept. Users must be able to see what model is installed/admitted, where it came from, what task it serves, what runtime/device executes it, its provenance/trust state, benchmark state, and promotion/rollback state. Hugging Face may be a governed model source, but never becomes an authority plane.
 
 Competitive evidence is also a first-class product concept. The product may show where MedScale has a proven advantage over OpenMed and must equally show where OpenMed remains ahead. “MedScale beats OpenMed” is forbidden unless the exact capability has a bound comparative result.
 
-## Experience target
-MedScale is a **Clinical Intelligence OS** with the brand promise **Evidence-native clinical intelligence** and operating line **Evidence first. Action second.** The product should feel precise, calm, premium, fast, and inspectable. The current identity is MedScale Signal: monochrome-first, graphite/obsidian shell, ice/paper work surfaces, one primary signal-blue product accent, Geist typography, and a workspace-first composition. The previous Cohere-adjacent multicolor direction is superseded and must not return.
-
-Canonical identity rules live under `docs/brand/`. Product surfaces must follow `The work is the interface`: clinical context and evidence come before dashboards, decorative AI chrome, or product metrics.
+MedScale is a **Clinical Intelligence OS** guided by **Evidence first. Action second.** The work is the interface: clinical context and evidence precede decorative chrome or product metrics. The approved logo construction, type and neutral system live under `docs/brand/` and `DESIGN.md`; route and review truth live in the current Spec 095–100 program. An existing local workspace or vault capability is not user sign-in authority.
 
 ## User jobs
 Desktop and CLI must ultimately cover the same trusted product capabilities: status/privacy inspection, vault/open lifecycle, ingest/import, patient/subject search, longitudinal timeline, brief/summary, coverage, documents/labs, evidence/insights, care-plan workflows, tasks/messages where authorized, audit, exports, backup/recovery, integrations, packs, model/runtime inspection, comparative evidence, and operator diagnostics.
@@ -46,5 +43,5 @@ Desktop and CLI must ultimately cover the same trusted product capabilities: sta
 ## Success definition
 The Desktop and CLI should feel like two expressions of one product: same data semantics, same authority rules, same vocabulary, same privacy posture, and equivalent power appropriate to each interaction model.
 
-## Product differentiation sequence (2026-09-15)
-Specs 068–072 are freshly promoted after the founder rejected the prior UI/product positioning. The sequence rebuilds identity and information architecture, admits a real bounded local model runtime and governed Hugging Face pack path, productizes Model Center and OpenMed Evidence Center, and then requalifies the resulting release candidate. Until this sequence closes, `MEDSCALE_IMPLEMENTATION_COMPLETE=false` is the honest state.
+## Current productization sequence
+Specs 068–094 are closed in their bounded historical scope. Specs 095–100 own the current founder-authorized identity and Desktop productization sequence. Spec 095 is not canonically closed while required zero-cost review remains blocked; Spec 096 implementation remains isolated and unqualified. `RELEASE_READY=false`, `PRIVATE_DATA_READY=false`, and `MULTI_CLIENT_RELEASE_READY=false`.
