@@ -292,14 +292,14 @@ fn cargo_lock_sha256() -> String {
 fn cpu_note() -> String {
     #[cfg(windows)]
     {
-        return std::env::var("PROCESSOR_IDENTIFIER")
+        std::env::var("PROCESSOR_IDENTIFIER")
             .or_else(|_| std::env::var("PROCESSOR_ARCHITECTURE"))
-            .unwrap_or_else(|_| "cpu-unknown".to_owned());
+            .unwrap_or_else(|_| "cpu-unknown".to_owned())
     }
     #[cfg(target_os = "macos")]
     {
-        return command_output("sysctl", &["-n", "machdep.cpu.brand_string"])
-            .unwrap_or_else(|| format!("arch={}", std::env::consts::ARCH));
+        command_output("sysctl", &["-n", "machdep.cpu.brand_string"])
+            .unwrap_or_else(|| format!("arch={}", std::env::consts::ARCH))
     }
     #[cfg(all(unix, not(target_os = "macos")))]
     {
