@@ -16,7 +16,7 @@ component FocusableClickArea {
         enabled: root.enabled;
         width: 0px;
         key-pressed(event) => {
-            if (event.text == " " || event.text == "\n") {
+            if (root.enabled && (event.text == " " || event.text == "\n")) {
                 root.clicked();
                 return accept;
             }
@@ -25,32 +25,32 @@ component FocusableClickArea {
     }
 }
 
-
 export component SearchField inherits Rectangle {
     in property <string> placeholder;
     in property <string> accessible-name: "Search";
     callback accepted(string);
 
-    height: 40px;
+    height: Theme.control-height;
     border-radius: Theme.radius-control;
-    border-width: input.has-focus ? Theme.focus-width : 1px;
-    border-color: input.has-focus ? Theme.signal : Theme.border;
-    background: Theme.surface-raised;
+    border-width: input.has-focus ? Theme.focus-width : Theme.border-width;
+    border-color: input.has-focus ? Theme.focus : Theme.border-strong;
+    background: Theme.surface;
     forward-focus: input;
 
     HorizontalLayout {
-        padding-left: 12px;
-        padding-right: 12px;
-        spacing: 0px;
+        padding-left: Theme.control-padding;
+        padding-right: Theme.control-padding;
+        spacing: Theme.space-0;
         Rectangle {
             horizontal-stretch: 1;
             background: transparent;
-            placeholder-text := Text {
+            Text {
                 width: parent.width;
                 height: parent.height;
                 text: input.text == "" ? root.placeholder : "";
                 color: Theme.ink-quiet;
-                font-size: 12px;
+                font-family: Theme.font-ui;
+                font-size: Theme.type-control;
                 vertical-alignment: center;
                 accessible-role: none;
             }
@@ -59,10 +59,10 @@ export component SearchField inherits Rectangle {
                 height: parent.height;
                 single-line: true;
                 color: Theme.ink;
-                font-family: "Instrument Sans";
-                font-size: 12px;
-                selection-background-color: Theme.signal;
-                selection-foreground-color: Theme.surface;
+                font-family: Theme.font-ui;
+                font-size: Theme.type-control;
+                selection-background-color: Theme.selection-background;
+                selection-foreground-color: Theme.selection-foreground;
                 accessible-role: text-input;
                 accessible-label: root.accessible-name;
                 accepted => { root.accepted(self.text); }
@@ -75,75 +75,77 @@ export component RailAction inherits Rectangle {
     in property <string> label;
     in property <image> icon;
     in property <bool> selected: false;
+    in property <bool> enabled: true;
     callback activated();
 
     forward-focus: interaction;
-    width: 42px;
-    height: 42px;
+    width: Theme.rail-target;
+    height: Theme.rail-target;
     border-radius: Theme.radius-compact;
     border-width: interaction.has-focus ? Theme.focus-width : 0px;
-    border-color: Theme.signal-glow;
-    background: selected ? #FFFFFF18 : interaction.has-hover ? #FFFFFF0D : transparent;
+    border-color: Theme.focus-on-dark;
+    background: selected ? Theme.nav-selected : interaction.has-hover && enabled ? Theme.nav-hover : transparent;
     accessible-role: button;
-    accessible-label: label + (selected ? ", selected section" : "");
-    accessible-action-default => { root.activated(); }
+    accessible-label: label + (selected ? ", selected section" : "") + (enabled ? "" : ", unavailable");
+    accessible-action-default => { if (root.enabled) { root.activated(); } }
 
     Rectangle {
         x: 0px;
-        y: 9px;
-        width: selected ? 2px : 0px;
-        height: 24px;
-        border-radius: 1px;
+        y: (parent.height - self.height) / 2;
+        width: selected ? Theme.border-width-strong : 0px;
+        height: Theme.space-6;
         background: Theme.nav-text;
     }
     Image {
         source: icon;
-        width: 20px;
-        height: 20px;
+        width: Theme.icon-size;
+        height: Theme.icon-size;
         x: (parent.width - self.width) / 2;
         y: (parent.height - self.height) / 2;
         image-fit: contain;
+        opacity: root.enabled ? 1 : 0.5;
     }
-    interaction := FocusableClickArea { width: 100%; height: 100%; clicked => { root.activated(); } }
+    interaction := FocusableClickArea { width: 100%; height: 100%; enabled: root.enabled; clicked => { root.activated(); } }
 }
 
 export component NavItem inherits Rectangle {
     in property <string> label;
     in property <string> glyph;
     in property <bool> selected: false;
+    in property <bool> enabled: true;
     callback activated();
 
     forward-focus: interaction;
-    height: 32px;
+    height: Theme.row-height;
     border-radius: Theme.radius-control;
     border-width: interaction.has-focus ? Theme.focus-width : 0px;
-    border-color: Theme.signal;
-    background: selected ? Theme.sidebar-selected : interaction.has-hover ? Theme.surface-raised : transparent;
+    border-color: Theme.focus;
+    background: selected ? Theme.sidebar-selected : interaction.has-hover && enabled ? Theme.surface-raised : transparent;
     accessible-role: button;
-    accessible-label: label + (selected ? ", selected" : "");
-    accessible-action-default => { root.activated(); }
+    accessible-label: label + (selected ? ", selected" : "") + (enabled ? "" : ", unavailable");
+    accessible-action-default => { if (root.enabled) { root.activated(); } }
 
     HorizontalLayout {
-        padding-left: 9px;
-        padding-right: 9px;
-        spacing: 9px;
+        padding-left: Theme.row-padding;
+        padding-right: Theme.row-padding;
+        spacing: Theme.space-2;
         alignment: start;
         Rectangle {
-            width: selected ? 2px : 1px;
-            height: selected ? 16px : 8px;
-            border-radius: 1px;
-            background: selected ? Theme.signal-strong : Theme.border-strong;
+            width: selected ? Theme.border-width-strong : Theme.border-width;
+            height: selected ? Theme.space-4 : Theme.space-2;
+            background: selected ? Theme.ink : Theme.border-strong;
         }
         Text {
             text: label;
-            color: selected ? Theme.ink : Theme.ink-subtle;
-            font-size: 12px;
-            font-weight: selected ? 650 : 520;
+            color: !root.enabled ? Theme.ink-disabled : selected ? Theme.ink : Theme.ink-subtle;
+            font-family: Theme.font-ui;
+            font-size: Theme.type-row;
+            font-weight: selected ? Theme.weight-semibold : Theme.weight-medium;
         }
     }
 
     interaction := FocusableClickArea {
-        width: 100%; height: 100%;
+        width: 100%; height: 100%; enabled: root.enabled;
         clicked => { root.activated(); }
     }
 }
@@ -151,50 +153,55 @@ export component NavItem inherits Rectangle {
 export component SegmentTab inherits Rectangle {
     in property <string> label;
     in property <bool> selected: false;
+    in property <bool> enabled: true;
     callback activated();
 
     forward-focus: interaction;
-    height: 33px;
+    height: Theme.control-height-small;
     min-width: 92px;
     border-radius: Theme.radius-control;
-    border-width: interaction.has-focus ? Theme.focus-width : 1px;
-    border-color: interaction.has-focus ? Theme.signal : selected ? Theme.border-strong : Theme.border;
-    background: selected ? Theme.sidebar-selected : interaction.has-hover ? Theme.surface-raised : Theme.surface;
+    border-width: interaction.has-focus ? Theme.focus-width : Theme.border-width;
+    border-color: interaction.has-focus ? Theme.focus : selected ? Theme.border-strong : Theme.border;
+    background: selected ? Theme.sidebar-selected : interaction.has-hover && enabled ? Theme.surface-raised : Theme.surface;
     accessible-role: button;
-    accessible-label: label + (selected ? ", selected" : "");
-    accessible-action-default => { root.activated(); }
+    accessible-label: label + (selected ? ", selected" : "") + (enabled ? "" : ", unavailable");
+    accessible-action-default => { if (root.enabled) { root.activated(); } }
 
     Text {
+        width: parent.width;
+        height: parent.height;
         text: label;
-        color: selected ? Theme.ink : Theme.ink-subtle;
-        font-size: 11px;
-        font-weight: selected ? 650 : 520;
+        color: !root.enabled ? Theme.ink-disabled : selected ? Theme.ink : Theme.ink-subtle;
+        font-family: Theme.font-ui;
+        font-size: Theme.type-control;
+        font-weight: selected ? Theme.weight-semibold : Theme.weight-medium;
         horizontal-alignment: center;
+        vertical-alignment: center;
     }
-    interaction := FocusableClickArea { width: 100%; height: 100%; clicked => { root.activated(); } }
+    interaction := FocusableClickArea { width: 100%; height: 100%; enabled: root.enabled; clicked => { root.activated(); } }
 }
 
 export component HonestyPanel inherits Rectangle {
     in property <string> title;
     in property <string> body;
-    in property <color> accent: Theme.warning;
+    in property <color> accent: Theme.ink;
 
     min-height: 112px;
     border-radius: Theme.radius-panel;
-    border-width: 1px;
+    border-width: Theme.border-width;
     border-color: Theme.border;
     background: Theme.surface;
     accessible-role: groupbox;
     accessible-label: title + ". " + body;
 
     HorizontalLayout {
-        padding: 15px;
-        spacing: 12px;
-        Rectangle { width: 6px; height: 6px; border-radius: 3px; background: accent; }
+        padding: Theme.space-4;
+        spacing: Theme.space-3;
+        Rectangle { width: Theme.border-width-strong; background: accent; }
         VerticalLayout {
-            spacing: 5px;
-            Text { text: title; color: Theme.ink; font-size: 12px; font-weight: 650; }
-            Text { text: body; color: Theme.ink-subtle; font-family: "Source Serif 4"; font-size: 12px; wrap: word-wrap; }
+            spacing: Theme.space-1;
+            Text { text: title; color: Theme.ink; font-family: Theme.font-ui; font-size: Theme.type-subsection; font-weight: Theme.weight-semibold; }
+            Text { text: body; color: Theme.ink-subtle; font-family: Theme.font-ui; font-size: Theme.type-body; wrap: word-wrap; }
         }
     }
 }
@@ -203,63 +210,64 @@ export component QuickAction inherits Rectangle {
     in property <string> title;
     in property <string> subtitle;
     in property <string> glyph;
-    in property <color> accent: Theme.signal;
+    in property <color> accent: Theme.ink;
+    in property <bool> enabled: true;
     callback activated();
 
     forward-focus: interaction;
     min-width: 170px;
-    height: 70px;
-    border-radius: Theme.radius-compact;
-    border-width: interaction.has-focus ? Theme.focus-width : 1px;
-    border-color: interaction.has-focus ? Theme.signal : Theme.border;
-    background: interaction.has-hover ? Theme.surface-raised : Theme.surface;
+    height: Theme.action-height;
+    border-radius: Theme.radius-control;
+    border-width: interaction.has-focus ? Theme.focus-width : Theme.border-width;
+    border-color: interaction.has-focus ? Theme.focus : Theme.border;
+    background: interaction.has-hover && enabled ? Theme.surface-raised : Theme.surface;
     accessible-role: button;
-    accessible-label: title + ". " + subtitle;
-    accessible-action-default => { root.activated(); }
+    accessible-label: title + ". " + subtitle + (enabled ? "" : ". Unavailable");
+    accessible-action-default => { if (root.enabled) { root.activated(); } }
 
     HorizontalLayout {
-        padding: 13px;
-        spacing: 11px;
-        Rectangle {
-            width: 6px;
-            height: 6px;
-            border-radius: 3px;
-            background: accent;
-        }
+        padding: Theme.control-padding;
+        spacing: Theme.space-3;
+        Rectangle { width: Theme.border-width-strong; background: accent; }
         VerticalLayout {
-            spacing: 3px;
+            spacing: Theme.space-1;
             alignment: center;
-            Text { text: title; color: Theme.ink; font-size: 12px; font-weight: 650; }
-            Text { text: subtitle; color: Theme.ink-subtle; font-size: 11px; }
+            Text { text: title; color: root.enabled ? Theme.ink : Theme.ink-disabled; font-family: Theme.font-ui; font-size: Theme.type-control; font-weight: Theme.weight-semibold; }
+            Text { text: subtitle; color: Theme.ink-subtle; font-family: Theme.font-ui; font-size: Theme.type-caption; wrap: word-wrap; }
         }
     }
-    interaction := FocusableClickArea { width: 100%; height: 100%; clicked => { root.activated(); } }
+    interaction := FocusableClickArea { width: 100%; height: 100%; enabled: root.enabled; clicked => { root.activated(); } }
 }
 
 export component ToolbarAction inherits Rectangle {
     in property <string> label;
     in property <string> glyph: "";
+    in property <bool> enabled: true;
     callback activated();
 
     forward-focus: interaction;
-    height: 38px;
+    height: Theme.control-height;
     min-width: 108px;
     border-radius: Theme.radius-control;
-    border-width: interaction.has-focus ? Theme.focus-width : 1px;
-    border-color: interaction.has-focus ? Theme.signal : Theme.border;
-    background: interaction.has-hover ? Theme.surface-raised : Theme.surface;
+    border-width: interaction.has-focus ? Theme.focus-width : Theme.border-width;
+    border-color: interaction.has-focus ? Theme.focus : Theme.border;
+    background: interaction.has-hover && enabled ? Theme.surface-raised : Theme.surface;
     accessible-role: button;
-    accessible-label: label;
-    accessible-action-default => { root.activated(); }
+    accessible-label: label + (enabled ? "" : ", unavailable");
+    accessible-action-default => { if (root.enabled) { root.activated(); } }
 
     Text {
+        width: parent.width;
+        height: parent.height;
         text: label;
-        color: Theme.ink;
-        font-size: 11px;
-        font-weight: 650;
+        color: root.enabled ? Theme.ink : Theme.ink-disabled;
+        font-family: Theme.font-ui;
+        font-size: Theme.type-control;
+        font-weight: Theme.weight-medium;
         horizontal-alignment: center;
+        vertical-alignment: center;
     }
-    interaction := FocusableClickArea { width: 100%; height: 100%; clicked => { root.activated(); } }
+    interaction := FocusableClickArea { width: 100%; height: 100%; enabled: root.enabled; clicked => { root.activated(); } }
 }
 
 export component MetricCard inherits Rectangle {
@@ -267,11 +275,11 @@ export component MetricCard inherits Rectangle {
     in property <string> value;
     in property <string> delta;
     in property <string> glyph;
-    in property <color> accent: Theme.signal;
+    in property <color> accent: Theme.ink;
 
     min-width: 170px;
     height: 94px;
-    border-radius: 0px;
+    border-radius: Theme.radius-none;
     border-width: 0px;
     border-color: transparent;
     background: transparent;
@@ -279,37 +287,65 @@ export component MetricCard inherits Rectangle {
     accessible-label: label + ": " + value + ". " + delta;
 
     VerticalLayout {
-        padding: 13px;
-        spacing: 4px;
-        Text { text: label; color: Theme.ink-subtle; font-size: 11px; }
-        Text { text: value; color: Theme.ink; font-size: 21px; font-weight: 680; }
+        padding: Theme.space-3;
+        spacing: Theme.space-1;
+        Text { text: label; color: Theme.ink-subtle; font-family: Theme.font-ui; font-size: Theme.type-caption; }
+        Text { text: value; color: Theme.ink; font-family: Theme.font-ui; font-size: Theme.type-section; font-weight: Theme.weight-semibold; }
         HorizontalLayout {
-            spacing: 6px;
-            Rectangle { width: 12px; height: 2px; border-radius: 1px; background: accent; }
-            Text { text: delta; color: Theme.ink-quiet; font-size: 11px; font-weight: 520; }
+            spacing: Theme.space-2;
+            Rectangle { width: Theme.space-3; height: Theme.border-width-strong; background: accent; }
+            Text { text: delta; color: Theme.ink-quiet; font-family: Theme.font-ui; font-size: Theme.type-caption; font-weight: Theme.weight-medium; }
         }
     }
 }
 
-export component StatusPill inherits Rectangle {
-    in property <string> label;
-    in property <color> accent: Theme.success;
+export component StateBadge inherits Rectangle {
+    in property <string> label: "";
+    in property <string> state: "unknown";
+    in property <color> accent: state == "conflicting" || state == "denied" || state == "corrupt" ? Theme.danger : state == "unknown" || state == "stale" || state == "partial" || state == "unmeasured" ? Theme.warning : Theme.ink;
     in property <color> text-color: Theme.ink;
-    height: 24px;
+    out property <string> state-label: state == "current" ? "Current" : state == "reviewed" ? "Reviewed" : state == "unknown" ? "Unknown" : state == "stale" ? "Stale" : state == "conflicting" ? "Conflicting" : state == "partial" ? "Partial" : state == "denied" ? "Denied" : state == "unavailable" ? "Unavailable" : state == "unsupported" ? "Unsupported" : state == "unmeasured" ? "Unmeasured" : state == "corrupt" ? "Corrupt" : "Unknown";
+    // Unique ASCII markers remain legible without color or symbol fallback.
+    out property <string> state-marker: state == "current" ? "=" : state == "reviewed" ? "+" : state == "unknown" ? "?" : state == "stale" ? "~" : state == "conflicting" ? "!" : state == "partial" ? "%" : state == "denied" ? "x" : state == "unavailable" ? "-" : state == "unsupported" ? "/" : state == "unmeasured" ? ":" : state == "corrupt" ? "#" : "?";
+    out property <string> display-label: state == "" ? (label == "" ? "Unknown" : label) : label == "" || label == state-label ? state-label : state-label + " · " + label;
+
+    height: Theme.badge-height;
     min-width: 78px;
-    border-radius: Theme.radius-control;
-    border-width: 1px;
-    border-color: accent.with-alpha(0.42);
-    background: accent.with-alpha(0.08);
+    border-radius: Theme.radius-badge;
+    border-width: Theme.border-width;
+    border-color: Theme.border-strong;
+    background: Theme.surface-raised;
     accessible-role: text;
-    accessible-label: label;
-    Text {
-        text: label;
-        color: root.text-color;
-        font-size: 11px;
-        font-weight: 650;
-        horizontal-alignment: center;
+    accessible-label: root.display-label;
+
+    HorizontalLayout {
+        padding-left: Theme.space-2;
+        padding-right: Theme.space-2;
+        spacing: Theme.space-1;
+        alignment: start;
+        if root.state != "": Text {
+            text: "[" + root.state-marker + "]";
+            color: root.accent;
+            font-family: Theme.font-mono;
+            font-size: Theme.type-code;
+            font-weight: Theme.weight-regular;
+            accessible-role: none;
+        }
+        Text {
+            text: root.display-label;
+            color: root.text-color;
+            font-family: Theme.font-ui;
+            font-size: Theme.type-caption;
+            font-weight: Theme.weight-medium;
+        }
     }
+}
+
+// Existing route labels remain usable without being inferred as success.
+// Supplying a state opts into StateBadge's literal name and distinct marker.
+export component StatusPill inherits StateBadge {
+    state: "";
+    accent: Theme.ink;
 }
 
 export component AdaptiveLineEdit inherits Rectangle {
@@ -318,36 +354,37 @@ export component AdaptiveLineEdit inherits Rectangle {
     in property <string> accessible-name: "Text input";
     callback accepted(string);
 
-    height: 36px;
+    height: Theme.control-height-small;
     border-radius: Theme.radius-control;
-    border-width: input.has-focus ? Theme.focus-width : 1px;
-    border-color: input.has-focus ? Theme.signal : Theme.border;
-    background: Theme.surface-raised;
+    border-width: input.has-focus ? Theme.focus-width : Theme.border-width;
+    border-color: input.has-focus ? Theme.focus : Theme.border-strong;
+    background: Theme.surface;
     forward-focus: input;
 
     Text {
-        x: 11px;
+        x: Theme.control-padding;
         y: 0px;
-        width: parent.width - 22px;
+        width: parent.width - 2 * Theme.control-padding;
         height: parent.height;
         text: input.text == "" ? root.placeholder : "";
         color: Theme.ink-quiet;
-        font-size: 11px;
+        font-family: Theme.font-ui;
+        font-size: Theme.type-control;
         vertical-alignment: center;
         accessible-role: none;
     }
     input := TextInput {
-        x: 11px;
+        x: Theme.control-padding;
         y: 0px;
-        width: parent.width - 22px;
+        width: parent.width - 2 * Theme.control-padding;
         height: parent.height;
         text <=> root.text;
         single-line: true;
         color: Theme.ink;
-        font-family: "Instrument Sans";
-        font-size: 12px;
-        selection-background-color: Theme.signal;
-        selection-foreground-color: Theme.surface;
+        font-family: Theme.font-ui;
+        font-size: Theme.type-control;
+        selection-background-color: Theme.selection-background;
+        selection-foreground-color: Theme.selection-foreground;
         accessible-role: text-input;
         accessible-label: root.accessible-name;
         accepted => { root.accepted(self.text); }

@@ -38,7 +38,13 @@ fn final_native_surface_inventory_has_no_future_placeholder_or_risk_claim() {
     }
     assert!(!ui.contains("This surface is scheduled in a later Desktop slice."));
     assert!(!ui.contains("High risk"));
-    assert!(ui.contains("Synthetic Subject A"));
+    let home =
+        std::fs::read_to_string(root.join("crates/medscale-desktop/ui/command-center.slint"))
+            .expect("Command Center");
+    assert!(ui.contains("if root.active-route == \"Home\": CommandCenter"));
+    assert!(ui.contains("patient-name: root.patient-name"));
+    assert!(home.contains("Synthetic demo"));
+    assert!(home.contains("not a clinical risk ranking"));
     assert!(ui.contains("Documents — bounded intake"));
 }
 

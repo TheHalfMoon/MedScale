@@ -55,8 +55,14 @@ fn home_demo_does_not_invent_clinical_risk_or_real_roster() {
             "real-looking demo name remains: {real_like}"
         );
     }
-    assert!(ui.contains("not a clinical risk ranking"));
-    assert!(ui.contains("Review before anything consequential"));
+    let home =
+        std::fs::read_to_string(root.join("crates/medscale-desktop/ui/command-center.slint"))
+            .expect("Command Center");
+    assert!(home.contains("Synthetic demo"));
+    assert!(home.contains("not a clinical risk ranking"));
+    assert!(home.contains("Review before anything consequential"));
+    assert!(home.contains("root.patient-name"));
+    assert!(home.contains("root.coverage-summary"));
 }
 
 #[test]
@@ -109,6 +115,37 @@ fn contrast_ratio(foreground: [u8; 3], background: [u8; 3]) -> f64 {
     (lighter + 0.05) / (darker + 0.05)
 }
 
+fn theme_color(theme: &str, token: &str, dark: bool) -> [u8; 3] {
+    fn resolve(theme: &str, token: &str, dark: bool, depth: usize) -> [u8; 3] {
+        assert!(depth < 12, "cyclic or excessive color aliases: {token}");
+        let prefix = format!("out property <color> {token}:");
+        let expression = theme
+            .lines()
+            .find_map(|line| line.trim().strip_prefix(&prefix))
+            .unwrap_or_else(|| panic!("missing active color token: {token}"))
+            .split(';')
+            .next()
+            .expect("color expression")
+            .trim();
+        let selected = if let Some(adaptive) = expression.strip_prefix("dark ?") {
+            let (dark_value, light_value) = adaptive.split_once(':').expect("adaptive color pair");
+            let value = if dark { dark_value } else { light_value };
+            value.trim()
+        } else {
+            expression
+        };
+        if let Some(hex) = selected.strip_prefix('#') {
+            assert_eq!(hex.len(), 6, "contrast requires opaque RGB: {token}");
+            std::array::from_fn(|index| {
+                u8::from_str_radix(&hex[index * 2..index * 2 + 2], 16).expect("RGB channel")
+            })
+        } else {
+            resolve(theme, selected, dark, depth + 1)
+        }
+    }
+    resolve(theme, token, dark, 0)
+}
+
 #[test]
 fn primary_text_tokens_keep_engineering_contrast_floor_without_wcag_claim() {
     let root = repo_root();
@@ -120,51 +157,50 @@ fn primary_text_tokens_keep_engineering_contrast_floor_without_wcag_claim() {
     let ui = std::fs::read_to_string(root.join("crates/medscale-desktop/ui/app.slint"))
         .expect("Desktop UI");
 
-    for required in [
-        "ink: dark ? #F0F1ED : #171918",
-        "ink-subtle: dark ? #BCC0BA : #505653",
-        "ink-quiet: dark ? #919791 : #646B67",
-        "signal-strong: dark ? #BDD2DC : #355A6E",
-    ] {
+    // Measure the actual adaptive values, including aliases, instead of old palette literals.
+    for dark in [false, true] {
+        for background in [
+            "canvas",
+            "surface",
+            "surface-raised",
+            "surface-recessed",
+            "sidebar",
+            "sidebar-selected",
+            "signal-soft",
+        ] {
+            for foreground in ["ink", "ink-subtle", "ink-quiet", "signal-strong"] {
+                let ratio = contrast_ratio(
+                    theme_color(&theme, foreground, dark),
+                    theme_color(&theme, background, dark),
+                );
+                assert!(
+                    ratio >= 4.5,
+                    "{foreground}/{background}, dark={dark}: contrast {ratio:.3} below engineering floor"
+                );
+            }
+            let focus_ratio = contrast_ratio(
+                theme_color(&theme, "focus", dark),
+                theme_color(&theme, background, dark),
+            );
+            assert!(focus_ratio >= 3.0, "focus/{background}, dark={dark}");
+        }
+        for background in ["obsidian", "graphite", "graphite-raised", "nav-selected"] {
+            for foreground in ["nav-text", "nav-subtle"] {
+                assert!(
+                    contrast_ratio(
+                        theme_color(&theme, foreground, dark),
+                        theme_color(&theme, background, dark),
+                    ) >= 4.5,
+                    "{foreground}/{background} below rail contrast floor"
+                );
+            }
+        }
         assert!(
-            theme.contains(required),
-            "missing hardened adaptive text token: {required}"
-        );
-    }
-
-    let light_surface = [0xFB, 0xFA, 0xF7];
-    let light_soft = [0xE5, 0xED, 0xF1];
-    for (name, rgb) in [
-        ("ink", [0x17, 0x19, 0x18]),
-        ("ink-subtle", [0x50, 0x56, 0x53]),
-        ("ink-quiet", [0x64, 0x6B, 0x67]),
-        ("signal-strong", [0x35, 0x5A, 0x6E]),
-    ] {
-        assert!(
-            contrast_ratio(rgb, light_surface) >= 4.5,
-            "{name} below light surface contrast floor"
-        );
-        assert!(
-            contrast_ratio(rgb, light_soft) >= 4.5,
-            "{name} below light soft-surface contrast floor"
-        );
-    }
-
-    let dark_surface = [0x1E, 0x21, 0x1F];
-    let dark_raised = [0x26, 0x2A, 0x27];
-    for (name, rgb) in [
-        ("ink", [0xF0, 0xF1, 0xED]),
-        ("ink-subtle", [0xBC, 0xC0, 0xBA]),
-        ("ink-quiet", [0x91, 0x97, 0x91]),
-        ("signal-strong", [0xBD, 0xD2, 0xDC]),
-    ] {
-        assert!(
-            contrast_ratio(rgb, dark_surface) >= 4.5,
-            "{name} below dark surface contrast floor"
-        );
-        assert!(
-            contrast_ratio(rgb, dark_raised) >= 4.5,
-            "{name} below dark raised-surface contrast floor"
+            contrast_ratio(
+                theme_color(&theme, "selection-foreground", dark),
+                theme_color(&theme, "selection-background", dark),
+            ) >= 4.5,
+            "selected text below contrast floor, dark={dark}"
         );
     }
 

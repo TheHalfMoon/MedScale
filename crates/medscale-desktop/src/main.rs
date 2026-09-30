@@ -28,6 +28,7 @@ mod product_intelligence;
 mod project_workspace;
 mod research_os_workspace;
 mod utility_surfaces;
+mod visual_evidence;
 mod workflow_studio;
 
 slint::include_modules!();
@@ -854,34 +855,21 @@ fn evidence_theme_override() -> Option<i32> {
 }
 
 fn evidence_route_override() -> Option<&'static str> {
-    match env::var("MEDSCALE_EVIDENCE_ROUTE").ok()?.as_str() {
-        "Home" => Some("Home"),
-        "Patients" => Some("Patients"),
-        "Documents" => Some("Documents"),
-        "Projects" => Some("Projects"),
-        "Insights" => Some("Insights"),
-        "Models" => Some("Models"),
-        "Evidence" => Some("Evidence"),
-        "Workflows" => Some("Workflows"),
-        "Tasks" => Some("Tasks"),
-        "Messages" => Some("Messages"),
-        "Audit Trail" => Some("Audit Trail"),
-        "Exports" => Some("Exports"),
-        "Integrations" => Some("Integrations"),
-        "Model Fleet" => Some("Model Fleet"),
-        "Privacy" => Some("Privacy"),
-        "Browse" => Some("Browse"),
-        "Audio" => Some("Audio"),
-        "Analytics" => Some("Analytics"),
-        "Knowledge" => Some("Knowledge"),
-        "Settings" => Some("Settings"),
-        "About" => Some("About"),
-        _ => None,
-    }
+    let requested = env::var("MEDSCALE_EVIDENCE_ROUTE").ok()?;
+    visual_evidence::ROUTES
+        .into_iter()
+        .find(|route| *route == requested)
 }
 
 fn main() -> ExitCode {
     let args: Vec<String> = env::args().skip(1).collect();
+    let render = match visual_evidence::RenderOptions::parse(&args) {
+        Ok(options) => options,
+        Err(message) => {
+            eprintln!("{message}");
+            return ExitCode::from(2);
+        }
+    };
     let smoke = args.iter().any(|arg| arg == "--smoke");
     let idle_ms = match perf_idle_ms(&args) {
         Ok(value) => value,
@@ -922,6 +910,15 @@ fn main() -> ExitCode {
     }
     if let Some(route) = evidence_route_override() {
         ui.set_active_route(route.into());
+    }
+    if let Some(options) = &render {
+        ui.global::<Theme>().set_evidence_theme(options.theme);
+        ui.global::<Theme>().set_compact(options.compact);
+        ui.set_active_route(options.route.clone().into());
+        ui.window().set_size(slint::LogicalSize::new(
+            options.width as f32,
+            options.height as f32,
+        ));
     }
 
     let patient = patient_workspace::PatientWorkspaceVm::synthetic_demo();
@@ -1118,7 +1115,10 @@ fn main() -> ExitCode {
     // vault at the platform default root. Failures stay visible as status.
     let project_session = match CliSession::connect("desktop-projects") {
         Ok(mut session) => {
-            let root = CliSession::default_vault_root("desktop-projects");
+            let root = render.as_ref().map_or_else(
+                || CliSession::default_vault_root("desktop-projects"),
+                visual_evidence::RenderOptions::synthetic_vault_root,
+            );
             match session.open_synthetic_vault(&root.display().to_string()) {
                 Ok(()) => {
                     let session = Rc::new(RefCell::new(session));
@@ -1136,6 +1136,10 @@ fn main() -> ExitCode {
             None
         }
     };
+    if render.is_some() && project_session.is_none() {
+        eprintln!("native evidence capture requires an isolated synthetic Core vault");
+        return ExitCode::from(1);
+    }
 
     // Spec 061 keeps patient presentation read-only and routes consequential work to review surfaces.
     // Consequential operations are routed to their owning review surfaces; no action is committed here.
@@ -2162,7 +2166,41 @@ fn main() -> ExitCode {
         }
     });
 
+    let capture_failed = Rc::new(std::cell::Cell::new(false));
+    let capture_timer = slint::Timer::default();
+    if let Some(options) = render {
+        let weak = ui.as_weak();
+        let failed = capture_failed.clone();
+        // One bounded capture after a normal shown native frame; no background watcher.
+        capture_timer.start(
+            slint::TimerMode::SingleShot,
+            Duration::from_millis(1500),
+            move || {
+                let result = weak
+                    .upgrade()
+                    .ok_or_else(|| "native window unavailable".to_owned())
+                    .and_then(|ui| {
+                        ui.window()
+                            .take_snapshot()
+                            .map_err(|error| error.to_string())
+                    })
+                    .and_then(|pixels| {
+                        visual_evidence::write_ppm(&options.output, &pixels)
+                            .map_err(|error| error.to_string())
+                    });
+                match result {
+                    Ok(()) => println!("native evidence captured: {}", options.output.display()),
+                    Err(message) => {
+                        failed.set(true);
+                        eprintln!("native evidence capture failed: {message}");
+                    }
+                }
+                let _ = slint::quit_event_loop();
+            },
+        );
+    }
     match ui.run() {
+        Ok(()) if capture_failed.get() => ExitCode::from(1),
         Ok(()) => ExitCode::SUCCESS,
         Err(err) => {
             eprintln!("MedScale Desktop UI exited with an error: {err}");
