@@ -19,7 +19,7 @@ foreach ($taskDirectory in @('bin','licenses/rust','licenses/npm','licenses/font
     New-Item -ItemType Directory -Path (Join-Path $taskPackageRoot $taskDirectory) -Force | Out-Null
 }
 Copy-Item -LiteralPath $taskExecutable -Destination (Join-Path $taskPackageRoot 'bin')
-Copy-Item -LiteralPath (Join-Path $taskRepoRoot 'LICENSE'),(Join-Path $taskRepoRoot 'NOTICE') -Destination $taskPackageRoot
+Copy-Item -LiteralPath (Join-Path $taskRepoRoot 'LICENSE') -Destination $taskPackageRoot
 Copy-Item -LiteralPath (Join-Path $taskAppRoot 'src-tauri/Cargo.lock'),(Join-Path $taskAppRoot 'package-lock.json') -Destination (Join-Path $taskPackageRoot 'evidence')
 Copy-Item -LiteralPath (Join-Path $taskRepoRoot 'docs/engineering/admissions/096-tauri-presentation.md') -Destination (Join-Path $taskPackageRoot 'evidence')
 
@@ -66,6 +66,20 @@ The original MPL license is included at licenses/MPL-2.0.txt.
 foreach ($taskFontLicense in @('Inter-OFL.txt','JetBrainsMono-OFL.txt')) {
     Copy-Item -LiteralPath (Join-Path $taskRepoRoot "assets/brand/fonts/$taskFontLicense") -Destination (Join-Path $taskPackageRoot 'licenses/fonts')
 }
+Copy-Item -LiteralPath (Join-Path $taskRepoRoot 'assets/brand/fonts/FONT_NOTICE.md') -Destination (Join-Path $taskPackageRoot 'licenses/fonts')
+$taskFontNotice = Get-Content -LiteralPath (Join-Path $taskRepoRoot 'assets/brand/fonts/FONT_NOTICE.md') -Raw
+@"
+# MedScale Tauri presentation preview notices
+
+MedScale's first-party source is licensed under Apache-2.0; see LICENSE.
+This unqualified synthetic-only preview includes the Rust dependencies listed in
+evidence/rust-dependencies.json and npm runtime packages identified in
+evidence/package-lock.json. Original notices are under licenses/rust and licenses/npm.
+Unmodified MPL sources and their notice are included under source-archives and
+MPL-SOURCE-NOTICE.txt. Dependency admission is recorded in evidence/096-tauri-presentation.md.
+
+$taskFontNotice
+"@ | Set-Content -LiteralPath (Join-Path $taskPackageRoot 'NOTICE.md') -Encoding utf8
 foreach ($taskNpmName in @('react','react-dom','scheduler','@tauri-apps/api')) {
     $taskNpmDirectory = Join-Path $taskAppRoot "node_modules/$taskNpmName"
     $taskNpmNotices = @(Get-ChildItem -LiteralPath $taskNpmDirectory -File | Where-Object { $_.Name -match '^(LICENSE|LICENCE|COPYING|NOTICE)' })

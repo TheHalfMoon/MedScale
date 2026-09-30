@@ -7,6 +7,7 @@ mod navigation_policy;
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 struct ShellStatus {
+    schema_version: u8,
     core_connection: &'static str,
     detail: &'static str,
     synthetic_only: bool,
@@ -15,6 +16,7 @@ struct ShellStatus {
 #[tauri::command]
 fn get_shell_status() -> ShellStatus {
     ShellStatus {
+        schema_version: 1,
         core_connection: "unavailable",
         detail: "The Core Host is not connected in this preparatory Tauri build.",
         synthetic_only: true,
