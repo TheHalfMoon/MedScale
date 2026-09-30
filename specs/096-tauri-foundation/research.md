@@ -23,3 +23,7 @@ Tauri 2.12.0/build 2.7.0 resolved 414 packages with the minimum feature set. The
 ## Local scaffold verification
 
 On 2026-09-30, after replacing the promotional Home hero with a compact workspace overview, `npm run build` passed strict TypeScript and Vite production compilation. The emitted JS was 235.83 kB, CSS 32.87 kB, Inter font 879.70 kB and JetBrains Mono NL font 208.57 kB (Vite decimal sizes, not native package or memory measurements). `npm test` passed both route-registry/search-bound tests. Isolated `cargo fmt --all -- --check` and the PowerShell packaging parser passed. Runtime npm notice files are present locally. Native Rust compile/tests, package assembly, keyboard/focus behavior, visual comparison and privacy qualification remain unverified. These local results apply to the preparatory source being submitted, not to canonical main or a qualified release.
+
+## First committed CI attempt
+
+Draft #174 submitted head `ef1eb01e97b737f9fbcf18e58dacdfbb85a5db29` on the remote 095 base `a1bf5dc1fe4b06e6628dbb097b8dc54926dff991`. Native run `36774725811` exposed an unused `tauri::Manager` import in Linux/macOS Clippy and a duplicated `--manifest-path` argument in the dependency action. The forward repair removes the unused import and uses the pinned action's `manifest-path` input; the original failed run remains evidence. The policy failure in that attempt did not reach advisory checking. Core CI run `36774725719` was still in progress at repair time, with supply-chain presence and root cargo-deny successful; no full-CI PASS is claimed.
