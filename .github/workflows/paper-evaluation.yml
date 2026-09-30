@@ -100,6 +100,51 @@ jobs:
           cargo test -p medscale-core --test whole_platform_092 --locked
           every_plane_survives_backup_restore_and_restart_through_core -- --exact --nocapture
 
+      - name: Experiment D0-cold — absolute Core latency
+        if: always()
+        env:
+          MEDSCALE_PAPER_PERF_MODE: cold
+          MEDSCALE_PAPER_PERF_WARMUP: "0"
+          MEDSCALE_PAPER_PERF_RUNS: "1"
+          MEDSCALE_PAPER_PERF_TIMELINE_EVENTS: "1000"
+          MEDSCALE_PAPER_PERF_FHIR_BYTES: "131072"
+          MEDSCALE_PAPER_PERF_OUTPUT: paper/artifact/raw/ci/d0-cold/perf-${{ runner.os }}.json
+        run: >-
+          python paper/artifact/scripts/evidence_io.py run --label d0-cold --
+          cargo test -p medscale-core --test paper_performance --locked
+          paper_rq4_d0_absolute_latency -- --exact --nocapture
+
+      - name: Experiment D0-warm — absolute Core latency
+        if: always()
+        env:
+          MEDSCALE_PAPER_PERF_MODE: warm
+          MEDSCALE_PAPER_PERF_WARMUP: "5"
+          MEDSCALE_PAPER_PERF_RUNS: "100"
+          MEDSCALE_PAPER_PERF_TIMELINE_EVENTS: "1000"
+          MEDSCALE_PAPER_PERF_FHIR_BYTES: "131072"
+          MEDSCALE_PAPER_PERF_OUTPUT: paper/artifact/raw/ci/d0-warm/perf-${{ runner.os }}.json
+        run: >-
+          python paper/artifact/scripts/evidence_io.py run --label d0-warm --
+          cargo test -p medscale-core --test paper_performance --locked
+          paper_rq4_d0_absolute_latency -- --exact --nocapture
+
+      - name: Prepare D1 synthetic storage campaign
+        id: d1clean
+        if: always()
+        run: python paper/artifact/scripts/storage_probe.py clean
+
+      - name: Experiment D1 — integrated recovery/storage campaign
+        id: d1run
+        if: ${{ always() && steps.d1clean.outcome == 'success' }}
+        run: >-
+          python paper/artifact/scripts/evidence_io.py run --label d1 --
+          cargo test -p medscale-core --test whole_platform_092 --locked
+          every_plane_survives_backup_restore_and_restart_through_core -- --exact --nocapture
+
+      - name: Measure D1 persisted storage
+        if: ${{ always() && steps.d1run.outcome == 'success' }}
+        run: python paper/artifact/scripts/storage_probe.py measure
+
       - name: Hash raw evidence
         if: always()
         run: python paper/artifact/scripts/evidence_io.py hash
