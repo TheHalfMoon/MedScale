@@ -114,8 +114,8 @@ See Trusted V1 delivery plan. Specs 018–067 are closed; Spec 012 remains optio
 | 096 | Product navigation and core interactions | `WAITING_ON_DEPENDENCY` | Start after 095 closes; all real routes, command navigation, focus and density. |
 | 097 | Clinical and evidence product surfaces | `WAITING_ON_DEPENDENCY` | Start after 096 closes. |
 | 098 | Research and operational product surfaces | `WAITING_ON_DEPENDENCY` | Start after 097 closes. |
-| 099 | Interaction, accessibility and synthetic demo qualification | `WAITING_ON_DEPENDENCY` | Start after 098 closes; real native matrix and measured/unmeasured evidence. |
-| 100 | Final product audit and scoped launch UI freeze | `WAITING_ON_DEPENDENCY` | Start after 099 closes; later programs remain future preparation only. |
+| 099 | Welcome/access experience, interaction, accessibility and synthetic demo qualification | `WAITING_ON_DEPENDENCY` | Start after 098 closes; truthful pre-desktop Welcome → Access → Desktop flow, real native matrix and measured/unmeasured evidence. No simulated authentication. |
+| 100 | Final product audit and scoped launch UI freeze | `WAITING_ON_DEPENDENCY` | Start after 099 closes; audit the complete journey and visual fidelity; later programs remain future preparation only. |
 
 ## Automatic progression
 
