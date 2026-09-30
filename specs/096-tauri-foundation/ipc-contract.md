@@ -23,3 +23,5 @@ Required adapter tests: unknown/unattached context; oversized/malformed/foreign 
 ## Status
 
 Contract tracing is complete for this bounded design. The Rust adapter/session lifecycle and actual Core-derived read DTOs are **not implemented**. T096-05 remains open. This planning record does not qualify the shell or authorize a private-data connection.
+
+Four invoke-boundary tests now use the production handler builder and generated capability context, rather than an unrestricted mock context. They cover an admitted local main-window status read, rejected remote origins, a rejected ungranted window, and refused generic SQL/shell/file/Core/plugin commands. The Tauri MockRuntime is test infrastructure, not native WebView containment evidence. Outcomes must be recorded from compiled native CI; adding the tests alone is not PASS.

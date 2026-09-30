@@ -51,3 +51,7 @@ Assessment A inspected Home in both themes at 1440×900 and 1100×720, Patients 
 The parent performed one bounded repair confirmation at 1100×720: Tab twice then Enter opened Patients; the modal exposed only its own accessibility tree; a broad query and nine Arrow Down presses selected Models, scrolled the result into view and linked the combobox's active descendant to its stable ID. Measured lower bounds differed by less than 0.001 px due to browser floating-point geometry, and the screenshot showed the full selected row. Escape restored the route-search trigger. Native WebView and assistive-technology verification remain open.
 
 Questions skipped: the founder already specified the brand, staged migration and autonomous ordinary implementation authority; the critique was integrated into that implementation rather than opening a new design interview. This review does not substitute for Jev or Alibaba Open Code Review.
+
+## Subsequent Windows native inspection
+
+Actual 76e9fe3 Windows package frames and bounded native interaction observations are now retained in `evidence/096-tauri-foundation/native/76e9fe3`. They confirm rendering in both themes at both targets and native palette selection, Enter, Tab wrap and Escape/focus return. This subsequent parent inspection does not change Assessment A's historical score, rerun Assessment B, or establish independent provider/native design acceptance. The original browser critique's scope remains intact.

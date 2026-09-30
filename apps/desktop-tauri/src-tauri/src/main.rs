@@ -4,6 +4,9 @@ use serde::Serialize;
 
 mod navigation_policy;
 
+#[cfg(test)]
+mod permission_tests;
+
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 struct ShellStatus {
@@ -23,9 +26,12 @@ fn get_shell_status() -> ShellStatus {
     }
 }
 
+fn presentation_builder<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builder<R> {
+    builder.invoke_handler(tauri::generate_handler![get_shell_status])
+}
+
 fn main() {
-    tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![get_shell_status])
+    presentation_builder(tauri::Builder::default())
         .setup(|app| {
             let config = app
                 .config()
