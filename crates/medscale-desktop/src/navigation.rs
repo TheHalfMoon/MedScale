@@ -11,6 +11,20 @@ pub enum Area {
     Utility,
 }
 
+impl Area {
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::Home => "Home",
+            Self::Clinical => "Clinical",
+            Self::Research => "Research",
+            Self::Intelligence => "Intelligence",
+            Self::Operations => "Operations",
+            Self::Governance => "Governance",
+            Self::Utility => "Utility",
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Route {
     Home,
@@ -270,6 +284,9 @@ impl Route {
 }
 
 pub fn search_routes(query: &str) -> Vec<&'static RouteDefinition> {
+    if query.chars().count() > 128 {
+        return Vec::new();
+    }
     let terms: Vec<String> = query.split_whitespace().map(str::to_lowercase).collect();
     ROUTES
         .iter()
@@ -309,5 +326,6 @@ mod tests {
         assert_eq!(search_routes("command center")[0].id, "Home");
         assert_eq!(search_routes("fhir")[0].id, "Exports");
         assert!(search_routes("delete patient").is_empty());
+        assert!(search_routes(&"x".repeat(129)).is_empty());
     }
 }

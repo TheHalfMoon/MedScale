@@ -157,6 +157,33 @@ export component NavItem inherits Rectangle {
     }
 }
 
+export component CommandResult inherits Rectangle {
+    in property <string> title;
+    in property <string> description;
+    callback activated();
+
+    forward-focus: interaction;
+    height: Theme.compact ? 52px : 60px;
+    border-radius: Theme.radius-compact;
+    border-width: interaction.has-focus ? Theme.focus-width : 0px;
+    border-color: Theme.focus;
+    background: interaction.has-hover ? Theme.surface-raised : transparent;
+    accessible-role: button;
+    accessible-label: title + ". " + description;
+    accessible-action-default => { root.activated(); }
+
+    VerticalLayout {
+        padding-left: Theme.space-3;
+        padding-right: Theme.space-3;
+        padding-top: Theme.space-2;
+        padding-bottom: Theme.space-2;
+        spacing: Theme.space-1;
+        Text { text: root.title; color: Theme.ink; font-family: Theme.font-ui; font-size: Theme.type-control; font-weight: Theme.weight-semibold; }
+        Text { text: root.description; color: Theme.ink-subtle; font-family: Theme.font-ui; font-size: Theme.type-micro; }
+    }
+    interaction := FocusableClickArea { width: 100%; height: 100%; clicked => { root.activated(); } }
+}
+
 export component SegmentTab inherits Rectangle {
     in property <string> label;
     in property <bool> selected: false;

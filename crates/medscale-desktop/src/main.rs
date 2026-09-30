@@ -1157,6 +1157,7 @@ fn main() -> ExitCode {
         };
         ui.set_navigation_status("".into());
         ui.set_active_route(route.definition().id.into());
+        ui.set_active_area(route.definition().area.label().into());
 
         if let Some(session) = &navigation_project_session {
             match route {
@@ -1185,6 +1186,23 @@ fn main() -> ExitCode {
         }
     });
     ui.invoke_navigate(ui.get_active_route());
+
+    let palette_weak = ui.as_weak();
+    ui.on_palette_query_changed(move |query| {
+        let Some(ui) = palette_weak.upgrade() else {
+            return;
+        };
+        ui.set_palette_results(ModelRc::new(VecModel::from_iter(
+            navigation::search_routes(query.as_str())
+                .into_iter()
+                .map(|route| NavigationResultItem {
+                    id: route.id.into(),
+                    label: route.label.into(),
+                    description: route.description.into(),
+                }),
+        )));
+    });
+    ui.invoke_palette_query_changed(ui.get_palette_query());
 
     // Spec 061 keeps patient presentation read-only and routes consequential work to review surfaces.
     // Consequential operations are routed to their owning review surfaces; no action is committed here.

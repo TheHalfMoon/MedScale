@@ -4,7 +4,13 @@ import { CommandCenter } from "command-center.slint";
 import { AboutSlint, ScrollView } from "std-widgets.slint";
 import { Theme } from "theme.slint";
 export { Theme } from "theme.slint";
-import { AdaptiveLineEdit, HonestyPanel, NavItem, QuickAction, SegmentTab, ToolbarAction, MetricCard, StatusPill } from "components.slint";
+import { AdaptiveLineEdit, CommandResult, HonestyPanel, NavItem, QuickAction, SegmentTab, ToolbarAction, MetricCard, StatusPill } from "components.slint";
+
+export struct NavigationResultItem {
+    id: string,
+    label: string,
+    description: string,
+}
 
 export struct PatientTimelineItem {
     date: string,
@@ -307,8 +313,12 @@ export component AppWindow inherits Window {
     default-font-size: 14px;
 
     in-out property <string> active-route: "Home";
+    in-out property <string> active-area: "Home";
     in-out property <string> navigation-status: "";
     in-out property <bool> palette-open: false;
+    in-out property <string> palette-query: "";
+    in property <[NavigationResultItem]> palette-results;
+    changed palette-query => { root.palette-query-changed(root.palette-query); }
     in-out property <string> patient-tab: "Overview";
     in property <string> product-version: "0.1.0";
     in property <string> patient-name: "Synthetic subject";
@@ -459,6 +469,7 @@ export component AppWindow inherits Window {
     in-out property <string> privacy-last-decision: "";
     callback ui-action(string);
     callback navigate(string);
+    callback palette-query-changed(string);
 
     forward-focus: global-keys;
 
@@ -594,7 +605,7 @@ export component AppWindow inherits Window {
                             horizontal-stretch: 1;
                             background: transparent;
                             Text {
-                                text: root.navigation-status == "" ? "SYNTHETIC WORKSPACE" : root.navigation-status;
+                                text: root.navigation-status == "" ? "SYNTHETIC WORKSPACE  /  " + root.active-area : root.navigation-status;
                                 color: Theme.ink-quiet;
                                 font-family: Theme.font-ui;
                                 font-size: Theme.type-caption;
@@ -2618,11 +2629,26 @@ export component AppWindow inherits Window {
         VerticalLayout {
             padding: 16px;
             spacing: 8px;
-            Text { text: "Command palette"; color: Theme.ink; font-size: 16px; font-weight: 700; }
-            palette-search := AdaptiveLineEdit { placeholder: "Search commands…"; accessible-name: "Command palette search"; }
-            QuickAction { title: "Go to Patients"; subtitle: "Open patient workspace"; glyph: ""; accent: Theme.signal; activated => { root.navigate("Patients"); root.palette-open = false; } }
-            QuickAction { title: "Open Models"; subtitle: "Inspect local model/runtime truth"; glyph: ""; accent: Theme.signal; activated => { root.navigate("Models"); root.palette-open = false; } }
-            QuickAction { title: "Open Evidence"; subtitle: "MedScale × OpenMed proof ledger"; glyph: ""; accent: Theme.signal; activated => { root.navigate("Evidence"); root.palette-open = false; } }
+            Text { text: "Go to route"; color: Theme.ink; font-family: Theme.font-ui; font-size: Theme.type-subsection; font-weight: Theme.weight-semibold; }
+            palette-search := AdaptiveLineEdit { text <=> root.palette-query; placeholder: "Find a route"; accessible-name: "Find a route"; }
+            ScrollView {
+                vertical-stretch: 1;
+                VerticalLayout {
+                    spacing: Theme.space-1;
+                    for result in root.palette-results: CommandResult {
+                        title: result.label;
+                        description: result.description;
+                        activated => { root.navigate(result.id); root.palette-open = false; }
+                    }
+                    if root.palette-results.length == 0: Text {
+                        text: "No matching route. Try a route name or topic.";
+                        color: Theme.ink-subtle;
+                        font-family: Theme.font-ui;
+                        font-size: Theme.type-body;
+                        wrap: word-wrap;
+                    }
+                }
+            }
         }
     }
 }
