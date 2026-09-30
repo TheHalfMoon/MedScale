@@ -81,14 +81,16 @@ def run_capture(label: str, command: list[str]) -> int:
 
 
 def hash_evidence() -> int:
+    """Hash every raw-evidence file recursively using stable relative paths."""
     ROOT.mkdir(parents=True, exist_ok=True)
     checksum_path = ROOT / "checksums.sha256"
     lines: list[str] = []
-    for path in sorted(ROOT.iterdir()):
+    for path in sorted(ROOT.rglob("*"), key=lambda item: item.as_posix()):
         if not path.is_file() or path == checksum_path:
             continue
         digest = hashlib.sha256(path.read_bytes()).hexdigest()
-        lines.append(f"{digest}  {path.name}")
+        relative = path.relative_to(ROOT).as_posix()
+        lines.append(f"{digest}  {relative}")
     checksum_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
     return 0
 
