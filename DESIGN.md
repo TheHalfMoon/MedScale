@@ -10,7 +10,7 @@ MedScale is a **Clinical Intelligence OS**. **Evidence first. Action second.** i
 
 ## Tokens and typography
 
-crates/medscale-desktop/ui/theme.slint is the native source. Inter handles UI/wordmark; JetBrains Mono NL handles exact IDs, hashes, timestamps and scientific operators without code ligatures. Minimal admitted OFL assets are embedded for deterministic offline rendering and distributed with their licenses. Full roles: docs/brand/TYPOGRAPHY_SYSTEM.md.
+The preserved Slint source is crates/medscale-desktop/ui/theme.slint. The 096 migration prototype expresses the same approved brand roles in apps/desktop-tauri/src/theme.css; its tokens and native rendering remain unqualified until evidence is captured. Inter handles UI/wordmark; JetBrains Mono NL handles exact IDs, hashes, timestamps and scientific operators without code ligatures. Minimal admitted OFL assets are bundled locally and distributed with their licenses. Full roles: docs/brand/TYPOGRAPHY_SYSTEM.md.
 
 Light uses white/near-white; dark uses black/near-black layers. Neutrals express hierarchy. Focus/selection/interaction are monochrome. Optional functional accents supplement explicit labels and never become branding.
 

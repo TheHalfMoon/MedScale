@@ -6,6 +6,10 @@
 
 **Status:** `AUTONOMOUS_IMPLEMENTATION_AUTHORIZED`; launch UI is not frozen.
 
+## 2026-09-30 presentation architecture amendment
+
+The founder selected Tauri 2 + React + TypeScript + Vite + Tailwind for future Desktop presentation. See [the migration decision](TAURI_DESKTOP_MIGRATION_DECISION_2026-09-30.md). Spec 095 remains the historical Slint-era brand foundation; its evidence and open review gate are unchanged. Specs 096–100 retain the route, visual, interaction and audit outcomes below but deliver them through a staged Tauri frontend. The existing Rust Core remains authoritative and Slint stays as the legacy reference until a separately governed retirement decision. Preparatory 096 work is allowed while 095 is unmerged; 096 closure and merge remain dependency gated. Tauri/WebView private-data admission is still open, so early Tauri work is synthetic-only.
+
 ## Current truth and supersession
 
 Research OS Specs 068–094 remain closed in their original authorized scope. This program changes forward-facing identity and presentation; it does not reopen those packages, expand backend authority, or reinterpret their historical qualification. Draft PRs #124 and #125 remain separate and unpromoted.

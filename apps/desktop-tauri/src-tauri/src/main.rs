@@ -1,0 +1,46 @@
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+
+use serde::Serialize;
+use tauri::Manager;
+
+mod navigation_policy;
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ShellStatus {
+    core_connection: &'static str,
+    detail: &'static str,
+    synthetic_only: bool,
+}
+
+#[tauri::command]
+fn get_shell_status() -> ShellStatus {
+    ShellStatus {
+        core_connection: "unavailable",
+        detail: "The Core Host is not connected in this preparatory Tauri build.",
+        synthetic_only: true,
+    }
+}
+
+fn main() {
+    tauri::Builder::default()
+        .invoke_handler(tauri::generate_handler![get_shell_status])
+        .setup(|app| {
+            let config = app
+                .config()
+                .app
+                .windows
+                .first()
+                .ok_or("missing main window")?;
+            tauri::WebviewWindowBuilder::from_config(app, config)?
+                .on_navigation(|url| {
+                    navigation_policy::is_local_application_url(url, cfg!(debug_assertions))
+                })
+                .on_new_window(|_, _| tauri::webview::NewWindowResponse::Deny)
+                .incognito(true)
+                .build()?;
+            Ok(())
+        })
+        .run(tauri::generate_context!())
+        .expect("failed to start the synthetic-only MedScale Tauri shell");
+}

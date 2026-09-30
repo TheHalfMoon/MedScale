@@ -1,0 +1,28 @@
+[package]
+name = "medscale-desktop-tauri"
+version = "0.1.0"
+description = "Synthetic-only Tauri presentation migration prototype"
+edition = "2024"
+rust-version = "1.90"
+license = "Apache-2.0"
+publish = false
+build = "build.rs"
+
+[workspace]
+
+[features]
+custom-protocol = ["tauri/custom-protocol"]
+
+[dependencies]
+serde = { version = "=1.0.229", features = ["derive"] }
+tauri = { version = "=2.12.0", default-features = false, features = ["wry", "compression", "common-controls-v6", "x11"] }
+
+[build-dependencies]
+tauri-build = { version = "=2.7.0" }
+
+[lints.rust]
+unsafe_code = "deny"
+
+[lints.clippy]
+all = { level = "deny", priority = -1 }
+pedantic = { level = "allow", priority = -1 }
