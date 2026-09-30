@@ -1,7 +1,9 @@
 # MedScale product identity and desktop productization
 
-**Authority:** explicit founder request, 2026-09-29.  
-**Base:** `1e2b7d94e970256b38bda15fa91f62bc397e825a`, main CI `36480424698` (six required jobs passed).  
+**Authority:** explicit founder request, 2026-09-29.
+
+**Base:** `1e2b7d94e970256b38bda15fa91f62bc397e825a`, main CI `36480424698` (six required jobs passed).
+
 **Status:** `AUTONOMOUS_IMPLEMENTATION_AUTHORIZED`; launch UI is not frozen.
 
 ## Current truth and supersession

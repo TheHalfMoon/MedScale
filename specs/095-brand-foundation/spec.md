@@ -1,9 +1,13 @@
 # Spec 095 — Approved MedScale brand foundation
 
-**Status:** `PROMOTED_IMPLEMENTATION_AUTHORIZED`  
-**Date:** 2026-09-29  
-**Base:** `1e2b7d94e970256b38bda15fa91f62bc397e825a`  
-**Branch:** `spec/095-brand-foundation`  
+**Status:** `PROMOTED_IMPLEMENTATION_AUTHORIZED`
+
+**Date:** 2026-09-29
+
+**Base:** `1e2b7d94e970256b38bda15fa91f62bc397e825a`
+
+**Branch:** `spec/095-brand-foundation`
+
 **Program:** `docs/planning/PRODUCTIZATION_PROGRAM.md`
 
 ## Outcome

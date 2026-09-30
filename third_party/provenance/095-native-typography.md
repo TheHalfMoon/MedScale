@@ -1,7 +1,9 @@
 # Spec 095 native typography admission
 
-**Operation:** `VENDOR_SNAPSHOT`, immutable unmodified font assets only.  
-**Authority:** `specs/095-brand-foundation/spec.md`, explicit minimal font distribution policy.  
+**Operation:** `VENDOR_SNAPSHOT`, immutable unmodified font assets only.
+
+**Authority:** `specs/095-brand-foundation/spec.md`, explicit minimal font distribution policy.
+
 **Acquired:** 2026-09-29, from official upstream at the exact revisions below.
 
 | Local file | Exact upstream revision/path | SHA-256 |

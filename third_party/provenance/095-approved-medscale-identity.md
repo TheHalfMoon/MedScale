@@ -1,8 +1,11 @@
 # Spec 095 approved MedScale identity provenance
 
-**Operation:** `USER_SUPPLIED_UI` vector reconstruction and licensed font artwork.  
-**Authority:** founder-approved images and the explicit 2026-09-29 productization request.  
-**Owning spec:** `specs/095-brand-foundation`.  
+**Operation:** `USER_SUPPLIED_UI` vector reconstruction and licensed font artwork.
+
+**Authority:** founder-approved images and the explicit 2026-09-29 productization request.
+
+**Owning spec:** `specs/095-brand-foundation`.
+
 **Repository base:** `1e2b7d94e970256b38bda15fa91f62bc397e825a`.
 
 ## Approved references
