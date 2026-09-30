@@ -435,7 +435,11 @@ fn paper_rq4_d0_absolute_latency() {
 
     for samples in [&timeline_samples, &lexical_samples, &fhir_samples] {
         assert_eq!(samples.len(), runs);
-        assert!(samples.iter().all(|sample| sample.as_secs_f64().is_finite()));
+        assert!(
+            samples
+                .iter()
+                .all(|sample| sample.as_secs_f64().is_finite())
+        );
     }
 
     let output = output_path();
