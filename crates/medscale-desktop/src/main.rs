@@ -21,6 +21,7 @@ mod data_workbench;
 mod knowledge_workspace;
 mod medagent_workspace;
 mod model_fleet_workspace;
+mod navigation;
 mod patient_workspace;
 mod population_insights;
 mod privacy_workspace;
@@ -1140,6 +1141,50 @@ fn main() -> ExitCode {
         eprintln!("native evidence capture requires an isolated synthetic Core vault");
         return ExitCode::from(1);
     }
+
+    // Shell navigation selects only known routes. Entry refreshes are reads;
+    // actions remain on their existing explicit callbacks.
+    let navigation_weak = ui.as_weak();
+    let navigation_project_session = project_session.clone();
+    let navigation_model_session = model_session.clone();
+    ui.on_navigate(move |requested| {
+        let Some(ui) = navigation_weak.upgrade() else {
+            return;
+        };
+        let Some(route) = navigation::Route::from_id(requested.as_str()) else {
+            ui.set_navigation_status("Unsupported route request; nothing changed".into());
+            return;
+        };
+        ui.set_navigation_status("".into());
+        ui.set_active_route(route.definition().id.into());
+
+        if let Some(session) = &navigation_project_session {
+            match route {
+                navigation::Route::Projects => refresh_project_list(&ui, session),
+                navigation::Route::Data => refresh_data_sources(&ui, session),
+                navigation::Route::Collaboration => refresh_collab_rooms(&ui, session),
+                navigation::Route::MedAgent => refresh_medagent_runs(&ui, session),
+                navigation::Route::ModelFleet => refresh_model_fleet(&ui, session),
+                navigation::Route::Browse => refresh_browse(&ui, session),
+                navigation::Route::Audio => refresh_audio(&ui, session),
+                navigation::Route::Analytics => refresh_analytics(&ui, session),
+                navigation::Route::Knowledge => refresh_knowledge(&ui, session),
+                navigation::Route::ResearchOs => refresh_research_os(&ui, session),
+                navigation::Route::Privacy => refresh_privacy(&ui, session),
+                _ => {}
+            }
+        }
+        if route == navigation::Route::Models {
+            if let Some(session) = &navigation_model_session {
+                if let Err(error) = refresh_model_center(&ui, session) {
+                    ui.set_model_operator_status(
+                        format!("Model inventory unavailable: {error:?}").into(),
+                    );
+                }
+            }
+        }
+    });
+    ui.invoke_navigate(ui.get_active_route());
 
     // Spec 061 keeps patient presentation read-only and routes consequential work to review surfaces.
     // Consequential operations are routed to their owning review surfaces; no action is committed here.
