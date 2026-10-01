@@ -34,7 +34,14 @@ ran once and reported only three warnings for pinned Inter; retain the approved
 brand. The fresh finish reviewer returned fix at presentation-preparation scope:
 the keyboard-focusable table region lacked an authored monochrome focus ring.
 Added the existing 2px focus token with an inset outline to avoid scroll-region
-clipping. New exact-head native capture and the fix verdict are pending.
+clipping. Corrected source `7146551` subsequently passed all three native
+build/test/package jobs in 36834231752. Its 1,027 Windows package entries were
+verified before launch. Twelve original native frames, including three focus
+proofs, are recorded under `evidence/097-clinical-surfaces/native/7146551`.
+The same fresh reviewer resolved the scored focus fix with no introduced
+regressions observed. Its ship disposition covers only this correction.
+Canonical run 36834231751 had five successful jobs and Windows Rust still
+in progress at the snapshot; no complete canonical CI success is claimed.
 
 Open: full exact-head canonical CI; populated row; governed Core
 adapter; Patient Detail/Evidence; full provider/dependency/privacy qualification.

@@ -80,3 +80,50 @@ unavailable presentation rather than fictional clinical data.
 This is a documentation extraction. JSON parsing and the final diff are to be
 checked by the parent alongside the same-head focus correction. No additional
 tests or qualification runs are claimed by this role.
+
+## Later evidence recheck — 2026-10-01
+
+After the initial handoff, inspected the new README, immutable build receipt
+and capture metadata under `evidence/097-clinical-surfaces/native/7146551`,
+and the later `VerdictPass` section in `finish-review.md`. These records bind
+twelve original Windows JPEG frames to source
+`71465513c440e61a08d3e4c3af30bf0d3b4b084c` and tree
+`900543aec748a3d6fcf673373e8fb0d2be5b2098`. The README records successful
+size/SHA256 verification of all 1,027 package inventory entries before launch;
+the receipt and capture metadata agree on executable SHA256
+`ee0f251175973672a063fe113a5d3a4a6f81d116f07950d716626e1db609bfb3`.
+The receipt's build-time `NOT_CAPTURED` value remains an earlier event; the
+later metadata adds the capture rather than rewriting that immutable receipt.
+
+Nine frames repeat the original matrix and three show table focus. The
+capture record and same finish reviewer report a visible, unclipped inset
+monochrome ring in light at both configured targets and dark at the minimum
+target. The reviewer resolved the previously scored focus correction, observed
+no introduced regressions in the supplied comparisons, and returned **ship**
+only for that correction. The original pending statement above is retained
+as the initial snapshot; this later evidence resolves its capture/verdict
+condition. It does not qualify patient records, Core connectivity or the
+whole product.
+
+Verified the documentation against current source: `theme.css` still authors
+`outline:2px solid var(--focus); outline-offset:-2px` on the table region.
+`DESIGN.md` still records the dark/light focus roles and inset treatment, and
+the sidecar's `extensions.focus.tableRegion` matches that rule. Those shared
+system files remain unchanged. The sidecar's pending `sourceState` describes
+the initial handoff; this dated entry carries the later evidence state without
+changing the token record.
+
+At the supplied CI snapshot, all three native build/Clippy/test/package jobs
+in run 36834231752 succeeded; the separate dependency policy still failed on
+the inherited glib advisory. Canonical run 36834231751 had five successful
+jobs and Windows Rust in progress. No complete canonical CI or merge readiness
+is asserted. Jev and provider-backed Alibaba OCR remain `BLOCKED_BY_ZERO_COST`.
+The build receipt remains `UNQUALIFIED_PREVIEW`, Core-unconnected, privacy
+unqualified and release-unready.
+
+This recheck read evidence records and compared authored source/documentation.
+It did not rerun capture, detector, build, browser or provider review, inspect
+additional pixels, or fabricate measurements. Configured/inferred client sizes
+remain the capture record's basis; no OS client-rectangle measurement, other
+platform visual acceptance, WCAG or provider PASS claim is added. Only this
+handoff record was edited for the recheck; the initial history is preserved.

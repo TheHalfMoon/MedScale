@@ -28,6 +28,27 @@ Keep: paired-M identity, one sidebar, incumbent group headings/active marker,
 pinned type, literal states, compact unavailable row, inline explanation and
 restrained separators. Do not fabricate patients.
 
-## Verdict status
+## VerdictPass: scored correction resolved
 
-Pending a native build/capture at the corrected source revision. No ship claim.
+The same fresh reviewer re-read all nine refreshed native frames, three focus
+proofs, capture metadata and the CSS correction at
+`71465513c440e61a08d3e4c3af30bf0d3b4b084c`. Original frames are retained under
+`evidence/097-clinical-surfaces/native/7146551`. All twelve captures bind to
+that source and tree `900543aec748a3d6fcf673373e8fb0d2be5b2098`.
+
+Persistence: the supplied same-path matrix and all focus proofs were inspected.
+TYPE: existing compact typography and English copy remain intact.
+MATERIAL: the authored 2px monochrome table ring is visible and unclipped in
+light at both targets and dark at minimum size.
+GROUND: `var(--focus)` with `outline-offset:-2px` matches the native correction.
+
+Scored fix: **resolved**. No remaining blocker for this correction and no
+introduced regression observed in the supplied comparisons. Keep the inset
+ring, approved shell, identity, literal states and compact composition.
+No additional hunt or detector run occurred.
+
+Disposition: **ship**, limited solely to the previously scored presentation
+correction. Operational rows, patient data, whole-product qualification,
+mandatory provider review, accessibility acceptance and merge readiness remain
+outside this verdict. The initial review and VerdictPass exhaust this bounded
+two-round inspection loop.
