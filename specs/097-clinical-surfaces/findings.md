@@ -40,8 +40,10 @@ verified before launch. Twelve original native frames, including three focus
 proofs, are recorded under `evidence/097-clinical-surfaces/native/7146551`.
 The same fresh reviewer resolved the scored focus fix with no introduced
 regressions observed. Its ship disposition covers only this correction.
-Canonical run 36834231751 had five successful jobs and Windows Rust still
-in progress at the snapshot; no complete canonical CI success is claimed.
+Canonical run 36834231751 had five successful jobs; its remaining Windows Rust
+job was later cancelled by workflow concurrency after a documentation push.
+No complete canonical CI success is claimed. Subsequent documentation heads
+have their own pending CI and do not relabel the 7146551 executable evidence.
 
 Open: full exact-head canonical CI; populated row; governed Core
 adapter; Patient Detail/Evidence; full provider/dependency/privacy qualification.

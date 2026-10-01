@@ -32,8 +32,12 @@ All three native build/Clippy/test/package jobs succeeded. The separate Tauri
 dependency policy failed on the inherited glib advisory. Canonical run
 [36834231751](https://github.com/TheHalfMoon/MedScale/actions/runs/36834231751)
 had five successful jobs and Windows Rust in progress at the recorded snapshot.
+The later documentation push superseded that run: Windows Rust was cancelled
+by workflow concurrency, so source 7146551 has no six-job canonical success.
 Jev and provider-backed Alibaba OCR remain `BLOCKED_BY_ZERO_COST`.
 
-The immutable receipt records `native_visual_evidence=NOT_CAPTURED` at build
-time; this later capture is a separate event. Evidence remains bound to 7146551
+The package receipt records `native_visual_evidence=NOT_CAPTURED` at build
+time; this later capture is a separate event. The repository receipt copy uses
+LF line endings with identical fields; the downloaded package is unchanged.
+Evidence remains bound to 7146551
 after subsequent documentation commits. This is an `UNQUALIFIED_PREVIEW`.
