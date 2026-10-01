@@ -24,7 +24,19 @@ wide with no page-wide horizontal overflow. Home retains one sidebar and a
 compact workspace notice. These are development observations, not native final
 evidence or assistive-technology qualification.
 
-Open: native captures and exact-revision receipts; populated row; governed Core
+Native Windows frames and exact build receipt are now under
+`evidence/097-clinical-surfaces/native/4641cbb`: both themes at the two configured
+sizes plus 1272×900 inferred intermediate client width, with original capture
+hashes. All 1,027 package inventory entries verified. Three native platform build,
+Clippy/test/package jobs passed in 36830696375; dependency policy failed glib.
+No macOS/Linux visual evidence follows from those builds. The source detector
+ran once and reported only three warnings for pinned Inter; retain the approved
+brand. The fresh finish reviewer returned fix at presentation-preparation scope:
+the keyboard-focusable table region lacked an authored monochrome focus ring.
+Added the existing 2px focus token with an inset outline to avoid scroll-region
+clipping. New exact-head native capture and the fix verdict are pending.
+
+Open: full exact-head canonical CI; populated row; governed Core
 adapter; Patient Detail/Evidence; full provider/dependency/privacy qualification.
 Jev and provider-backed Alibaba OCR are BLOCKED_BY_ZERO_COST. The inherited glib
 advisory policy failure is unresolved. No merge or CLOSED_CANONICAL claim.

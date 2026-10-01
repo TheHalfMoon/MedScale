@@ -98,6 +98,7 @@ h1,h2,h3,p{margin-top:0}
 .medscale-search{display:flex;align-items:center;gap:var(--space-3);min-height:var(--control-height);width:min(100%,420px);padding:0 var(--space-3);border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--surface);color:var(--muted)}
 .medscale-search input{min-width:0;flex:1;background:transparent;border:0;color:var(--secondary);font-size:var(--type-label)}.medscale-search input::placeholder{color:var(--secondary);opacity:1}.medscale-search>span{font-size:var(--type-caption)}
 .medscale-table-scroll{overflow:auto;scrollbar-width:thin;scrollbar-color:var(--line-strong) transparent}
+.medscale-table-scroll:focus-visible{outline:2px solid var(--focus);outline-offset:-2px}
 .medscale-table{width:100%;min-width:680px;border-collapse:collapse;text-align:left;font-size:var(--type-label);table-layout:fixed}
 .medscale-table thead th{height:var(--table-head-height);border-top:1px solid var(--line);border-bottom:1px solid var(--line-strong);padding:0 var(--space-4);font-weight:550;color:var(--secondary);background:var(--surface)}
 .medscale-table th:first-child{width:23%}.medscale-table th:nth-child(2){width:28%}.medscale-table th:nth-child(3){width:29%}.medscale-table th:nth-child(4){width:20%}
