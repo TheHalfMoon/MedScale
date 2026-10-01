@@ -9,6 +9,9 @@
   --focus:#f4f4f2;--shadow:0 28px 80px rgba(0,0,0,.45);
   --space-1:4px;--space-2:8px;--space-3:12px;--space-4:16px;--space-6:24px;--space-8:32px;
   --radius-sm:4px;--radius-md:6px;--control-height:36px;--font-ui:Inter,system-ui,sans-serif;--font-data:"JetBrains Mono NL",monospace;
+  --type-body:13px;--type-label:12px;--type-caption:11px;--type-section:18px;--type-title:28px;
+  --icon-size:18px;--icon-stroke:2;--table-row-height:52px;--table-head-height:40px;
+  --nav-group-gap:12px;--header-height:66px;--content-measure:65ch;
 }
 :root[data-theme=light]{
   color-scheme:light;--canvas:#f8f8f6;--sidebar:#ffffff;--surface:#ffffff;--raised:#f4f4f2;--selected:#ebebe8;--hover:#f2f2ef;
@@ -31,31 +34,12 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--focus);outline-
 .palette-trigger{margin:18px 12px 13px;padding:10px 10px;display:flex;align-items:center;gap:9px;background:var(--raised);border:1px solid var(--line);border-radius:7px;color:var(--secondary);text-align:left;font-size:11px;white-space:nowrap}
 .palette-trigger:hover{background:var(--hover);color:var(--text)}
 .palette-trigger kbd{margin-left:auto;border:1px solid var(--line-strong);border-radius:4px;padding:2px 4px;font-family:"JetBrains Mono NL",monospace;font-size:9px;color:var(--muted)}
-.route-icon{width:17px;height:17px;flex:none;display:inline-block;background:currentColor;-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:center;mask-position:center}
-.icon-about{-webkit-mask-image:url("../../../crates/medscale-desktop/ui/assets/icons-v2/dark/about.svg");mask-image:url("../../../crates/medscale-desktop/ui/assets/icons-v2/dark/about.svg")}
-.icon-analytics{-webkit-mask-image:url("../../../crates/medscale-desktop/ui/assets/icons-v2/dark/analytics.svg");mask-image:url("../../../crates/medscale-desktop/ui/assets/icons-v2/dark/analytics.svg")}
-.icon-commands{-webkit-mask-image:url("../../../crates/medscale-desktop/ui/assets/icons-v2/dark/commands.svg");mask-image:url("../../../crates/medscale-desktop/ui/assets/icons-v2/dark/commands.svg")}
-.icon-data{-webkit-mask-image:url("../../../crates/medscale-desktop/ui/assets/icons-v2/dark/data.svg");mask-image:url("../../../crates/medscale-desktop/ui/assets/icons-v2/dark/data.svg")}
-.icon-documents{-webkit-mask-image:url("../../../crates/medscale-desktop/ui/assets/icons-v2/dark/documents.svg");mask-image:url("../../../crates/medscale-desktop/ui/assets/icons-v2/dark/documents.svg")}
-.icon-evidence{-webkit-mask-image:url("../../../crates/medscale-desktop/ui/assets/icons-v2/dark/evidence.svg");mask-image:url("../../../crates/medscale-desktop/ui/assets/icons-v2/dark/evidence.svg")}
-.icon-home{-webkit-mask-image:url("../../../crates/medscale-desktop/ui/assets/icons-v2/dark/home.svg");mask-image:url("../../../crates/medscale-desktop/ui/assets/icons-v2/dark/home.svg")}
-.icon-insights{-webkit-mask-image:url("../../../crates/medscale-desktop/ui/assets/icons-v2/dark/insights.svg");mask-image:url("../../../crates/medscale-desktop/ui/assets/icons-v2/dark/insights.svg")}
-.icon-models{-webkit-mask-image:url("../../../crates/medscale-desktop/ui/assets/icons-v2/dark/models.svg");mask-image:url("../../../crates/medscale-desktop/ui/assets/icons-v2/dark/models.svg")}
-.icon-notes{-webkit-mask-image:url("../../../crates/medscale-desktop/ui/assets/icons-v2/dark/notes.svg");mask-image:url("../../../crates/medscale-desktop/ui/assets/icons-v2/dark/notes.svg")}
-.icon-patients{-webkit-mask-image:url("../../../crates/medscale-desktop/ui/assets/icons-v2/dark/patients.svg");mask-image:url("../../../crates/medscale-desktop/ui/assets/icons-v2/dark/patients.svg")}
-.icon-privacy{-webkit-mask-image:url("../../../crates/medscale-desktop/ui/assets/icons-v2/dark/privacy.svg");mask-image:url("../../../crates/medscale-desktop/ui/assets/icons-v2/dark/privacy.svg")}
-.icon-projects{-webkit-mask-image:url("../../../crates/medscale-desktop/ui/assets/icons-v2/dark/projects.svg");mask-image:url("../../../crates/medscale-desktop/ui/assets/icons-v2/dark/projects.svg")}
-.icon-research{-webkit-mask-image:url("../../../crates/medscale-desktop/ui/assets/icons-v2/dark/research.svg");mask-image:url("../../../crates/medscale-desktop/ui/assets/icons-v2/dark/research.svg")}
-.icon-runtime{-webkit-mask-image:url("../../../crates/medscale-desktop/ui/assets/icons-v2/dark/runtime.svg");mask-image:url("../../../crates/medscale-desktop/ui/assets/icons-v2/dark/runtime.svg")}
-.icon-search{-webkit-mask-image:url("../../../crates/medscale-desktop/ui/assets/icons-v2/dark/search.svg");mask-image:url("../../../crates/medscale-desktop/ui/assets/icons-v2/dark/search.svg")}
-.icon-settings{-webkit-mask-image:url("../../../crates/medscale-desktop/ui/assets/icons-v2/dark/settings.svg");mask-image:url("../../../crates/medscale-desktop/ui/assets/icons-v2/dark/settings.svg")}
-.icon-workflows{-webkit-mask-image:url("../../../crates/medscale-desktop/ui/assets/icons-v2/dark/workflows.svg");mask-image:url("../../../crates/medscale-desktop/ui/assets/icons-v2/dark/workflows.svg")}
-.icon-workspace{-webkit-mask-image:url("../../../crates/medscale-desktop/ui/assets/icons-v2/dark/workspace.svg");mask-image:url("../../../crates/medscale-desktop/ui/assets/icons-v2/dark/workspace.svg")}
+.route-icon{width:var(--icon-size);height:var(--icon-size);flex:none;display:inline-block;stroke-width:var(--icon-stroke)}
 .route-nav{overflow:auto;min-height:0;padding:2px 12px 18px;scrollbar-width:thin;scrollbar-color:var(--line-strong) transparent}
-.nav-group{margin-bottom:17px}
+.nav-group{margin-bottom:var(--nav-group-gap)}
 .nav-heading{padding:var(--space-3) 11px var(--space-2);color:var(--muted);font-family:var(--font-data);font-size:10px;letter-spacing:.08em;text-transform:uppercase;border-top:1px solid var(--line)}
 .nav-item{width:100%;height:var(--control-height);border:0;background:transparent;border-radius:var(--radius-md);color:var(--secondary);display:flex;align-items:center;gap:11px;padding:0 10px;text-align:left;font-size:12px;font-weight:520;transition:background .12s,color .12s}
-.nav-item .route-icon{width:16px;height:16px}
+.nav-item .route-icon{width:var(--icon-size);height:var(--icon-size)}
 .nav-item:hover{background:var(--hover);color:var(--text)}
 .nav-item.is-active{background:var(--selected);color:var(--text);font-weight:650}
 .nav-item.is-active::after{content:"";margin-left:auto;width:3px;height:14px;background:var(--text);border-radius:2px}
@@ -63,7 +47,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--focus);outline-
 .status-dot{height:7px;width:7px;flex:none;display:inline-block;border-radius:50%;background:var(--muted)}
 .sidebar-foot strong,.sidebar-foot span:last-child{display:block}.sidebar-foot strong{font-size:11px;font-weight:650}.sidebar-foot span:last-child{margin-top:3px;color:var(--muted);font-size:11px}
 .workspace{min-width:0;min-height:0;display:flex;flex-direction:column}
-.topbar{height:66px;min-height:66px;display:flex;justify-content:space-between;align-items:center;gap:20px;border-bottom:1px solid var(--line);padding:0 36px;background:var(--canvas)}
+.topbar{height:var(--header-height);min-height:var(--header-height);display:flex;justify-content:space-between;align-items:center;gap:var(--space-6);border-bottom:1px solid var(--line);padding:0 var(--space-8);background:var(--canvas)}
 .breadcrumb{display:flex;align-items:center;gap:11px;color:var(--muted);font-family:"JetBrains Mono NL",monospace;font-size:10px;letter-spacing:.1em}.breadcrumb strong{font-family:Inter,system-ui,sans-serif;font-size:12px;letter-spacing:0;color:var(--text);font-weight:650}
 .topbar-actions{display:flex;align-items:center;gap:18px}.local-badge{font-family:"JetBrains Mono NL",monospace;font-size:9px;letter-spacing:.11em;color:var(--secondary);white-space:nowrap}
 .theme-switch{display:flex;align-items:center;padding:3px;border:1px solid var(--line);border-radius:var(--radius-md);background:var(--surface)}.theme-switch button{min-height:var(--control-height);border:0;background:transparent;color:var(--secondary);border-radius:var(--radius-sm);padding:5px 10px;font-size:11px;font-weight:600}.theme-switch button[aria-pressed=true]{background:var(--selected);color:var(--text)}
@@ -71,7 +55,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--focus);outline-
 .page-container{max-width:1330px;margin:auto;padding:40px 45px 70px}
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 .home-title{padding:var(--space-8) 0 var(--space-6)}.home-title h1{font-size:38px;font-weight:660;line-height:1.15;letter-spacing:-.04em;margin:0 0 var(--space-2)}.home-title p{font-size:13px;color:var(--secondary);margin:0}
-.workspace-notice{display:flex;align-items:center;justify-content:space-between;gap:var(--space-6);padding:var(--space-6);background:var(--surface);border:1px solid var(--line)}.workspace-notice .section-index{font-family:var(--font-data);font-size:9px;letter-spacing:.13em;color:var(--muted);margin:0 0 var(--space-3)}.workspace-notice h2{font-size:21px;font-weight:650;letter-spacing:-.035em;margin:0 0 var(--space-2)}.workspace-notice p:last-child{font-size:12px;line-height:1.5;color:var(--secondary);margin:0}
+.workspace-notice{display:flex;align-items:center;justify-content:space-between;gap:var(--space-6);padding:var(--space-4) 0;border-bottom:1px solid var(--line)}
 .state-label{font-family:var(--font-data);font-size:11px;letter-spacing:0;color:var(--secondary);white-space:nowrap;display:inline-flex;align-items:center;gap:var(--space-2)}.state-label::before{content:"";width:5px;height:5px;border:1px solid currentColor;border-radius:50%}
 .posture-table{width:100%;border-collapse:collapse;text-align:left;font-size:12px;background:var(--surface);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}.posture-table thead th{font-family:var(--font-data);font-size:11px;font-weight:400;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);height:34px;border-bottom:1px solid var(--line);padding:0 var(--space-4)}.posture-table tbody th{font-weight:550;color:var(--text);white-space:nowrap}.posture-table td,.posture-table tbody th{padding:var(--space-4);border-bottom:1px solid var(--line)}.posture-table td:last-child{color:var(--secondary);line-height:1.5}.posture-table tr:last-child td,.posture-table tr:last-child th{border-bottom:0}
 .work-area-list{border-top:1px solid var(--line)}.work-area{display:flex;width:100%;gap:var(--space-4);align-items:center;min-height:55px;border:0;border-bottom:1px solid var(--line);background:transparent;color:var(--text);padding:var(--space-3) var(--space-2);text-align:left}.work-area:hover{background:var(--hover)}.work-area strong{font-size:12px;font-weight:600;width:100px;flex:none}.work-area small{font-size:12px;color:var(--secondary)}.work-area-arrow{margin-left:auto;color:var(--muted)}
@@ -89,3 +73,38 @@ h1,h2,h3,p{margin-top:0}
 
 .palette-search input:focus-visible{outline:2px solid var(--focus);outline-offset:4px;border-radius:var(--radius-sm)}
 .back-home{margin-top:var(--space-4);min-height:var(--control-height);border:1px solid var(--line-strong);border-radius:var(--radius-sm);padding:0 var(--space-4);background:var(--surface);color:var(--text);font-size:12px}.back-home:hover{background:var(--hover)}
+
+/* Shared clinical presentation. Literal states never imply record authority. */
+.medscale-status{display:inline-flex;align-items:center;gap:var(--space-2);white-space:nowrap;font-size:var(--type-caption);font-weight:500;color:var(--secondary);line-height:1.5}
+.state-marker{width:6px;height:6px;border:1px solid currentColor;flex:none}
+.medscale-status[data-state=Unknown] .state-marker{border-radius:50%}
+.medscale-status[data-state=Present] .state-marker{border-radius:50%;background:currentColor}
+.medscale-status[data-state=Limited] .state-marker{transform:rotate(45deg)}
+.medscale-status[data-state=Conflict] .state-marker{border-left-width:2px;border-right-width:2px}
+.medscale-button{min-height:var(--control-height);padding:0 var(--space-4);border:1px solid var(--line-strong);border-radius:var(--radius-sm);color:var(--text);background:var(--surface);font-size:var(--type-label);font-weight:550}
+.medscale-button:hover{background:var(--hover)}.medscale-button:active{background:var(--selected)}.medscale-button:disabled{cursor:default;color:var(--muted)}
+.return-home{margin-top:var(--space-6)}
+.medscale-empty-state{display:flex;align-items:flex-start;gap:var(--space-4)}.medscale-empty-state>.route-icon{margin-top:var(--space-1);color:var(--muted)}
+.medscale-empty-state h2{font-size:var(--type-section);font-weight:600;letter-spacing:-.02em;line-height:1.4;margin:0 0 var(--space-2)}
+.empty-state-copy{max-width:var(--content-measure);color:var(--secondary);font-size:var(--type-body);line-height:1.6}.empty-state-copy p{margin:0}
+.medscale-section .section-heading{padding-top:var(--space-8)}.medscale-section .section-heading h2{font-size:var(--type-section);letter-spacing:-.02em}.medscale-section .section-heading>span{font-family:var(--font-ui);font-size:var(--type-caption);letter-spacing:0;text-transform:none}
+.sidebar-foot>.route-icon{color:var(--secondary)}
+.breadcrumb{font-family:var(--font-ui);font-size:var(--type-label);letter-spacing:0;gap:var(--space-4)}.breadcrumb>span{padding-right:var(--space-4);border-right:1px solid var(--line-strong)}
+.local-badge{font-family:var(--font-ui);font-size:var(--type-caption);letter-spacing:0}
+.patient-index-heading{display:flex;justify-content:space-between;align-items:center;gap:var(--space-6);padding:var(--space-2) 0 var(--space-6)}
+.patient-index-heading h1{font-size:var(--type-title);line-height:1.2;letter-spacing:-.03em;font-weight:650;margin:0 0 var(--space-2)}.patient-index-heading p{font-size:var(--type-body);color:var(--secondary);margin:0}
+.patient-total{display:flex;align-items:center;gap:var(--space-3);font-size:var(--type-label);color:var(--secondary)}
+.patient-toolbar{display:flex;align-items:center;justify-content:space-between;gap:var(--space-4);padding:var(--space-4) 0;border-top:1px solid var(--line)}
+.medscale-search{display:flex;align-items:center;gap:var(--space-3);min-height:var(--control-height);width:min(100%,420px);padding:0 var(--space-3);border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--surface);color:var(--muted)}
+.medscale-search input{min-width:0;flex:1;background:transparent;border:0;color:var(--secondary);font-size:var(--type-label)}.medscale-search input::placeholder{color:var(--secondary);opacity:1}.medscale-search>span{font-size:var(--type-caption)}
+.medscale-table-scroll{overflow:auto;scrollbar-width:thin;scrollbar-color:var(--line-strong) transparent}
+.medscale-table-scroll:focus-visible{outline:2px solid var(--focus);outline-offset:-2px}
+.medscale-table{width:100%;min-width:680px;border-collapse:collapse;text-align:left;font-size:var(--type-label);table-layout:fixed}
+.medscale-table thead th{height:var(--table-head-height);border-top:1px solid var(--line);border-bottom:1px solid var(--line-strong);padding:0 var(--space-4);font-weight:550;color:var(--secondary);background:var(--surface)}
+.medscale-table th:first-child{width:23%}.medscale-table th:nth-child(2){width:28%}.medscale-table th:nth-child(3){width:29%}.medscale-table th:nth-child(4){width:20%}
+.medscale-row th,.medscale-row td{height:var(--table-row-height);border-bottom:1px solid var(--line);padding:var(--space-3) var(--space-4);overflow-wrap:anywhere;vertical-align:top;line-height:1.5}.medscale-row:hover{background:var(--hover)}.medscale-row th{font-weight:600}.exact-identity{font-family:var(--font-data);font-size:var(--type-caption);color:var(--secondary)}
+.patient-table-unavailable{padding:var(--space-8) var(--space-4);border-bottom:1px solid var(--line)}
+.patient-availability-note{display:flex;justify-content:space-between;gap:var(--space-4);padding:var(--space-3) var(--space-4);font-size:var(--type-caption);line-height:1.5;color:var(--muted)}
+.availability-inspector{margin-top:var(--space-6);border-top:1px solid var(--line);border-bottom:1px solid var(--line);font-size:var(--type-label)}.availability-inspector summary{cursor:pointer;min-height:var(--control-height);padding:var(--space-3) 0;color:var(--secondary)}.availability-inspector summary:hover{color:var(--text)}.availability-inspector summary:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.availability-inspector>div{padding:0 0 var(--space-4);color:var(--secondary);line-height:1.6}.availability-inspector p{max-width:var(--content-measure);margin:0 0 var(--space-4)}.availability-inspector p:last-child{margin-bottom:0}.availability-inspector dl{margin:0 0 var(--space-4);max-width:420px}.availability-inspector dl>div{display:flex;justify-content:space-between;gap:var(--space-4);padding:var(--space-2) 0}.availability-inspector dd{margin:0}
+@media(max-width:1180px){.patient-index{padding:var(--space-8)}.patient-index-heading{align-items:flex-start}.patient-total{flex-direction:column;align-items:flex-end;gap:var(--space-1)}}
