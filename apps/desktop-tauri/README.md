@@ -69,5 +69,6 @@ The QA files are never bundled into the app.
 ## Qualification status
 
 - Real PHI is not authorized.
+- Dependency policy is FAILED on an inherited Linux finding: `glib` 0.18.5 is affected by RUSTSEC-2024-0429. It comes from Tauri 2.x's GTK3/WebKitGTK stack, and no stable Tauri release allows a patched `glib`. The advisory is not ignored. See F096-T01 in `specs/096-tauri-foundation/findings.md`.
 - Signing, installers, cross-platform behavior, physical keyboard and screen-reader passes, performance and privacy containment are not qualified.
 - Do not infer product or private-data readiness from this desktop.
