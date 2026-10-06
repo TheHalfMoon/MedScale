@@ -188,9 +188,11 @@ impl CliSession {
     }
 
     /// Closes the open encrypted vault through Core: the working metadata
-    /// database is sealed into the encrypted meta file and plaintext work
-    /// sidecars are wiped. Dropping a session without this loses writes made
-    /// since open and leaves the work database on disk.
+    /// database is sealed into the encrypted meta file, then the work
+    /// database, its SQLite sidecars and the writer lease are removed.
+    /// Dropping a session without this discards writes made since open (the
+    /// next open treats the work database as a crash leftover) and leaves
+    /// those files on disk.
     pub fn close_encrypted_vault(&mut self) -> Result<(), AuthorityError> {
         match self.dispatch(
             Capability::CloseEncryptedVault,

@@ -471,7 +471,7 @@ fn encrypted_vault_create_lock_unlock_and_wrong_passphrase() {
     h.ok("workspace_lock", json!({}));
     assert!(
         !vault_root.join("meta.work.sqlite3").exists(),
-        "lock must wipe the plaintext work DB"
+        "lock must seal and remove the working DB"
     );
     assert!(
         h.call(
@@ -484,7 +484,7 @@ fn encrypted_vault_create_lock_unlock_and_wrong_passphrase() {
         "workspace_unlock",
         json!({ "passphrase": "correct horse battery" }),
     );
-    // Lock seals the vault through Core: writes survive and no plaintext work DB remains.
+    // Lock seals the vault through Core: writes survive and no unsealed working DB remains.
     let listed = h.ok("projects_list", json!({}));
     assert_eq!(
         listed.as_array().unwrap().len(),
