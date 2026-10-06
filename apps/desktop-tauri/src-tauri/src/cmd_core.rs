@@ -380,6 +380,8 @@ pub fn about_info(host: tauri::State<'_, Host>) -> CmdResult<Value> {
         "network_default_deny": report.network_broker.default_deny,
         "license": "Apache-2.0",
         "build_profile": if cfg!(debug_assertions) { "debug" } else { "release" },
+        // Qualification state comes from the Core doctor, never from the product name.
+        "release_ready": report.release_qualification.release_ready,
         "target": std::env::consts::OS.to_owned() + "-" + std::env::consts::ARCH,
     }))
 }

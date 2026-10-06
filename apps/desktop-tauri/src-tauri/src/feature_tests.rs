@@ -383,7 +383,10 @@ fn every_surface_runs_against_real_core() {
     let gov = h.ok("governance_overview", json!({}));
     assert!(!gov["settings_rows"].as_array().unwrap().is_empty());
     assert!(gov["fhir_support"].is_object());
-    assert_eq!(h.ok("about_info", json!({}))["product"], "MedScale");
+    let about = h.ok("about_info", json!({}));
+    assert_eq!(about["product"], "MedScale");
+    // The product name drops "Preview"; the unqualified state stays explicit.
+    assert_eq!(about["release_ready"], false);
 
     // Final read of every surface (also the visual-QA replay snapshot).
     for (cmd, args) in [
