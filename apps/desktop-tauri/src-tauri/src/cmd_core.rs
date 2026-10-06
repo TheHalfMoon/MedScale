@@ -224,13 +224,15 @@ pub fn documents_list(host: tauri::State<'_, Host>) -> CmdResult<Value> {
         .seed
         .sources
         .iter()
-        .map(|s| json!({
-            "source_id": s.source_id,
-            "resource_type": s.resource_type,
-            "fixture": s.fixture,
-            "claim_kind": s.claim_kind,
-            "subject_ref": s.subject_ref,
-        }))
+        .map(|s| {
+            json!({
+                "source_id": s.source_id,
+                "resource_type": s.resource_type,
+                "fixture": s.fixture,
+                "claim_kind": s.claim_kind,
+                "subject_ref": s.subject_ref,
+            })
+        })
         .collect();
     Ok(json!({
         "sources": rows,
@@ -293,8 +295,12 @@ fn insights_vm(state: &mut State) -> CmdResult<PopulationInsightsVm> {
         max_hits: 5,
         include_retracted: true,
     })?;
-    PopulationInsightsVm::from_trusted(&pairs, &retrieval)
-        .map_err(|_| CmdError::new("corrupt", "Corrupt: cohort projection failed authority checks"))
+    PopulationInsightsVm::from_trusted(&pairs, &retrieval).map_err(|_| {
+        CmdError::new(
+            "corrupt",
+            "Corrupt: cohort projection failed authority checks",
+        )
+    })
 }
 
 #[tauri::command(async)]

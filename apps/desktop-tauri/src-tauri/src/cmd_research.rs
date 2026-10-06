@@ -5,8 +5,8 @@
 use medscale_contracts::data_sources::{LocalFileFormat, SourceLocator};
 use medscale_contracts::objects::OpaqueId;
 use medscale_desktop_vm::{
-    analytics_workspace, browse_workspace, data_workbench, knowledge_workspace,
-    privacy_workspace, project_workspace, research_os_workspace,
+    analytics_workspace, browse_workspace, data_workbench, knowledge_workspace, privacy_workspace,
+    project_workspace, research_os_workspace,
 };
 use serde_json::{Value, json};
 
@@ -19,7 +19,11 @@ use crate::host::{self, CmdError, CmdResult, Host};
 pub fn projects_list(host: tauri::State<'_, Host>) -> CmdResult<Value> {
     let mut state = lock(&host)?;
     let rows = project_workspace::refresh_projects(state.session()?)?;
-    Ok(json!(rows.iter().map(|r| crate::obj!(r => id, name, status, revision, experiments, refs, edges)).collect::<Vec<_>>()))
+    Ok(json!(
+        rows.iter()
+            .map(|r| crate::obj!(r => id, name, status, revision, experiments, refs, edges))
+            .collect::<Vec<_>>()
+    ))
 }
 
 #[tauri::command(async)]
@@ -58,7 +62,11 @@ pub fn project_archive(
     revision: u64,
 ) -> CmdResult<Value> {
     let mut state = lock(&host)?;
-    let r = project_workspace::archive_project(state.session()?, host::bounded_id(&project_id)?, revision)?;
+    let r = project_workspace::archive_project(
+        state.session()?,
+        host::bounded_id(&project_id)?,
+        revision,
+    )?;
     Ok(crate::obj!(r => id, name, status, revision, experiments, refs, edges))
 }
 
@@ -70,7 +78,11 @@ pub fn experiment_create(
 ) -> CmdResult<Value> {
     let name = project_workspace::validate_name(&name).map_err(CmdError::invalid)?;
     let mut state = lock(&host)?;
-    let r = project_workspace::create_experiment(state.session()?, host::bounded_id(&project_id)?, name)?;
+    let r = project_workspace::create_experiment(
+        state.session()?,
+        host::bounded_id(&project_id)?,
+        name,
+    )?;
     Ok(crate::obj!(r => id, name, status, revision))
 }
 
@@ -80,13 +92,20 @@ pub fn experiment_create(
 pub fn data_sources(host: tauri::State<'_, Host>, project_id: String) -> CmdResult<Value> {
     let mut state = lock(&host)?;
     let rows = data_workbench::refresh_sources(state.session()?, host::bounded_id(&project_id)?)?;
-    Ok(json!(rows.iter().map(|r| crate::obj!(r => id, name, kind, health, revision)).collect::<Vec<_>>()))
+    Ok(json!(
+        rows.iter()
+            .map(|r| crate::obj!(r => id, name, kind, health, revision))
+            .collect::<Vec<_>>()
+    ))
 }
 
 /// Creates a small, clearly synthetic, non-clinical CSV inside the vault and
 /// registers it as a Core data source. No user-supplied path is ever read.
 #[tauri::command(async)]
-pub fn data_add_sample_source(host: tauri::State<'_, Host>, project_id: String) -> CmdResult<Value> {
+pub fn data_add_sample_source(
+    host: tauri::State<'_, Host>,
+    project_id: String,
+) -> CmdResult<Value> {
     let project_id = host::bounded_id(&project_id)?.to_owned();
     let mut state = lock(&host)?;
     let ws = state.workspace()?;
@@ -112,7 +131,11 @@ pub fn data_add_sample_source(host: tauri::State<'_, Host>, project_id: String) 
 pub fn data_snapshots(host: tauri::State<'_, Host>, source_id: String) -> CmdResult<Value> {
     let mut state = lock(&host)?;
     let rows = data_workbench::source_snapshots(state.session()?, host::bounded_id(&source_id)?)?;
-    Ok(json!(rows.iter().map(|r| crate::obj!(r => id, rows, digest)).collect::<Vec<_>>()))
+    Ok(json!(
+        rows.iter()
+            .map(|r| crate::obj!(r => id, rows, digest))
+            .collect::<Vec<_>>()
+    ))
 }
 
 #[tauri::command(async)]
@@ -163,7 +186,11 @@ pub fn data_transform(
 pub fn analytics_receipts(host: tauri::State<'_, Host>, project_id: String) -> CmdResult<Value> {
     let mut state = lock(&host)?;
     let rows = analytics_workspace::receipts(state.session()?, host::bounded_id(&project_id)?)?;
-    Ok(json!(rows.iter().map(|r| crate::obj!(r => id, outcome, detail)).collect::<Vec<_>>()))
+    Ok(json!(
+        rows.iter()
+            .map(|r| crate::obj!(r => id, outcome, detail))
+            .collect::<Vec<_>>()
+    ))
 }
 
 #[tauri::command(async)]
@@ -179,7 +206,12 @@ pub fn analytics_query(
         return Err(CmdError::invalid("Invalid: bindings are too long"));
     }
     let mut state = lock(&host)?;
-    let r = analytics_workspace::run_query(state.session()?, host::bounded_id(&project_id)?, &sql, &bindings)?;
+    let r = analytics_workspace::run_query(
+        state.session()?,
+        host::bounded_id(&project_id)?,
+        &sql,
+        &bindings,
+    )?;
     Ok(crate::obj!(r => summary, preview))
 }
 
@@ -201,7 +233,10 @@ pub fn knowledge_overview(host: tauri::State<'_, Host>, project_id: String) -> C
 #[tauri::command(async)]
 pub fn knowledge_build(host: tauri::State<'_, Host>, project_id: String) -> CmdResult<String> {
     let mut state = lock(&host)?;
-    Ok(knowledge_workspace::build_index(state.session()?, host::bounded_id(&project_id)?)?)
+    Ok(knowledge_workspace::build_index(
+        state.session()?,
+        host::bounded_id(&project_id)?,
+    )?)
 }
 
 #[tauri::command(async)]
@@ -246,7 +281,12 @@ pub fn browse_allow(
         return Err(CmdError::invalid("Invalid: path prefix is too long"));
     }
     let mut state = lock(&host)?;
-    let r = browse_workspace::add_allowed_host(state.session()?, host::bounded_id(&project_id)?, &host_name, path_prefix.trim())?;
+    let r = browse_workspace::add_allowed_host(
+        state.session()?,
+        host::bounded_id(&project_id)?,
+        &host_name,
+        path_prefix.trim(),
+    )?;
     Ok(crate::obj!(r => id, target, enabled, revision))
 }
 
@@ -257,11 +297,19 @@ pub fn browse_disable(
     revision: u64,
 ) -> CmdResult<()> {
     let mut state = lock(&host)?;
-    Ok(browse_workspace::disable_allowed_host(state.session()?, host::bounded_id(&entry_id)?, revision)?)
+    Ok(browse_workspace::disable_allowed_host(
+        state.session()?,
+        host::bounded_id(&entry_id)?,
+        revision,
+    )?)
 }
 
 #[tauri::command(async)]
-pub fn browse_fetch(host: tauri::State<'_, Host>, project_id: String, url: String) -> CmdResult<Value> {
+pub fn browse_fetch(
+    host: tauri::State<'_, Host>,
+    project_id: String,
+    url: String,
+) -> CmdResult<Value> {
     let url = host::bounded_text(&url, 2048)?;
     let mut state = lock(&host)?;
     let r = browse_workspace::fetch(state.session()?, host::bounded_id(&project_id)?, &url)?;
@@ -277,7 +325,11 @@ pub fn browse_fetch(host: tauri::State<'_, Host>, project_id: String, url: Strin
 pub fn research_os_rows(host: tauri::State<'_, Host>, project_id: String) -> CmdResult<Value> {
     let mut state = lock(&host)?;
     let rows = research_os_workspace::rows(state.session()?, host::bounded_id(&project_id)?);
-    Ok(json!(rows.iter().map(|r| crate::obj!(r => plane, id, state, detail, action)).collect::<Vec<_>>()))
+    Ok(json!(
+        rows.iter()
+            .map(|r| crate::obj!(r => plane, id, state, detail, action))
+            .collect::<Vec<_>>()
+    ))
 }
 
 #[tauri::command(async)]
@@ -291,8 +343,14 @@ pub fn research_os_act(
     let plane = host::bounded_text(&plane, 32)?;
     let action = host::bounded_text(&action, 32)?;
     let mut state = lock(&host)?;
-    research_os_workspace::act(state.session()?, host::bounded_id(&project_id)?, &plane, host::bounded_id(&id)?, &action)
-        .map_err(|message| CmdError::new("invalid", message))
+    research_os_workspace::act(
+        state.session()?,
+        host::bounded_id(&project_id)?,
+        &plane,
+        host::bounded_id(&id)?,
+        &action,
+    )
+    .map_err(|message| CmdError::new("invalid", message))
 }
 
 // ───────────────────────────── privacy ─────────────────────────────
@@ -317,6 +375,11 @@ pub fn privacy_check_egress(
 ) -> CmdResult<Value> {
     let boundary = host::bounded_text(&boundary, 64)?;
     let mut state = lock(&host)?;
-    let r = privacy_workspace::check_egress(state.session()?, host::bounded_id(&project_id)?, host::bounded_id(&artifact_id)?, &boundary)?;
+    let r = privacy_workspace::check_egress(
+        state.session()?,
+        host::bounded_id(&project_id)?,
+        host::bounded_id(&artifact_id)?,
+        &boundary,
+    )?;
     Ok(crate::obj!(r => artifact_id, boundary, outcome, reason))
 }

@@ -258,7 +258,8 @@ impl State {
     /// Writes a fixture pack into the app data directory and returns its path.
     pub fn materialize_pack(&self, pack: (&str, &[PackFile])) -> CmdResult<PathBuf> {
         let dir = self.data_dir()?.join("fixture-packs").join(pack.0);
-        std::fs::create_dir_all(&dir).map_err(|_| CmdError::unavailable("Unavailable: pack folder"))?;
+        std::fs::create_dir_all(&dir)
+            .map_err(|_| CmdError::unavailable("Unavailable: pack folder"))?;
         for file in pack.1 {
             std::fs::write(dir.join(file.name), file.bytes)
                 .map_err(|_| CmdError::unavailable("Unavailable: pack file"))?;
@@ -393,7 +394,10 @@ pub fn unlock_encrypted(state: &mut State, passphrase: &str) -> CmdResult<()> {
     validate_passphrase(passphrase)?;
     let vault_root = encrypted_root(state)?;
     if !manifest_path(&vault_root).exists() {
-        return Err(CmdError::new("missing", "Missing: no encrypted vault at the default location"));
+        return Err(CmdError::new(
+            "missing",
+            "Missing: no encrypted vault at the default location",
+        ));
     }
     let mut session = CliSession::connect("desktop-encrypted")?;
     session.open_encrypted_vault(&vault_root.display().to_string(), passphrase)?;
@@ -410,7 +414,9 @@ pub fn unlock_encrypted(state: &mut State, passphrase: &str) -> CmdResult<()> {
 fn validate_passphrase(passphrase: &str) -> CmdResult<()> {
     let len = passphrase.chars().count();
     if !(8..=256).contains(&len) {
-        return Err(CmdError::invalid("Invalid: passphrase must be 8–256 characters"));
+        return Err(CmdError::invalid(
+            "Invalid: passphrase must be 8–256 characters",
+        ));
     }
     Ok(())
 }
@@ -433,7 +439,9 @@ pub fn bounded_id(raw: &str) -> CmdResult<&str> {
 pub fn bounded_text(raw: &str, max: usize) -> CmdResult<String> {
     let text = raw.trim();
     if text.is_empty() || text.chars().count() > max {
-        return Err(CmdError::invalid(format!("Invalid: text must be 1–{max} characters")));
+        return Err(CmdError::invalid(format!(
+            "Invalid: text must be 1–{max} characters"
+        )));
     }
     Ok(text.to_owned())
 }
