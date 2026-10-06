@@ -187,6 +187,24 @@ impl CliSession {
         Ok(())
     }
 
+    /// Closes the open encrypted vault through Core: the working metadata
+    /// database is sealed into the encrypted meta file and plaintext work
+    /// sidecars are wiped. Dropping a session without this loses writes made
+    /// since open and leaves the work database on disk.
+    pub fn close_encrypted_vault(&mut self) -> Result<(), AuthorityError> {
+        match self.dispatch(
+            Capability::CloseEncryptedVault,
+            RequestBody::CloseEncryptedVault,
+        )? {
+            ResponseBody::VaultClosed => {
+                self.open = false;
+                self.vault_root = None;
+                Ok(())
+            }
+            _ => Err(Self::unexpected("vault closed")),
+        }
+    }
+
     pub fn open_synthetic_vault(&mut self, vault_root: &str) -> Result<(), AuthorityError> {
         let _ = self.dispatch(
             Capability::OpenSyntheticVault,

@@ -122,6 +122,18 @@ fn main() {
                 .build()?;
             Ok(())
         })
-        .run(tauri::generate_context!())
-        .expect("failed to start MedScale Desktop");
+        .build(tauri::generate_context!())
+        .expect("failed to start MedScale Desktop")
+        .run(|app, event| {
+            // Seal an open encrypted vault before the process exits; managed
+            // state is not guaranteed to be dropped on exit.
+            if let tauri::RunEvent::Exit = event {
+                if let Ok(mut state) = app.state::<host::Host>().state.lock() {
+                    if let Some(ws) = state.workspace.as_mut() {
+                        let _ = ws.close();
+                    }
+                    state.workspace = None;
+                }
+            }
+        });
 }

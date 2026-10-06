@@ -105,6 +105,25 @@ pub struct Workspace {
     pub seed: SeedManifest,
 }
 
+impl Workspace {
+    /// Seals an encrypted vault through Core. Synthetic vaults persist after
+    /// every Core request and need no close step.
+    pub fn close(&mut self) -> Result<(), AuthorityError> {
+        if self.kind == VaultKind::Encrypted && self.session.is_open() {
+            self.session.close_encrypted_vault()?;
+        }
+        Ok(())
+    }
+}
+
+impl Drop for Workspace {
+    /// Last-resort seal for paths that never reach an explicit lock (window
+    /// close, app exit, panic unwinding). Errors cannot be reported here.
+    fn drop(&mut self) {
+        let _ = self.close();
+    }
+}
+
 #[derive(Default)]
 pub struct State {
     pub data_dir: Option<PathBuf>,

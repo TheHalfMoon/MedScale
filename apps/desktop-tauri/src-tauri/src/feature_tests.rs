@@ -226,11 +226,15 @@ fn encrypted_vault_create_lock_unlock_and_wrong_passphrase() {
     // Core admits FHIR ingest into synthetic vaults only; an encrypted vault starts empty.
     assert_eq!(h.ok("patients_list", json!({}))["subjects"].as_array().unwrap().len(), 0);
     let project = h.ok("project_create", json!({ "name": "Encrypted study", "description": null }));
+    let vault_root = std::env::temp_dir().join(format!("medscale-tauri-feature-enc-{}", std::process::id())).join("encrypted-workspace");
+    assert!(vault_root.join("meta.work.sqlite3").exists(), "work DB exists while unlocked");
     h.ok("workspace_lock", json!({}));
+    assert!(!vault_root.join("meta.work.sqlite3").exists(), "lock must wipe the plaintext work DB");
     assert!(h.call("workspace_unlock", json!({ "passphrase": "wrong passphrase!" })).is_err());
     h.ok("workspace_unlock", json!({ "passphrase": "correct horse battery" }));
-    // OPEN FINDING: projects created in an encrypted vault are not listed after
-    // lock/unlock. Not asserted until the Core persistence path is confirmed.
-    let _ = (&project, h.ok("projects_list", json!({})));
+    // Lock seals the vault through Core: writes survive and no plaintext work DB remains.
+    let listed = h.ok("projects_list", json!({}));
+    assert_eq!(listed.as_array().unwrap().len(), 1, "projects after unlock: {listed}");
+    assert_eq!(listed[0]["id"], project["id"]);
     assert_eq!(h.call("workspace_create_encrypted", json!({ "passphrase": "another passphrase" })).unwrap_err()["kind"], "conflict");
 }

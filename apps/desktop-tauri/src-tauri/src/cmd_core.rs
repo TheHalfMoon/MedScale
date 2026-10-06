@@ -119,6 +119,11 @@ pub fn workspace_unlock(host: tauri::State<'_, Host>, passphrase: String) -> Cmd
 #[tauri::command(async)]
 pub fn workspace_lock(host: tauri::State<'_, Host>) -> CmdResult<()> {
     let mut state = lock(&host)?;
+    // Seal first: if Core cannot seal the encrypted vault the workspace stays
+    // open so nothing written since unlock is lost, and the error is shown.
+    if let Some(ws) = state.workspace.as_mut() {
+        ws.close()?;
+    }
     // Dropping the session releases the lease and the in-memory keys.
     state.workspace = None;
     Ok(())
