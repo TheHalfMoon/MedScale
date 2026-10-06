@@ -52,7 +52,7 @@ export function Projects() {
         {list.state.status === "error" && <ErrorState error={list.state.error} onRetry={list.reload} />}
         {list.state.status === "ready" && (rows.length ? (
           <table className="tb" aria-label="Projects">
-            <thead><tr><th style={{ width: "34%" }}>Project</th><th style={{ width: "14%" }}>Status</th><th className="num" style={{ width: "12%" }}>Revision</th><th className="num col-p3" style={{ width: "13%" }}>Experiments</th><th className="num col-p3" style={{ width: "13%" }}>References</th><th className="num">Edges</th></tr></thead>
+            <thead><tr><th style={{ width: "34%" }}>Project</th><th style={{ width: "14%" }}>Status</th><th className="num" style={{ width: "12%" }} title="Revision">Rev</th><th className="num col-p3" style={{ width: "13%" }} title="Experiments">Exp</th><th className="num col-p3" style={{ width: "13%" }} title="References">Refs</th><th className="num">Edges</th></tr></thead>
             <tbody>{rows.map((p) => (
               <tr key={p.id} className={`r2 clickable ${current?.id === p.id ? "sel" : ""}`} tabIndex={0} onClick={() => setProject(p.id)} onKeyDown={(e) => e.key === "Enter" && setProject(p.id)}>
                 <td><div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}><span className="pname trunc">{p.name}</span><span className="mono t-mono-sm i3 trunc">{p.id}</span></div></td>
@@ -326,20 +326,36 @@ function ResearchOSBody({ projectId }: { projectId: string }) {
   async function act(r: { plane: string; id: string; action: string }) { const res = await run<string>(r.id, "research_os_act", { projectId, plane: r.plane, id: r.id, action: r.action }); if (outcome(res, `${r.action} · ${r.id}`)) await rows.reload(); }
   if (rows.state.status === "loading") return <Skeleton />;
   if (rows.state.status === "error") return <ErrorState error={rows.state.error} onRetry={rows.reload} />;
-  const planes = [...new Set(rows.state.data.map((r) => r.plane))];
+  const all = rows.state.data;
+  const isPlaceholder = (r: (typeof all)[number]) => r.id === "-" || /^empty$/i.test(r.state);
+  const planes = [...new Set(all.map((r) => r.plane))];
+  const active = planes.filter((p) => all.some((r) => r.plane === p && !isPlaceholder(r)));
+  const idle = planes.filter((p) => !active.includes(p));
   return (
     <>
       {planes.length === 0 && <Empty icon="research" title="No plane activity">Nothing is registered in the hub, compute, pack, extension, federation or institutional planes for this project.</Empty>}
-      {planes.map((plane, i) => (
-        <Section key={plane} n={String(i + 1).padStart(2, "0")} title={plane} count={rows.state.status === "ready" ? rows.state.data.filter((r) => r.plane === plane).length : 0}>
-          {rows.state.status === "ready" && rows.state.data.filter((r) => r.plane === plane).map((r) => (
-            <div key={r.id} className="lr" style={{ gridTemplateColumns: "minmax(0,1fr) 140px minmax(0,1.4fr) auto" }}>
-              <span className="mono t-mono-sm trunc">{r.id}</span><Status kind={glyphFor(r.state)}>{r.state}</Status><span className="t-sm i3 trunc">{r.detail}</span>
-              {r.action ? <button type="button" className="btn btn-g" disabled={!!pending} onClick={() => act(r)}>{r.action}</button> : <span />}
+      {active.map((plane, i) => {
+        const items = all.filter((r) => r.plane === plane && !isPlaceholder(r));
+        return (
+          <Section key={plane} n={String(i + 1).padStart(2, "0")} title={plane} count={items.length}>
+            {items.map((r) => (
+              <div key={r.id} className="lr" style={{ gridTemplateColumns: "minmax(0,1fr) 140px minmax(0,1.4fr) auto" }}>
+                <span className="mono t-mono-sm trunc">{r.id}</span><Status kind={glyphFor(r.state)}>{r.state}</Status><span className="t-sm i3 trunc" title={r.detail}>{r.detail}</span>
+                {r.action ? <button type="button" className="btn btn-g" disabled={!!pending} onClick={() => act(r)}>{r.action}</button> : <span />}
+              </div>
+            ))}
+          </Section>
+        );
+      })}
+      {idle.length > 0 && (
+        <Section n={String(active.length + 1).padStart(2, "0")} title="Planes with nothing recorded" count={idle.length}>
+          {idle.map((plane) => (
+            <div key={plane} className="lr" style={{ gridTemplateColumns: "minmax(0,1fr) 140px minmax(0,1.4fr)" }}>
+              <span className="t-sm">{plane}</span><Status kind="unknown" weight="weak">Empty</Status><span className="t-sm i3">Nothing registered for this project</span>
             </div>
           ))}
         </Section>
-      ))}
+      )}
       <KV rows={[["authority", "Every action is a Core request with its own receipt; Desktop only displays the plane state."]]} />
     </>
   );

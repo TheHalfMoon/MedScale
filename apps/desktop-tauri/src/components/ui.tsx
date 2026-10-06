@@ -75,7 +75,7 @@ export function Glyph({ kind, size }: { kind: GlyphKind; size?: number }) {
 }
 
 export function Status({ kind, children, weight = "default" }: { kind: GlyphKind; children: ReactNode; weight?: "strong" | "default" | "weak" }) {
-  return <span className={`st ${weight === "default" ? "" : weight}`}><Glyph kind={kind} />{children}</span>;
+  return <span className={`st ${weight === "default" ? "" : weight}`}><Glyph kind={kind} /><span className="st-t">{children}</span></span>;
 }
 
 /** Maps literal Core strings onto the grammar. Unknown strings stay "unknown". */
@@ -94,7 +94,8 @@ export function glyphFor(raw: string | null | undefined): GlyphKind {
   if (/(pending|queued|open\b|draft|candidate)/.test(v)) return "pending";
   if (/(completed|done|confirmed|accepted|succeeded|resolved)/.test(v)) return "completed";
   if (/(failed|corrupt|timed ?out|error)/.test(v)) return "failed";
-  if (/(denied|blocked|quarantined|fail closed|default deny|not live)/.test(v)) return "blocked";
+  if (/(denied|deny|blocked|quarantined|fail closed|default deny|not live)/.test(v)) return "blocked";
+  if (/^(allow|allowed|permitted)$/.test(v)) return "available";
   if (/(cancel|retired|archived|retracted|revoked|tombstoned)/.test(v)) return "cancelled";
   if (/(review|required|attention)/.test(v)) return "needs-review";
   if (/(proposal|proposed)/.test(v)) return "proposal";

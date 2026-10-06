@@ -93,12 +93,12 @@ export function Patients() {
             </div>
             <table className="tb" aria-label="Patients">
               <thead><tr>
-                <th style={{ width: "30%" }} className="sorted">Patient</th>
-                <th style={{ width: "22%" }} className="col-p2">Known condition</th>
-                <th style={{ width: "15%" }}>Coverage</th>
-                <th style={{ width: "10%" }} className="col-p3">Sources</th>
-                <th style={{ width: "13%" }}>Review</th>
-                <th style={{ width: "10%" }} className="num">Latest event</th>
+                <th style={{ width: "28%" }} className="sorted">Patient</th>
+                <th style={{ width: "16%" }} className="col-p2">Known condition</th>
+                <th style={{ width: "20%" }}>Coverage</th>
+                <th style={{ width: "7%" }} className="col-p3 num" title="Sources">Src</th>
+                <th style={{ width: "15%" }}>Review</th>
+                <th className="num" title="Latest event">Latest</th>
               </tr></thead>
               <tbody>
                 {state.status === "loading" && Array.from({ length: 2 }, (_, i) => (
@@ -114,7 +114,7 @@ export function Patients() {
                     </div></td>
                     <td className="col-p2 t-sm i2"><span className="trunc">{r.condition_summary}</span></td>
                     <td><CoverageStrip slots={r.coverage_slots} /></td>
-                    <td className="col-p3 t-sm i2">{r.source_count}</td>
+                    <td className="col-p3 num mono t-mono-sm i2">{r.source_count}</td>
                     <td>{needsReview(r) ? <Status kind="needs-review">Needs review</Status> : <Status kind="present" weight="weak">Covered</Status>}</td>
                     <td className="num mono t-mono-sm i3">{r.latest_event ?? "—"}</td>
                   </tr>
@@ -328,17 +328,31 @@ function Timeline({ rows }: { rows: Detail["timeline"] }) {
   return (
     <div>
       {rows.map((e, i) => (
-        <div key={i} style={{ display: "grid", gridTemplateColumns: "100px 20px 110px minmax(0,1fr) auto", alignItems: "center", columnGap: 12, minHeight: "var(--row)" }}>
-          <span className="mono t-mono-sm i2">{e.date}</span>
+        <div key={i} style={{ display: "grid", gridTemplateColumns: "144px 20px 96px minmax(0,1fr) minmax(0, 200px)", alignItems: "center", columnGap: 12, minHeight: "var(--row)" }}>
+          <span className="mono t-mono-sm i2" style={{ whiteSpace: "nowrap" }}>{e.date}</span>
           <span style={{ position: "relative", alignSelf: "stretch", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <span style={{ position: "absolute", top: i === 0 ? "50%" : 0, bottom: i === rows.length - 1 ? "50%" : 0, left: "50%", width: 1, background: "var(--line-strong)" }} />
             <span className="g g-present" style={{ position: "relative", boxShadow: "0 0 0 3px var(--bg-surface)" }} />
           </span>
           <span className="t-sm i3">{e.title}</span>
-          <span className="trunc" style={{ fontSize: 13 }}>{e.detail}</span>
-          <span className="hide-md" style={{ maxWidth: 230 }}><Stamp k="src" v={e.source} /></span>
+          <span className="trunc" style={{ fontSize: 13 }} title={e.detail}>{summarizeDetail(e.detail)}</span>
+          <span className="hide-md" style={{ minWidth: 0, overflow: "hidden", justifySelf: "end" }}><Stamp k={/^sourceb/i.test(e.source) ? undefined : "src"} v={e.source} /></span>
         </div>
       ))}
     </div>
   );
+}
+
+/** Timeline details arrive as the trusted projection's JSON; show its fields as a readable line, keep the raw JSON in the tooltip. */
+function summarizeDetail(detail: string): string {
+  try {
+    const v: unknown = JSON.parse(detail);
+    if (!v || typeof v !== "object" || Array.isArray(v)) return detail;
+    return Object.entries(v as Record<string, unknown>)
+      .filter(([k, x]) => k !== "resourceType" && x !== null && x !== undefined && x !== "")
+      .map(([k, x]) => `${k} ${typeof x === "object" ? Object.values(x as object).join(" ") : String(x)}`)
+      .join(" · ");
+  } catch {
+    return detail;
+  }
 }

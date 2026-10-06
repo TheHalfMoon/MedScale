@@ -232,6 +232,9 @@
 
 /* Status = glyph + literal label. No container: reads as fact, never as a control. */
 .st { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; line-height: 16px; font-weight: 500; color: var(--ink-2); white-space: nowrap; }
+.st { max-width: 100%; }
+.st > .g, .st > .gt, .st > svg { flex: none; }
+.st-t { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .st.strong { color: var(--ink-1); }
 .st.weak { color: var(--ink-3); font-weight: 400; }
 .st .mono { font-size: 11px; color: var(--ink-3); font-weight: 400; }
@@ -255,10 +258,10 @@
 .ledger > div { padding: 0 20px; border-left: 1px solid var(--line-subtle); display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .ledger > div:first-child { padding-left: 0; border-left: 0; }
 .lk { font-family: var(--font-mono); font-size: 10.5px; line-height: 14px; color: var(--ink-3); font-variant-ligatures: none; white-space: nowrap; }
-.lv { font-size: 13px; line-height: 18px; color: var(--ink-1); white-space: nowrap; }
+.lv { font-size: 13px; line-height: 18px; color: var(--ink-1); overflow-wrap: anywhere; }
 .lv.mono { font-size: 12px; }
 .kv { display: grid; grid-template-columns: 140px minmax(0, 1fr); column-gap: 16px; row-gap: 0; }
-.kv > div { padding: 7px 0; border-bottom: 1px solid var(--line-subtle); min-width: 0; }
+.kv > div { padding: 7px 0; border-bottom: 1px solid var(--line-subtle); min-width: 0; overflow-wrap: anywhere; }
 .kv > div:nth-child(odd) { font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); padding-top: 9px; }
 
 /* Authority strip — compact replacement for the old giant authority rectangle */
@@ -382,6 +385,10 @@ body { font-family: var(--font-ui); }
 .page-head { display: flex; align-items: flex-end; gap: 16px; margin-bottom: 18px; flex-wrap: wrap; }
 .page-head .grow { flex: 1 1 320px; min-width: 0; }
 .section { margin-bottom: var(--gap-sec); }
+.section:not(:first-child) { margin-top: 24px; }
+.section + .section, .page-head + .section, .ledger + .section, .empty + .section { margin-top: 0; }
+.clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.wrap-any { overflow-wrap: anywhere; }
 .grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
 .grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; }
 .stack { display: flex; flex-direction: column; gap: 10px; }

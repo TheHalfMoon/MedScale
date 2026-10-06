@@ -14,6 +14,8 @@ fn origin() -> &'static str {
 struct Harness {
     _app: tauri::App<MockRuntime>,
     window: tauri::WebviewWindow<MockRuntime>,
+    /// Every (command, args, outcome), so a run can be replayed for visual QA.
+    log: std::cell::RefCell<Vec<Value>>,
 }
 
 impl Harness {
@@ -26,10 +28,11 @@ impl Harness {
         std::fs::create_dir_all(&dir).unwrap();
         app.state::<crate::host::Host>().state.lock().unwrap().data_dir = Some(dir);
         let window = tauri::WebviewWindowBuilder::new(&app, "main", Default::default()).build().unwrap();
-        Self { _app: app, window }
+        Self { _app: app, window, log: std::cell::RefCell::new(Vec::new()) }
     }
 
     fn call(&self, cmd: &str, args: Value) -> Result<Value, Value> {
+        let recorded = args.clone();
         let req = InvokeRequest {
             cmd: cmd.to_owned(),
             callback: tauri::ipc::CallbackFn(0),
@@ -39,8 +42,20 @@ impl Harness {
             headers: Default::default(),
             invoke_key: tauri::test::INVOKE_KEY.to_owned(),
         };
-        get_ipc_response(&self.window, req)
-            .map(|body| body.deserialize::<Value>().unwrap_or(Value::Null))
+        let out = get_ipc_response(&self.window, req)
+            .map(|body| body.deserialize::<Value>().unwrap_or(Value::Null));
+        self.log.borrow_mut().push(match &out {
+            Ok(v) => json!({ "cmd": cmd, "args": recorded, "ok": v }),
+            Err(e) => json!({ "cmd": cmd, "args": recorded, "err": e }),
+        });
+        out
+    }
+
+    /// Writes the recorded run when MEDSCALE_UI_FIXTURES names a file.
+    fn dump(&self) {
+        if let Ok(path) = std::env::var("MEDSCALE_UI_FIXTURES") {
+            std::fs::write(path, serde_json::to_vec_pretty(&*self.log.borrow()).unwrap()).unwrap();
+        }
     }
 
     fn ok(&self, cmd: &str, args: Value) -> Value {
@@ -181,6 +196,20 @@ fn every_surface_runs_against_real_core() {
     assert!(!gov["settings_rows"].as_array().unwrap().is_empty());
     assert!(gov["fhir_support"].is_object());
     assert_eq!(h.ok("about_info", json!({}))["product"], "MedScale");
+
+    // Final read of every surface (also the visual-QA replay snapshot).
+    for (cmd, args) in [
+        ("workspace_status", json!({})), ("projects_list", json!({})), ("medagent_runs", json!({ "projectId": pid })),
+        ("medagent_turns", json!({ "runId": rid })), ("fleet_overview", json!({ "projectId": pid })), ("collab_rooms", json!({ "projectId": pid })),
+        ("data_sources", json!({ "projectId": pid })), ("data_snapshots", json!({ "sourceId": sid })), ("analytics_receipts", json!({ "projectId": pid })),
+        ("knowledge_overview", json!({ "projectId": pid })), ("browse_overview", json!({ "projectId": pid })), ("research_os_rows", json!({ "projectId": pid })),
+        ("privacy_overview", json!({ "projectId": pid })), ("models_overview", json!({})), ("workflow_overview", json!({})),
+        ("audio_overview", json!({ "projectId": pid })), ("governance_overview", json!({})), ("documents_list", json!({})),
+        ("patients_list", json!({})), ("insights_overview", json!({})), ("evidence_corpus", json!({})), ("about_info", json!({})),
+    ] {
+        h.ok(cmd, args);
+    }
+    h.dump();
 
     // Lock: the session is dropped and reads become unavailable again.
     h.ok("workspace_lock", json!({}));

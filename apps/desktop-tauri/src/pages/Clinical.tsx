@@ -28,14 +28,14 @@ export function Documents() {
           </div>
           {rows.length ? (
             <table className="tb" aria-label="Sources">
-              <thead><tr><th style={{ width: "32%" }}>Source</th><th style={{ width: "16%" }}>Resource</th><th style={{ width: "18%" }}>Extraction</th><th className="col-p3" style={{ width: "20%" }}>Subject</th><th>Origin</th></tr></thead>
+              <thead><tr><th style={{ width: "30%" }}>Source</th><th style={{ width: "14%" }}>Resource</th><th style={{ width: "15%" }}>Extraction</th><th className="col-p3" style={{ width: "27%" }}>Subject</th><th>Origin</th></tr></thead>
               <tbody>{rows.map((s, i) => (
                 <tr key={s.source_id + i} className={`r2 clickable ${cur === s ? "sel" : ""}`} tabIndex={0} onClick={() => setSel(i)} onKeyDown={(e) => e.key === "Enter" && navigate("Patients", s.subject_ref)}>
                   <td><div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}><span className="mono trunc" style={{ fontSize: 12 }}>{s.source_id}</span><span className="t-sm i3">FHIR R4 · {s.fixture}</span></div></td>
                   <td className="t-sm">{s.resource_type}</td>
                   <td><Status kind="present">Structured</Status> <span className="mono t-mono-sm i3">{s.claim_kind}</span></td>
-                  <td className="col-p3"><span className="mono t-mono-sm i2 trunc">{s.subject_ref}</span></td>
-                  <td><Status kind="synthetic" weight="weak">Synthetic fixture</Status></td>
+                  <td className="col-p3" title={s.subject_ref}><span className="mono t-mono-sm i2 trunc">{s.subject_ref}</span></td>
+                  <td title="Bundled synthetic FHIR fixture"><Status kind="synthetic" weight="weak">Synthetic</Status></td>
                 </tr>
               ))}</tbody>
             </table>
@@ -204,11 +204,11 @@ export function Insights() {
           { k: "scope", v: <Status kind={v.synthetic_only ? "synthetic" : "available"} weight="strong">{v.synthetic_only ? "Synthetic only" : "Workspace"}</Status> },
         ]} />
         <Section n="01" title="Cohort" count={`${v.cohorts.length} subjects`}>
-          <table className="tb"><thead><tr><th style={{ width: "28%" }}>Subject</th><th style={{ width: "28%" }}>Condition</th><th style={{ width: "22%" }}>Evidence</th><th>Review</th></tr></thead>
+          <table className="tb"><thead><tr><th style={{ width: "22%" }}>Subject</th><th style={{ width: "16%" }}>Condition</th><th style={{ width: "40%" }}>Evidence</th><th>Review</th></tr></thead>
             <tbody>{v.cohorts.map((c) => (
               <tr key={c.subject_ref} className="clickable" tabIndex={0} onClick={() => navigate("Patients", c.subject_ref)} onKeyDown={(e) => e.key === "Enter" && navigate("Patients", c.subject_ref)}>
                 <td><span className="pname trunc">{c.display_name}</span></td><td className="t-sm i2"><span className="trunc">{c.condition}</span></td>
-                <td><Status kind={glyphFor(c.evidence_state)}>{c.evidence_state}</Status></td>
+                <td title={c.evidence_state}><Status kind={glyphFor(c.evidence_state)}>{c.evidence_state}</Status></td>
                 <td><Status kind={/review/i.test(c.review_attention) ? "needs-review" : "present"} weight="weak">{c.review_attention}</Status></td>
               </tr>
             ))}</tbody></table>

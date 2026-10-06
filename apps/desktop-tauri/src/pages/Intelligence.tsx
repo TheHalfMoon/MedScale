@@ -142,7 +142,7 @@ function MedAgentBody({ projectId }: { projectId: string }) {
           </div>
           <Section title="Turns" count={turns.state.status === "ready" ? turns.state.data.length : "…"}>
             {turns.state.status === "ready" && (turns.state.data.length ? turns.state.data.map((t) => (
-              <div key={t.seq} className="lr" style={{ gridTemplateColumns: "36px 140px minmax(0,1fr)", alignItems: "start", padding: "8px 12px" }}><span className="mono t-mono-sm i3">{t.seq}</span><span className="t-sm i2">{t.kind}</span><span className="mono t-mono-sm i2" style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{t.payload}</span></div>
+              <div key={t.seq} className="lr" style={{ gridTemplateColumns: "36px 140px minmax(0,1fr)", alignItems: "start", padding: "8px 12px" }}><span className="mono t-mono-sm i3">{t.seq}</span><span className="t-sm i2">{t.kind}</span><TurnPayload payload={t.payload} /></div>
             )) : <p className="t-sm i3">No turns yet. Start, then execute the run.</p>)}
           </Section>
           {proposal !== null && <Section title="Proposal" count="not accepted">
@@ -222,7 +222,7 @@ function FleetBody({ projectId }: { projectId: string }) {
             <Section title="Comparison" count={detail.state.data.report ? detail.state.data.report.id : "none"}>
               {detail.state.data.report ? <>
                 <KV keyWidth={110} rows={[["participating", detail.state.data.report.participating], ["excluded", detail.state.data.report.excluded || "none"]]} />
-                {detail.state.data.report.observations.map((x, i) => <div key={i} className="lr" style={{ gridTemplateColumns: "160px 160px minmax(0,1fr)" }}><span className="t-sm">{x.kind}</span><span className="mono t-mono-sm i3">{x.lanes}</span><span className="t-sm i2">{x.detail}</span></div>)}
+                {detail.state.data.report.observations.map((x, i) => <div key={i} className="lr" style={{ gridTemplateColumns: "minmax(0, 170px) minmax(0, 110px) minmax(0,1fr)", padding: "8px 12px", alignItems: "start" }}><span className="t-sm wrap-any">{x.kind}</span><span className="mono t-mono-sm i3">{x.lanes}</span><span className="t-sm i2 wrap-any">{x.detail}</span></div>)}
               </> : <p className="t-sm i3">Compare after lanes complete. A comparison over a pending fleet is refused, never faked.</p>}
             </Section>
           </>}
@@ -231,4 +231,25 @@ function FleetBody({ projectId }: { projectId: string }) {
       </div>
     </div>
   );
+}
+
+/** Turn payloads are Core JSON. Prompts read as text, model output as a labelled prediction table; anything else is pretty-printed, never reinterpreted. */
+function TurnPayload({ payload }: { payload: string }) {
+  let v: Record<string, unknown> | null = null;
+  try { const parsed: unknown = JSON.parse(payload); if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) v = parsed as Record<string, unknown>; } catch { /* raw text */ }
+  if (!v) return <span className="mono t-mono-sm i2" style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{payload}</span>;
+  if (typeof v.prompt === "string" && Object.keys(v).length === 1) return <span className="t-sm">“{v.prompt}”</span>;
+  const preds = Array.isArray(v.predictions) ? (v.predictions as Array<Record<string, unknown>>) : null;
+  if (preds) {
+    const { predictions: _p, note, ...meta } = v;
+    return (
+      <div className="stack" style={{ gap: 8, minWidth: 0 }}>
+        {typeof note === "string" && <Status kind="proposal" weight="strong">{note}</Status>}
+        <KV keyWidth={128} rows={Object.entries(meta).map(([k, x]) => [k, <span className="mono t-mono-sm wrap-any">{String(x)}</span>])} />
+        <table className="tb"><thead><tr><th style={{ width: "18%" }}>#</th><th style={{ width: "40%" }}>Token</th><th>Label</th></tr></thead>
+          <tbody>{preds.map((x, i) => <tr key={i}><td className="mono t-mono-sm i3">{i + 1}</td><td className="mono t-mono-sm">{String(x.token ?? "—")}</td><td className="t-sm">{String(x.label ?? "—")} <span className="mono t-mono-sm i3">{x.label_index !== undefined ? `idx ${String(x.label_index)}` : ""}</span></td></tr>)}</tbody></table>
+      </div>
+    );
+  }
+  return <pre className="pre" style={{ maxHeight: 220 }}>{JSON.stringify(v, null, 2)}</pre>;
 }

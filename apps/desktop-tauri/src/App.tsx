@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { call } from "./lib/ipc";
 import { App as AppContext, readPref, writePref, type AppCtx, type Density, type Nav, type Theme, type WorkspaceStatus } from "./lib/app";
-import { routes, type RouteId } from "./routes";
+import { isRouteId, routes, type RouteId } from "./routes";
 import { Header, Palette, Sidebar } from "./components/shell";
 import { ToastHost } from "./components/ui";
 import { Access, Welcome } from "./pages/Gate";
@@ -13,8 +13,14 @@ import { MedAgent, ModelFleet, Models } from "./pages/Intelligence";
 import { Audio, Collaboration, Messages, Tasks, Workflows } from "./pages/Operations";
 import { About, AuditTrail, Exports, Integrations, Privacy, Settings } from "./pages/Governance";
 
+/** Optional start state from the URL hash (route, subject, theme, density); used for
+ *  deep links and visual QA. Unknown values are ignored. */
+const hash = new URLSearchParams(window.location.hash.slice(1));
+const hashRoute = hash.get("route");
+const startNav: Nav = { route: hashRoute && isRouteId(hashRoute) ? hashRoute : "Home", subject: hash.get("subject") ?? undefined };
+
 const initialTheme = (): Theme =>
-  (readPref("theme") as Theme | null) ?? (window.matchMedia?.("(prefers-color-scheme: light)").matches ? "light" : "dark");
+  (hash.get("theme") === "light" || hash.get("theme") === "dark" ? hash.get("theme") as Theme : null) ?? (readPref("theme") as Theme | null) ?? (window.matchMedia?.("(prefers-color-scheme: light)").matches ? "light" : "dark");
 
 const PAGES: Record<RouteId, () => ReactNode> = {
   Home: () => <Home />,
@@ -47,11 +53,11 @@ const PAGES: Record<RouteId, () => ReactNode> = {
 export function App() {
   const [ws, setWs] = useState<WorkspaceStatus | null>(null);
   const [wsError, setWsError] = useState<string | null>(null);
-  const [gate, setGate] = useState<"welcome" | "access">("welcome");
-  const [nav, setNav] = useState<Nav>({ route: "Home" });
+  const [gate, setGate] = useState<"welcome" | "access">(hash.get("gate") === "access" ? "access" : "welcome");
+  const [nav, setNav] = useState<Nav>(startNav);
   const [project, setProjectState] = useState<string | null>(readPref("project"));
   const [theme, setThemeState] = useState<Theme>(initialTheme);
-  const [density, setDensityState] = useState<Density>((readPref("density") as Density | null) ?? "standard");
+  const [density, setDensityState] = useState<Density>((hash.get("density") === "compact" ? "compact" : null) ?? (readPref("density") as Density | null) ?? "standard");
   const [palette, setPalette] = useState(false);
 
   const refreshWorkspace = useCallback(async () => {

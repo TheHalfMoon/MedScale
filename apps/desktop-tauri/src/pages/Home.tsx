@@ -23,7 +23,7 @@ export function Home() {
       const gaps = (s.coverage_slots ?? []).filter((x) => x.status !== "present");
       if (gaps.length) queue.push({
         key: s.subject_ref, glyph: "needs-review", title: s.display_name, kind: "Subject coverage",
-        why: gaps.map((g) => `${g.concept_key}: ${COVERAGE[g.status]?.label ?? g.status}`).join(" · "),
+        why: summarizeGaps(gaps.map((g) => COVERAGE[g.status]?.label ?? g.status)),
         stampK: "proj", stampV: "SubjectCoverageV1", act: "Open", go: () => navigate("Patients", s.subject_ref),
       });
     }
@@ -60,11 +60,11 @@ export function Home() {
           {loadingQueue && !queue.length ? <Skeleton rows={3} /> : queue.length === 0 ? <p className="t-sm i3" style={{ padding: "12px 0" }}>Nothing is waiting for a person.</p> : (
             <div style={{ borderTop: "1px solid var(--line-subtle)" }}>
               {queue.map((r) => (
-                <div key={r.key} className="lr" style={{ gridTemplateColumns: "16px minmax(150px, 1fr) minmax(0, 1.6fr) auto 72px", minHeight: "var(--row-2)" }}>
+                <div key={r.key} className="lr" style={{ gridTemplateColumns: "16px minmax(150px, 1fr) minmax(0, 1.6fr) minmax(0, 200px) 72px", minHeight: "var(--row-2)" }}>
                   <Glyph kind={r.glyph} />
                   <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}><span className="trunc" style={{ fontSize: 13.5, fontWeight: 600 }}>{r.title}</span><span className="st weak" style={{ fontSize: 11.5 }}>{r.kind}</span></div>
-                  <span className="t-sm i2" style={{ minWidth: 0 }}>{r.why}</span>
-                  <span className="hide-md" style={{ maxWidth: 220 }}><Stamp k={r.stampK} v={r.stampV} /></span>
+                  <span className="t-sm i2 clamp-2" style={{ minWidth: 0 }} title={r.why}>{r.why}</span>
+                  <span className="hide-md" style={{ minWidth: 0, overflow: "hidden" }}><Stamp k={r.stampK} v={r.stampV} /></span>
                   <button type="button" className="btn btn-g" style={{ justifySelf: "end" }} onClick={r.go}>{r.act}</button>
                 </div>
               ))}
@@ -120,4 +120,11 @@ export function Home() {
       </aside>
     </>
   );
+}
+
+/** "3 Conflict · 1 Incomparable units" — counts per coverage status, most frequent first. */
+function summarizeGaps(labels: string[]): string {
+  const counts = new Map<string, number>();
+  for (const l of labels) counts.set(l, (counts.get(l) ?? 0) + 1);
+  return [...counts].sort((a, b) => b[1] - a[1]).map(([l, n]) => `${n} ${l.toLowerCase()}`).join(" · ");
 }
