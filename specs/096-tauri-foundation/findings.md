@@ -6,9 +6,37 @@
 | F096-T02 | Unmodified MPL-2.0 `cssparser` 0.37.0, `cssparser-macros` 0.7.1, `dtoa-short` 0.3.5, `option-ext` 0.2.0 and `selectors` 0.38.0 require source availability and notices. | Exact-version admission recorded; cargo-deny licenses passed. All three native packaging jobs passed at 76e9fe3. Windows package verification checked 1,027 file sizes/digests with zero mismatches, including five original source archives and complete MPL text. Rebind receipts at the final head; global license allow list unchanged. |
 | F096-T03 | The only native IPC command reported shell/Core availability; actual Core Host/session/authorization DTO integration was absent. | ADDRESSED IN PR #177 (unmerged): Rust owns an in-process Core `CliSession`; 67 narrow named commands are validated in Rust and authorized by Core; the WebView holds no vault key, passphrase or Core handle. Synthetic-only. Closes only when #177 merges with its gates. |
 | F096-T04 | Browser source/build does not qualify native visual fidelity or focus/keyboard behavior. | Windows evidence captured and inspected at 76e9fe3: both Home themes/sizes, palette and unavailable Patients; see evidence/096-tauri-foundation/native/76e9fe3. Current-head binding, independent visual review, Figma comparison and macOS/Linux visual acceptance remain OPEN. |
-| F096-T05 | WebView incognito/CSP/local assets do not prove privacy containment across cache/crash/log/storage. | OPEN. Synthetic-only; private-data readiness remains false. |
+| F096-T05 | WebView incognito/CSP/local assets do not prove privacy containment across cache/crash/log/storage. | OPEN. Synthetic-only; private-data readiness remains false. 2026-10-07: no MedScale app egress observed; WebView2 runtime background egress and default crash-dump upload recorded (see investigation below). |
 | F096-T06 | Required Jev/Alibaba OCR independent provider reviews have no established zero-cost path; 095 is also unmerged. | BLOCKED_BY_ZERO_COST / dependency. Do not merge or claim review PASS. |
 | F096-T07 | Canonical CI used checkout's PR merge-ref default. The 342dd28 Ubuntu job actually checked out `03cc7519a58b5cb9e686678caa5aa232645b0dbc`, a generated merge into the remote 095 base. Run metadata alone does not bind the tested tree to the submitted head. | Forward repair sets all canonical checkouts to the PR head (main runs use the event SHA). Exact-head execution still requires verification from fresh job logs and package receipts. Historical CI results remain recorded without being rewritten as head-tree tests. |
+
+### F096-T05 Windows runtime egress investigation (2026-10-07, PR #177 package `5b5643d`)
+
+Method:
+- The CI-built Windows package for head `5b5643d` was launched by `scripts/observe-tauri-runtime-egress.ps1` on a separate, never-shown Windows desktop, so it could not receive the user's input.
+- The script recorded non-loopback TCP connections per process role for 25 s, then terminated the process tree. No UI interaction occurred.
+- Three runs: baseline; `--disable-features=msSmartScreenProtection` through `WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS`; and Chromium NetLog (`--log-net-log`, capture mode Default).
+
+| Classification | Observation |
+| --- | --- |
+| `MEDSCALE_APP_EGRESS` | None observed. The MedScale host process held no non-loopback connection in any run. The WebView2 network stack (NetLog) carried only `http://tauri.localhost/*` (bundled assets via Tauri's custom protocol), `http://ipc.localhost/workspace_status` (IPC) and `wpad:80`. `wpad:80` is Windows proxy auto-discovery, a local-network probe made by the platform proxy resolver, not by MedScale code. CSP `connect-src ipc: http://ipc.localhost` and the navigation policy remain the application-level controls. |
+| `EMBEDDED_PLATFORM_RUNTIME_EGRESS` | Observed in every run: one or two established TCP connections from the WebView2 **browser** process (no `--type`) to `2603:1046:c0b::/48` port 443 (Microsoft address space; no PTR record). They do **not** appear in NetLog, so they are made outside Chromium's URL-loading stack. They persist when SmartScreen is disabled. |
+
+Attribution, from primary sources:
+- wry 0.57.0 (used by Tauri 2.12) already starts WebView2 with `--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection` unless the app overrides browser arguments (`src/webview2/mod.rs`). SmartScreen URL reputation checks are therefore already off in MedScale, which matches the unchanged result of the SmartScreen-off run.
+- Microsoft's [Data and privacy in WebView2](https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/data-privacy) states that WebView2 collects diagnostic data through Chromium/Microsoft Edge telemetry, Windows data reporting and Watson crash infrastructure.
+  - Optional data follows the Windows **Diagnostic data** setting.
+  - Required data is collected "regardless of the Windows Diagnostic data setting".
+  - Apps can control only SmartScreen and custom crash reporting.
+- The observed connection is consistent with that runtime diagnostic or service channel. The exact service is **not proven**, because identifying the TLS server name needs a privileged packet capture, which was not performed.
+
+Controls and decisions:
+- **SmartScreen:** already disabled by Tauri's default browser arguments. No change.
+- **Crash reporting:** wry does not set `IsCustomCrashReportingEnabled`, so WebView2 crash minidumps are sent to Microsoft by default. Minidumps can contain process memory. This is recorded as a private-data-readiness residual. Tauri does not expose this option, so changing it needs a separately reviewed environment-options change; it is not done here.
+- **Diagnostic data:** governed by Windows. MedScale must not change OS diagnostic settings. An organization can manage it through Windows diagnostic-data policy. Blocking the endpoint could also interfere with WebView2 runtime servicing, and that was not tested.
+- **Update channel:** WebView2 Runtime and Microsoft Edge share the Edge Update mechanism (separate updater processes, outside the MedScale process tree, not observed here). Enterprise policy can manage it.
+
+What MedScale can truthfully state: the application's frontend and host make no remote requests (CSP, capabilities, navigation policy, and the observations above). What it cannot state: that the installed product produces no network traffic. The embedded Microsoft WebView2 runtime does, under Microsoft's terms and the user's or organization's Windows settings. F096-T05 remains **OPEN**.
 
 ### F096-T01 upgrade-path investigation (2026-10-07, PR #177)
 

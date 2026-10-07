@@ -28,6 +28,12 @@
 
 - **WebView2 runtime background traffic.** The application CSP has no remote origin and the frontend makes no remote requests, but the Edge WebView2 runtime process opened outbound HTTPS connections on its own. This is runtime-level traffic outside MedScale's IPC/CSP boundary. It is recorded under F096-T05 (privacy containment is not established). "No runtime network activity" is **not** claimed. Identifying the runtime feature responsible, and whether it can be disabled through supported WebView2 browser arguments, is open work.
 - **Interactive testing was interrupted.** While the launched window had focus, keyboard input not issued by this inspection reached it (an encrypted vault was created at 05:08:52 local time from unknown input). Interactive route, keyboard and encrypted-lifecycle checks from this session are therefore **not** recorded as evidence. They must be repeated in a controlled session (dedicated desktop or VM, or with the founder's explicit go-ahead).
+- **Test artifact disposition.** The encrypted vault created by that unknown input was not qualification evidence. With the founder's explicit authorization, only that folder was deleted on 2026-10-07:
+  - Path: `%LOCALAPPDATA%org.medscale.desktop.previewencrypted-workspace`, created 2026-10-07T02:08:52Z.
+  - Its contents were not opened; only entry names were listed.
+  - `TEST_ARTIFACT_DISPOSITION=DELETED_NOT_QUALIFICATION_EVIDENCE`.
+  - The sibling `encrypted-workspace.desktop-seed.json` manifest was outside the authorization and was left in place. With the vault removed, a later unlock attempt reports an error instead of "no vault".
+- **Runtime egress follow-up.** A controlled follow-up on a hidden desktop classified the egress as `MEDSCALE_APP_EGRESS`: none observed, and `EMBEDDED_PLATFORM_RUNTIME_EGRESS`: observed. See the F096-T05 investigation in `specs/096-tauri-foundation/findings.md`.
 - No native screenshots from this session are committed. The single capture included unrelated desktop content and showed the externally typed input.
 
 ## Not established
