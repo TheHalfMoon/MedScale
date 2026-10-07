@@ -75,6 +75,30 @@ jobs:
       - name: Package unqualified preview with sources and notices
         shell: pwsh
         run: ./scripts/package-tauri-preview.ps1
+      - name: Bundle unsigned engineering installer (Spec 101)
+        working-directory: apps/desktop-tauri
+        shell: bash
+        run: |
+          case "$RUNNER_OS" in
+            Windows) bundles=nsis ;;
+            macOS) bundles=app,dmg ;;
+            Linux) bundles=deb ;;
+          esac
+          npm run tauri -- build --bundles "$bundles" --no-sign --ci --features custom-protocol -- --locked
+      - name: Record build-time tool hashes (Spec 101 FR-003)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $tools = Join-Path $env:LOCALAPPDATA 'tauri' 'NSIS'
+          Get-ChildItem -LiteralPath $tools -Recurse -File | Where-Object { $_.Name -in 'makensis.exe','nsis_tauri_utils.dll' } |
+            ForEach-Object { '{0}  {1}' -f (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant(), $_.FullName.Substring($tools.Length + 1) }
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v4.6.2
+        with:
+          name: tauri-installer-${{ matrix.os }}
+          path: apps/desktop-tauri/src-tauri/target/release/bundle/
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 0
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v4.6.2
         with:
           name: tauri-preview-${{ matrix.os }}
