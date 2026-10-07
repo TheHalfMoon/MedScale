@@ -53,3 +53,7 @@ try {
     Write-Output 'TAURI_RELEASE_VERIFY_NEGATIVE_TESTS=PASS'
 }
 finally { Remove-Item -LiteralPath $base -Recurse -Force -ErrorAction SilentlyContinue }
+# Every case above passed (a mismatch throws). The expected-failure child runs
+# leave $LASTEXITCODE=1, and the GitHub pwsh wrapper exits with it, so reset it
+# explicitly. Reached only when all assertions held.
+exit 0

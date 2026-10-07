@@ -48,3 +48,5 @@ if ($ReportPath) { New-Item -ItemType Directory -Path (Split-Path $ReportPath) -
 $json
 "INSTALL=$($result.INSTALL) LAUNCH=$($result.LAUNCH) UNINSTALL=$($result.UNINSTALL) SIGNING=NOT_GRANTED"
 if ($result.INSTALL -ne 'PASS' -or $result.LAUNCH -ne 'PASS' -or $result.UNINSTALL -ne 'PASS') { exit 1 }
+# All three axes passed; do not let a stale native exit code (pkill, hdiutil detach, ...) fail the step.
+exit 0
