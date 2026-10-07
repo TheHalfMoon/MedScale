@@ -33,7 +33,7 @@
   - Its contents were not opened; only entry names were listed.
   - `TEST_ARTIFACT_DISPOSITION=DELETED_NOT_QUALIFICATION_EVIDENCE`.
   - The sibling `encrypted-workspace.desktop-seed.json` manifest was outside the authorization and was left in place. With the vault removed, a later unlock attempt reports an error instead of "no vault".
-- **Runtime egress follow-up.** A controlled follow-up on a hidden desktop classified the egress as `MEDSCALE_APP_EGRESS`: none observed, and `EMBEDDED_PLATFORM_RUNTIME_EGRESS`: observed. See the F096-T05 investigation in `specs/096-tauri-foundation/findings.md`.
+- **Runtime egress follow-up.** A controlled follow-up on a hidden desktop classified the egress as `MEDSCALE_APP_EGRESS`: no remote application-originated request observed in the performed measurement, and `EMBEDDED_PLATFORM_RUNTIME_EGRESS`: observed. See the F096-T05 investigation in `specs/096-tauri-foundation/findings.md`.
 - No native screenshots from this session are committed. The single capture included unrelated desktop content and showed the externally typed input.
 
 ## Not established
