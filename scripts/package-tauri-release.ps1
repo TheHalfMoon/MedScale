@@ -46,7 +46,7 @@ if ($platform -eq 'macos') {
 }
 
 function Sha([string]$Path) { (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant() }
-$cliVersion = (Get-Content -LiteralPath (Join-Path $appRoot 'package-lock.json') -Raw | ConvertFrom-Json).packages.'node_modules/@tauri-apps/cli'.version
+$cliVersion = (Get-Content -LiteralPath (Join-Path $appRoot 'package-lock.json') -Raw | ConvertFrom-Json -AsHashtable)['packages']['node_modules/@tauri-apps/cli']['version']
 $payload = @(Get-ChildItem -LiteralPath $outRoot -Recurse -File | Sort-Object FullName | ForEach-Object {
     [ordered]@{ path = [IO.Path]::GetRelativePath($outRoot, $_.FullName).Replace('\', '/'); bytes = $_.Length; sha256 = Sha $_.FullName }
 })
