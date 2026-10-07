@@ -3,7 +3,7 @@ import { call } from "./lib/ipc";
 import { App as AppContext, readPref, writePref, type AppCtx, type Density, type Nav, type Theme, type WorkspaceStatus } from "./lib/app";
 import { isRouteId, routes, type RouteId } from "./routes";
 import { Header, Palette, Sidebar } from "./components/shell";
-import { ToastHost } from "./components/ui";
+import { Mark, ToastHost } from "./components/ui";
 import { Access, Welcome } from "./pages/Gate";
 import { Home } from "./pages/Home";
 import { PatientDetail, Patients } from "./pages/Patients";
@@ -107,8 +107,8 @@ export function App() {
   let body: ReactNode;
   if (!ws) {
     body = wsError
-      ? <div className="gate" style={{ display: "grid", placeItems: "center" }}><p className="t-sm i2">Local runtime disconnected. {wsError}</p></div>
-      : <div className="gate" aria-busy="true" />;
+      ? <div className="splash" role="alert"><div className="stack"><Mark width={64} className="mark" /><span className="brand-rule" aria-hidden="true" /><p className="t-sm i2">Local runtime disconnected. {wsError}</p></div></div>
+      : <div className="splash" aria-busy="true"><div className="stack"><Mark width={64} className="mark" /><span className="brand-rule" aria-hidden="true" /><p className="t-sm i3">Opening the local runtime…</p></div></div>;
   } else if (!ws.open && route.scope !== "none") {
     body = gate === "welcome" ? <Welcome onContinue={() => setGate("access")} /> : <Access onBack={() => setGate("welcome")} />;
   } else {

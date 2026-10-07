@@ -4,7 +4,8 @@ import { useAction, type CmdError } from "../lib/ipc";
 import { Glyph, Mark } from "../components/ui";
 
 /** Provenance topology: a height field rendered as dots, with a source →
- *  digest → assertion → projection → review chain. Monochrome, decorative. */
+ *  digest → assertion → projection → review chain. Decorative; the chain uses
+ *  the sky-blue accent and the review node the orange attention accent. */
 function Topology() {
   const { dots, nodes, chain } = useMemo(() => {
     const cols = 58, rows = 30;
@@ -35,10 +36,10 @@ function Topology() {
   return (
     <svg className="gate-topo" viewBox="0 0 900 760" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
       {dots.map((d, i) => <circle key={i} cx={d.x} cy={d.y} r={d.r} fill="currentColor" fillOpacity={d.o} />)}
-      <polyline points={chain} fill="none" stroke="currentColor" strokeOpacity={0.55} strokeWidth={0.8} />
+      <polyline points={chain} fill="none" stroke="var(--brand-blue)" strokeOpacity={0.9} strokeWidth={1.1} />
       {nodes.map((n) => (
         <g key={n.label}>
-          <rect x={n.x - 4} y={n.y - 4} width={8} height={8} fill={n.fill ? "currentColor" : "var(--bg-app)"} stroke="currentColor" strokeWidth={1.2} strokeDasharray={n.dash ? "2 1.6" : undefined} />
+          <rect x={n.x - 4} y={n.y - 4} width={8} height={8} fill={n.fill ? (n.label === "assertion" ? "var(--brand-blue)" : "currentColor") : "var(--bg-app)"} stroke={n.label === "review" ? "var(--brand-orange)" : n.label === "assertion" ? "var(--brand-blue)" : "currentColor"} strokeWidth={1.2} strokeDasharray={n.dash ? "2 1.6" : undefined} />
           <line x1={n.x} y1={n.y - 4} x2={n.x} y2={n.y - 50} stroke="currentColor" strokeOpacity={0.35} strokeWidth={0.8} />
           <text x={n.x + 6} y={n.y - 46} fill="currentColor" fillOpacity={0.75} style={{ fontFamily: "var(--font-mono)", fontSize: 10.5 }}>{n.label}</text>
         </g>
@@ -68,6 +69,7 @@ export function Welcome({ onContinue }: { onContinue: () => void }) {
         </div>
         <div className="stack" style={{ gap: 28 }}>
           <h1 style={{ margin: 0, fontSize: 60, lineHeight: "60px", fontWeight: 600, letterSpacing: "-0.04em" }}>Local Clinical<br />Intelligence</h1>
+          <span className="brand-rule" aria-hidden="true" />
           <div style={{ display: "flex", flexDirection: "column", gap: 2, fontSize: 22, lineHeight: "30px", fontWeight: 500, letterSpacing: "-0.015em", color: "var(--ink-2)" }}>
             <span>Evidence.</span><span>Privacy.</span><span>Scale.</span>
           </div>
