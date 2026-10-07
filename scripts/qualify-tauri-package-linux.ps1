@@ -35,7 +35,7 @@ if ($result.INSTALL -eq 'PASS') {
     $proc = Start-Process -FilePath 'xvfb-run' -ArgumentList @('-a', $exe) -PassThru -RedirectStandardError $log
     Start-Sleep -Seconds $LaunchSeconds
     $app = @(& pgrep -f $exe)
-    $result.launch = [ordered]@{ alive_after_seconds = $LaunchSeconds; app_pids = $app; wrapper_exited = $proc.HasExited; stderr_tail = @(Get-Content -LiteralPath $log -Tail 5 -ErrorAction SilentlyContinue) }
+    $result.launch_detail = [ordered]@{ alive_after_seconds = $LaunchSeconds; app_pids = $app; wrapper_exited = $proc.HasExited; stderr_tail = @(Get-Content -LiteralPath $log -Tail 5 -ErrorAction SilentlyContinue) }
     if ($app.Count -gt 0) { $result.LAUNCH = 'PASS' }
     & pkill -f $exe 2>$null; Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
     Start-Sleep -Seconds 2
@@ -47,7 +47,7 @@ $result.UNINSTALL = 'FAIL'
 & sudo dpkg -r $pkg | Out-Host
 $removeExit = $LASTEXITCODE
 $residue = @($installedFiles | Where-Object { Test-Path -LiteralPath $_ })
-$result.uninstall = [ordered]@{ exit_code = $removeExit; residue = $residue
+$result.uninstall_detail = [ordered]@{ exit_code = $removeExit; residue = $residue
     app_data = @(foreach ($d in "$HOME/.local/share/org.medscale.desktop.preview", "$HOME/.config/org.medscale.desktop.preview") { if (Test-Path -LiteralPath $d) { $d } }) }
 if ($removeExit -eq 0 -and $residue.Count -eq 0) { $result.UNINSTALL = 'PASS' }
 }

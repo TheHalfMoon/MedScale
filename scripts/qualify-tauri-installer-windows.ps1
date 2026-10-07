@@ -94,11 +94,11 @@ if ($result.INSTALL -eq 'PASS') {
         $alive = [bool](Get-Process -Id $pi.dwProcessId -ErrorAction SilentlyContinue)
         $children = @(Get-CimInstance Win32_Process | Where-Object { $_.ParentProcessId -eq $pi.dwProcessId } | Select-Object -ExpandProperty Name)
         $titles = @([QD]::Titles($desk, [uint32]$pi.dwProcessId))
-        $result.launch = [ordered]@{ alive_after_seconds = $LaunchSeconds; alive = $alive; child_processes = $children; window_titles = $titles }
+        $result.launch_detail = [ordered]@{ alive_after_seconds = $LaunchSeconds; alive = $alive; child_processes = $children; window_titles = $titles }
         if ($alive -and ($children -contains 'msedgewebview2.exe')) { $result.LAUNCH = 'PASS' }
         Get-CimInstance Win32_Process | Where-Object { $_.ProcessId -eq $pi.dwProcessId -or $_.ParentProcessId -eq $pi.dwProcessId } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
         Start-Sleep -Seconds 3
-    } else { $result.launch = 'process could not be created on the hidden desktop' }
+    } else { $result.launch_detail = 'process could not be created on the hidden desktop' }
     if ($desk -ne [IntPtr]::Zero) { [QD]::CloseDesktop($desk) | Out-Null }
     $result.app_data_after_launch = @(if (Test-Path -LiteralPath $appData) { Get-ChildItem -LiteralPath $appData -Force | Select-Object -ExpandProperty Name })
 }
@@ -111,7 +111,7 @@ if ($install) {
     Start-Sleep -Seconds 5  # NSIS uninstallers re-launch from a temp copy
     $stillRegistered = [bool](Find-Install)
     $residue = @(if ($installDir -and (Test-Path -LiteralPath $installDir)) { Get-ChildItem -LiteralPath $installDir -Recurse -Force | ForEach-Object { $_.FullName } })
-    $result.uninstall = [ordered]@{ exit_code = $u.ExitCode; still_registered = $stillRegistered; install_dir_residue = $residue
+    $result.uninstall_detail = [ordered]@{ exit_code = $u.ExitCode; still_registered = $stillRegistered; install_dir_residue = $residue
         app_data_residue = @(if (Test-Path -LiteralPath $appData) { Get-ChildItem -LiteralPath $appData -Recurse -Force | ForEach-Object { [IO.Path]::GetRelativePath($appData, $_.FullName) } }) }
     if ($u.ExitCode -eq 0 -and -not $stillRegistered -and $residue.Count -eq 0) { $result.UNINSTALL = 'PASS' }
 }

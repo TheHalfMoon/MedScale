@@ -42,7 +42,7 @@ try {
             $proc = Start-Process -FilePath $exe -PassThru
             Start-Sleep -Seconds $LaunchSeconds
             $alive = -not $proc.HasExited
-            $result.launch = [ordered]@{ alive_after_seconds = $LaunchSeconds; alive = $alive; exit_code = $(if ($proc.HasExited) { $proc.ExitCode } else { $null }) }
+            $result.launch_detail = [ordered]@{ alive_after_seconds = $LaunchSeconds; alive = $alive; exit_code = $(if ($proc.HasExited) { $proc.ExitCode } else { $null }) }
             if ($alive) { $result.LAUNCH = 'PASS'; Stop-Process -Id $proc.Id -Force }
             Start-Sleep -Seconds 2
         }
