@@ -436,3 +436,69 @@ body { font-family: var(--font-ui); }
   .overlay.anim { animation: ms-in var(--dur-3) var(--ease); }
   @keyframes ms-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 }
+
+/* ---------- 16. Brand accents (founder decision 2026-10-07) ----------
+   Sky blue #70B8C7 and orange #FB905A join black and warm white. Blue marks
+   interaction (active navigation, selection, focus, primary action, data
+   bars); orange marks attention (review). Status meaning stays carried by
+   glyph shape, never by color alone. Fills keep the source colors with black
+   text (blue 9.4:1, orange 9.2:1); light-mode text/glyph variants are darkened
+   to pass contrast on white (blue 6.1:1, orange 5.0:1, review glyph 4.2:1). */
+:root:not([data-theme="light"]), [data-theme="dark"] {
+  --brand-blue: #70B8C7;
+  --brand-orange: #FB905A;
+  --brand-white: #FEF8F5;
+  --accent: var(--brand-blue);          /* fills, bars, indicators */
+  --accent-text: #70B8C7;               /* 8.1:1 on surface */
+  --accent-on: #000000;                 /* text on accent fill */
+  --accent-soft: rgba(112, 184, 199, 0.14);
+  --signal: var(--brand-orange);
+  --signal-text: #FB905A;               /* 8.0:1 on surface */
+  --signal-soft: rgba(251, 144, 90, 0.14);
+  --ink-1: #FEF8F5;
+  --bg-inverse: #FEF8F5;
+  --sem-review: #FB905A;
+  --focus: #70B8C7;
+  --focus-halo: rgba(112, 184, 199, 0.28);
+}
+[data-theme="light"] {
+  --brand-blue: #70B8C7;
+  --brand-orange: #FB905A;
+  --brand-white: #FEF8F5;
+  --accent: var(--brand-blue);
+  --accent-text: #256B7B;               /* 6.1:1 on white */
+  --accent-on: #000000;
+  --accent-soft: rgba(112, 184, 199, 0.20);
+  --signal: var(--brand-orange);
+  --signal-text: #B4541F;               /* 5.0:1 on white */
+  --signal-soft: rgba(251, 144, 90, 0.18);
+  --sem-review: #C2612A;                /* glyph 4.2:1 on white */
+  --focus: #256B7B;
+  --focus-halo: rgba(37, 107, 123, 0.22);
+}
+
+/* Interaction: blue */
+.nav.on svg { color: var(--accent-text); }
+.nav.on::after { background: var(--accent); width: 3px; }
+.tab.on::after { background: var(--accent); height: 2px; }
+.flt.on { border-color: var(--accent); background: var(--accent-soft); }
+.tb tbody tr.sel td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
+.lr.sel { box-shadow: inset 3px 0 0 var(--accent); }
+.menu-i.on { background: var(--accent-soft); box-shadow: inset 2px 0 0 var(--accent); }
+.ms .btn-p { background: var(--accent); color: var(--accent-on); }
+.ms .btn-p:hover { opacity: 1; filter: brightness(1.08); }
+.seg button[aria-checked="true"] { background: var(--accent); color: var(--accent-on); }
+.link:hover { color: var(--accent-text); text-decoration-color: var(--accent); }
+.bar-fill { background: var(--accent); }
+
+/* Attention: orange */
+.synth { border-color: var(--signal); color: var(--signal-text); }
+.attn { color: var(--signal-text); }
+
+/* Brand mark placements (geometry unchanged; color only) */
+.brand-hero { display: flex; align-items: center; gap: 14px; }
+.brand-hero .mark { color: var(--ink-1); flex: none; }
+.brand-rule { height: 3px; width: 56px; border-radius: 2px; background: linear-gradient(90deg, var(--brand-blue) 0 62%, var(--brand-orange) 62% 100%); }
+.splash { width: 100%; height: 100%; display: grid; place-items: center; background: var(--bg-app); color: var(--ink-1); }
+.splash .stack { align-items: center; text-align: center; gap: 14px; }
+.splash .mark { color: var(--ink-1); }

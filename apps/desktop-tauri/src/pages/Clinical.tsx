@@ -221,7 +221,7 @@ export function Insights() {
                 <div key={r.label} className="lr" style={{ gridTemplateColumns: "190px 40px minmax(0,1fr) minmax(0,1fr)", minHeight: 34 }}>
                   <Status kind={glyphFor(r.label)} weight={n ? "strong" : "weak"}>{r.label}</Status>
                   <span className={`mono t-mono-sm ${n ? "" : "i3"}`} style={{ textAlign: "right" }}>{r.value}</span>
-                  <span style={{ height: 8, background: "var(--bg-active)", position: "relative" }} aria-hidden="true"><span style={{ position: "absolute", inset: 0, width: `${(n / max) * 100}%`, background: n ? "var(--ink-1)" : "transparent" }} /></span>
+                  <span style={{ height: 8, background: "var(--bg-active)", position: "relative" }} aria-hidden="true"><span style={{ position: "absolute", inset: 0, width: `${(n / max) * 100}%`, background: n ? "var(--accent)" : "transparent" }} /></span>
                   <span className="t-sm i3">{r.detail}</span>
                 </div>
               );
