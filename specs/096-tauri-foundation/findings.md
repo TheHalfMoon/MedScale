@@ -36,6 +36,13 @@ Controls and decisions:
 - **Diagnostic data:** governed by Windows. MedScale must not change OS diagnostic settings. An organization can manage it through Windows diagnostic-data policy. Blocking the endpoint could also interfere with WebView2 runtime servicing, and that was not tested.
 - **Update channel:** WebView2 Runtime and Microsoft Edge share the Edge Update mechanism (separate updater processes, outside the MedScale process tree, not observed here). Enterprise policy can manage it.
 
+Profile storage observations (read-only listing of names, sizes and timestamps; no contents read, except a key-name search of MedScale's own Local Storage):
+- The WebView2 user-data folder `%LOCALAPPDATA%org.medscale.desktop.previewEBWebView` is created at first launch.
+- It holds runtime component payloads (`component_crx_cache`, `Subresource Filter`, `CertificateRevocation`, `PKIMetadata`, `Speech Recognition`, `hyphen-data`). `component_crx_cache` and `Subresource Filter` were written during the hidden-desktop runs. This is direct evidence that the WebView2 **component updater** downloaded payloads while MedScale ran. It supports attributing at least part of `EMBEDDED_PLATFORM_RUNTIME_EGRESS` to that channel; the exact mapping of the observed connections is still not proven. Older-timestamped components are copied from the runtime installation, not downloaded.
+- `DefaultLocal Storage` contains only an empty LevelDB skeleton (68-byte log), and no `medscale.*` preference key was persisted. Tauri's incognito WebView keeps the preferences (theme, density, last project) in memory only, so they do not survive a restart.
+- No crash dump is present (`Crashpad` holds 308 bytes of metadata). The default crash-upload residual above stands.
+- `DefaultNetwork` (about 78 KB) was written during the runs. Its contents (likely transport-security and network state) were not inspected. Residual.
+
 What MedScale can truthfully state: the application's frontend and host make no remote requests (CSP, capabilities, navigation policy, and the observations above). What it cannot state: that the installed product produces no network traffic. The embedded Microsoft WebView2 runtime does, under Microsoft's terms and the user's or organization's Windows settings. F096-T05 remains **OPEN**.
 
 ### F096-T01 upgrade-path investigation (2026-10-07, PR #177)
