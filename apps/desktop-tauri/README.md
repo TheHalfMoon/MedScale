@@ -64,7 +64,7 @@ The QA files are never bundled into the app.
 - The production CSP has no remote connection origin.
 - WebView incognito mode is a mitigation. It does not by itself establish cache, crash, log or storage containment.
 - Fonts (Inter, JetBrains Mono NL), icons and the MedScale mark are bundled locally.
-- Preferences (theme, density, last project) are the only values kept in WebView storage.
+- Preferences (theme, density, last project) are the only values kept in WebView storage. The WebView runs incognito, so they live in memory only and reset on restart; nothing is written to WebView Local Storage on disk (F096-T05).
 
 ## Qualification status
 
