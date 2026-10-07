@@ -16,12 +16,27 @@ $identifier = 'org.medscale.desktop.preview'
 $appData = Join-Path $env:LOCALAPPDATA $identifier
 $uninstallKeys = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*'
 function Find-Install { Get-ItemProperty $uninstallKeys -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -eq 'MedScale' } | Select-Object -First 1 }
-if (Test-Path -LiteralPath $appData) { throw "app data already present at $appData; refusing" }
+# App data present before installation is accepted only when it was created
+# during this same CI job: the hosted runner creates RUNNER_TEMP fresh for
+# each job, so its creation time is the job-start reference.
+# It is recorded by name and timestamp and MOVED aside, never deleted.
+$preexisting = $null
+if (Test-Path -LiteralPath $appData) {
+    if (-not $env:RUNNER_TEMP -or -not (Test-Path -LiteralPath $env:RUNNER_TEMP)) { throw "app data already present at $appData and RUNNER_TEMP is unavailable; refusing" }
+    $jobStart = (Get-Item -LiteralPath $env:RUNNER_TEMP -Force).CreationTimeUtc
+    $created = (Get-Item -LiteralPath $appData -Force).CreationTimeUtc
+    if ($created -lt $jobStart) { throw "app data at $appData predates this job ($created < $jobStart); refusing" }
+    $aside = Join-Path $env:RUNNER_TEMP ('medscale-preinstall-appdata-' + [guid]::NewGuid().ToString('N').Substring(0, 8))
+    $preexisting = [ordered]@{ created_utc = $created.ToString('o'); job_start_utc = $jobStart.ToString('o'); moved_to = $aside
+        entries = @(Get-ChildItem -LiteralPath $appData -Recurse -Force | ForEach-Object { [ordered]@{ path = [IO.Path]::GetRelativePath($appData, $_.FullName); dir = $_.PSIsContainer; created_utc = $_.CreationTimeUtc.ToString('o') } }) }
+    Move-Item -LiteralPath $appData -Destination $aside
+}
 if (Find-Install) { throw 'MedScale is already installed; refusing' }
 
 $manifest = Get-Content -LiteralPath (Join-Path $ReleaseRoot 'package-manifest.json') -Raw | ConvertFrom-Json
 $installer = Join-Path $ReleaseRoot $manifest.installer.path
-$result = [ordered]@{ source_sha = $manifest.source_sha; installer_sha256 = $manifest.installer.sha256; INSTALL = 'FAIL'; LAUNCH = 'FAIL'; UNINSTALL = 'FAIL'; SIGNING = 'NOT_GRANTED' }
+$result = [ordered]@{ source_sha = $manifest.source_sha; installer_sha256 = $manifest.installer.sha256; INSTALL = 'FAIL'; LAUNCH = 'NOT_RUN'; UNINSTALL = 'NOT_RUN'; SIGNING = 'NOT_GRANTED'; preexisting_job_app_data = $preexisting }
+if ((Get-FileHash -LiteralPath $installer -Algorithm SHA256).Hash.ToLowerInvariant() -ne $manifest.installer.sha256) { throw 'installer digest differs from release manifest' }
 
 Add-Type @"
 using System;
@@ -69,6 +84,7 @@ $result.installer_exit_code = $p.ExitCode
 
 # LAUNCH (hidden desktop)
 if ($result.INSTALL -eq 'PASS') {
+    $result.LAUNCH = 'FAIL'
     $deskName = 'medscale-101-' + [guid]::NewGuid().ToString('N').Substring(0, 8)
     $desk = [QD]::CreateDesktop($deskName, [IntPtr]::Zero, [IntPtr]::Zero, 0, 0x10000000, [IntPtr]::Zero)
     $si = New-Object QD+STARTUPINFO; $si.cb = [Runtime.InteropServices.Marshal]::SizeOf($si); $si.lpDesktop = "WinSta0\$deskName"
@@ -89,6 +105,7 @@ if ($result.INSTALL -eq 'PASS') {
 
 # UNINSTALL
 if ($install) {
+    $result.UNINSTALL = 'FAIL'
     $uninstaller = $install.UninstallString.Trim('"')
     $u = Start-Process -FilePath $uninstaller -ArgumentList '/S' -Wait -PassThru
     Start-Sleep -Seconds 5  # NSIS uninstallers re-launch from a temp copy
