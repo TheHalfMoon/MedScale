@@ -55,6 +55,33 @@ node qa/serve.mjs /path/ui-fixtures.json 47124
 
 The QA files are never bundled into the app.
 
+## Engineering installers (Spec 101)
+
+CI builds **unsigned** engineering packages from the exact PR head (`specs/101-tauri-release-packaging`). They are engineering artifacts, not releases: `RELEASE_READY=false`, `SIGNING=NOT_GRANTED`.
+
+| Platform | Package | Notes |
+|---|---|---|
+| Windows | NSIS `MedScale_<version>_x64-setup.exe`, per-user install | The installer never downloads WebView2 (`webviewInstallMode=skip`). The **Microsoft Edge WebView2 Evergreen Runtime is a prerequisite**: it ships with Windows 11 and is serviced on supported Windows 10. Without it, MedScale fails to start rather than downloading anything. Unsigned, so Windows SmartScreen may warn on first run. |
+| macOS | `MedScale.app` and `MedScale_<version>_<arch>.dmg` | Unsigned and not notarized, so Gatekeeper blocks it by default. Opening the DMG shows the Apache-2.0 license as a click-through agreement (from `bundle.licenseFile`). |
+| Linux | `.deb` (package `med-scale`) | Depends on `libwebkit2gtk-4.1-0` and `libgtk-3-0`. No AppImage is produced, because its build tooling is a floating, unverified download. |
+
+Each package ships in a verified release set:
+- `package-manifest.json`, which binds the source and tree SHAs, both `Cargo.lock` files, `package-lock.json`, the toolchain, and the installer, SBOM and NOTICE digests;
+- `SHA256SUMS`, `SBOM.cdx.json`, `NOTICE.md`, the licenses and the MPL source archives.
+
+Check a release set with:
+
+```text
+pwsh ./scripts/verify-tauri-release.ps1 -Root <release-set-dir> -ExpectedSourceSha <commit>
+```
+
+App data lives under `org.medscale.desktop.preview`:
+- Windows: `%LOCALAPPDATA%`
+- macOS: `~/Library/Application Support`
+- Linux: `~/.local/share`
+
+Whether an uninstall removes app data is measured per platform in the Spec 101 evidence, not assumed. Remove encrypted vaults deliberately: an uninstaller is not a vault deletion tool.
+
 ## Capability and navigation policy
 
 - Only the main local window has a capability, and it grants exactly the commands listed in `build.rs`.
