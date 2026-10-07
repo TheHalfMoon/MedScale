@@ -5,6 +5,11 @@ on:
     paths:
       - apps/desktop-tauri/**
       - scripts/package-tauri-preview.ps1
+      - scripts/package-tauri-release.ps1
+      - scripts/verify-tauri-release.ps1
+      - scripts/test-verify-tauri-release.ps1
+      - scripts/qualify-tauri-installer-windows.ps1
+      - specs/101-tauri-release-packaging/**
       - assets/brand/**
       - crates/medscale-desktop/ui/assets/**
       - deny.toml
@@ -92,11 +97,25 @@ jobs:
           $tools = Join-Path $env:LOCALAPPDATA 'tauri' 'NSIS'
           Get-ChildItem -LiteralPath $tools -Recurse -File | Where-Object { $_.Name -in 'makensis.exe','nsis_tauri_utils.dll' } |
             ForEach-Object { '{0}  {1}' -f (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant(), $_.FullName.Substring($tools.Length + 1) }
+      - name: Assemble and verify release set (Spec 101 T101-04/05)
+        shell: pwsh
+        run: |
+          ./scripts/package-tauri-release.ps1
+          $platform = if ($IsWindows) { 'windows' } elseif ($IsMacOS) { 'macos' } else { 'linux' }
+          ./scripts/verify-tauri-release.ps1 -Root "target/tauri-release/$platform" -ExpectedSourceSha '${{ github.event.pull_request.head.sha }}'
+          ./scripts/test-verify-tauri-release.ps1
+      - name: Install, launch and uninstall qualification (Spec 101 T101-07)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./scripts/qualify-tauri-installer-windows.ps1 -ReleaseRoot target/tauri-release/windows -ReportPath target/tauri-release-qualification/windows.json
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v4.6.2
+        if: ${{ !cancelled() }}
         with:
           name: tauri-installer-${{ matrix.os }}
-          path: apps/desktop-tauri/src-tauri/target/release/bundle/
-          if-no-files-found: error
+          path: |
+            target/tauri-release/
+            target/tauri-release-qualification/
+          if-no-files-found: warn
           retention-days: 7
           compression-level: 0
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v4.6.2
