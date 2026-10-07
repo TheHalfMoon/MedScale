@@ -27,3 +27,6 @@ __pycache__/
 # IDE
 .idea/
 *.iml
+
+# Graft local context cache (developer tooling only; see AGENTS.md)
+graft/
