@@ -4,7 +4,8 @@ import { useAction, type CmdError } from "../lib/ipc";
 import { Glyph, Mark } from "../components/ui";
 
 /** Provenance topology: a height field rendered as dots, with a source →
- *  digest → assertion → projection → review chain. Monochrome, decorative. */
+ *  digest → assertion → projection → review chain. Decorative; the chain uses
+ *  the sky-blue accent and the review node the orange attention accent. */
 function Topology() {
   const { dots, nodes, chain } = useMemo(() => {
     const cols = 58, rows = 30;
