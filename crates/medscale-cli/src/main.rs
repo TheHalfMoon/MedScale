@@ -1,6 +1,6 @@
 //! MedScale CLI — facade-only authority surface (Spec 006).
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use anyhow::{Context, Result, bail};
@@ -904,11 +904,9 @@ fn run() -> Result<()> {
                 let pw = std::env::var(&passphrase_env).with_context(|| {
                     format!("set passphrase in env var {passphrase_env} (not argv)")
                 })?;
-                let mut session = CliSession::connect(&vault_id).map_err(auth)?;
-                let codes = session
-                    .create_encrypted_vault(&vault_root.display().to_string(), &pw)
-                    .map_err(auth)?;
+                let codes = vault_create_sealed(&vault_id, &vault_root, &pw)?;
                 println!("vault_created: {}", vault_root.display());
+                println!("vault_sealed: true");
                 println!("recovery_codes_count: {}", codes.len());
                 println!("note: store recovery codes offline; not re-printed by doctor");
                 Ok(())
@@ -920,11 +918,9 @@ fn run() -> Result<()> {
             } => {
                 let pw = std::env::var(&passphrase_env)
                     .with_context(|| format!("set passphrase in env var {passphrase_env}"))?;
-                let mut session = CliSession::connect(&vault_id).map_err(auth)?;
-                session
-                    .open_encrypted_vault(&vault_root.display().to_string(), &pw)
-                    .map_err(auth)?;
+                vault_open_sealed(&vault_id, &vault_root, &pw)?;
                 println!("vault_open: {}", vault_root.display());
+                println!("vault_sealed: true");
                 Ok(())
             }
             VaultCmd::OpenSynthetic {
@@ -1290,6 +1286,39 @@ fn run() -> Result<()> {
 
 fn auth(err: medscale_contracts::envelopes::AuthorityError) -> anyhow::Error {
     anyhow::anyhow!("authority error: {err:?}")
+}
+
+/// Creates an encrypted vault and seals it before returning.
+///
+/// Each CLI invocation is its own process and Core session. While unlocked,
+/// the encrypted vault works in a SQLCipher working database; Core seals it
+/// into the encrypted meta file and removes it, its SQLite sidecars and the
+/// writer lease only on `CloseEncryptedVault`. Returning without it leaves
+/// those files on disk, and the next open discards everything written since
+/// the last seal as a crash leftover.
+fn vault_create_sealed(vault_id: &str, vault_root: &Path, passphrase: &str) -> Result<Vec<String>> {
+    let mut session = CliSession::connect(vault_id).map_err(auth)?;
+    let codes = session
+        .create_encrypted_vault(&vault_root.display().to_string(), passphrase)
+        .map_err(auth)?;
+    session.close_encrypted_vault().map_err(auth).context(
+        "vault was created but could not be sealed; do not use it until it is reopened and closed",
+    )?;
+    Ok(codes)
+}
+
+/// Opens (verifies the passphrase for) an encrypted vault and seals it again
+/// before returning, for the same reason as [`vault_create_sealed`].
+fn vault_open_sealed(vault_id: &str, vault_root: &Path, passphrase: &str) -> Result<()> {
+    let mut session = CliSession::connect(vault_id).map_err(auth)?;
+    session
+        .open_encrypted_vault(&vault_root.display().to_string(), passphrase)
+        .map_err(auth)?;
+    session
+        .close_encrypted_vault()
+        .map_err(auth)
+        .context("vault opened but could not be sealed")?;
+    Ok(())
 }
 
 fn print_json_or_debug<T: serde::Serialize + std::fmt::Debug>(value: &T, json: bool) -> Result<()> {
@@ -1675,5 +1704,82 @@ mod tests {
         let _ = RealmId::new("x");
         let _ = AuthorityScopeId::new("y");
         let _ = OpaqueId::new("z");
+    }
+
+    fn enc_tmp(name: &str) -> PathBuf {
+        let mut dir = std::env::temp_dir();
+        dir.push(format!("medscale-cli-seal-{name}-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&dir);
+        dir
+    }
+
+    #[test]
+    fn vault_create_seals_and_leaves_no_work_db_or_lease() {
+        let root = enc_tmp("create");
+        let codes = vault_create_sealed("cli-seal-create", &root, "correct horse battery").unwrap();
+        assert!(
+            !codes.is_empty(),
+            "recovery codes are issued once at creation"
+        );
+        assert!(
+            root.join("meta.sealed").is_file(),
+            "sealed meta file exists"
+        );
+        assert!(
+            !root.join("meta.work.sqlite3").exists(),
+            "working DB must be sealed and removed"
+        );
+        assert!(
+            !root.join(".writer.lock").exists(),
+            "writer lease must be released"
+        );
+        let _ = fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn vault_open_seals_again_and_rejects_a_wrong_passphrase() {
+        let root = enc_tmp("open");
+        vault_create_sealed("cli-seal-open", &root, "correct horse battery").unwrap();
+        assert!(vault_open_sealed("cli-seal-open", &root, "wrong passphrase!").is_err());
+        vault_open_sealed("cli-seal-open", &root, "correct horse battery").unwrap();
+        assert!(
+            !root.join("meta.work.sqlite3").exists(),
+            "working DB must be sealed and removed after open"
+        );
+        assert!(
+            !root.join(".writer.lock").exists(),
+            "writer lease must be released after open"
+        );
+        // Repeatable: a second open is not blocked by a stale lease.
+        vault_open_sealed("cli-seal-open", &root, "correct horse battery").unwrap();
+        let _ = fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn writes_made_before_close_survive_reopen() {
+        let root = enc_tmp("persist");
+        let root_s = root.display().to_string();
+        {
+            let mut session = CliSession::connect("cli-seal-persist").unwrap();
+            session
+                .create_encrypted_vault(&root_s, "correct horse battery")
+                .unwrap();
+            session
+                .project_create("Sealed study".to_owned(), None)
+                .unwrap();
+            session.close_encrypted_vault().unwrap();
+        }
+        let mut session = CliSession::connect("cli-seal-persist").unwrap();
+        session
+            .open_encrypted_vault(&root_s, "correct horse battery")
+            .unwrap();
+        let (projects, _) = session.project_list(None, None, None).unwrap();
+        assert_eq!(
+            projects.len(),
+            1,
+            "project written before close is listed after reopen"
+        );
+        session.close_encrypted_vault().unwrap();
+        let _ = fs::remove_dir_all(&root);
     }
 }
