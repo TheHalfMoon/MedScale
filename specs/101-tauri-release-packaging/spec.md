@@ -76,6 +76,32 @@ The doctor and `EXTERNAL_GATES.md` keep:
 - **FR-007**: The product name is `MedScale`. The bundle identifier stays `org.medscale.desktop.preview` until a separately governed identifier change, because changing it moves app-local data.
 - **FR-008**: CI jobs stay within GitHub-hosted free runners. The Windows job timeout covers the measured native build time plus bundling.
 
+## Qualification matrix
+
+Each cell is recorded separately per platform and exact head. No cell is collapsed into a generic PASS.
+
+| Result | Windows (NSIS) | macOS (app, dmg) | Linux (deb) |
+|---|---|---|---|
+| `BUILD` | release executable built with locked inputs | same | same |
+| `BUNDLE` | `--bundles nsis` | `--bundles app,dmg` | `--bundles deb` |
+| `ARTIFACT_INVENTORY` | every payload hashed in `package-manifest.json` | same | same |
+| `CHECKSUM` | `SHA256SUMS` recomputed by the verifier | same | same |
+| `SBOM_BINDING` | SBOM, NOTICE and lockfile digests in the manifest | same | same |
+| `INSTALL` | silent per-user NSIS install on the CI runner | dmg mount and copy to a temporary directory | `dpkg-deb -x` into a temporary root |
+| `LAUNCH` | hidden-desktop process probe | non-interactive launch probe | `xvfb-run` probe |
+| `UNINSTALL` | silent uninstall plus residue report | removal of the copied app | not applicable (extracted root deleted) |
+| `SIGNING` | `NOT_GRANTED` | `NOT_GRANTED` (ad-hoc signature only if required, recorded as ad-hoc) | `NOT_GRANTED` |
+
+## Rollback and update story
+
+- **Rollback:** the change is additive.
+  - Setting `bundle.active=false` and removing the CI bundle step restores the Spec 096 package-only path. No Core, data, IPC or capability change needs reverting.
+  - Users go back by uninstalling. App-local data under `org.medscale.desktop.preview` is not migrated or deleted by this spec; observed uninstaller behavior is recorded.
+- **Update:**
+  - There is no auto-updater (anti-scope). A newer engineering installer is installed over the previous one by the NSIS installer's normal per-user flow.
+  - Upgrade behavior between two installer versions is a P3 measurement, recorded as not performed until two versions exist.
+  - Bundler tool versions change only when the locked `@tauri-apps/cli` changes. Such a change is a forward lockfile change that re-runs the research table and supply-chain review.
+
 ## Anti-scope
 
 - Code signing, notarization, distro repository signing.

@@ -13,6 +13,22 @@ All facts below were read on 2026-10-07 from the exact upstream source tag that 
 | Linux deb | none | system `dpkg-deb` semantics implemented in Rust | n/a | Admitted. |
 | macOS app/dmg | none | system `hdiutil` plus the bundled `bundle_dmg.sh` | n/a | Admitted. |
 
+### Supply-chain record per fetched tool
+
+| Field | NSIS 3.11 | `nsis_tauri_utils` 0.5.3 |
+|---|---|---|
+| Why required | builds the Windows installer; its stub (`exehead`) is embedded in every NSIS installer | Tauri's NSIS plugin used by the generated installer script |
+| Fetched by | Tauri bundler (`@tauri-apps/cli` 2.12.0), not repository automation | same |
+| Upstream URL | `tauri-apps/binary-releases`, release `nsis-3.11`, asset `nsis-3.11.zip` (Tauri's repackaging of NSIS) | `tauri-apps/nsis-tauri-utils`, release `nsis_tauri_utils-v0.5.3`, asset `nsis_tauri_utils.dll` |
+| Expected digest source | SHA-1 constant compiled into the CLI (`windows/nsis/mod.rs`) | same |
+| Independent strong digest | none published alongside the release asset that this research could find; the CI job records the SHA-256 it observes | same |
+| License | NSIS: zlib/libpng license, with bzip2 and CPL portions per upstream NSIS licensing | dual MIT / Apache-2.0 per its repository |
+| Cache | `%LOCALAPPDATA%	auriNSIS`, reused while required files hash-match | same directory |
+| Update strategy | changes only with a forward `@tauri-apps/cli` lock change and a re-review of this table | same |
+| Failure behavior | the bundler aborts on a hash mismatch or download failure; the CI job fails; no fallback download | same |
+
+**Limitation.** Integrity rests on SHA-1 constants shipped in the CLI, plus the observed SHA-256 recorded by CI for traceability. SHA-1 is collision-weak, and no independent upstream SHA-256 was established. Supply-chain status for these tools is therefore `RECORDED_WITH_WEAK_DIGEST`, not PASS. Mitigations not taken in this spec: vendoring a reviewed NSIS build, and pre-seeding the cache from a repository-pinned SHA-256.
+
 Tools are cached under the user cache directory (`<cache>/tauri/NSIS`, `<cache>/tauri/WixTools314`) and reused when the hash still matches. CI may cache that directory; the cache key must include the CLI version.
 
 ## WebView2 install mode
