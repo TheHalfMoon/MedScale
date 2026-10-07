@@ -30,7 +30,7 @@ jobs:
   native:
     name: tauri preview (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 35
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
