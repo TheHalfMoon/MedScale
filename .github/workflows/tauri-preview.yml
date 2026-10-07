@@ -9,6 +9,8 @@ on:
       - scripts/verify-tauri-release.ps1
       - scripts/test-verify-tauri-release.ps1
       - scripts/qualify-tauri-installer-windows.ps1
+      - scripts/qualify-tauri-package-macos.ps1
+      - scripts/qualify-tauri-package-linux.ps1
       - specs/101-tauri-release-packaging/**
       - assets/brand/**
       - crates/medscale-desktop/ui/assets/**
@@ -60,7 +62,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+          sudo apt-get install -y --no-install-recommends libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf xvfb
       - name: Install locked frontend without lifecycle scripts
         working-directory: apps/desktop-tauri
         run: npm ci --ignore-scripts --no-audit --no-fund
@@ -108,6 +110,14 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: ./scripts/qualify-tauri-installer-windows.ps1 -ReleaseRoot target/tauri-release/windows -ReportPath target/tauri-release-qualification/windows.json
+      - name: Package launch and removal qualification (Spec 101 T101-08)
+        if: runner.os == 'macOS'
+        shell: pwsh
+        run: ./scripts/qualify-tauri-package-macos.ps1 -ReleaseRoot target/tauri-release/macos -ReportPath target/tauri-release-qualification/macos.json
+      - name: Package install, launch and removal qualification (Spec 101 T101-09)
+        if: runner.os == 'Linux'
+        shell: pwsh
+        run: ./scripts/qualify-tauri-package-linux.ps1 -ReleaseRoot target/tauri-release/linux -ReportPath target/tauri-release-qualification/linux.json
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v4.6.2
         if: ${{ !cancelled() }}
         with:
