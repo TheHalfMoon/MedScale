@@ -52,6 +52,7 @@ public static class QD {
   public delegate bool EnumProc(IntPtr h, IntPtr l);
   [DllImport("user32.dll", CharSet=CharSet.Unicode, SetLastError=true)] public static extern IntPtr CreateDesktop(string n, IntPtr d, IntPtr m, int f, uint a, IntPtr s);
   [DllImport("user32.dll")] public static extern bool CloseDesktop(IntPtr h);
+  [DllImport("kernel32.dll")] public static extern bool GetExitCodeProcess(IntPtr h, out uint code);
   [DllImport("user32.dll")] public static extern bool EnumDesktopWindows(IntPtr desk, EnumProc cb, IntPtr l);
   [DllImport("user32.dll", CharSet=CharSet.Unicode)] public static extern int GetWindowText(IntPtr h, StringBuilder s, int n);
   [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr h, out uint pid);
@@ -82,25 +83,61 @@ if ($p.ExitCode -eq 0 -and $install) {
 }
 $result.installer_exit_code = $p.ExitCode
 
-# LAUNCH (hidden desktop)
+# LAUNCH. Verdict: hidden desktop (no input can reach it). The hidden attempt
+# records lifetime, exit code, children and Application-log events; if it does
+# not stay alive, a diagnostic launch on the runner's own default desktop
+# (disposable runner, no input sent) is recorded separately and does NOT set
+# the verdict. This distinguishes a product defect from an environment limit.
+function Watch-Launch([int]$ProcessId, [IntPtr]$Handle, [IntPtr]$Desk) {
+    $seen = [Collections.Generic.HashSet[string]]::new(); $start = Get-Date; $exitedAt = $null
+    while (((Get-Date) - $start).TotalSeconds -lt $LaunchSeconds) {
+        Get-CimInstance Win32_Process -Filter "ParentProcessId=$ProcessId" -ErrorAction SilentlyContinue | ForEach-Object { [void]$seen.Add($_.Name) }
+        if (-not (Get-Process -Id $ProcessId -ErrorAction SilentlyContinue)) { $exitedAt = ((Get-Date) - $start).TotalSeconds; break }
+        Start-Sleep -Milliseconds 500
+    }
+    $code = $null
+    if ($Handle -ne [IntPtr]::Zero) { [uint32]$c = 0; if ([QD]::GetExitCodeProcess($Handle, [ref]$c)) { $code = if ($c -eq 259) { 'STILL_ACTIVE' } else { '0x{0:X8}' -f $c } } }
+    elseif ($exitedAt -ne $null) { $code = 'unavailable' }
+    $titles = @(if ($Desk -ne [IntPtr]::Zero) { [QD]::Titles($Desk, [uint32]$ProcessId) } else { Get-Process -Id $ProcessId -ErrorAction SilentlyContinue | Where-Object MainWindowTitle | Select-Object -ExpandProperty MainWindowTitle })
+    [ordered]@{ pid = $ProcessId; alive = ($exitedAt -eq $null); lifetime_seconds = $(if ($exitedAt -ne $null) { [math]::Round($exitedAt, 1) } else { $LaunchSeconds })
+        exit_code = $code; child_processes_seen = @($seen); window_titles = $titles }
+}
+function Stop-Tree([int]$ProcessId) {
+    Get-CimInstance Win32_Process | Where-Object { $_.ProcessId -eq $ProcessId -or $_.ParentProcessId -eq $ProcessId } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+    Start-Sleep -Seconds 3
+}
+function Get-LaunchEvents([datetime]$Since) {
+    @(Get-WinEvent -FilterHashtable @{ LogName = 'Application'; StartTime = $Since } -ErrorAction SilentlyContinue |
+        Where-Object { $_.ProviderName -in 'Application Error', 'Windows Error Reporting', 'Application Hang', 'SideBySide' -or $_.Message -match 'medscale|msedgewebview2|WebView2' } |
+        Select-Object -First 10 | ForEach-Object { [ordered]@{ time = $_.TimeCreated.ToUniversalTime().ToString('o'); provider = $_.ProviderName; id = $_.Id; message = ($_.Message -replace '\s+', ' ').Substring(0, [math]::Min(400, ($_.Message -replace '\s+', ' ').Length)) } })
+}
 if ($result.INSTALL -eq 'PASS') {
     $result.LAUNCH = 'FAIL'
+    $wv2 = Get-ItemProperty 'HKLM:\SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}' -ErrorAction SilentlyContinue
+    $result.launch_environment = [ordered]@{ session_id = (Get-Process -Id $PID).SessionId; user_interactive = [Environment]::UserInteractive; webview2_runtime = $wv2.pv }
     $deskName = 'medscale-101-' + [guid]::NewGuid().ToString('N').Substring(0, 8)
     $desk = [QD]::CreateDesktop($deskName, [IntPtr]::Zero, [IntPtr]::Zero, 0, 0x10000000, [IntPtr]::Zero)
     $si = New-Object QD+STARTUPINFO; $si.cb = [Runtime.InteropServices.Marshal]::SizeOf($si); $si.lpDesktop = "WinSta0\$deskName"
     $pi = New-Object QD+PROCESS_INFORMATION
+    $t0 = Get-Date
     if ($desk -ne [IntPtr]::Zero -and [QD]::CreateProcess($exe.FullName, $null, [IntPtr]::Zero, [IntPtr]::Zero, $false, 0, [IntPtr]::Zero, $installDir, [ref]$si, [ref]$pi)) {
-        Start-Sleep -Seconds $LaunchSeconds
-        $alive = [bool](Get-Process -Id $pi.dwProcessId -ErrorAction SilentlyContinue)
-        $children = @(Get-CimInstance Win32_Process | Where-Object { $_.ParentProcessId -eq $pi.dwProcessId } | Select-Object -ExpandProperty Name)
-        $titles = @([QD]::Titles($desk, [uint32]$pi.dwProcessId))
-        $result.launch_detail = [ordered]@{ alive_after_seconds = $LaunchSeconds; alive = $alive; child_processes = $children; window_titles = $titles }
-        if ($alive -and ($children -contains 'msedgewebview2.exe')) { $result.LAUNCH = 'PASS' }
-        Get-CimInstance Win32_Process | Where-Object { $_.ProcessId -eq $pi.dwProcessId -or $_.ParentProcessId -eq $pi.dwProcessId } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
-        Start-Sleep -Seconds 3
-    } else { $result.launch_detail = 'process could not be created on the hidden desktop' }
+        $d = Watch-Launch $pi.dwProcessId $pi.hProcess $desk
+        $d.mechanism = 'hidden_desktop'; $d.events = Get-LaunchEvents $t0
+        $result.launch_detail = $d
+        if ($d.alive -and ($d.child_processes_seen -contains 'msedgewebview2.exe')) { $result.LAUNCH = 'PASS' }
+        Stop-Tree $pi.dwProcessId
+    } else { $result.launch_detail = [ordered]@{ mechanism = 'hidden_desktop'; created = $false; desktop_created = ($desk -ne [IntPtr]::Zero); win32_error = [Runtime.InteropServices.Marshal]::GetLastWin32Error() } }
     if ($desk -ne [IntPtr]::Zero) { [QD]::CloseDesktop($desk) | Out-Null }
     $result.app_data_after_launch = @(if (Test-Path -LiteralPath $appData) { Get-ChildItem -LiteralPath $appData -Force | Select-Object -ExpandProperty Name })
+    if ($result.LAUNCH -ne 'PASS') {
+        $t1 = Get-Date
+        $proc = Start-Process -FilePath $exe.FullName -WorkingDirectory $installDir -PassThru
+        $d2 = Watch-Launch $proc.Id ([IntPtr]::Zero) ([IntPtr]::Zero)
+        if (-not $d2.alive) { $proc.WaitForExit(2000) | Out-Null; $d2.exit_code = '0x{0:X8}' -f $proc.ExitCode }
+        $d2.mechanism = 'default_desktop_diagnostic_only'; $d2.events = Get-LaunchEvents $t1
+        $result.launch_default_desktop_diagnostic = $d2
+        Stop-Tree $proc.Id
+    }
 }
 
 # UNINSTALL
