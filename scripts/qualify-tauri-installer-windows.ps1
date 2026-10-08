@@ -125,6 +125,10 @@ if ($result.INSTALL -eq 'PASS') {
     if ($desk -ne [IntPtr]::Zero -and [QD]::CreateProcess($exe.FullName, $null, [IntPtr]::Zero, [IntPtr]::Zero, $false, 0, [IntPtr]::Zero, $installDir, [ref]$si, [ref]$pi)) {
         $d = Watch-Launch $pi.dwProcessId $pi.hProcess $desk
         $d.mechanism = 'hidden_desktop_diagnostic_only'; $d.events = Get-LaunchEvents $t0
+        # F101-02: where WebView2 cannot initialize, the app must show its startup-failure
+        # message (and wait for OK) instead of panicking with exit 0x65.
+        $d.startup_failure_message_shown = ($d.window_titles -contains 'MedScale could not start')
+        $d.panicked = ($d.exit_code -eq '0x00000065')
         $result.launch_hidden_desktop_diagnostic = $d
         Stop-Tree $pi.dwProcessId
     } else { $result.launch_hidden_desktop_diagnostic = [ordered]@{ mechanism = 'hidden_desktop'; created = $false; desktop_created = ($desk -ne [IntPtr]::Zero); win32_error = [Runtime.InteropServices.Marshal]::GetLastWin32Error() } }
