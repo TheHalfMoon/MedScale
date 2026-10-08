@@ -1,5 +1,17 @@
 # MedScale Project Completion Status
 
+## Current program — 2026-09-29
+
+CURRENT_PROGRAM = MEDSCALE_IDENTITY_AND_DESKTOP_PRODUCTIZATION
+CURRENT_PROGRAM_STATUS = IMPLEMENTATION_IN_PROGRESS
+RESEARCH_OS_SPECS_068_094 = CLOSED_CANONICAL_FOR_AUTHORIZED_SCOPE
+NEXT_PROMOTED_SPEC = 095
+LAUNCH_UI_FROZEN = FALSE
+
+The founder request promotes [095–100](PRODUCTIZATION_PROGRAM.md). Base 1e2b7d94, CI 36480424698 (6/6). Queue/closure supersede summaries ending 073/075. Drafts 124/125 stay separate. Release/privacy/multi-client readiness remains false and PHI remains unauthorized.
+
+## Historical completion status through Spec 073
+
 ```text
 STATUS = REPOSITORY_IMPLEMENTATION_COMPLETE_PENDING_EXTERNAL_GATES
 MEDSCALE_TRUSTED_V1_IMPLEMENTATION_COMPLETE = TRUE

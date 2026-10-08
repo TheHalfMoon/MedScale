@@ -1,5 +1,9 @@
 # MedScale � Start Here
 
+## Productization entry — 2026-09-29
+
+Approved paired M supersedes older active visuals. Read PRODUCTIZATION_PROGRAM.md and specs/095-brand-foundation after standing authority/live BUILD_QUEUE. Closed 068–094 remain intact; 095–100 is autonomously authorized. Queue/closure evidence supersede older summaries. Architecture, PHI exclusion and release limitations remain.
+
 ## 1. Current gate
 
 ```text

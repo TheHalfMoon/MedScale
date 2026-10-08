@@ -47,25 +47,38 @@ $sbomFull = Resolve-RepoPath $SbomPath
 $licenseFull = Resolve-RepoPath 'LICENSE'
 $readmeFull = Resolve-RepoPath 'README.md'
 $noticeFull = Resolve-RepoPath 'docs/legal/NOTICE_INVENTORY.md'
+$fontNoticeFull = Resolve-RepoPath 'assets/brand/fonts/FONT_NOTICE.md'
+$fontLicenseInputs = @(
+    [ordered]@{ source = Resolve-RepoPath 'assets/brand/fonts/Inter-OFL.txt'; target = 'licenses/fonts/Inter-OFL.txt' }
+    [ordered]@{ source = Resolve-RepoPath 'assets/brand/fonts/JetBrainsMono-OFL.txt'; target = 'licenses/fonts/JetBrainsMono-OFL.txt' }
+    [ordered]@{ source = $fontNoticeFull; target = 'licenses/fonts/FONT_NOTICE.md' }
+)
 $cli = Join-Path $binaryFull "medscale$exe"
 $desktop = Join-Path $binaryFull "medscale-desktop$exe"
-foreach ($required in @($cli,$desktop,$licenseFull,$readmeFull,$noticeFull,$sbomFull)) {
-    if (-not (Test-Path $required)) { throw "required package input missing: $required" }
+foreach ($required in @($cli,$desktop,$licenseFull,$readmeFull,$noticeFull,$sbomFull) + @($fontLicenseInputs | ForEach-Object { $_.source })) {
+    if (-not (Test-Path -LiteralPath $required -PathType Leaf)) { throw "required package input missing: $required" }
 }
+$fontNotice = [System.IO.File]::ReadAllText($fontNoticeFull).TrimEnd()
+if ([string]::IsNullOrWhiteSpace($fontNotice)) { throw 'font attribution notice is empty' }
 
 $outFull = Resolve-RepoPath $OutputDir
 New-Item -ItemType Directory -Force -Path $outFull | Out-Null
 $stage = Join-Path $outFull ("stage-" + [guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Force -Path (Join-Path $stage 'bin') | Out-Null
+New-Item -ItemType Directory -Force -Path (Join-Path $stage 'licenses/fonts') | Out-Null
 try {
     Copy-Item $cli (Join-Path $stage "bin/medscale$exe")
     Copy-Item $desktop (Join-Path $stage "bin/medscale-desktop$exe")
     Copy-Item $licenseFull (Join-Path $stage 'LICENSE')
     Copy-Item $readmeFull (Join-Path $stage 'README.md')
-    Copy-Item $noticeFull (Join-Path $stage 'NOTICE.md')
+    $packageNotice = [System.IO.File]::ReadAllText($noticeFull).TrimEnd() + "`n`n" + $fontNotice
+    Write-Utf8Lf (Join-Path $stage 'NOTICE.md') $packageNotice
     Copy-Item $sbomFull (Join-Path $stage 'SBOM.cdx.json')
+    foreach ($fontLicense in $fontLicenseInputs) {
+        Copy-Item -LiteralPath $fontLicense.source -Destination (Join-Path $stage $fontLicense.target)
+    }
 
-    $payloadPaths = @("bin/medscale$exe", "bin/medscale-desktop$exe", 'LICENSE', 'NOTICE.md', 'README.md', 'SBOM.cdx.json') | Sort-Object
+    $payloadPaths = @(@("bin/medscale$exe", "bin/medscale-desktop$exe", 'LICENSE', 'NOTICE.md', 'README.md', 'SBOM.cdx.json') + @($fontLicenseInputs | ForEach-Object { $_.target })) | Sort-Object
     $payload = @()
     foreach ($rel in $payloadPaths) {
         $payload += [ordered]@{ path = $rel; sha256 = Get-Sha256Hex (Join-Path $stage $rel) }
@@ -73,6 +86,7 @@ try {
     $manifest = [ordered]@{
         schema_version = 1
         spec_id = '058-portable-release-package'
+        font_license_profile = '095-brand-foundation'
         package_version = $version
         package_label = $PackageLabel
         platform = $platform

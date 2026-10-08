@@ -24,8 +24,9 @@ fn historical_spec_068_rejected_multicolor_palette_remains_retired() {
             "rejected palette returned: {rejected_hex}"
         );
     }
-    assert!(theme.contains("Mist Blue"));
-    assert!(theme.contains("obsidian: #0D0F0E"));
+    assert!(theme.contains("brand-black: #000000"));
+    assert!(theme.contains("brand-white: #FFFFFF"));
+    assert!(theme.contains("signal: ink"));
     for retired_name in ["blurple", "coral", "lavender", "pine", "mint", "amber"] {
         assert!(
             !theme.contains(retired_name),
@@ -34,6 +35,7 @@ fn historical_spec_068_rejected_multicolor_palette_remains_retired() {
     }
     assert!(design.contains("SUPERSEDED_BY_SPEC_068"));
     assert!(design.contains("SUPERSEDED_BY_SPEC_073"));
+    assert!(design.contains("SUPERSEDED_BY_SPEC_095"));
     assert!(!design.contains("Cohere-inspired"));
 }
 
@@ -50,7 +52,7 @@ fn models_and_competitive_evidence_are_first_class_and_truthful() {
     assert!(app.contains("label: \"Evidence\""));
     assert!(app.contains("MedScale × OpenMed"));
     assert!(app.contains("Pinned OpenMed evidence · measured claims only · limitations explicit"));
-    assert!(app.contains("AI is visible, not implied."));
+    assert!(app.contains("model-runtime-summary"));
     assert!(product.contains("real portable ONNX runtime admitted"));
     assert!(product.contains("production clinical model not promoted"));
     assert!(product.contains("verdict: \"UNMEASURED\""));
@@ -71,11 +73,20 @@ fn home_is_a_clinical_workspace_not_an_admin_dashboard() {
     )
     .expect("Abridge product review");
 
-    assert!(app.contains("Clinical Workspace"));
-    assert!(app.contains("Clinical flow"));
-    assert!(app.contains("Know the record before the encounter"));
-    assert!(app.contains("Keep intelligence tied to evidence"));
-    assert!(app.contains("Review before anything consequential"));
+    let home =
+        std::fs::read_to_string(root.join("crates/medscale-desktop/ui/command-center.slint"))
+            .expect("Command Center");
+    assert!(app.contains("if root.active-route == \"Home\": CommandCenter"));
+    assert!(app.contains("coverage-summary: root.patient-coverage-summary"));
+    assert!(app.contains("model-runtime-summary: root.model-runtime-summary"));
+    assert!(home.contains("root.patient-name"));
+    assert!(home.contains("Timeline, coverage and original sources"));
+    assert!(home.contains("root.coverage-summary"));
+    assert!(home.contains("root.navigate(\"Patients\")"));
+    assert!(home.contains("root.navigate(\"Evidence\")"));
+    assert!(home.contains("state: \"unknown\""));
+    assert!(home.contains("state: \"unmeasured\""));
+    assert!(home.contains("Synthetic demo"));
     assert!(!app.contains("Operational snapshot"));
     assert!(review.contains("the clinical work itself is the interface"));
     assert!(review.contains("Prepare → Understand → Act"));
@@ -86,15 +97,17 @@ fn spec_068_closure_remains_historical_after_spec_073_closure() {
     let status =
         std::fs::read_to_string(repo_root().join("docs/planning/PROJECT_COMPLETION_STATUS.md"))
             .expect("completion status");
-    assert!(status.contains("STATUS = REPOSITORY_IMPLEMENTATION_COMPLETE_PENDING_EXTERNAL_GATES"));
-    assert!(status.contains("MEDSCALE_IMPLEMENTATION_COMPLETE = TRUE"));
-    assert!(status.contains("KNOWN_REPOSITORY_OWNED_DESKTOP_CLI_RESIDUALS = 0"));
-    assert!(status.contains("NEXT_PROMOTED_SPEC = NONE"));
-    assert!(!status.contains("NEXT_PROMOTED_SPEC = 073"));
+    // A new program changes active status; it does not reopen historical closures.
+    let queue = std::fs::read_to_string(repo_root().join("docs/planning/BUILD_QUEUE.md"))
+        .expect("build queue");
+    for spec in ["068", "073"] {
+        assert!(queue.lines().any(|line| {
+            line.contains(&format!("| {spec} |")) && line.contains("CLOSED_CANONICAL")
+        }));
+    }
     assert!(status.contains("MEDSCALE_RELEASE_READY = FALSE"));
     assert!(status.contains("## Spec 068 canonical closure"));
     assert!(status.contains("## Spec 073 canonical closure"));
-    assert!(status.contains("Specs 068–073 remain `CLOSED_CANONICAL`"));
 }
 
 #[test]
@@ -111,16 +124,16 @@ fn brand_identity_is_canonical_and_runtime_bound() {
         std::fs::read_to_string(root.join("docs/brand/TYPOGRAPHY_SYSTEM.md")).expect("typography");
     let logo = std::fs::read_to_string(root.join("docs/brand/LOGO_SPEC.md")).expect("logo");
 
-    assert!(app.contains("default-font-family: \"Instrument Sans\""));
+    assert!(app.contains("default-font-family: Theme.font-ui"));
     assert!(brand.contains("Clinical Intelligence OS"));
     assert!(brand.contains("Evidence first. Action second."));
-    assert!(typography.contains("Instrument Sans"));
-    assert!(typography.contains("Source Serif 4"));
-    assert!(logo.contains("FOUNDER_APPROVED_SIGNATURE_MARK"));
-    assert!(logo.contains("MedScale Shelf"));
-    assert!(mark.contains("<circle"));
-    assert!(mark.contains("#0A0A0A"));
-    assert!(mark.contains("#F4F4F1"));
-    assert!(mark.contains("id=\"medscale-signature-m\""));
+    assert!(typography.contains("Inter"));
+    assert!(typography.contains("JetBrains Mono"));
+    assert!(logo.to_lowercase().contains("equilateral"));
+    assert!(logo.contains("16px"));
+    assert!(logo.contains("h/2"));
+    assert!(!mark.contains("<circle"));
+    assert!(mark.contains("#000000"));
+    assert!(mark.contains("id=\"medscale-paired-m\""));
     assert!(!mark.contains("#0A66FF"));
 }

@@ -74,14 +74,15 @@ fn native_desktop_shell_is_pinned_non_webview_and_branded() {
     assert!(theme.contains("focus-width: 2px"));
     assert!(components.contains("event.text == \" \" || event.text == \"\\n\""));
     // Historical Spec 060 requires a branded native shell, not a frozen legacy palette.
-    // Spec 073 supersedes the Spec 068 Signal/Geist identity while preserving native-shell semantics.
-    assert!(theme.contains("signal: dark ? #8FADBC : #4F7185"));
-    assert!(theme.contains("obsidian: #0D0F0E"));
-    assert!(app.contains("default-font-family: \"Instrument Sans\""));
-    assert!(mark.contains("id=\"medscale-signature-m\""));
-    assert!(mark.contains("#0A0A0A"));
-    assert!(mark.contains("#F4F4F1"));
+    // Spec 095 replaces visual assets forward while preserving native-shell semantics.
+    assert!(theme.contains("brand-black: #000000"));
+    assert!(theme.contains("brand-white: #FFFFFF"));
+    assert!(theme.contains("font-ui: \"Inter\""));
+    assert!(app.contains("default-font-family: Theme.font-ui"));
+    assert!(mark.contains("id=\"medscale-paired-m\""));
+    assert!(mark.contains("#000000"));
     assert!(!mark.contains("#0A66FF"));
+    assert!(!mark.contains("<circle"));
     assert!(!mark.contains("<rect"));
     let deny = std::fs::read_to_string(root.join("deny.toml")).expect("deny config");
     assert!(deny.contains("LicenseRef-Slint-Royalty-free-2.0"));
@@ -136,19 +137,17 @@ fn product_phase_keeps_mobile_after_desktop_cli_launch() {
 
     assert!(product.contains("Desktop and CLI are the launch surfaces"));
     assert!(product.contains("Mobile applications come only after Desktop + CLI launch"));
-    for discipline in [
-        "`shape`",
-        "`critique`",
-        "`audit`",
-        "`distill`",
-        "`typeset`",
-        "`polish`",
-        "`harden`",
-        "`optimize`",
+    // The active program preserves the quality rules rather than an old methodology label.
+    for requirement in [
+        "visible focus",
+        "Measure contrast from actual tokens",
+        "inspect actual native pixels",
+        "source assertions do not qualify visuals",
+        "Rust Core retains all authority",
     ] {
         assert!(
-            design.contains(discipline),
-            "missing Impeccable discipline: {discipline}"
+            design.contains(requirement),
+            "missing design quality rule: {requirement}"
         );
     }
     assert!(queue.contains("065 | CLI Product Experience + Capability Parity"));
