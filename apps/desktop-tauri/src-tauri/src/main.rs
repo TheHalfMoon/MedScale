@@ -16,6 +16,7 @@ mod cmd_ops;
 mod cmd_research;
 mod host;
 mod navigation_policy;
+mod startup_failure;
 
 #[cfg(test)]
 mod feature_tests;
@@ -123,7 +124,7 @@ fn main() {
             Ok(())
         })
         .build(tauri::generate_context!())
-        .expect("failed to start MedScale Desktop")
+        .unwrap_or_else(|error| startup_failure::report_and_exit(&error.to_string()))
         .run(|app, event| {
             // Seal an open encrypted vault before the process exits; managed
             // state is not guaranteed to be dropped on exit.
