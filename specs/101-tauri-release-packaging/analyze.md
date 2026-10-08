@@ -29,3 +29,16 @@ Spec 101 adds packaging only. It does not change Core semantics, Tauri commands,
 - Every unchecked checklist line.
 - The weak-digest residual for the NSIS tools.
 - The dependency on #177 and the scoped review gate on the Tauri chain.
+
+## Findings from exact-head qualification
+
+- **F101-01, Windows launch mechanism (resolved in the harness).** Run `37709847054` at `2cdac53`:
+  - On a secondary hidden desktop, the installed app created its "MedScale" window and then exited after 2.2 s with `0x65` (Rust panic), with no WebView2 child.
+  - In the same session on the runner's default desktop, it stayed alive for 20 s with `msedgewebview2.exe` and a "MedScale" window.
+  - The hidden desktop is therefore not a valid WebView2 qualification environment on GitHub-hosted runners. The verdict now uses the disposable runner's default desktop (no input sent), and the hidden attempt stays recorded as a diagnostic.
+- **F101-02, WebView initialization failure panics (open, low).** When WebView2 cannot initialize, the app panics (exit 101) instead of showing a controlled error. No user-facing message is shown. A graceful failure path is repository-owned follow-up work, not a packaging blocker.
+- **F101-03, Windows uninstall keeps user app data (by design).**
+  - After a silent uninstall, `%LOCALAPPDATA%\org.medscale.desktop.preview\EBWebView` (the WebView2 profile) remains. Program files are removed.
+  - User app data is never deleted by the uninstaller, which also protects encrypted vaults.
+  - The leftover WebView profile is part of the F096-T05 privacy residual.
+- **F101-04, a `vssadmin.exe` child was observed during launch.** The source of this process is not yet identified. A likely candidate is the Core privacy doctor's volume-shadow-copy probe. To be confirmed before any claim.

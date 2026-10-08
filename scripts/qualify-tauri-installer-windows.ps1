@@ -83,11 +83,13 @@ if ($p.ExitCode -eq 0 -and $install) {
 }
 $result.installer_exit_code = $p.ExitCode
 
-# LAUNCH. Verdict: hidden desktop (no input can reach it). The hidden attempt
-# records lifetime, exit code, children and Application-log events; if it does
-# not stay alive, a diagnostic launch on the runner's own default desktop
-# (disposable runner, no input sent) is recorded separately and does NOT set
-# the verdict. This distinguishes a product defect from an environment limit.
+# LAUNCH. Run 37709847054 showed that on a GitHub-hosted runner the app panics
+# (exit 0x65 = Rust panic) 2.2 s after creating its window on a secondary
+# hidden desktop, while the same binary in the same session stays up with a
+# WebView2 child and a "MedScale" window on the runner's default desktop. The
+# hidden desktop is therefore recorded as a diagnostic only, and the verdict
+# comes from the default desktop of a GitHub-hosted (disposable) runner. No
+# input is ever sent; refuses on any other machine.
 function Watch-Launch([int]$ProcessId, [IntPtr]$Handle, [IntPtr]$Desk) {
     $seen = [Collections.Generic.HashSet[string]]::new(); $start = Get-Date; $exitedAt = $null
     while (((Get-Date) - $start).TotalSeconds -lt $LaunchSeconds) {
@@ -122,21 +124,27 @@ if ($result.INSTALL -eq 'PASS') {
     $t0 = Get-Date
     if ($desk -ne [IntPtr]::Zero -and [QD]::CreateProcess($exe.FullName, $null, [IntPtr]::Zero, [IntPtr]::Zero, $false, 0, [IntPtr]::Zero, $installDir, [ref]$si, [ref]$pi)) {
         $d = Watch-Launch $pi.dwProcessId $pi.hProcess $desk
-        $d.mechanism = 'hidden_desktop'; $d.events = Get-LaunchEvents $t0
-        $result.launch_detail = $d
-        if ($d.alive -and ($d.child_processes_seen -contains 'msedgewebview2.exe')) { $result.LAUNCH = 'PASS' }
+        $d.mechanism = 'hidden_desktop_diagnostic_only'; $d.events = Get-LaunchEvents $t0
+        $result.launch_hidden_desktop_diagnostic = $d
         Stop-Tree $pi.dwProcessId
-    } else { $result.launch_detail = [ordered]@{ mechanism = 'hidden_desktop'; created = $false; desktop_created = ($desk -ne [IntPtr]::Zero); win32_error = [Runtime.InteropServices.Marshal]::GetLastWin32Error() } }
+    } else { $result.launch_hidden_desktop_diagnostic = [ordered]@{ mechanism = 'hidden_desktop'; created = $false; desktop_created = ($desk -ne [IntPtr]::Zero); win32_error = [Runtime.InteropServices.Marshal]::GetLastWin32Error() } }
     if ($desk -ne [IntPtr]::Zero) { [QD]::CloseDesktop($desk) | Out-Null }
     $result.app_data_after_launch = @(if (Test-Path -LiteralPath $appData) { Get-ChildItem -LiteralPath $appData -Force | Select-Object -ExpandProperty Name })
-    if ($result.LAUNCH -ne 'PASS') {
+    if ($env:RUNNER_ENVIRONMENT -ne 'github-hosted') {
+        $result.launch_detail = [ordered]@{ mechanism = 'runner_default_desktop'; refused = 'not a GitHub-hosted disposable runner' }
+    } else {
         $t1 = Get-Date
         $proc = Start-Process -FilePath $exe.FullName -WorkingDirectory $installDir -PassThru
         $d2 = Watch-Launch $proc.Id ([IntPtr]::Zero) ([IntPtr]::Zero)
         if (-not $d2.alive) { $proc.WaitForExit(2000) | Out-Null; $d2.exit_code = '0x{0:X8}' -f $proc.ExitCode }
-        $d2.mechanism = 'default_desktop_diagnostic_only'; $d2.events = Get-LaunchEvents $t1
-        $result.launch_default_desktop_diagnostic = $d2
+        $d2.mechanism = 'runner_default_desktop'; $d2.events = Get-LaunchEvents $t1
+        # Product-level invariant: the process stays up, hosts a WebView2 runtime
+        # process and owns a window titled MedScale. Termination is ours.
+        $d2.acceptance = 'alive >= LaunchSeconds AND msedgewebview2.exe child AND window title MedScale'
+        $result.launch_detail = $d2
+        if ($d2.alive -and ($d2.child_processes_seen -contains 'msedgewebview2.exe') -and ($d2.window_titles -contains 'MedScale')) { $result.LAUNCH = 'PASS' }
         Stop-Tree $proc.Id
+        $d2.terminated = -not [bool](Get-Process -Id $proc.Id -ErrorAction SilentlyContinue)
     }
 }
 
@@ -148,8 +156,10 @@ if ($install) {
     Start-Sleep -Seconds 5  # NSIS uninstallers re-launch from a temp copy
     $stillRegistered = [bool](Find-Install)
     $residue = @(if ($installDir -and (Test-Path -LiteralPath $installDir)) { Get-ChildItem -LiteralPath $installDir -Recurse -Force | ForEach-Object { $_.FullName } })
-    $result.uninstall_detail = [ordered]@{ exit_code = $u.ExitCode; still_registered = $stillRegistered; install_dir_residue = $residue
-        app_data_residue = @(if (Test-Path -LiteralPath $appData) { Get-ChildItem -LiteralPath $appData -Recurse -Force | ForEach-Object { [IO.Path]::GetRelativePath($appData, $_.FullName) } }) }
+    $result.uninstall_detail = [ordered]@{ exit_code = $u.ExitCode; still_registered = $stillRegistered; program_files_residue = $residue
+        # Uninstall removes the program; user app data (WebView profile, vaults) is
+        # intentionally kept by the uninstaller and recorded separately.
+        user_app_data_residue = @(if (Test-Path -LiteralPath $appData) { Get-ChildItem -LiteralPath $appData -Recurse -Force | ForEach-Object { [IO.Path]::GetRelativePath($appData, $_.FullName) } }) }
     if ($u.ExitCode -eq 0 -and -not $stillRegistered -and $residue.Count -eq 0) { $result.UNINSTALL = 'PASS' }
 }
 
