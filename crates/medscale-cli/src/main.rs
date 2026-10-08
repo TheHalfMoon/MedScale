@@ -400,6 +400,66 @@ enum PacksCmd {
         #[arg(long)]
         json: bool,
     },
+    /// Query a local model catalog snapshot (Spec 103; read-only, offline).
+    /// Counts are listing counts: nothing is downloaded, admitted or run.
+    Catalog {
+        /// JSON Lines manifest snapshot on disk (for example models.jsonl).
+        #[arg(long)]
+        snapshot: PathBuf,
+        /// Exact 40-hex commit the snapshot was taken from.
+        #[arg(long)]
+        commit: String,
+        #[arg(long, default_value = "maziyarpanahi/openmed")]
+        repository: String,
+        #[arg(long)]
+        text: Option<String>,
+        #[arg(long)]
+        task: Option<String>,
+        #[arg(long)]
+        family: Option<String>,
+        #[arg(long)]
+        language: Option<String>,
+        #[arg(long)]
+        format: Option<String>,
+        #[arg(long)]
+        architecture: Option<String>,
+        /// cpu_portable | apple_silicon_only | unknown
+        #[arg(long)]
+        device: Option<String>,
+        /// For example DISCOVERABLE or RIGHTS_PENDING.
+        #[arg(long)]
+        status: Option<String>,
+        #[arg(long)]
+        max_params: Option<u64>,
+        #[arg(long)]
+        max_disk_mb: Option<f64>,
+        #[arg(long, default_value_t = 0)]
+        offset: usize,
+        #[arg(long, default_value_t = 20)]
+        limit: usize,
+    },
+    /// Verify a locally supplied Hugging Face snapshot against its catalog row,
+    /// build a signed Pack and admit it (Spec 103; no network access).
+    AdmitSnapshot {
+        #[arg(long)]
+        vault_id: String,
+        #[arg(long)]
+        snapshot: PathBuf,
+        #[arg(long)]
+        commit: String,
+        #[arg(long, default_value = "maziyarpanahi/openmed")]
+        repository: String,
+        /// Directory with metadata.json, config.json, tokenizer.json and the ONNX file.
+        #[arg(long)]
+        snapshot_dir: PathBuf,
+        #[arg(long, default_value = "model.onnx")]
+        onnx_file: String,
+        #[arg(long, default_value_t = 128)]
+        sequence_length: u32,
+        /// Where the Pack directory is written.
+        #[arg(long)]
+        out: PathBuf,
+    },
 }
 
 #[derive(Debug, Subcommand)]
@@ -1138,6 +1198,76 @@ fn run() -> Result<()> {
                 // Note: list is session-local; install then list in same process for CLI demos.
                 let packs = session.packs_list().map_err(auth)?;
                 print_json_or_debug(&packs, json)
+            }
+            PacksCmd::Catalog {
+                snapshot,
+                commit,
+                repository,
+                text,
+                task,
+                family,
+                language,
+                format,
+                architecture,
+                device,
+                status,
+                max_params,
+                max_disk_mb,
+                offset,
+                limit,
+            } => {
+                let view = medscale_core::model_catalog::query_catalog_snapshot(
+                    &snapshot,
+                    &repository,
+                    &commit,
+                    &medscale_core::model_catalog::CatalogQuery {
+                        text,
+                        task,
+                        family,
+                        language,
+                        format,
+                        architecture,
+                        license_claim: None,
+                        device_fit: device,
+                        status,
+                        max_params,
+                        max_disk_mb,
+                        offset,
+                        limit,
+                    },
+                )?;
+                println!("{}", serde_json::to_string_pretty(&view)?);
+                Ok(())
+            }
+            PacksCmd::AdmitSnapshot {
+                vault_id,
+                snapshot,
+                commit,
+                repository,
+                snapshot_dir,
+                onnx_file,
+                sequence_length,
+                out,
+            } => {
+                let pack_id = medscale_core::model_catalog::build_pack_from_snapshot(
+                    &snapshot,
+                    &repository,
+                    &commit,
+                    &snapshot_dir,
+                    &onnx_file,
+                    sequence_length,
+                    &out,
+                )?;
+                let mut session = CliSession::connect(&vault_id).map_err(auth)?;
+                let result = session
+                    .packs_install_local(&out.display().to_string())
+                    .map_err(auth)?;
+                println!("pack_id: {pack_id}");
+                println!("{}", serde_json::to_string_pretty(&result)?);
+                if !result.admitted {
+                    bail!("pack admission denied: {:?}", result.reason);
+                }
+                Ok(())
             }
         },
         Commands::FixtureUi { action } => match action {

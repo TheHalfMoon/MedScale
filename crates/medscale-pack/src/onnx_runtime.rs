@@ -150,10 +150,12 @@ impl OnnxTokenClassifierRuntime {
 
         let mut tokenizer =
             Tokenizer::from_bytes(&tokenizer_bytes).map_err(|_| OnnxRuntimeError::Tokenizer)?;
-        // The runtime owns padding (to the fixed sequence length) and refuses
-        // over-length input instead of truncating it. Exported tokenizers may
-        // embed their own fixed padding (OpenMed: 512) or truncation, which would
-        // break that contract, so both are disabled here. The pad token is taken
+        // The runtime owns padding to the fixed sequence length. Exported
+        // tokenizers may embed their own fixed padding (OpenMed: 512), which
+        // would break that contract, so padding is disabled here. The
+        // tokenizer's own truncation is kept as configured (existing Packs rely
+        // on it); an encoding that is still longer than the fixed sequence
+        // length is refused below (TokenBound). The pad token is taken
         // from the tokenizer's own padding settings when present, else the
         // BERT (`[PAD]`) or RoBERTa/XLM-R (`<pad>`) convention.
         let (pad_token, pad_id) = tokenizer
@@ -167,9 +169,6 @@ impl OnnxTokenClassifierRuntime {
             })
             .ok_or(OnnxRuntimeError::Tokenizer)?;
         tokenizer.with_padding(None);
-        tokenizer
-            .with_truncation(None)
-            .map_err(|_| OnnxRuntimeError::Tokenizer)?;
         let labels: Vec<String> =
             serde_json::from_slice(&labels_bytes).map_err(|_| OnnxRuntimeError::InvalidLabels)?;
         if labels.is_empty() || labels.len() > MAX_LABELS {
