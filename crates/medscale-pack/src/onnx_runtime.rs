@@ -13,7 +13,10 @@ use medscale_contracts::packs::{ModelSourceProvenance, PackArtifactKind, PackMan
 use serde_json::json;
 use thiserror::Error;
 use tokenizers::{PaddingDirection, Tokenizer};
+use tract_hir::internal::ElementWiseIntoHir as _;
+use tract_hir::tract_core::ops::element_wise::{ElementWiseMiniOp, ElementWiseOp};
 use tract_onnx::prelude::*;
+use tract_onnx::tract_hir;
 
 use crate::RuntimeOutput;
 use crate::format::artifact_size_limit;
@@ -143,8 +146,16 @@ impl OnnxTokenClassifierRuntime {
             return Err(OnnxRuntimeError::TokenBound);
         }
 
-        let tokenizer =
+        let mut tokenizer =
             Tokenizer::from_bytes(&tokenizer_bytes).map_err(|_| OnnxRuntimeError::Tokenizer)?;
+        // The runtime owns padding (to the fixed sequence length) and refuses
+        // over-length input instead of truncating it. Exported tokenizers may
+        // embed their own fixed padding (OpenMed: 512) or truncation, which would
+        // break that contract, so both are disabled here.
+        tokenizer.with_padding(None);
+        tokenizer
+            .with_truncation(None)
+            .map_err(|_| OnnxRuntimeError::Tokenizer)?;
         if tokenizer.token_to_id("[PAD]").is_none() {
             return Err(OnnxRuntimeError::Tokenizer);
         }
@@ -185,6 +196,7 @@ impl OnnxTokenClassifierRuntime {
                 )
                 .map_err(|_| OnnxRuntimeError::ModelExecution)?;
         }
+        normalize_static_shape_ops(&mut model);
         let optimized = model
             .into_optimized()
             .map_err(|_| OnnxRuntimeError::ModelExecution)?;
@@ -491,4 +503,47 @@ fn validate_provenance(provenance: &ModelSourceProvenance) -> Result<(), OnnxRun
         return Err(OnnxRuntimeError::InvalidProvenance);
     }
     Ok(())
+}
+
+/// Stateless cast to `i64`, usable during inference-time constant folding.
+#[derive(Debug, Clone)]
+struct CastToI64;
+
+impl ElementWiseMiniOp for CastToI64 {
+    fn name(&self) -> String {
+        "medscale.CastToI64".into()
+    }
+
+    fn output_type(&self, _input_type: DatumType) -> Option<DatumType> {
+        Some(i64::datum_type())
+    }
+
+    fn eval_out_of_place(&self, t: &Tensor, _out_dt: Option<DatumType>) -> TractResult<Tensor> {
+        Ok(t.cast_to::<i64>()?.into_owned())
+    }
+}
+
+/// Spec 103: `tract-onnx` loads ONNX `Shape` and `Cast(to=INT64)` as symbolic
+/// `TDim` operations. In Transformer exports (for example OpenMed BERT token
+/// classifiers) shape arithmetic then meets `i64` constants and analysis fails
+/// ("Impossible to unify TDim with I64" at the position-id `Range`). This
+/// runtime always fixes every input to a concrete `[1, fixed_sequence_length]`
+/// shape, so those values are concrete integers and can be typed as `i64`
+/// without changing semantics. Only full-range `Shape` nodes and casts to
+/// `TDim` are rewritten; returns the number of rewritten nodes.
+fn normalize_static_shape_ops(model: &mut InferenceModel) -> usize {
+    let mut rewritten = 0;
+    for node in model.nodes_mut() {
+        let op = format!("{:?}", node.op);
+        if node.op.name() == "Shape" && op.contains("start: 0, end: None") {
+            node.op = tract_hir::ops::expandable::expand(tract_hir::ops::array::Shape::new(
+                i64::datum_type(),
+            ));
+            rewritten += 1;
+        } else if op == "ElementWiseOp(Cast { to: TDim })" {
+            node.op = ElementWiseOp(Box::new(CastToI64), None).into_hir();
+            rewritten += 1;
+        }
+    }
+    rewritten
 }

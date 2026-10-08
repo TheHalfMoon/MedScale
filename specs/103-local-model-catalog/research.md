@@ -99,3 +99,30 @@ CATALOG_EVIDENCE sha256=805e79f7db5514cf308c6deffa67d72c4ce9a59bf4e54487d2783eec
 - The counts match an independent count of the same file.
 - The run found 9 rows with `architecture: null`, which the first parser rejected. The parser now normalises them to `unknown`, with a regression test.
 - These are **listing** counts only. No row is downloaded, admitted, runnable or qualified.
+
+## 9. Execution evidence: first real OpenMed model (local, 2026-10-08)
+
+**Path:** catalog row → Hub metadata → reproducibility-hash binding → per-file digests → signed Pack → `admit_pack_dir` → `prepare` → `run`, all in pure Rust (`tract-onnx`), on local CPU in a release build.
+
+| Item | Value |
+|---|---|
+| Catalog row | `OpenMed/OpenMed-NER-DiseaseDetect-ElectraMed-33M-v1-onnx-android` (NER, en, bert, 33M params, `apache-2.0` claim) |
+| Reproducibility hash | `sha256:5f22790e…14b0`, recomputed from Hub metadata: **match** |
+| Pinned commit | `54c9cc119d325ddad23300a1e9108bafa9643a06` |
+| `model.onnx` | 133,100,723 bytes, SHA-256 `a61a8493b191e44f…` = LFS record |
+| `tokenizer.json`, `config.json` | Git blob SHA-1 = Hub `blobId` |
+| Pack | `hf-openmed-ner-diseasedetect-electramed-33m-v1-onnx-android-static128`, synthetic qualification trust root |
+| Timing | prepare 1,848 ms; warm run 384 ms (128 tokens) |
+| Synthetic input | "The synthetic patient was diagnosed with type 2 diabetes mellitus and chronic kidney disease." |
+| Output | `type 2 diabetes mel ##lit ##us` → I-DISEASE; `chronic` → B-DISEASE, `kidney disease` → I-DISEASE; everything else O |
+
+Runtime fixes this required, both general and both covered by the existing Spec 069 tests:
+
+1. `normalize_static_shape_ops`: `tract-onnx` types ONNX `Shape` and `Cast(INT64)` as symbolic `TDim`, and analysis then failed at the position-id `Range` ("Impossible to unify TDim with I64"). With all inputs fixed to `[1, L]`, these are rewritten to `i64`.
+2. The tokenizer's embedded padding and truncation are disabled. OpenMed `tokenizer.json` pads to 512; the runtime owns padding and refuses over-length input.
+
+Status for this one model: `EXECUTED_TESTED` on Windows x64 CPU. It is **not** `TASK_QUALIFIED` (no labelled evaluation run) and **not** `CLINICALLY_VALIDATED`.
+
+Known limits:
+- tokenizers without `[PAD]` (for example XLM-R `<pad>`) are still refused by the runtime;
+- int8, fp16 and other architectures are not yet executed.
