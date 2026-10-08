@@ -11,6 +11,12 @@
 
 See Trusted V1 delivery plan. Specs 018–067 are closed; Spec 012 remains optional/deferred. Specs 060–067 formed the promoted Desktop+CLI product-launch implementation phase and are now closed.
 
+## Out-of-queue correctness fixes
+
+| PR | Fix | State | Evidence |
+|---|---|---|---|
+| #178 | CLI encrypted-vault seal: `vault create`/`vault open` call Core `CloseEncryptedVault` before returning (no discarded writes; no leftover work DB, sidecars or writer lease) | `CLOSED_CANONICAL` | Exact-head `6356ece…` passed run `37556133627` (6/6); merged normally as `98c26aa…`; post-merge main run `37623282105` passed all six required jobs. Deterministic qualification per the 2026-09-22 review-policy amendment; no external reviewer. See `evidence/cli-vault-seal-178/CLOSURE.md`. |
+
 ## Historical scoped queue (closures preserved)
 
 | Order | Spec | State | Next action |
