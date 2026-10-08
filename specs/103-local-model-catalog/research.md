@@ -126,3 +126,32 @@ Status for this one model: `EXECUTED_TESTED` on Windows x64 CPU. It is **not** `
 Known limits:
 - tokenizers without `[PAD]` (for example XLM-R `<pad>`) are still refused by the runtime;
 - int8, fp16 and other architectures are not yet executed.
+
+## 10. Representative architecture matrix (local, 2026-10-08)
+
+Each model went through the same path: catalog row, then reproducibility-hash binding, per-file digests, signed Pack, admission, `prepare`, and `run`. All runs were on Windows x64 CPU (release build), with no network during verification or execution and with synthetic sentences. Weights were fetched once at the pinned commit for qualification and are not vendored.
+
+| Architecture | Catalog row (OpenMed v3.0.0) | Commit | Result | Prepare / warm run | Non-O output on a synthetic sentence |
+|---|---|---|---|---|---|
+| bert (ElectraMed) | `OpenMed-NER-DiseaseDetect-ElectraMed-33M-v1-onnx-android` | `54c9cc11` | **EXECUTED_TESTED** | 1.8 s / 0.38 s | `type 2 diabetes mellitus`, `chronic kidney disease` → DISEASE |
+| distilbert | `OpenMed-NER-AnatomyDetect-TinyMed-65M-v1-onnx-android` | `ad5e79cb` | **EXECUTED_TESTED** | 3.7 s / 0.61 s | `left knee`, `right ankle` → Anatomy |
+| roberta (`<pad>`) | `OpenMed-NER-AnatomyDetect-TinyMed-82M-v1-onnx-android` | `95f0bf74` | **EXECUTED_TESTED** | 6.0 s / 0.65 s | `left knee`, `right ankle` → Anatomy |
+| modernbert | `OpenMed-NER-AnatomyDetect-ModernClinical-149M-v1-onnx-android` | `66525717` | **EXECUTED_TESTED** | 12.0 s / 1.8 s | `knee`, `ankle` → Anatomy |
+| deberta-v2 | `OpenMed-PII-Dutch-SuperClinical-Small-44M-v1-onnx-android` | `e41c8009` | **NOT RUNTIME_COMPATIBLE** | prepare fails | `tract` `Sign` does not support `I64` (relative-position buckets). One occurrence sits inside an `If` subgraph that the public `tract` API cannot rewrite |
+| xlm-roberta | `OpenMed-NER-AnatomyDetect-BigMed-278M-v1-onnx-android` | `cf00a087` | **NOT ADMITTED / NOT RUNTIME_COMPATIBLE** | — | fp32 `model.onnx` (1.11 GB) exceeds the 1 GiB Pack bound (Spec 069 policy, unchanged); `model_int8.onnx` (855 MB) admits but fails `prepare` (quantized operators) |
+
+The pad token now comes from the tokenizer (BERT `[PAD]`, RoBERTa/XLM-R `<pad>`), which was needed for RoBERTa.
+
+**Catalog impact.** These four architectures cover 1,394 catalog rows (bert 754, distilbert 204, roberta 209, modernbert 227). They are still `DISCOVERABLE`: only the four executed models are `EXECUTED_TESTED`.
+
+**Not runnable yet:**
+- deberta-v2 (304 rows) and xlm-roberta (366 rows);
+- gliner, eurobert, qwen and the remaining families;
+- MLX-only rows (Apple);
+- the generative and vision rows.
+
+**Next options:**
+- **XLM-R fp32:** needs a governed decision to raise the ONNX bound, or external-data ONNX.
+- **DeBERTa:** needs operator support upstream in `tract`, or an ONNX Runtime backend, which requires dependency admission.
+
+No row is `TASK_QUALIFIED` (no labelled evaluation) or `CLINICALLY_VALIDATED`.

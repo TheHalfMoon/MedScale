@@ -78,6 +78,8 @@ pub struct PreparedOnnxTokenClassifier {
     runtime_contract_digest: DigestSha256,
     provenance: ModelSourceProvenance,
     tokenizer: Tokenizer,
+    pad_token: String,
+    pad_id: u32,
     labels: Vec<String>,
     input_names: Vec<String>,
     fixed_sequence_length: usize,
@@ -151,14 +153,23 @@ impl OnnxTokenClassifierRuntime {
         // The runtime owns padding (to the fixed sequence length) and refuses
         // over-length input instead of truncating it. Exported tokenizers may
         // embed their own fixed padding (OpenMed: 512) or truncation, which would
-        // break that contract, so both are disabled here.
+        // break that contract, so both are disabled here. The pad token is taken
+        // from the tokenizer's own padding settings when present, else the
+        // BERT (`[PAD]`) or RoBERTa/XLM-R (`<pad>`) convention.
+        let (pad_token, pad_id) = tokenizer
+            .get_padding()
+            .map(|p| (p.pad_token.clone(), p.pad_id))
+            .filter(|(token, id)| tokenizer.token_to_id(token) == Some(*id))
+            .or_else(|| {
+                ["[PAD]", "<pad>"]
+                    .into_iter()
+                    .find_map(|t| tokenizer.token_to_id(t).map(|id| (t.to_string(), id)))
+            })
+            .ok_or(OnnxRuntimeError::Tokenizer)?;
         tokenizer.with_padding(None);
         tokenizer
             .with_truncation(None)
             .map_err(|_| OnnxRuntimeError::Tokenizer)?;
-        if tokenizer.token_to_id("[PAD]").is_none() {
-            return Err(OnnxRuntimeError::Tokenizer);
-        }
         let labels: Vec<String> =
             serde_json::from_slice(&labels_bytes).map_err(|_| OnnxRuntimeError::InvalidLabels)?;
         if labels.is_empty() || labels.len() > MAX_LABELS {
@@ -231,6 +242,8 @@ impl OnnxTokenClassifierRuntime {
             input_names,
             fixed_sequence_length,
             runnable,
+            pad_token,
+            pad_id,
         })
     }
 
@@ -281,15 +294,11 @@ impl PreparedOnnxTokenClassifier {
         if encoding.get_ids().is_empty() || encoding.get_ids().len() > self.fixed_sequence_length {
             return Err(OnnxRuntimeError::TokenBound);
         }
-        let pad_id = self
-            .tokenizer
-            .token_to_id("[PAD]")
-            .ok_or(OnnxRuntimeError::Tokenizer)?;
         encoding.pad(
             self.fixed_sequence_length,
-            pad_id,
+            self.pad_id,
             0,
-            "[PAD]",
+            &self.pad_token,
             PaddingDirection::Right,
         );
         let ids = encoding.get_ids();
