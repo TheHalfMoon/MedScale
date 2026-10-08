@@ -1,8 +1,8 @@
 export type ShellStatus = {
-  schemaVersion: 1;
-  coreConnection: "unavailable";
+  schemaVersion: 2;
+  coreConnection: "connected" | "idle";
   detail: string;
-  syntheticOnly: true;
+  syntheticOnly: boolean;
 };
 
 // Reject a mismatched native protocol instead of rendering an assumed safe state.
@@ -11,10 +11,10 @@ export function parseShellStatus(value: unknown): ShellStatus {
     throw new Error("Invalid shell status response");
   }
   const status = value as Record<string, unknown>;
-  if (status.schemaVersion !== 1 || status.coreConnection !== "unavailable" ||
-      status.syntheticOnly !== true || typeof status.detail !== "string" ||
+  if (status.schemaVersion !== 2 || (status.coreConnection !== "connected" && status.coreConnection !== "idle") ||
+      typeof status.syntheticOnly !== "boolean" || typeof status.detail !== "string" ||
       status.detail.length === 0 || status.detail.length > 256) {
     throw new Error("Unsupported shell status response");
   }
-  return { schemaVersion: 1, coreConnection: "unavailable", detail: status.detail, syntheticOnly: true };
+  return { schemaVersion: 2, coreConnection: status.coreConnection, detail: status.detail, syntheticOnly: status.syntheticOnly };
 }

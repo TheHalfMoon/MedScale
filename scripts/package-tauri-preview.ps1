@@ -90,7 +90,7 @@ foreach ($taskNpmName in @('react','react-dom','scheduler','@tauri-apps/api')) {
 }
 
 $taskReceipt = [ordered]@{
-    status='UNQUALIFIED_PREVIEW'; synthetic_only=$true; core_connected=$false
+    status='UNQUALIFIED_PREVIEW'; synthetic_only=$true; core_connected=$true; core='rust-core-in-process-cli-session'
     head=(& git -C $taskRepoRoot rev-parse HEAD).Trim(); tree=(& git -C $taskRepoRoot rev-parse 'HEAD^{tree}').Trim()
     platform=[Runtime.InteropServices.RuntimeInformation]::OSDescription
     rustc=(& rustc --version | Out-String).Trim(); node=(& node --version | Out-String).Trim()

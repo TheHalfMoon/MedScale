@@ -1,6 +1,21 @@
-# MedScale Tauri presentation preview
+# MedScale desktop (Tauri)
 
-Synthetic-only, preparatory Spec 096. Slint remains the current functional reference. Core IPC is **not connected**: the only native command, `get_shell_status`, reports that limitation. Route bodies show unavailable states and contain no fabricated patient or evidence records.
+The Tauri 2 desktop shell over the real MedScale Core. Rust owns the Core session (`CliSession`, in-process `CoreFacade`), the same way the Slint desktop does. The React/TypeScript frontend only renders projections and sends bounded requests. No vault key, passphrase or Core handle crosses into the WebView after a command returns.
+
+Feature surfaces reuse the Slint desktop view models through `crates/medscale-desktop-vm`, so both desktops present the same Core truth:
+
+| Area | Routes |
+| --- | --- |
+| Clinical | Patients (brief, timeline, labs, coverage, sources), Documents, Insights, Evidence |
+| Research | Projects, Data, Browse, Analytics, Knowledge, Research OS |
+| Intelligence | Models, MedAgent, Model Fleet |
+| Operations | Workflows, Tasks, Messages, Collaboration, Audio |
+| Governance | Privacy, Audit Trail, Exports, Integrations, Settings, About |
+
+Workspaces:
+
+- **Synthetic workspace.** Opens a synthetic vault in app-local data. On first open, two synthetic subjects are seeded through governed FHIR ingest and proposal promotion, using the repository fixtures. Browse, ASR and privacy keys use Core's offline fixtures.
+- **Encrypted vault.** Created and unlocked with a passphrase, which is not an identity, and gets recovery codes. Core accepts clinical FHIR ingest into synthetic vaults only, so an encrypted vault starts without subjects.
 
 From this directory:
 
@@ -11,14 +26,49 @@ npm run build
 npm run tauri -- dev
 ```
 
-The isolated Rust workspace requires Rust 1.90 or newer; CI uses 1.97.1. Native builds require the platform Tauri/WebView development dependencies. The founder workstation's existing broken MSVC toolchain is an open local build gate. Do not begin duplicate cold native builds there.
+Native builds on Windows need Strawberry Perl first on `PATH`, with `PERL` pointing at it, for the vendored OpenSSL used by SQLCipher. The Git-for-Windows msys perl does not work.
+
+## Tests
+
+- `cargo test` in `src-tauri` runs the command layer against a real Core through Tauri's `MockRuntime`.
+  - `feature_tests.rs` drives every surface end to end: seed, read, create, execute, compare, lock.
+  - It also covers encrypted create, lock, unlock and the wrong-passphrase path.
+  - `permission_tests.rs` checks that the capability grants exactly the generated command list.
+- `npm test` runs the route and IPC contract tests.
+
+## Visual QA
+
+`feature_tests.rs` can record every command response:
+
+```text
+MEDSCALE_UI_FIXTURES=/path/ui-fixtures.json cargo test every_surface_runs_against_real_core
+npm run build
+node qa/serve.mjs /path/ui-fixtures.json 47124
+```
+
+`qa/` replays those real responses into the built frontend, so pages can be captured in a browser without a native shell. The hash selects the start state:
+
+- `#route=Patients&subject=synthetic-subject-ada`
+- `&theme=light`
+- `&density=compact`
+- `&locked=1&gate=access` for the unlock screen
+
+The QA files are never bundled into the app.
 
 ## Capability and navigation policy
 
-The main local window can call only the generated `allow-get-shell-status` permission. No Tauri plugin or built-in filesystem, HTTP, shell, process, clipboard or window control permission is granted. The command is a shell diagnostic and exposes no privileged Core operation. Navigation accepts the exact packaged application origins; debug builds also accept the exact loopback Vite origin. New windows are denied. Production CSP has no remote connection origin; loopback HMR exists only in development CSP. Native window decorations preserve platform conventions.
-
-WebView incognito mode is enabled as a mitigation. It does not establish cache/crash/log/storage containment; that requires native measurement. Theme choice is ephemeral for this session. Fonts, icons and application assets are bundled locally. The logo/icon asset is deterministically rasterized from the approved first-party SVG with the locked Tauri CLI; no mobile app is added by this scaffold.
+- Only the main local window has a capability, and it grants exactly the commands listed in `build.rs`.
+- No Tauri plugin, filesystem, HTTP, shell, process, clipboard or window-control permission is granted.
+- Navigation accepts only the packaged application origins. Debug builds also accept the loopback Vite origin.
+- New windows are denied.
+- The production CSP has no remote connection origin.
+- WebView incognito mode is a mitigation. It does not by itself establish cache, crash, log or storage containment.
+- Fonts (Inter, JetBrains Mono NL), icons and the MedScale mark are bundled locally.
+- Preferences (theme, density, last project) are the only values kept in WebView storage. The WebView runs incognito, so they live in memory only and reset on restart; nothing is written to WebView Local Storage on disk (F096-T05).
 
 ## Qualification status
 
-Strict frontend build and two route tests pass locally. Native compilation, physical keyboard/focus, screenshots, performance, cross-platform behavior and privacy are not qualified. Exact MPL-2.0 license exceptions are documented with source obligations; cargo-deny license checks pass, and the native preview package must carry verified source archives/notices. The Linux `glib` 0.18.5 RUSTSEC-2024-0429 finding remains open. No advisory exception was added. Jev and Alibaba OCR remain blocked by the zero-cost constraint. Spec 095 dependency is still open. Do not infer product or private-data readiness from the preview.
+- Real PHI is not authorized.
+- Dependency policy is FAILED on an inherited Linux finding: `glib` 0.18.5 is affected by RUSTSEC-2024-0429. It comes from Tauri 2.x's GTK3/WebKitGTK stack, and no stable Tauri release allows a patched `glib`. The advisory is not ignored. See F096-T01 in `specs/096-tauri-foundation/findings.md`.
+- Signing, installers, cross-platform behavior, physical keyboard and screen-reader passes, performance and privacy containment are not qualified.
+- Do not infer product or private-data readiness from this desktop.

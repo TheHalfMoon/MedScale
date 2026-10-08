@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "MedScale Preview",
+  "productName": "MedScale",
   "version": "0.1.0",
   "identifier": "org.medscale.desktop.preview",
   "build": {
@@ -13,7 +13,7 @@
     "windows": [{
       "label": "main",
       "create": false,
-      "title": "MedScale Preview",
+      "title": "MedScale",
       "width": 1440,
       "height": 900,
       "minWidth": 1100,

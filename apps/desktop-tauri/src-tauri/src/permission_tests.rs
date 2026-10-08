@@ -41,7 +41,7 @@ struct StatusProbe {
 }
 
 #[test]
-fn main_local_window_receives_only_unavailable_shell_status() {
+fn main_local_window_receives_idle_shell_status_before_a_vault_opens() {
     let app = test_app();
     let window = tauri::WebviewWindowBuilder::new(&app, "main", Default::default())
         .build()
@@ -50,8 +50,8 @@ fn main_local_window_receives_only_unavailable_shell_status() {
         .expect("admitted status read")
         .deserialize::<StatusProbe>()
         .expect("versioned bounded status DTO");
-    assert_eq!(response.schema_version, 1);
-    assert_eq!(response.core_connection, "unavailable");
+    assert_eq!(response.schema_version, 2);
+    assert_eq!(response.core_connection, "idle");
     assert!(response.synthetic_only);
     assert!(!response.detail.is_empty() && response.detail.len() <= 256);
 }

@@ -187,6 +187,26 @@ impl CliSession {
         Ok(())
     }
 
+    /// Closes the open encrypted vault through Core: the working metadata
+    /// database is sealed into the encrypted meta file, then the work
+    /// database, its SQLite sidecars and the writer lease are removed.
+    /// Dropping a session without this discards writes made since open (the
+    /// next open treats the work database as a crash leftover) and leaves
+    /// those files on disk.
+    pub fn close_encrypted_vault(&mut self) -> Result<(), AuthorityError> {
+        match self.dispatch(
+            Capability::CloseEncryptedVault,
+            RequestBody::CloseEncryptedVault,
+        )? {
+            ResponseBody::VaultClosed => {
+                self.open = false;
+                self.vault_root = None;
+                Ok(())
+            }
+            _ => Err(Self::unexpected("vault closed")),
+        }
+    }
+
     pub fn open_synthetic_vault(&mut self, vault_root: &str) -> Result<(), AuthorityError> {
         let _ = self.dispatch(
             Capability::OpenSyntheticVault,
@@ -314,6 +334,21 @@ impl CliSession {
             });
         };
         Ok(body)
+    }
+
+    /// Lexical retrieval over an admitted evidence corpus (Spec 025). Results are
+    /// relevance-only evidence context; they never become clinical authority.
+    pub fn retrieve_lexical(
+        &mut self,
+        request: medscale_contracts::evidence::LexicalRetrieveRequest,
+    ) -> Result<medscale_contracts::evidence::LexicalRetrieveResult, AuthorityError> {
+        match self.dispatch(
+            Capability::RetrieveLexical,
+            RequestBody::RetrieveLexical { request },
+        )? {
+            ResponseBody::LexicalRetrieve { result } => Ok(result),
+            _ => Err(Self::unexpected("lexical retrieval result")),
+        }
     }
 
     #[must_use]
