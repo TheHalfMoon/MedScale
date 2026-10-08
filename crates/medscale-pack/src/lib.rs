@@ -1,11 +1,16 @@
 //! Offline Pack v0 admission (Spec 008) + MESC synthetic verifier (Spec 036).
 
+mod catalog;
 mod format;
 mod mesc_verify;
 mod onnx_runtime;
 mod runtime;
 mod store;
 
+pub use catalog::{
+    CatalogError, CatalogFilter, CatalogPage, CatalogRow, CatalogSource, CatalogStatus, DeviceFit,
+    ModelCatalog, SizeMb,
+};
 pub use format::{admit_pack_dir, forbidden_reason};
 pub use mesc_verify::{MescEpochStore, MescVerifyError, verify_mesc_release_dir};
 pub use onnx_runtime::{

@@ -1,0 +1,101 @@
+# Spec 103 research: exact-source gap analysis (OpenMed v3.0.0 vs MedScale)
+
+**Date:** 2026-10-08. **Issue:** #183. **Method:** read-only metadata of the public upstream repository. No model weights were downloaded.
+
+## 1. New comparator snapshot (does not replace the frozen v2.2.0 pin)
+
+| Field | Value |
+|---|---|
+| Repository | `maziyarpanahi/openmed` (Apache-2.0 SDK) |
+| Tag / commit | `v3.0.0` = `ea920f36fadd7b45935247d639f0ffa1ef493b23` (also `master` HEAD on 2026-10-08) |
+| `models.jsonl` | 2,266 lines, SHA-256 `805e79f7db5514cf308c6deffa67d72c4ce9a59bf4e54487d2783eecbb1e34ab` |
+| Frozen historical comparator | `v2.2.0` = `59d9cb0a2e0ccbba8fa3d891a66d83ffaf45e837` (Spec 071). It is unchanged and is not retroactively updated |
+
+## 2. What the catalog actually contains (measured from `models.jsonl`)
+
+- **2,266 rows, 2,266 unique `repo_id`s**, all under the `OpenMed/` Hugging Face organization.
+- **Families:** NER 1,093; PII 1,018; ZeroShot 143; General 9; Vision 3.
+- **Tasks:** token-classification 2,254 (99.5%); text-generation 6; visual-question-answering 3; unknown 3.
+- **Formats (a row may list several):** pytorch 1,512; onnx 753; mlx-fp 652; mlx-8bit 7; mlx-4bit 2; gguf 0.
+- **Architectures:** bert 754, xlm-roberta 366, deberta-v2 304, modernbert 227, roberta 209, distilbert 204, gliner 91, eurobert 33, qwen 30, clinical-longformer 10, others.
+- **Parameter counts (2,249 known):** 33M min, 184M median, 3.0B max.
+- **Languages:** 35 distinct. Examples: en 1,310; de, es, fr, it, nl 106 each; hi 103; te 102; pt 99; tr 96; vi 27; ja 14; ar 13.
+- **Licenses (row field):** apache-2.0 2,255; mit 4; other 4; missing 3. A row license is a **claim**; each model card and its weights must be checked before admission.
+- **Hardware metadata is mostly absent:** only 5 rows carry `disk_mb` / `download_mb`, and 3 carry `peak_ram_mb`. Sizes must be estimated from `param_count` and format, and marked as estimates.
+- **Integrity:** every row has `reproducibility_hash` (`sha256:…`). Its exact preimage (weights, config or card) is **not yet verified** and must not be treated as an artifact digest until it is.
+
+Statements this supports: *"the OpenMed v3.0.0 manifest lists 2,266 entries"*.
+Statements it does **not** support:
+- "2,266 models run locally";
+- "2,266 qualified models";
+- any clinical-validation claim.
+
+## 3. Upstream loading behavior (source-read at `ea920f3`)
+
+- `openmed/core/model_registry.py` (1,897 lines):
+  - `load_manifest_rows()` turns manifest rows into `ModelInfo` with category, display name, entity types, `recommended_confidence`, size category and languages;
+  - `estimate_model_sizes()` / `_estimated_peak_ram_mb()` estimate sizes;
+  - manifest signature verification runs when a signature is present (`verify_manifest_signature_if_present`).
+- `openmed/core/models.py` (1,043 lines), `ModelLoader`:
+  - `load_model(…, require_integrity=…)` loads through Transformers pipelines;
+  - an explicit offline mode uses `network_blocked_if_offline` and `local_files_only=True`;
+  - `load_local_sequence_classifier()` requires a 40-hex pinned revision and sets `trust_remote_code=False`;
+  - a model cache with `unload_model()` / `unload_all_models()` and CUDA/MPS cache release;
+  - device resolution and model suggestions.
+- Other runtimes in the tree: an MLX backend (`openmed/mlx/*`, Apple Silicon); ONNX export for Android and WebGPU; ONNX Runtime Web (`js/openmedkit-web`); an Android `OnnxTokenClassifier`, `ModelCache` and `ModelDownloader`. Each is format- and platform-specific.
+
+## 4. MedScale baseline (`main` 37f5ae8)
+
+| Area | Current state | Spec |
+|---|---|---|
+| Local runtime | `tract_onnx_token_classification_v1` (`crates/medscale-pack/src/onnx_runtime.rs`): offline, pure-Rust ONNX token classification; bounded input (64 KiB), labels (512), fixed sequence length; proposal-only output | 069 |
+| Pack admission | `PackStore::admit/promote`; signed Pack manifests, anti-rollback (Spec 026), `ModelSourceProvenance` | 026, 069 |
+| Online acquisition | READY_BASE deny path through the Network Broker; HF online distribution is an external gate | 015 |
+| Model Center UI | lists session-admitted Packs separately from qualification references | 070 |
+| Comparison | Model Fleet independent lanes; factual comparison, never a ranking | 078 |
+| Evidence | pinned OpenMed v2.2.0 baseline; fail-closed parity claims | 071 |
+
+## 5. Gap matrix
+
+| # | Capability (founder target) | OpenMed v3.0.0 | MedScale today | Gap → Spec 103 phase |
+|---|---|---|---|---|
+| 1 | Large searchable offline catalog | `models.jsonl`, 2,266 rows | none (admitted Packs only) | **P1**: read-only catalog store, pagination, search |
+| 2 | Filters: task, language, format, device, license, RAM | partial metadata; RAM mostly missing | none | **P1**: filters; estimated sizes labelled as estimates |
+| 3 | Explicit optional acquisition through the governed boundary | Hub download, optional offline mode | deny path only (015) | **P3**: opt-in acquisition via the Network Broker, consent per artifact |
+| 4 | Immutable revision and digest verification | pinned revision for the local classifier; integrity flag | Pack signature and provenance | **P3**: 40-hex revision pin plus per-file SHA-256 before admission |
+| 5 | Local admission via signed Packs | n/a | yes | **P3**: a catalog entry becomes a Pack only through existing admission |
+| 6 | Runtime adapters per format | PyTorch, MLX, ONNX (web and mobile) | tract ONNX token classification | **P4**: broaden tract ONNX coverage (bert, roberta, deberta, xlm-r, distilbert, modernbert where tract supports the ops); evaluate ORT, GGUF and MLX later |
+| 7 | Resource-aware load and unload | unload, device caches | single prepared runtime | **P4**: LRU with RAM/disk budgets, cancellation |
+| 8 | Model Fleet integration | n/a | lanes (078) | **P5**: Fleet lanes accept admitted catalog models |
+| 9 | Status separation | not modelled | admitted vs qualification references | **P1**: status ladder below |
+| 10 | No hidden cloud or PHI movement | offline mode optional | default deny | invariant in every phase |
+
+## 6. Status ladder (never conflated)
+
+`DISCOVERABLE` → `RIGHTS_PENDING` → `DOWNLOADABLE_OPT_IN` → `CACHED` → `VERIFIED` → `ADMITTED` → `RUNTIME_COMPATIBLE` → `EXECUTED_TESTED` → `TASK_QUALIFIED` → `CLINICALLY_VALIDATED`.
+
+Rules:
+- A row only moves up on evidence.
+- `CLINICALLY_VALIDATED` is not reachable inside this spec (`CLINICAL_VALIDATION_STATUS=NOT_PERFORMED`).
+- Counts are reported per status.
+
+## 7. Risks and constraints
+
+- **Rights.** Row license fields can differ from model cards and base-model terms (for example `other` or missing). Admission requires a card-level check.
+- **Size.** Thousands of weights are tens to hundreds of GB. Only metadata is ingested by default, and weights are never bulk-downloaded.
+- **Executable artifacts.** `trust_remote_code`, pickled PyTorch `.bin` files and custom code are never loaded. Only safetensors and ONNX are admitted, under worker isolation.
+- **Platform.** MLX is Apple-only. CPU-only must remain the baseline.
+- **Supply chain.** New runtime crates (for example ORT bindings or llama.cpp) need full dependency admission and are not assumed.
+
+## 8. Phase 1 evidence (local, 2026-10-08)
+
+`ModelCatalog::import` was run on the real `models.jsonl` at `ea920f3` (metadata only), using the ignored test `catalog_snapshot_evidence`:
+
+```text
+CATALOG_EVIDENCE sha256=805e79f7db5514cf308c6deffa67d72c4ce9a59bf4e54487d2783eecbb1e34ab rows=2266
+  status={Discoverable: 2259, RightsPending: 7} cpu_portable=2265 onnx=753 arabic=13
+```
+
+- The counts match an independent count of the same file.
+- The run found 9 rows with `architecture: null`, which the first parser rejected. The parser now normalises them to `unknown`, with a regression test.
+- These are **listing** counts only. No row is downloaded, admitted, runnable or qualified.
