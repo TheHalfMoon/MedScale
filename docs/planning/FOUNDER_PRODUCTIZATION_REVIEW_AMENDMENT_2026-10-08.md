@@ -56,9 +56,9 @@ It does not apply to any work outside the five listed PRs.
 
 ## Correction (2026-10-08)
 
-An earlier commit on this PR added . It was based on an answer selected in an in-session question prompt. The founder has since stated that the approval covered **only** this review-policy amendment and the F101-02 implementation, and that no separate acceptance of the  advisory was authorized.
+An earlier commit on this PR added `FOUNDER_RISK_ACCEPTANCE_RUSTSEC_2024_0429_2026-10-08.md`. It was based on an answer selected in an in-session question prompt. The founder has since stated that the approval covered **only** this review-policy amendment and the F101-02 implementation, and that no separate acceptance of the `glib` advisory was authorized.
 
 That document is **withdrawn** by a forward commit; Git history is preserved and nothing was merged on its basis. Consequences:
-- F096-T01 stays  with no risk acceptance;
-- PRs that bring the Tauri desktop (and its failing  job) into  (#174, #175, #177, #179) are **not merge-eligible** until the advisory is genuinely remediated or the founder explicitly accepts it in writing;
-- #171 (no Tauri, no ) is unaffected.
+- F096-T01 stays `OPEN` with no risk acceptance;
+- PRs that bring the Tauri desktop (and its failing `tauri dependency policy` job) into `main` (#174, #175, #177, #179) are **not merge-eligible** until the advisory is genuinely remediated or the founder explicitly accepts it in writing;
+- #171 (no Tauri, no `glib`) is unaffected.
