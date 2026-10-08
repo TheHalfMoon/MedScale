@@ -116,6 +116,7 @@ See Trusted V1 delivery plan. Specs 018–067 are closed; Spec 012 remains optio
 | 098 | Research and operational product surfaces | `WAITING_ON_DEPENDENCY` | Start after 097 closes; staged Tauri migration of remaining authorized routes. |
 | 099 | Welcome/access experience, interaction, accessibility and synthetic demo qualification | `WAITING_ON_DEPENDENCY` | Start after 098 closes; truthful Tauri Welcome → Access → Desktop flow, WebView privacy qualification, native matrix and measured/unmeasured evidence. No simulated authentication. |
 | 100 | Final product audit and scoped launch UI freeze | `WAITING_ON_DEPENDENCY` | Start after 099 closes; audit the complete Tauri journey, security, performance and visual fidelity; separate Slint retirement decision required; later programs remain future preparation only. |
+| 101 | Tauri desktop release packaging qualification (unsigned engineering packages) | `IN_PROGRESS` (stacked draft PR #179; `MERGE_ELIGIBLE=false`) | Founder decision 4 (2026-10-07). Exact-head `ea1bf8f` qualified Windows NSIS, macOS app/dmg and Linux deb: build, release set, verifier and negative tests, install, launch, uninstall and residue, with complete detail capture. `SIGNING=NOT_GRANTED`; NSIS tooling `RECORDED_WITH_WEAK_DIGEST`; AppImage rejected. Open: F101-02 (WebView init failure panics; low). Merges only after #171 → #174 → #175 → #177 under the scoped review gate. |
 
 ## Automatic progression
 
@@ -125,4 +126,4 @@ Do not stop merely because a PR merged, one milestone passed, or an external opt
 
 **Mobile remains deferred until Desktop+CLI launch.** No mobile application implementation is authorized by Specs 068-072.
 
-**Next eligible (honest):** Spec 095 is founder-promoted and in progress under PRODUCTIZATION_PROGRAM.md. Specs 068–094 remain closed. 096–100 proceed in dependency order. Draft PRs 124/125 are separate. No UI freeze/release/privacy/multi-client/WCAG readiness is claimed. Managed R/executable extensions remain not admitted; MESC remains separate.
+**Next eligible (honest):** Spec 095 is founder-promoted and in progress under PRODUCTIZATION_PROGRAM.md. Specs 068–094 remain closed. 096–100 proceed in dependency order. PRs #124 and #125 (and the historical Slint preview #173) were closed without merge on 2026-10-07 by founder decision (superseded / unpromoted planning). Spec 101 (#179) is stacked on #177. No UI freeze/release/privacy/multi-client/WCAG readiness is claimed. Managed R/executable extensions remain not admitted; MESC remains separate.
