@@ -4,6 +4,16 @@
 //! missing or broken Microsoft Edge WebView2 Runtime), MedScale shows a native
 //! message and exits with a defined code instead of panicking. It never
 //! downloads or installs anything.
+//!
+//! Two paths reach it: an error returned while building the app, and a panic
+//! raised before the main page has finished loading for the first time (on a
+//! hosted Windows runner WebView2 initialization panics inside the event loop,
+//! run 37799770502). After the first finished page load, panics keep the
+//! default behavior.
+
+use std::sync::atomic::{AtomicBool, Ordering};
+
+static READY: AtomicBool = AtomicBool::new(false);
 
 /// Process exit code for a failed startup (a panic would exit with 101).
 pub const STARTUP_FAILURE_EXIT_CODE: i32 = 2;
@@ -26,6 +36,41 @@ pub fn message(detail: &str) -> String {
          No workspace was opened and nothing was changed.\n\n\
          Detail: {detail}"
     )
+}
+
+/// Called on the main window's first finished page load.
+pub fn mark_ready() {
+    READY.store(true, Ordering::SeqCst);
+}
+
+/// True until the first finished page load.
+pub fn starting() -> bool {
+    !READY.load(Ordering::SeqCst)
+}
+
+/// Installs a panic hook that reports startup-phase panics and exits with
+/// [`STARTUP_FAILURE_EXIT_CODE`]; later panics use the previous hook.
+pub fn install_panic_hook() {
+    let previous = std::panic::take_hook();
+    std::panic::set_hook(Box::new(move |info| {
+        if starting() {
+            report_and_exit(&panic_detail(info));
+        }
+        previous(info);
+    }));
+}
+
+fn panic_detail(info: &std::panic::PanicHookInfo<'_>) -> String {
+    let payload = info
+        .payload()
+        .downcast_ref::<&str>()
+        .map(ToString::to_string)
+        .or_else(|| info.payload().downcast_ref::<String>().cloned())
+        .unwrap_or_else(|| "startup panic".to_string());
+    match info.location() {
+        Some(at) => format!("{payload} ({}:{})", at.file(), at.line()),
+        None => payload,
+    }
 }
 
 /// Reports the failure to the user and exits.
@@ -110,6 +155,13 @@ mod tests {
     #[test]
     fn empty_detail_is_explicit() {
         assert!(message("  ").ends_with("Detail: no further detail"));
+    }
+
+    #[test]
+    fn startup_phase_ends_on_mark_ready() {
+        assert!(starting());
+        mark_ready();
+        assert!(!starting());
     }
 
     #[test]
