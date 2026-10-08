@@ -46,4 +46,6 @@ Continue through every eligible V2 spec until all current roadmap work is `CLOSE
 
 ## UI
 
+For the 2026-09-29 founder program, docs/planning/PRODUCTIZATION_PROGRAM.md is current visual authority and admits direct native implementation of the supplied approved identity. Earlier v0 ownership below is historical for this program. Core/integration boundaries remain.
+
 The founder uses v0 for visual/UI creation. Follow `docs/planning/V0_UI_INTEGRATION_CONTRACT.md`. Cursor owns trusted core, contracts, integration, wiring, accessibility, tests, packaging, and privacy qualification. Cursor does not independently redesign the final UI and never accepts v0-generated server/database/network authority as MedScale authority.

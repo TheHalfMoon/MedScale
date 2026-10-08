@@ -1,6 +1,6 @@
 # MedScale Product UI Grammar
 
-**Status:** CANONICAL_SPEC_073
+**Status:** CANONICAL_SPEC_095
 
 ## The work is the interface
 
@@ -43,4 +43,4 @@ Keep provenance readable in place. Prefer source snippets, timestamps, identifie
 
 ## Theme and color
 
-Light is the primary product target; dark follows the OS. Mist Blue is interaction/focus, Sage positive semantics, amber review/warning, red danger/failure. Never encode status by color alone.
+Light uses white surfaces; dark uses black/near-black layers, following the OS. Interaction and focus are neutral. Explicit eleven-state language and distinct markers carry meaning; optional functional color only supplements it. Never encode state by color alone.

@@ -1,5 +1,11 @@
 # MedScale Research OS Planning Status V2
 
+## Current truth — 2026-09-29
+
+Implementation through 094 is closed for its authorized scope. BUILD_QUEUE/per-spec closure evidence is current; amendment-only declarations below are historical. The new founder identity/desktop program starts 095 under PRODUCTIZATION_PROGRAM. Managed R/executable extensions stay not admitted, terminal Desktop actions remain CLI-owned and release/privacy readiness remains false.
+
+## Historical Amendment 001 planning status
+
 **Amendment branch:** `plan/research-os-data-extensions-amendment`  
 **Base main:** `a80c33307afc4577790282652e5b20911beb4bbe`  
 **Original Research OS planning PR:** `#121` — merged to main as `a80c33307afc4577790282652e5b20911beb4bbe`  

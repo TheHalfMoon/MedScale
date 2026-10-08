@@ -30,7 +30,14 @@ try {
         throw 'package honesty flags invalid'
     }
     $exe = if ($manifest.platform -eq 'windows') { '.exe' } else { '' }
-    $mandatory = @("bin/medscale$exe", "bin/medscale-desktop$exe", 'LICENSE','NOTICE.md','README.md','SBOM.cdx.json','package-manifest.json') | Sort-Object
+    $mandatory = @("bin/medscale$exe", "bin/medscale-desktop$exe", 'LICENSE','NOTICE.md','README.md','SBOM.cdx.json','package-manifest.json')
+    # Spec 095 adds font redistribution evidence; historical Spec 058 packages retain their original inventory.
+    $fontLicenseProfile = $manifest.PSObject.Properties['font_license_profile']
+    if ($null -ne $fontLicenseProfile) {
+        if ([string]$fontLicenseProfile.Value -ne '095-brand-foundation') { throw 'unsupported font license profile' }
+        $mandatory += @('licenses/fonts/Inter-OFL.txt', 'licenses/fonts/JetBrainsMono-OFL.txt', 'licenses/fonts/FONT_NOTICE.md')
+    }
+    $mandatory = $mandatory | Sort-Object
     $actual = Get-ChildItem -Recurse -File $extract | ForEach-Object { $_.FullName.Substring($extract.Length).TrimStart('\','/').Replace('\','/') } | Sort-Object
     if (($mandatory -join "`n") -ne ($actual -join "`n")) { throw "package file inventory mismatch`nexpected=$($mandatory -join ',')`nactual=$($actual -join ',')" }
     $payloadPaths = @($manifest.payload | ForEach-Object { [string]$_.path }) | Sort-Object
@@ -41,6 +48,13 @@ try {
         if (-not (Test-Path $path)) { throw "manifest payload missing: $($entry.path)" }
         $actualHash = Get-Sha256Hex $path
         if ($actualHash -ne [string]$entry.sha256) { throw "payload hash mismatch: $($entry.path)" }
+    }
+    if ($null -ne $fontLicenseProfile) {
+        $fontNotice = [System.IO.File]::ReadAllText((Join-Path $extract 'licenses/fonts/FONT_NOTICE.md')).TrimEnd()
+        $packageNotice = [System.IO.File]::ReadAllText((Join-Path $extract 'NOTICE.md'))
+        if ([string]::IsNullOrWhiteSpace($fontNotice) -or -not $packageNotice.Contains($fontNotice)) {
+            throw 'packaged font attribution missing from NOTICE.md'
+        }
     }
     $sbom = Get-Content -Raw (Join-Path $extract 'SBOM.cdx.json') | ConvertFrom-Json
     $props = @{}

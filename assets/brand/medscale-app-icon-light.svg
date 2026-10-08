@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title description">
+  <title id="title">MedScale application icon - light</title>
+  <desc id="description">The approved paired M on a monochrome square surface. Visible mark height is 40 of 128 units; outer padding exceeds half the mark height. The operating system may apply its own icon mask.</desc>
+  <metadata>MedScale Spec 095. Canonical equilateral construction: side 100, height 86.60254, offset 60, overlap removed.</metadata>
+  <rect width="128" height="128" fill="#FFFFFF"/>
+  <g transform="translate(27.049583 44) scale(0.46188)"><path id="medscale-paired-m" fill="#000000" d="M0 86.60254 L50 0 L80 51.961524 L60 86.60254 Z M80 51.961524 L110 0 L160 86.60254 L100 86.60254 Z"/></g>
+</svg>

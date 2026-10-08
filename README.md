@@ -1,5 +1,12 @@
 # MedScale
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/brand/medscale-horizontal-white.svg">
+  <img src="assets/brand/medscale-horizontal-black.svg" alt="MedScale" width="280">
+</picture>
+
+The approved paired M is governed by [Spec 095](specs/095-brand-foundation/spec.md) and [desktop productization](docs/planning/PRODUCTIZATION_PROGRAM.md). Research OS through 094 stays closed; launch UI qualification is in progress. [Brand guidelines](docs/brand/BRAND_IDENTITY_SYSTEM.md).
+
 MedScale is a Rust-owned, local-first, privacy-first medical intelligence platform.
 
 ## Cursor: start here
