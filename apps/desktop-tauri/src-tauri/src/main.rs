@@ -101,6 +101,7 @@ fn presentation_builder<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri:
 }
 
 fn main() {
+    startup_failure::install_panic_hook();
     presentation_builder(tauri::Builder::default())
         .setup(|app| {
             let data_dir = app.path().app_local_data_dir()?;
@@ -119,6 +120,11 @@ fn main() {
                     navigation_policy::is_local_application_url(url, cfg!(debug_assertions))
                 })
                 .on_new_window(|_, _| tauri::webview::NewWindowResponse::Deny)
+                .on_page_load(|_, payload| {
+                    if payload.event() == tauri::webview::PageLoadEvent::Finished {
+                        startup_failure::mark_ready();
+                    }
+                })
                 .incognito(true)
                 .build()?;
             Ok(())
