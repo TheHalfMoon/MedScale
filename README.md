@@ -5,11 +5,21 @@
   <img src="assets/brand/medscale-horizontal-black.svg" alt="MedScale" width="280">
 </picture>
 
-The approved paired M is governed by [Spec 095](specs/095-brand-foundation/spec.md) and [desktop productization](docs/planning/PRODUCTIZATION_PROGRAM.md). Research OS through 094 stays closed; launch UI qualification is in progress. [Brand guidelines](docs/brand/BRAND_IDENTITY_SYSTEM.md).
+MedScale is a local-first clinical intelligence platform. A Rust Core owns every source, assertion, provenance record and authority decision. The desktop and command-line surfaces only present and request through it.
 
-MedScale is a Rust-owned, local-first, privacy-first medical intelligence platform.
+- **Local by default.** Records, vaults and models stay on the device. Network egress is denied unless an explicit, governed action allows it.
+- **Evidence you can inspect.** Every statement links back to its source, its coverage and its review state. Unknown, conflicting and unsupported data are shown as such, never filled in.
+- **Encrypted workspaces.** Vaults are SQLCipher-encrypted at rest and sealed on close, with recovery codes.
+- **Local models, honestly labelled.** Models run offline through signed MedScale Packs and propose; people decide. Catalog listings are kept separate from downloaded, admitted, tested and qualified models.
+- **One Core, several surfaces.** The Tauri desktop, the CLI, and future mobile and SDK bindings share the same Core semantics.
 
-## Cursor: start here
+> **Status: engineering preview, synthetic data only.** MedScale is not release-ready, not clinically validated and not a medical device. Real patient data is not authorized. Installers are unsigned engineering builds. See [external gates](docs/planning/EXTERNAL_GATES.md).
+
+Design: [brand identity system](docs/brand/BRAND_IDENTITY_SYSTEM.md) and [`DESIGN.md`](DESIGN.md). Desktop: [`apps/desktop-tauri`](apps/desktop-tauri/README.md). Product program: [productization](docs/planning/PRODUCTIZATION_PROGRAM.md).
+
+## Working on MedScale (engineering and agents)
+
+### Cursor: start here
 
 Open the repository in Cursor and tell it to read [`CURSOR.md`](CURSOR.md) and continue MedScale from live repository truth. The repository contains standing founder authorization and an autonomous build queue; Cursor should not need routine founder decisions.
 
@@ -21,7 +31,7 @@ Read order:
 4. [`docs/planning/BUILD_QUEUE.md`](docs/planning/BUILD_QUEUE.md)
 5. [`docs/planning/MASTER_BUILD_PLAN_V2.md`](docs/planning/MASTER_BUILD_PLAN_V2.md)
 
-## Active state
+### Active state
 
 ```text
 PLAN = CANONICAL_V2
@@ -32,14 +42,13 @@ CURSOR_AUTONOMOUS_IMPLEMENTATION = AUTHORIZED_WITHIN_PLAN
 REAL_PHI = NOT_AUTHORIZED
 MESC_MUTATION = NOT_AUTHORIZED
 PRODUCT_RUNTIME_EGRESS = DEFAULT_DENY
-UI_VISUAL_SOURCE = v0
 ```
 
 See the [whole-product review](docs/planning/WHOLE_PRODUCT_REVIEW_2026-09-09.md) and
 [prioritized delivery plan](docs/planning/TRUSTED_V1_DELIVERY_PLAN.md) for current gaps and
 follow-on work. OpenMed superiority has not been measured.
 
-## Engineering bootstrap (historical foundation)
+### Engineering bootstrap (historical foundation)
 
 - Spec Kit constitution: [`.specify/memory/constitution.md`](.specify/memory/constitution.md)
 - Closed Spec 001 package: [`specs/001-rust-repository-speckit-bootstrap/`](specs/001-rust-repository-speckit-bootstrap/)
@@ -52,7 +61,7 @@ cargo run -p medscale-cli --locked -- --version
 cargo run -p medscale-cli --locked -- doctor
 ```
 
-## Execution support
+### Execution support
 
 - [Cursor execution playbook](docs/planning/CURSOR_EXECUTION_PLAYBOOK.md)
 - [Implementation authority](docs/planning/IMPLEMENTATION_AUTHORITY.md)
@@ -60,9 +69,9 @@ cargo run -p medscale-cli --locked -- doctor
 - [Definition of done](docs/planning/DEFINITION_OF_DONE.md)
 - [External gates](docs/planning/EXTERNAL_GATES.md)
 - [Source acquisition and copy plan](docs/planning/SOURCE_ACQUISITION_AND_COPY_PLAN.md)
-- [v0 UI integration contract](docs/planning/V0_UI_INTEGRATION_CONTRACT.md)
+- [v0 UI integration contract (historical; superseded by Specs 095–101)](docs/planning/V0_UI_INTEGRATION_CONTRACT.md)
 
-## Canonical architecture/planning
+### Canonical architecture and planning
 
 - [Master Build Plan V2](docs/planning/MASTER_BUILD_PLAN_V2.md)
 - [Spec Kit Master Roadmap V2](docs/planning/SPECKIT_MASTER_ROADMAP_V2.md)
@@ -71,7 +80,10 @@ cargo run -p medscale-cli --locked -- doctor
 - [OpenMed Parity / Surpass Matrix V2](docs/planning/OPENMED_PARITY_SURPASS_MATRIX_V2.md)
 - [GLM 5.3 Reconciliation V2](docs/planning/GLM53_RECONCILIATION_V2.md)
 
-One platform, many surfaces: CLI, Desktop, iOS, Android and SDK bindings share the same Rust-owned source/provenance, identity, time, authority, privacy and Pack semantics. OpenMed is the capability floor/strategic donor. MESC is an independent scientific producer. Neither owns MedScale clinical truth.
+
+## Comparisons and provenance
+
+MedScale measures itself against named external baselines without depending on them. OpenMed is used as a **pinned comparator** (`v2.2.0` frozen in Spec 071; a separate `v3.0.0` snapshot in Spec 103). Any comparative claim needs measured evidence; none of superiority is made here. MESC is a separate scientific project and owns no MedScale clinical truth. Adapted third-party material keeps its license and attribution: see [`third_party/provenance`](third_party/provenance), the generated `NOTICE.md` and SBOM in every release set, and the [source acquisition plan](docs/planning/SOURCE_ACQUISITION_AND_COPY_PLAN.md).
 
 ## License
 
