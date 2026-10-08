@@ -5,6 +5,13 @@ on:
     paths:
       - apps/desktop-tauri/**
       - scripts/package-tauri-preview.ps1
+      - scripts/package-tauri-release.ps1
+      - scripts/verify-tauri-release.ps1
+      - scripts/test-verify-tauri-release.ps1
+      - scripts/qualify-tauri-installer-windows.ps1
+      - scripts/qualify-tauri-package-macos.ps1
+      - scripts/qualify-tauri-package-linux.ps1
+      - specs/101-tauri-release-packaging/**
       - assets/brand/**
       - crates/medscale-desktop/ui/assets/**
       - deny.toml
@@ -55,7 +62,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+          sudo apt-get install -y --no-install-recommends libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf xvfb
       - name: Install locked frontend without lifecycle scripts
         working-directory: apps/desktop-tauri
         run: npm ci --ignore-scripts --no-audit --no-fund
@@ -75,6 +82,52 @@ jobs:
       - name: Package unqualified preview with sources and notices
         shell: pwsh
         run: ./scripts/package-tauri-preview.ps1
+      - name: Bundle unsigned engineering installer (Spec 101)
+        working-directory: apps/desktop-tauri
+        shell: bash
+        run: |
+          case "$RUNNER_OS" in
+            Windows) bundles=nsis ;;
+            macOS) bundles=app,dmg ;;
+            Linux) bundles=deb ;;
+          esac
+          npm run tauri -- build --bundles "$bundles" --no-sign --ci --features custom-protocol -- --locked
+      - name: Record build-time tool hashes (Spec 101 FR-003)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $tools = Join-Path $env:LOCALAPPDATA 'tauri' 'NSIS'
+          Get-ChildItem -LiteralPath $tools -Recurse -File | Where-Object { $_.Name -in 'makensis.exe','nsis_tauri_utils.dll' } |
+            ForEach-Object { '{0}  {1}' -f (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant(), $_.FullName.Substring($tools.Length + 1) }
+      - name: Assemble and verify release set (Spec 101 T101-04/05)
+        shell: pwsh
+        run: |
+          ./scripts/package-tauri-release.ps1
+          $platform = if ($IsWindows) { 'windows' } elseif ($IsMacOS) { 'macos' } else { 'linux' }
+          ./scripts/verify-tauri-release.ps1 -Root "target/tauri-release/$platform" -ExpectedSourceSha '${{ github.event.pull_request.head.sha }}'
+          ./scripts/test-verify-tauri-release.ps1
+      - name: Install, launch and uninstall qualification (Spec 101 T101-07)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./scripts/qualify-tauri-installer-windows.ps1 -ReleaseRoot target/tauri-release/windows -ReportPath target/tauri-release-qualification/windows.json
+      - name: Package launch and removal qualification (Spec 101 T101-08)
+        if: runner.os == 'macOS'
+        shell: pwsh
+        run: ./scripts/qualify-tauri-package-macos.ps1 -ReleaseRoot target/tauri-release/macos -ReportPath target/tauri-release-qualification/macos.json
+      - name: Package install, launch and removal qualification (Spec 101 T101-09)
+        if: runner.os == 'Linux'
+        shell: pwsh
+        run: ./scripts/qualify-tauri-package-linux.ps1 -ReleaseRoot target/tauri-release/linux -ReportPath target/tauri-release-qualification/linux.json
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v4.6.2
+        if: ${{ !cancelled() }}
+        with:
+          name: tauri-installer-${{ matrix.os }}
+          path: |
+            target/tauri-release/
+            target/tauri-release-qualification/
+          if-no-files-found: warn
+          retention-days: 7
+          compression-level: 0
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v4.6.2
         with:
           name: tauri-preview-${{ matrix.os }}
