@@ -41,4 +41,4 @@ Spec 101 adds packaging only. It does not change Core semantics, Tauri commands,
   - After a silent uninstall, `%LOCALAPPDATA%\org.medscale.desktop.preview\EBWebView` (the WebView2 profile) remains. Program files are removed.
   - User app data is never deleted by the uninstaller, which also protects encrypted vaults.
   - The leftover WebView profile is part of the F096-T05 privacy residual.
-- **F101-04, a `vssadmin.exe` child was observed during launch.** The source of this process is not yet identified. A likely candidate is the Core privacy doctor's volume-shadow-copy probe. To be confirmed before any claim.
+- **F101-04, a `vssadmin.exe` child observed during launch (explained).** It comes from the Spec 032 privacy probe `crates/medscale-storage/src/privacy_probes.rs`, which runs `vssadmin list shadows` (read-only) to report whether volume shadow copies exist, as input to the snapshot privacy gate. It is local, makes no network call and changes nothing.
