@@ -43,7 +43,7 @@ Each candidate must provide all of the following, bound to its exact head:
 
 This amendment changes only the independent-review requirement for this stack. It does **not** waive or relax:
 
-- dependency-security findings, including F096-T01 (`glib` 0.18.5, RUSTSEC-2024-0429). A failing dependency-security check is not accepted by this amendment. Merging code whose own dependency-security check fails requires a separate, explicit founder risk-acceptance decision;
+- dependency-security findings, including F096-T01 (`glib` 0.18.5, RUSTSEC-2024-0429). A failing dependency-security check is not accepted by this amendment. Merging code whose own dependency-security check fails requires a separate, explicit founder risk-acceptance decision. **No such acceptance exists** (see the correction below);
 - required CI checks or the `main` ruleset;
 - signing (`SIGNING_STATUS=NOT_GRANTED`);
 - privacy (F096-T05; `PRIVATE_DATA_READY=false`);
@@ -53,3 +53,12 @@ This amendment changes only the independent-review requirement for this stack. I
 - Slint's status as the legacy reference implementation pending a separate retirement decision.
 
 It does not apply to any work outside the five listed PRs.
+
+## Correction (2026-10-08)
+
+An earlier commit on this PR added . It was based on an answer selected in an in-session question prompt. The founder has since stated that the approval covered **only** this review-policy amendment and the F101-02 implementation, and that no separate acceptance of the  advisory was authorized.
+
+That document is **withdrawn** by a forward commit; Git history is preserved and nothing was merged on its basis. Consequences:
+- F096-T01 stays  with no risk acceptance;
+- PRs that bring the Tauri desktop (and its failing  job) into  (#174, #175, #177, #179) are **not merge-eligible** until the advisory is genuinely remediated or the founder explicitly accepts it in writing;
+- #171 (no Tauri, no ) is unaffected.
