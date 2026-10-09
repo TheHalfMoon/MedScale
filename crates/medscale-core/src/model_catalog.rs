@@ -9,11 +9,11 @@ use std::path::Path;
 
 use medscale_pack::{
     CatalogFilter, CatalogRow, CatalogSource, CatalogStatus, DeviceFit, HfRepoMetadata,
-    ModelCatalog, TokenClassifierSnapshot, build_token_classifier_pack,
+    TokenClassifierSnapshot, build_token_classifier_pack,
 };
 use serde::Serialize;
 
-pub use medscale_pack::{CatalogError, SnapshotError};
+pub use medscale_pack::{CatalogError, ModelCatalog, SnapshotError};
 
 /// Query over a catalog snapshot (all fields optional).
 #[derive(Debug, Default, Clone)]
@@ -79,6 +79,15 @@ fn parse_status(value: &str) -> Result<CatalogStatus, ModelCatalogError> {
             value: value.into(),
         }
     })
+}
+
+/// Imports a locally supplied catalog snapshot (no network access).
+pub fn import_catalog(
+    repository: &str,
+    commit: &str,
+    manifest: &[u8],
+) -> Result<ModelCatalog, ModelCatalogError> {
+    Ok(ModelCatalog::import(repository, commit, manifest)?)
 }
 
 fn load(
@@ -160,7 +169,7 @@ mod tests {
 
     const COMMIT: &str = "ea920f36fadd7b45935247d639f0ffa1ef493b23";
 
-    fn manifest() -> std::path::PathBuf {
+    fn manifest(tag: &str) -> std::path::PathBuf {
         let rows = concat!(
             r#"{"repo_id":"Org/ner-en","family":"NER","task":"token-classification","languages":["en"],"formats":["onnx"],"param_count":33000000,"architecture":"bert","license":"apache-2.0"}"#,
             "\n",
@@ -170,7 +179,7 @@ mod tests {
             "\n",
         );
         let path = std::env::temp_dir().join(format!(
-            "medscale-core-catalog-{}.jsonl",
+            "medscale-core-catalog-{tag}-{}.jsonl",
             std::process::id()
         ));
         std::fs::write(&path, rows).unwrap();
@@ -179,7 +188,7 @@ mod tests {
 
     #[test]
     fn query_filters_and_reports_listing_counts_only() {
-        let path = manifest();
+        let path = manifest("query");
         let all = query_catalog_snapshot(
             &path,
             "org/fixture",
@@ -249,7 +258,7 @@ mod tests {
 
     #[test]
     fn snapshot_for_unknown_repository_is_refused_before_any_write() {
-        let path = manifest();
+        let path = manifest("snapshot");
         let dir = std::env::temp_dir().join(format!("medscale-core-snap-{}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
         std::fs::write(
