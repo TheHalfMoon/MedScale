@@ -2,7 +2,7 @@
 //! `Capability::ModelCatalogRead` (read-only, no vault, no network). Synthetic
 //! catalog rows only.
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use medscale_contracts::envelopes::{
     AuthorityError, AuthorityRequest, Capability, RequestBody, ResponseBody,
@@ -27,7 +27,7 @@ fn snapshot(tag: &str) -> PathBuf {
     path
 }
 
-fn query(path: &PathBuf) -> ModelCatalogQueryRequest {
+fn query(path: &Path) -> ModelCatalogQueryRequest {
     ModelCatalogQueryRequest {
         snapshot_path: path.display().to_string(),
         repository: "maziyarpanahi/openmed".into(),
