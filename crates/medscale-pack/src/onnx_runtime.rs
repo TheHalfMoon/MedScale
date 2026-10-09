@@ -671,6 +671,80 @@ impl ElementWiseMiniOp for CastToI64 {
     }
 }
 
+/// ONNX `Sign` for every numeric type. `tract` evaluates `Sign` only on
+/// floats (and quantized ints); DeBERTa-v2 exports apply it to `int64`
+/// relative positions (`log_bucket_position`). Integers map to -1, 0 or 1
+/// (unsigned: 0 or 1); floats keep zero and NaN and otherwise take the sign.
+#[derive(Debug, Clone)]
+struct SignAnyNumeric;
+
+impl ElementWiseMiniOp for SignAnyNumeric {
+    fn name(&self) -> String {
+        "medscale.SignAnyNumeric".into()
+    }
+
+    fn output_type(&self, input_type: DatumType) -> Option<DatumType> {
+        Some(input_type)
+    }
+
+    fn eval_out_of_place(&self, t: &Tensor, _out_dt: Option<DatumType>) -> TractResult<Tensor> {
+        fn ints<T: Datum + Copy + PartialOrd + From<i8>>(t: &mut Tensor) -> TractResult<()> {
+            let (zero, one, minus) = (T::from(0), T::from(1), T::from(-1));
+            for x in t.as_slice_mut::<T>()? {
+                *x = if *x > zero {
+                    one
+                } else if *x < zero {
+                    minus
+                } else {
+                    zero
+                };
+            }
+            Ok(())
+        }
+        fn unsigned<T: Datum + Copy + PartialOrd + From<u8>>(t: &mut Tensor) -> TractResult<()> {
+            for x in t.as_slice_mut::<T>()? {
+                *x = if *x > T::from(0) {
+                    T::from(1)
+                } else {
+                    T::from(0)
+                };
+            }
+            Ok(())
+        }
+        let mut out = t.clone();
+        match t.datum_type() {
+            DatumType::I64 => ints::<i64>(&mut out)?,
+            DatumType::I32 => ints::<i32>(&mut out)?,
+            DatumType::I16 => ints::<i16>(&mut out)?,
+            DatumType::I8 => ints::<i8>(&mut out)?,
+            DatumType::U64 => unsigned::<u64>(&mut out)?,
+            DatumType::U32 => unsigned::<u32>(&mut out)?,
+            DatumType::U16 => unsigned::<u16>(&mut out)?,
+            DatumType::U8 => unsigned::<u8>(&mut out)?,
+            DatumType::F64 => {
+                for x in out.as_slice_mut::<f64>()? {
+                    if *x != 0.0 && !x.is_nan() {
+                        *x = x.signum();
+                    }
+                }
+            }
+            DatumType::F32 => {
+                for x in out.as_slice_mut::<f32>()? {
+                    if *x != 0.0 && !x.is_nan() {
+                        *x = x.signum();
+                    }
+                }
+            }
+            other => {
+                return Err(TractError::msg(format!(
+                    "Sign is not defined for {other:?}"
+                )));
+            }
+        }
+        Ok(out)
+    }
+}
+
 /// Spec 103: `tract-onnx` loads ONNX `Shape` and `Cast(to=INT64)` as symbolic
 /// `TDim` operations. In Transformer exports (for example OpenMed BERT token
 /// classifiers) shape arithmetic then meets `i64` constants and analysis fails
@@ -678,12 +752,22 @@ impl ElementWiseMiniOp for CastToI64 {
 /// runtime always fixes every input to a concrete `[1, fixed_sequence_length]`
 /// shape, so those values are concrete integers and can be typed as `i64`
 /// without changing semantics. Only full-range `Shape` nodes and casts to
-/// `TDim` are rewritten; returns the number of rewritten nodes.
+/// `TDim` are rewritten. `Sign` becomes [`SignAnyNumeric`]. The rewrite also
+/// descends into both branches of ONNX `If` (DeBERTa-v2 computes relative
+/// position buckets inside one). Returns the number of rewritten nodes.
 fn normalize_static_shape_ops(model: &mut InferenceModel) -> usize {
     let mut rewritten = 0;
     for node in model.nodes_mut() {
+        if let Some(branch) = node.op_as_mut::<tract_onnx::ops::logic::If>() {
+            rewritten += normalize_static_shape_ops(&mut branch.then_body);
+            rewritten += normalize_static_shape_ops(&mut branch.else_body);
+            continue;
+        }
         let op = format!("{:?}", node.op);
-        if node.op.name() == "Shape" && op.contains("start: 0, end: None") {
+        if node.op.name() == "Sign" || op == "ElementWiseOp(Sign)" {
+            node.op = ElementWiseOp(Box::new(SignAnyNumeric), None).into_hir();
+            rewritten += 1;
+        } else if node.op.name() == "Shape" && op.contains("start: 0, end: None") {
             node.op = tract_hir::ops::expandable::expand(tract_hir::ops::array::Shape::new(
                 i64::datum_type(),
             ));
@@ -694,4 +778,26 @@ fn normalize_static_shape_ops(model: &mut InferenceModel) -> usize {
         }
     }
     rewritten
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn sign_covers_signed_unsigned_and_float_tensors() {
+        let op = SignAnyNumeric;
+        let i = op
+            .eval_out_of_place(&tensor1(&[-7i64, 0, 3, i64::MIN]), None)
+            .unwrap();
+        assert_eq!(i.as_slice::<i64>().unwrap(), &[-1, 0, 1, -1]);
+        let u = op.eval_out_of_place(&tensor1(&[0u8, 9]), None).unwrap();
+        assert_eq!(u.as_slice::<u8>().unwrap(), &[0, 1]);
+        let f = op
+            .eval_out_of_place(&tensor1(&[-2.5f32, 0.0, 4.0]), None)
+            .unwrap();
+        assert_eq!(f.as_slice::<f32>().unwrap(), &[-1.0, 0.0, 1.0]);
+        assert_eq!(op.output_type(DatumType::I64), Some(DatumType::I64));
+        assert!(op.eval_out_of_place(&tensor1(&[true]), None).is_err());
+    }
 }
