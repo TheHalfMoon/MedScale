@@ -13,8 +13,8 @@ use std::path::PathBuf;
 use std::time::Instant;
 
 use medscale_pack::{
-    HfRepoMetadata, ModelCatalog, OnnxTokenClassifierRuntime, TokenClassifierSnapshot,
-    admit_pack_dir, build_token_classifier_pack,
+    DocumentRunOptions, HfRepoMetadata, ModelCatalog, OnnxTokenClassifierRuntime,
+    TokenClassifierSnapshot, admit_pack_dir, build_token_classifier_pack,
 };
 
 fn env(name: &str) -> String {
@@ -77,6 +77,15 @@ fn catalog_row_to_verified_pack_to_local_execution() {
     println!(
         "SNAPSHOT_OUTPUT {}",
         serde_json::to_string(&evaluation.output.proposal_payload).unwrap()
+    );
+    let t2 = Instant::now();
+    let document = prepared
+        .run_document(&manifest.pack_id, &text, DocumentRunOptions::default())
+        .expect("whole-document run");
+    println!(
+        "SNAPSHOT_DOCUMENT document_ms={} {}",
+        t2.elapsed().as_millis(),
+        serde_json::to_string(&document.output.proposal_payload["entities"]).unwrap()
     );
     let _ = std::fs::remove_dir_all(&out);
 }
