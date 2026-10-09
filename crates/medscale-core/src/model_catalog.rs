@@ -9,7 +9,7 @@ use std::path::Path;
 
 use medscale_pack::{
     CatalogFilter, CatalogRow, CatalogSource, CatalogStatus, DeviceFit, HfRepoMetadata,
-    ModelCatalog, TokenClassifierSnapshot, build_token_classifier_pack,
+    TokenClassifierSnapshot, build_token_classifier_pack,
 };
 use serde::Serialize;
 
