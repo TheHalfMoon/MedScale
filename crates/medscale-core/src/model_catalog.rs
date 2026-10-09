@@ -9,7 +9,7 @@ use std::path::Path;
 
 use medscale_pack::{
     CatalogFilter, CatalogRow, CatalogSource, CatalogStatus, DeviceFit, HfRepoMetadata,
-    TokenClassifierSnapshot, build_token_classifier_pack,
+    RuntimeExpectation, TokenClassifierSnapshot, build_token_classifier_pack, runtime_expectation,
 };
 use serde::Serialize;
 
@@ -43,7 +43,16 @@ pub struct CatalogQueryView {
     pub status_counts: BTreeMap<CatalogStatus, usize>,
     pub total_matching: usize,
     pub next_offset: Option<usize>,
-    pub rows: Vec<CatalogRow>,
+    pub rows: Vec<CatalogRowView>,
+}
+
+/// A catalog row plus the pre-download runtime expectation (an expectation
+/// from recorded evidence, never a status promotion).
+#[derive(Debug, Serialize)]
+pub struct CatalogRowView {
+    #[serde(flatten)]
+    pub row: CatalogRow,
+    pub runtime_expectation: RuntimeExpectation,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -124,7 +133,14 @@ pub fn query_catalog_snapshot(
     Ok(CatalogQueryView {
         total_matching: page.total_matching,
         next_offset: page.next_offset,
-        rows: page.rows.into_iter().cloned().collect(),
+        rows: page
+            .rows
+            .into_iter()
+            .map(|row| CatalogRowView {
+                runtime_expectation: runtime_expectation(row),
+                row: row.clone(),
+            })
+            .collect(),
         status_counts: catalog.status_counts(),
         total_rows: catalog.len(),
         source: catalog.source.clone(),
@@ -223,7 +239,7 @@ mod tests {
         assert_eq!(
             cpu.rows
                 .iter()
-                .map(|r| r.repo_id.as_str())
+                .map(|r| r.row.repo_id.as_str())
                 .collect::<Vec<_>>(),
             ["Org/ner-en"]
         );
