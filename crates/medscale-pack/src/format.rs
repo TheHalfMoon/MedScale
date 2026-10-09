@@ -64,7 +64,7 @@ const MAX_MANIFEST_BYTES: u64 = 1_048_576;
 
 pub(crate) const fn artifact_size_limit(kind: PackArtifactKind) -> u64 {
     match kind {
-        PackArtifactKind::OnnxModel => 1_073_741_824,
+        PackArtifactKind::OnnxModel | PackArtifactKind::SafetensorsModel => 1_073_741_824,
         PackArtifactKind::TokenizerMeta | PackArtifactKind::FixtureBytes => 67_108_864,
         PackArtifactKind::ModelMetadata => 1_048_576,
         PackArtifactKind::Pickle | PackArtifactKind::CodeBin | PackArtifactKind::OnnxCustomOp => 0,

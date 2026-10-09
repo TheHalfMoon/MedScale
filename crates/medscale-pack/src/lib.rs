@@ -1,5 +1,6 @@
 //! Offline Pack v0 admission (Spec 008) + MESC synthetic verifier (Spec 036).
 
+mod candle_runtime;
 mod catalog;
 mod compatibility;
 mod format;
@@ -11,6 +12,10 @@ mod runtime;
 mod store;
 mod token_windows;
 
+pub use candle_runtime::{
+    CANDLE_ARCHITECTURES, CANDLE_TOKEN_CLASSIFIER_RUNTIME_ID, CandleRunOptions, CandleRuntimeError,
+    PreparedCandleTokenClassifier, candle_model_type, prepare_candle_token_classifier,
+};
 pub use catalog::{
     CatalogError, CatalogFilter, CatalogPage, CatalogRow, CatalogSource, CatalogStatus, DeviceFit,
     ModelCatalog, SizeMb,
