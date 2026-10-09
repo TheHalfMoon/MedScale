@@ -214,7 +214,7 @@ fn safe_relative(path: &str) -> Result<&Path, SnapshotError> {
 /// Only formats that carry no executable code are admitted.
 fn admitted_artifact(name: &str) -> bool {
     let lower = name.to_ascii_lowercase();
-    lower.ends_with(".onnx") || lower.ends_with(".json")
+    lower.ends_with(".onnx") || lower.ends_with(".json") || lower.ends_with(".safetensors")
 }
 
 /// Port of OpenMed `_verified_remote_artifact`: SHA-256 for LFS files, Git
@@ -338,6 +338,26 @@ pub fn build_token_classifier_pack(
     let read = |name: &str| -> Result<Vec<u8>, SnapshotError> {
         fs::read(input.snapshot_dir.join(safe_relative(name)?)).map_err(|e| io(&e))
     };
+    // Spec 104: a `.safetensors` weight file builds a candle-runtime Pack.
+    let safetensors = input
+        .onnx_file
+        .to_ascii_lowercase()
+        .ends_with(".safetensors");
+    let (runtime_id, export_format, model_name, model_kind) = if safetensors {
+        (
+            crate::candle_runtime::CANDLE_TOKEN_CLASSIFIER_RUNTIME_ID,
+            "safetensors",
+            "model.safetensors",
+            "safetensors_model",
+        )
+    } else {
+        (
+            ONNX_TOKEN_CLASSIFIER_RUNTIME_ID,
+            "onnx",
+            "model.onnx",
+            "onnx_model",
+        )
+    };
     let model = read(input.onnx_file)?;
     let model_sha = verify_file(input.meta, input.onnx_file, &model)?;
     let tokenizer = read("tokenizer.json")?;
@@ -360,14 +380,18 @@ pub fn build_token_classifier_pack(
         transform: "none".into(),
         fixed_sequence_length: input.fixed_sequence_length,
         task: "token-classification".into(),
-        export_format: "onnx".into(),
-        runtime_family: ONNX_TOKEN_CLASSIFIER_RUNTIME_ID.into(),
+        export_format: export_format.into(),
+        runtime_family: runtime_id.into(),
         license_id: license.into(),
         upstream_rights_uri: rights_uri.clone(),
     };
     fs::create_dir_all(out_dir).map_err(|e| io(&e))?;
     let write = |name: &str, bytes: &[u8]| fs::write(out_dir.join(name), bytes).map_err(|e| io(&e));
-    write("model.onnx", &model)?;
+    write(model_name, &model)?;
+    if safetensors {
+        // The candle runtime builds the encoder from the verified config.
+        write("config.json", &config)?;
+    }
     write("tokenizer.json", &tokenizer)?;
     write(
         "labels.json",
@@ -383,12 +407,16 @@ pub fn build_token_classifier_pack(
     )?;
 
     let mut rows = Vec::new();
-    for (name, kind, text) in [
+    let mut artifacts = vec![
         ("labels.json", "tokenizer_meta", true),
         ("model.meta.json", "model_metadata", true),
-        ("model.onnx", "onnx_model", false),
+        (model_name, model_kind, false),
         ("tokenizer.json", "tokenizer_meta", true),
-    ] {
+    ];
+    if safetensors {
+        artifacts.insert(0, ("config.json", "model_metadata", true));
+    }
+    for (name, kind, text) in artifacts {
         let bytes = fs::read(out_dir.join(name)).map_err(|e| io(&e))?;
         let bytes = if text { normalized_text(&bytes) } else { bytes };
         rows.push(json!({"relative_path": name, "kind": kind, "digest": DigestSha256::of(&bytes).to_hex()}));
@@ -405,7 +433,11 @@ pub fn build_token_classifier_pack(
         .next()
         .unwrap_or("model")
         .to_ascii_lowercase();
-    let pack_id = format!("hf-{short}-static{}", input.fixed_sequence_length);
+    let pack_id = if safetensors {
+        format!("hf-{short}-safetensors")
+    } else {
+        format!("hf-{short}-static{}", input.fixed_sequence_length)
+    };
     let sbom_ref = format!("hf:{}@{revision}#{}", input.meta.id, input.onnx_file);
     let payload = pack_signing_payload(
         &pack_id,
@@ -423,7 +455,7 @@ pub fn build_token_classifier_pack(
         "artifacts": rows,
         "rights_uri": rights_uri,
         "sbom_ref": sbom_ref,
-        "runtime_requirements": format!("{ONNX_TOKEN_CLASSIFIER_RUNTIME_ID};synthetic_only=true;fixed_sequence_length={}", input.fixed_sequence_length),
+        "runtime_requirements": format!("{runtime_id};synthetic_only=true;fixed_sequence_length={}", input.fixed_sequence_length),
         "benchmark_links": ["specs/103-local-model-catalog/research.md"],
         "promotion_state": "candidate",
         "trust_root_id": SYNTHETIC_PACK_TRUST_ROOT_ID,

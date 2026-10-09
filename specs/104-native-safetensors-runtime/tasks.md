@@ -7,6 +7,6 @@
   - biased linear head;
   - document execution;
   - tiny-BERT unit tests.
-- [ ] T104-04 Snapshot Pack building and acquisition for `.safetensors`.
+- [~] T104-04 Snapshot Pack building (`model.safetensors` plus `config.json`, candle runtime declared) and acquisition consent for `.safetensors`; end-to-end test `tests/safetensors_pack_104.rs`.
 - [ ] T104-05 Core: residency and Model Fleet lanes for candle Packs.
 - [ ] T104-06 Real-model CI qualification per architecture; compatibility expectations for PyTorch-format rows.
