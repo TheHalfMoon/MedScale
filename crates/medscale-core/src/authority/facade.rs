@@ -1,6 +1,5 @@
 //! In-process Core Host authority facade (logical IPC API).
 
-use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
 use medscale_contracts::AUTHORITY_SCHEMA_VERSION;
@@ -26,7 +25,9 @@ use medscale_contracts::network::EgressAllowlistEntry;
 use medscale_network::FixtureTransport;
 use medscale_storage::{EncryptedVault, SyntheticVault};
 
-const MAX_PREPARED_MODEL_CACHE: usize = 4;
+/// Spec 103: estimated resident budget for prepared ONNX models (weights size).
+/// Least-recently-used, deterministic eviction (`medscale_pack::ResidencyPool`).
+const PREPARED_MODEL_BUDGET_BYTES: u64 = 2 * 1024 * 1024 * 1024;
 
 /// In-process facade owning lease registry + in-memory store + optional vaults.
 #[derive(Debug)]
@@ -39,7 +40,8 @@ pub struct CoreFacade {
     encrypted: Mutex<Option<EncryptedVault>>,
     allowlist: Mutex<Vec<EgressAllowlistEntry>>,
     packs: Mutex<medscale_pack::PackStore>,
-    prepared_models: Mutex<HashMap<DigestSha256, Arc<medscale_pack::PreparedOnnxTokenClassifier>>>,
+    prepared_models:
+        Mutex<medscale_pack::ResidencyPool<Arc<medscale_pack::PreparedOnnxTokenClassifier>>>,
     mesc_epochs: Mutex<medscale_pack::MescEpochStore>,
     /// Spec 079: custody of pseudonym map keys. Never vault metadata.
     privacy_keys: PrivacyKeys,
@@ -111,7 +113,9 @@ impl CoreFacade {
             encrypted: Mutex::new(None),
             allowlist: Mutex::new(Vec::new()),
             packs: Mutex::new(medscale_pack::PackStore::default()),
-            prepared_models: Mutex::new(HashMap::new()),
+            prepared_models: Mutex::new(medscale_pack::ResidencyPool::new(
+                PREPARED_MODEL_BUDGET_BYTES,
+            )),
             mesc_epochs: Mutex::new(medscale_pack::MescEpochStore::new()),
             // Process-lifetime by default; hosts install a durable store
             // with `set_privacy_key_store`.
@@ -605,7 +609,7 @@ impl CoreFacade {
         &self,
     ) -> std::sync::MutexGuard<
         '_,
-        HashMap<DigestSha256, Arc<medscale_pack::PreparedOnnxTokenClassifier>>,
+        medscale_pack::ResidencyPool<Arc<medscale_pack::PreparedOnnxTokenClassifier>>,
     > {
         self.prepared_models
             .lock()
@@ -1550,10 +1554,10 @@ impl CoreFacade {
                             message: format!("pack runtime configuration denied: {err}"),
                         }
                     })?;
-                let digest = manifest.content_digest.clone();
+                let key = manifest.content_digest.to_hex();
                 let cached = self
                     .prepared_models()
-                    .get(&digest)
+                    .get(&key)
                     .filter(|prepared| prepared.matches_runtime_contract(&manifest))
                     .cloned();
                 let (prepared, prepared_cache_hit) = if let Some(prepared) = cached {
@@ -1574,20 +1578,27 @@ impl CoreFacade {
                             message: format!("pack runtime preparation failed: {err}"),
                         }
                     })?);
+                    let resident_bytes = manifest
+                        .artifacts
+                        .iter()
+                        .filter(|a| {
+                            a.kind == medscale_contracts::packs::PackArtifactKind::OnnxModel
+                        })
+                        .filter_map(|a| std::fs::metadata(path.join(&a.relative_path)).ok())
+                        .map(|m| m.len())
+                        .sum::<u64>()
+                        .max(1);
                     let mut cache = self.prepared_models();
                     if let Some(existing) = cache
-                        .get(&digest)
+                        .get(&key)
                         .filter(|prepared| prepared.matches_runtime_contract(&manifest))
                         .cloned()
                     {
                         (existing, true)
                     } else {
-                        if cache.len() >= MAX_PREPARED_MODEL_CACHE
-                            && let Some(evict) = cache.keys().next().cloned()
-                        {
-                            cache.remove(&evict);
-                        }
-                        cache.insert(digest, Arc::clone(&candidate));
+                        // A model larger than the whole budget still runs; it is
+                        // simply not kept resident.
+                        let _ = cache.load(&key, resident_bytes, Arc::clone(&candidate));
                         (candidate, false)
                     }
                 };

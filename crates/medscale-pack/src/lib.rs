@@ -5,6 +5,7 @@ mod format;
 mod hf_snapshot;
 mod mesc_verify;
 mod onnx_runtime;
+mod residency;
 mod runtime;
 mod store;
 
@@ -22,5 +23,6 @@ pub use onnx_runtime::{
     ONNX_TOKEN_CLASSIFIER_RUNTIME_ID, OnnxRuntimeError, OnnxTokenClassifierRuntime,
     PreparedOnnxTokenClassifier,
 };
+pub use residency::{EvictionPlan, ResidencyError, ResidencyPool};
 pub use runtime::{FixtureRuntime, PackRuntimeAdapter, RuntimeOutput};
 pub use store::PackStore;
