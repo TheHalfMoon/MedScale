@@ -20,6 +20,9 @@ use tract_onnx::tract_hir;
 
 use crate::RuntimeOutput;
 use crate::format::artifact_size_limit;
+use crate::token_windows::{
+    BestContextVotes, WindowError, decode_entities, default_stride, plan_windows,
+};
 
 pub const ONNX_TOKEN_CLASSIFIER_RUNTIME_ID: &str = "tract_onnx_token_classification_v1";
 const MAX_LABELS: usize = 512;
@@ -56,6 +59,29 @@ pub enum OnnxRuntimeError {
     InvalidLabels,
     #[error("model provenance metadata is invalid")]
     InvalidProvenance,
+    #[error("document windowing failed: {0}")]
+    Windowing(#[from] WindowError),
+    #[error("score threshold must be between 0 and 1")]
+    InvalidThreshold,
+}
+
+/// Options for [`PreparedOnnxTokenClassifier::run_document`].
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct DocumentRunOptions {
+    /// Minimum mean entity score, from 0.0 to 1.0 (OpenMed default 0.0).
+    pub threshold: f32,
+    /// Overlapping content tokens between windows; `None` uses OpenMed's
+    /// default (at most 96, a quarter of the window).
+    pub stride: Option<usize>,
+}
+
+impl Default for DocumentRunOptions {
+    fn default() -> Self {
+        Self {
+            threshold: 0.0,
+            stride: None,
+        }
+    }
 }
 
 /// One bounded runtime evaluation and the signed source provenance that was executed.
@@ -78,6 +104,9 @@ pub struct PreparedOnnxTokenClassifier {
     runtime_contract_digest: DigestSha256,
     provenance: ModelSourceProvenance,
     tokenizer: Tokenizer,
+    /// Same tokenizer with truncation and padding disabled, for documents
+    /// that span several windows (`run_document`).
+    document_tokenizer: Tokenizer,
     pad_token: String,
     pad_id: u32,
     labels: Vec<String>,
@@ -169,6 +198,10 @@ impl OnnxTokenClassifierRuntime {
             })
             .ok_or(OnnxRuntimeError::Tokenizer)?;
         tokenizer.with_padding(None);
+        let mut document_tokenizer = tokenizer.clone();
+        document_tokenizer
+            .with_truncation(None)
+            .map_err(|_| OnnxRuntimeError::Tokenizer)?;
         let labels: Vec<String> =
             serde_json::from_slice(&labels_bytes).map_err(|_| OnnxRuntimeError::InvalidLabels)?;
         if labels.is_empty() || labels.len() > MAX_LABELS {
@@ -237,6 +270,7 @@ impl OnnxTokenClassifierRuntime {
             runtime_contract_digest,
             provenance,
             tokenizer,
+            document_tokenizer,
             labels,
             input_names,
             fixed_sequence_length,
@@ -312,32 +346,7 @@ impl PreparedOnnxTokenClassifier {
             .iter()
             .map(|value| i64::from(*value))
             .collect();
-        let mut model_inputs = tvec![];
-        for name in &self.input_names {
-            let values = match name.as_str() {
-                "input_ids" => &ids_i64,
-                "attention_mask" => &mask_i64,
-                "token_type_ids" => &type_ids_i64,
-                other => return Err(OnnxRuntimeError::UnsupportedModelInput(other.to_owned())),
-            };
-            let tensor = Tensor::from_shape(&[1, ids.len()], values)
-                .map_err(|_| OnnxRuntimeError::ModelExecution)?;
-            model_inputs.push(tensor.into_tvalue());
-        }
-        let outputs = self
-            .runnable
-            .run(model_inputs)
-            .map_err(|_| OnnxRuntimeError::ModelExecution)?;
-        if outputs.len() != 1 {
-            return Err(OnnxRuntimeError::OutputShape);
-        }
-        let output = &outputs[0];
-        if output.shape() != [1, ids.len(), self.labels.len()] {
-            return Err(OnnxRuntimeError::OutputShape);
-        }
-        let logits = output
-            .as_slice::<f32>()
-            .map_err(|_| OnnxRuntimeError::OutputShape)?;
+        let logits = self.infer(&ids_i64, &mask_i64, &type_ids_i64)?;
         let mut predictions = Vec::new();
         let token_strings = encoding.get_tokens();
         for (token_index, token) in token_strings.iter().enumerate().take(ids.len()) {
@@ -371,6 +380,130 @@ impl PreparedOnnxTokenClassifier {
                     "source_revision": self.provenance.revision,
                     "token_count": predictions.len(),
                     "predictions": predictions,
+                    "note": "Proposal/evaluation evidence only; never ClinicalAssertion",
+                }),
+                evidence_only: true,
+                pack_id: pack_id.clone(),
+            },
+            provenance: self.provenance.clone(),
+        })
+    }
+}
+
+impl PreparedOnnxTokenClassifier {
+    /// One static-shape forward pass; returns `fixed_sequence_length * labels`
+    /// finite logits.
+    fn infer(
+        &self,
+        ids: &[i64],
+        mask: &[i64],
+        type_ids: &[i64],
+    ) -> Result<Vec<f32>, OnnxRuntimeError> {
+        let len = ids.len();
+        let mut model_inputs = tvec![];
+        for name in &self.input_names {
+            let values = match name.as_str() {
+                "input_ids" => ids,
+                "attention_mask" => mask,
+                "token_type_ids" => type_ids,
+                other => return Err(OnnxRuntimeError::UnsupportedModelInput(other.to_owned())),
+            };
+            let tensor = Tensor::from_shape(&[1, len], values)
+                .map_err(|_| OnnxRuntimeError::ModelExecution)?;
+            model_inputs.push(tensor.into_tvalue());
+        }
+        let outputs = self
+            .runnable
+            .run(model_inputs)
+            .map_err(|_| OnnxRuntimeError::ModelExecution)?;
+        if outputs.len() != 1 {
+            return Err(OnnxRuntimeError::OutputShape);
+        }
+        let output = &outputs[0];
+        if output.shape() != [1, len, self.labels.len()] {
+            return Err(OnnxRuntimeError::OutputShape);
+        }
+        let logits = output
+            .as_slice::<f32>()
+            .map_err(|_| OnnxRuntimeError::OutputShape)?;
+        Ok(logits.to_vec())
+    }
+
+    /// Runs a whole document of any length up to the input bound, without
+    /// truncation: overlapping windows of `fixed_sequence_length` tokens, a
+    /// best-context vote per token, then entity spans with char offsets and
+    /// mean scores (ported from OpenMed v3.0.0; see `token_windows`). Every
+    /// token must be covered, or the run fails with no partial result.
+    pub fn run_document(
+        &self,
+        pack_id: &OpaqueId,
+        input: &str,
+        options: DocumentRunOptions,
+    ) -> Result<OnnxRuntimeEvaluation, OnnxRuntimeError> {
+        if input.len() > MAX_INPUT_BYTES {
+            return Err(OnnxRuntimeError::InputBound);
+        }
+        if !(0.0..=1.0).contains(&options.threshold) {
+            return Err(OnnxRuntimeError::InvalidThreshold);
+        }
+        let encoding = self
+            .document_tokenizer
+            .encode_char_offsets(input, true)
+            .map_err(|_| OnnxRuntimeError::Tokenizer)?;
+        let ids = encoding.get_ids();
+        let mask = encoding.get_attention_mask();
+        let special = encoding.get_special_tokens_mask();
+        let type_ids = encoding.get_type_ids();
+        let offsets = encoding.get_offsets();
+        let content: Vec<usize> = (0..ids.len())
+            .filter(|&i| mask[i] != 0 && special[i] == 0)
+            .collect();
+        if content.is_empty() {
+            return Err(OnnxRuntimeError::TokenBound);
+        }
+        let window = self.fixed_sequence_length;
+        let stride = options.stride.unwrap_or_else(|| default_stride(window));
+        let windows = plan_windows(ids.len(), &content, window, stride)?;
+        let width = self.labels.len();
+        let mut votes = BestContextVotes::new(content.len());
+        for w in &windows {
+            let mut ids_i64 = vec![i64::from(self.pad_id); window];
+            let mut mask_i64 = vec![0i64; window];
+            let mut types_i64 = vec![0i64; window];
+            for (slot, &pos) in w.positions.iter().enumerate() {
+                ids_i64[slot] = i64::from(ids[pos]);
+                mask_i64[slot] = i64::from(mask[pos]);
+                types_i64[slot] = i64::from(type_ids[pos]);
+            }
+            let logits = self.infer(&ids_i64, &mask_i64, &types_i64)?;
+            if logits.iter().any(|value| !value.is_finite()) {
+                return Err(OnnxRuntimeError::NonFiniteLogit);
+            }
+            votes.offer(
+                w,
+                |slot| &logits[slot * width..(slot + 1) * width],
+                |slot| offsets[w.positions[slot]],
+            )?;
+        }
+        let tokens = votes.finish()?;
+        let entities = decode_entities(&tokens, &self.labels, input, options.threshold);
+        Ok(OnnxRuntimeEvaluation {
+            output: RuntimeOutput {
+                proposal_payload: json!({
+                    "kind": "onnx_token_classification_document_v1",
+                    "runtime": ONNX_TOKEN_CLASSIFIER_RUNTIME_ID,
+                    "content_digest": self.content_digest.to_hex(),
+                    "source_kind": self.provenance.source_kind,
+                    "source_repository": self.provenance.repository,
+                    "source_revision": self.provenance.revision,
+                    "token_count": content.len(),
+                    "covered_tokens": tokens.len(),
+                    "window_count": windows.len(),
+                    "window_tokens": window,
+                    "stride": stride,
+                    "threshold": options.threshold,
+                    "offsets": "unicode_scalar",
+                    "entities": entities,
                     "note": "Proposal/evaluation evidence only; never ClinicalAssertion",
                 }),
                 evidence_only: true,
