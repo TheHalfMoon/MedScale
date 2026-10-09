@@ -255,7 +255,11 @@ impl OnnxTokenClassifierRuntime {
             .output_fact(0)
             .map_err(|_| OnnxRuntimeError::OutputShape)?;
         let expected_output_shape = [1, fixed_sequence_length, labels.len()];
-        if output_fact.datum_type != f32::datum_type()
+        // fp16 exports (for example XLM-R `model_fp16.onnx`, which fits the
+        // 1 GiB Pack bound where fp32 does not) emit f16 logits; they are
+        // widened to f32 after each run.
+        if !(output_fact.datum_type == f32::datum_type()
+            || output_fact.datum_type == f16::datum_type())
             || output_fact.shape.as_concrete() != Some(expected_output_shape.as_slice())
         {
             return Err(OnnxRuntimeError::OutputShape);
@@ -423,7 +427,10 @@ impl PreparedOnnxTokenClassifier {
         if output.shape() != [1, len, self.labels.len()] {
             return Err(OnnxRuntimeError::OutputShape);
         }
-        let logits = output
+        let widened = output
+            .cast_to::<f32>()
+            .map_err(|_| OnnxRuntimeError::OutputShape)?;
+        let logits = widened
             .as_slice::<f32>()
             .map_err(|_| OnnxRuntimeError::OutputShape)?;
         Ok(logits.to_vec())
