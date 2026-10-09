@@ -3581,6 +3581,17 @@ impl CoreFacade {
                     result: Box::new(result),
                 })
             }
+            RequestBody::ModelCatalogQuery { query } => {
+                // Read-only metadata over a local snapshot: no vault, no network.
+                let page = crate::model_catalog::catalog_page(&query).map_err(|e| {
+                    AuthorityError::InvalidArgument {
+                        message: e.to_string(),
+                    }
+                })?;
+                Ok(ResponseBody::ModelCatalogPage {
+                    page: Box::new(page),
+                })
+            }
             RequestBody::PackCatalog => Ok(ResponseBody::PackCatalog {
                 packs: super::data_sources::DataSources::pack_catalog(),
             }),
@@ -5661,6 +5672,10 @@ fn capability_matches(cap: &Capability, body: &RequestBody) -> bool {
                 RequestBody::FederationAct { .. }
             )
             | (Capability::FederationRead, RequestBody::FederationGet)
+            | (
+                Capability::ModelCatalogRead,
+                RequestBody::ModelCatalogQuery { .. }
+            )
             | (
                 Capability::PackRead,
                 RequestBody::PackCatalog
