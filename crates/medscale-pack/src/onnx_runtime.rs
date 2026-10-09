@@ -220,9 +220,19 @@ impl OnnxTokenClassifierRuntime {
         }
 
         let mut model_reader = Cursor::new(model_bytes);
-        let mut model = tract_onnx::onnx()
-            .model_for_read(&mut model_reader)
+        let onnx = tract_onnx::onnx();
+        let mut proto = onnx
+            .proto_model_for_read(&mut model_reader)
             .map_err(|e| OnnxRuntimeError::prepare("load", &e))?;
+        drop(model_reader);
+        // fp16 exports are widened to fp32 in memory (see `fp16_widen`).
+        if let Some(graph) = proto.graph.as_mut() {
+            crate::fp16_widen::widen_fp16(graph);
+        }
+        let mut model = onnx
+            .model_for_proto_model(&proto)
+            .map_err(|e| OnnxRuntimeError::prepare("load", &e))?;
+        drop(proto);
         let input_outlets = model
             .input_outlets()
             .map_err(|e| OnnxRuntimeError::prepare("inputs", &e))?
