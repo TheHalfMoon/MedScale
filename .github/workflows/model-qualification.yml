@@ -1,0 +1,123 @@
+# Spec 103: real-model execution qualification on zero-cost GitHub runners.
+#
+# Each job acquires ONE pinned OpenMed v3.0.0 catalog model (Hub metadata plus
+# config.json, tokenizer.json and one ONNX file at the metadata's commit), then
+# runs the ignored external test, which verifies the snapshot against the
+# catalog (reproducibility hash, per-file size and digest) before building a
+# signed Pack, admitting it and executing it locally. Sample text is synthetic.
+# Weights are never committed or uploaded; only the test log is kept.
+#
+# Runs only on demand or on `qual/**` branches, never on PRs or main.
+name: model-qualification
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["qual/**"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: model-qualification-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  CATALOG_COMMIT: ea920f36fadd7b45935247d639f0ffa1ef493b23
+
+jobs:
+  qualify:
+    name: qualify (${{ matrix.arch }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        include:
+          - arch: bert
+            repo: OpenMed/OpenMed-NER-DiseaseDetect-ElectraMed-33M-v1-onnx-android
+            onnx: model.onnx
+            test: openmed_snapshot_external_103
+            text: "The patient has type 2 diabetes mellitus and chronic kidney disease."
+          - arch: distilbert
+            repo: OpenMed/OpenMed-NER-AnatomyDetect-TinyMed-65M-v1-onnx-android
+            onnx: model.onnx
+            test: openmed_snapshot_external_103
+            text: "Pain in the left knee radiates to the right ankle."
+          - arch: roberta
+            repo: OpenMed/OpenMed-NER-AnatomyDetect-TinyMed-82M-v1-onnx-android
+            onnx: model.onnx
+            test: openmed_snapshot_external_103
+            text: "Pain in the left knee radiates to the right ankle."
+          - arch: modernbert
+            repo: OpenMed/OpenMed-NER-AnatomyDetect-ModernClinical-149M-v1-onnx-android
+            onnx: model.onnx
+            test: openmed_snapshot_external_103
+            text: "Pain in the left knee radiates to the right ankle."
+          - arch: deberta-v2
+            repo: OpenMed/OpenMed-PII-Dutch-SuperClinical-Small-44M-v1-onnx-android
+            onnx: model.onnx
+            test: openmed_snapshot_external_103
+            text: "Patiënt Jan de Vries, geboren op 12 maart 1980, woont in Utrecht."
+          - arch: xlm-roberta-fp16
+            repo: OpenMed/OpenMed-PII-Spanish-BigMed-Large-278M-v1-onnx-android
+            onnx: model_fp16.onnx
+            test: openmed_snapshot_external_103
+            text: "La paciente María García, nacida el 3 de mayo de 1975, vive en Sevilla."
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@d1031067263f94b142dd6c0ce24c5eb9d02d52a0 # pinned master
+        with:
+          toolchain: "1.97.1"
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
+        with:
+          key: model-qualification
+
+      - name: Acquire pinned snapshot (qualification only)
+        env:
+          REPO: ${{ matrix.repo }}
+          ONNX: ${{ matrix.onnx }}
+        run: |
+          set -euo pipefail
+          dir="$RUNNER_TEMP/snapshot"
+          mkdir -p "$dir"
+          curl -sfL -A medscale-qualification \
+            "https://raw.githubusercontent.com/maziyarpanahi/openmed/$CATALOG_COMMIT/models.jsonl" \
+            -o "$RUNNER_TEMP/models.jsonl"
+          curl -sf -A medscale-qualification \
+            "https://huggingface.co/api/models/$REPO?blobs=true" -o "$dir/metadata.json"
+          rev=$(jq -r .sha "$dir/metadata.json")
+          for f in config.json tokenizer.json "$ONNX"; do
+            jq -e --arg f "$f" '.siblings[] | select(.rfilename == $f)' "$dir/metadata.json" > /dev/null
+            curl -sfL -A medscale-qualification \
+              "https://huggingface.co/$REPO/resolve/$rev/$f" -o "$dir/$f"
+          done
+          ls -l "$dir"
+          echo "SNAPSHOT_DIR=$dir" >> "$GITHUB_ENV"
+
+      - name: Verify, admit and execute
+        env:
+          MEDSCALE_CATALOG_SNAPSHOT: ${{ runner.temp }}/models.jsonl
+          MEDSCALE_CATALOG_COMMIT: ${{ env.CATALOG_COMMIT }}
+          MEDSCALE_HF_ONNX_FILE: ${{ matrix.onnx }}
+          MEDSCALE_SAMPLE_TEXT: ${{ matrix.text }}
+        run: |
+          set -o pipefail
+          export MEDSCALE_HF_SNAPSHOT_DIR="$SNAPSHOT_DIR"
+          cargo test --release --locked -p medscale-pack --test "${{ matrix.test }}" \
+            -- --ignored --nocapture 2>&1 | tee qualification.log
+          grep -E '^SNAPSHOT_' qualification.log >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Keep the log (no weights)
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v4.6.2
+        with:
+          name: qualification-${{ matrix.arch }}
+          path: qualification.log
+          if-no-files-found: ignore

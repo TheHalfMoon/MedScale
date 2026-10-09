@@ -16,7 +16,7 @@ const COMMIT: &str = "ea920f36fadd7b45935247d639f0ffa1ef493b23";
 fn snapshot(tag: &str) -> PathBuf {
     let rows = [
         r#"{"repo_id":"OpenMed/A-bert","family":"NER","task":"token-classification","architecture":"bert","formats":["onnx"],"license":"apache-2.0"}"#,
-        r#"{"repo_id":"OpenMed/B-deberta","family":"NER","task":"token-classification","architecture":"deberta-v2","formats":["onnx"],"license":"apache-2.0"}"#,
+        r#"{"repo_id":"OpenMed/OpenMed-NER-B-xlmr","family":"NER","task":"token-classification","architecture":"xlm-roberta","formats":["onnx"],"license":"apache-2.0"}"#,
         r#"{"repo_id":"OpenMed/C-mlx","family":"NER","task":"token-classification","architecture":"bert","formats":["mlx-fp"],"license":"apache-2.0"}"#,
     ];
     let path = std::env::temp_dir().join(format!(
@@ -83,13 +83,13 @@ fn catalog_query_is_dispatched_read_only_without_a_vault() {
         kinds,
         [
             ("OpenMed/A-bert", "expected_runnable"),
-            ("OpenMed/B-deberta", "known_unsupported"),
             ("OpenMed/C-mlx", "no_onnx_artifact"),
+            ("OpenMed/OpenMed-NER-B-xlmr", "known_unsupported"),
         ]
     );
 
     let mut filtered = query(&path);
-    filtered.architecture = Some("deberta-v2".into());
+    filtered.architecture = Some("xlm-roberta".into());
     let ResponseBody::ModelCatalogPage { page } =
         dispatch(&facade, Capability::ModelCatalogRead, filtered).unwrap()
     else {
