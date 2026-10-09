@@ -503,9 +503,12 @@ mod tests {
         let cfg: bert::Config = serde_json::from_value(config.clone()).unwrap();
         bert::BertModel::load(vb.pp("bert"), &cfg).unwrap();
         candle_nn::linear(8, 2, vb.pp("classifier")).unwrap();
+        // Unique per call: tests run in parallel in one process.
+        static NEXT: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
         let path = std::env::temp_dir().join(format!(
-            "medscale-104-tiny-{}.safetensors",
-            std::process::id()
+            "medscale-104-tiny-{}-{}.safetensors",
+            std::process::id(),
+            NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
         ));
         varmap.save(&path).unwrap();
         let bytes = std::fs::read(&path).unwrap();
