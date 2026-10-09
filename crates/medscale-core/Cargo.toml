@@ -25,6 +25,7 @@ thiserror = { workspace = true }
 # reaches SQLite exclusively through medscale-storage).
 [dev-dependencies]
 rusqlite = { workspace = true }
+sha1 = { workspace = true }
 
 [lints]
 workspace = true
