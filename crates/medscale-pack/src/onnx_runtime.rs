@@ -48,6 +48,10 @@ pub enum OnnxRuntimeError {
     UnsupportedModelInput(String),
     #[error("model execution failed")]
     ModelExecution,
+    /// Preparing the model failed. Preparation happens before any input is
+    /// seen, so the detail (tract's message) never contains user text.
+    #[error("model preparation failed at {stage}: {detail}")]
+    Prepare { stage: &'static str, detail: String },
     #[error("model output shape is outside the token-classification contract")]
     OutputShape,
     #[error("model output contained a non-finite logit")]
@@ -95,6 +99,13 @@ impl fmt::Debug for PreparedOnnxTokenClassifier {
             .field("input_names", &self.input_names)
             .field("fixed_sequence_length", &self.fixed_sequence_length)
             .finish_non_exhaustive()
+    }
+}
+
+impl OnnxRuntimeError {
+    fn prepare(stage: &'static str, error: &impl fmt::Display) -> Self {
+        let detail: String = format!("{error:#}").chars().take(600).collect();
+        Self::Prepare { stage, detail }
     }
 }
 
@@ -178,10 +189,10 @@ impl OnnxTokenClassifierRuntime {
         let mut model_reader = Cursor::new(model_bytes);
         let mut model = tract_onnx::onnx()
             .model_for_read(&mut model_reader)
-            .map_err(|_| OnnxRuntimeError::ModelExecution)?;
+            .map_err(|e| OnnxRuntimeError::prepare("load", &e))?;
         let input_outlets = model
             .input_outlets()
-            .map_err(|_| OnnxRuntimeError::ModelExecution)?
+            .map_err(|e| OnnxRuntimeError::prepare("inputs", &e))?
             .to_vec();
         let input_names: Vec<String> = input_outlets
             .iter()
@@ -204,12 +215,12 @@ impl OnnxTokenClassifierRuntime {
                     index,
                     InferenceFact::dt_shape(i64::datum_type(), tvec!(1, fixed_sequence_length)),
                 )
-                .map_err(|_| OnnxRuntimeError::ModelExecution)?;
+                .map_err(|e| OnnxRuntimeError::prepare("input_fact", &e))?;
         }
         normalize_static_shape_ops(&mut model);
         let optimized = model
             .into_optimized()
-            .map_err(|_| OnnxRuntimeError::ModelExecution)?;
+            .map_err(|e| OnnxRuntimeError::prepare("optimize", &e))?;
         if optimized
             .output_outlets()
             .map_err(|_| OnnxRuntimeError::OutputShape)?
@@ -229,7 +240,7 @@ impl OnnxTokenClassifierRuntime {
         }
         let runnable = optimized
             .into_runnable()
-            .map_err(|_| OnnxRuntimeError::ModelExecution)?;
+            .map_err(|e| OnnxRuntimeError::prepare("runnable", &e))?;
         let runtime_contract_digest = runtime_contract_digest(pack)?;
 
         Ok(PreparedOnnxTokenClassifier {
