@@ -9,4 +9,4 @@
   - tiny-BERT unit tests.
 - [~] T104-04 Snapshot Pack building (`model.safetensors` plus `config.json`, candle runtime declared) and acquisition consent for `.safetensors`; end-to-end test `tests/safetensors_pack_104.rs`.
 - [ ] T104-05 Core: residency and Model Fleet lanes for candle Packs.
-- [ ] T104-06 Real-model CI qualification per architecture; compatibility expectations for PyTorch-format rows.
+- [x] T104-06 Real-model CI qualification: run 37986892863 executed bert, distilbert, roberta, deberta-v2 and modernbert from PyTorch-format rows (`model.safetensors`). Scores match the tract ONNX runs of the same models to about four decimals. Pre-download expectation `expected_runnable_safetensors` for those architectures; PyTorch-format XLM-R is known unsupported (1.11 GB > 1 GiB bound).

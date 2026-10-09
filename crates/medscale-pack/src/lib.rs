@@ -23,7 +23,7 @@ pub use catalog::{
 };
 pub use compatibility::{
     EVIDENCED_ARCHITECTURES, KNOWN_DEFECTIVE_EXPORTS, KNOWN_UNSUPPORTED, RuntimeExpectation,
-    runtime_expectation,
+    SAFETENSORS_EVIDENCED_ARCHITECTURES, SAFETENSORS_KNOWN_UNSUPPORTED, runtime_expectation,
 };
 pub use format::{admit_pack_dir, forbidden_reason};
 pub use hf_snapshot::{
