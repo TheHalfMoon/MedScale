@@ -13,7 +13,7 @@ use medscale_pack::{
 };
 use serde::Serialize;
 
-pub use medscale_pack::{CatalogError, SnapshotError};
+pub use medscale_pack::{CatalogError, ModelCatalog, SnapshotError};
 
 /// Query over a catalog snapshot (all fields optional).
 #[derive(Debug, Default, Clone)]
@@ -79,6 +79,15 @@ fn parse_status(value: &str) -> Result<CatalogStatus, ModelCatalogError> {
             value: value.into(),
         }
     })
+}
+
+/// Imports a locally supplied catalog snapshot (no network access).
+pub fn import_catalog(
+    repository: &str,
+    commit: &str,
+    manifest: &[u8],
+) -> Result<ModelCatalog, ModelCatalogError> {
+    Ok(ModelCatalog::import(repository, commit, manifest)?)
 }
 
 fn load(

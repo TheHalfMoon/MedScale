@@ -43,6 +43,12 @@ const JSON_MAX_BYTES: u64 = 64 * 1024 * 1024;
 const ONNX_MAX_BYTES: u64 = 1024 * 1024 * 1024;
 const TIMEOUT: Duration = Duration::from_secs(600);
 
+/// The live Governed Browse transport (public addresses only, no redirects
+/// followed by the transport). Used only after explicit consent.
+pub fn live_transport() -> medscale_network::UreqBrowseTransport {
+    medscale_network::UreqBrowseTransport
+}
+
 /// Explicit, per-model consent captured from the person before any request.
 #[derive(Debug, Clone)]
 pub struct AcquisitionConsent {

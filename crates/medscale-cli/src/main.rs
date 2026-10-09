@@ -460,6 +460,32 @@ enum PacksCmd {
         #[arg(long)]
         out: PathBuf,
     },
+    /// Download the files one catalog row needs from the Hugging Face Hub
+    /// (Spec 103; explicit opt-in). Requires --i-consent-to-download and an
+    /// approved byte ceiling; only Hub hosts are contacted, every file is
+    /// verified against the catalog-pinned commit, nothing else is sent.
+    Acquire {
+        #[arg(long)]
+        snapshot: PathBuf,
+        #[arg(long)]
+        commit: String,
+        #[arg(long, default_value = "maziyarpanahi/openmed")]
+        repository: String,
+        /// Catalog repository id, for example OpenMed/<model>.
+        #[arg(long)]
+        repo_id: String,
+        #[arg(long, default_value = "model.onnx")]
+        onnx_file: String,
+        /// Maximum total bytes you approve for this download.
+        #[arg(long)]
+        approve_bytes: u64,
+        /// Explicit consent flag; nothing is downloaded without it.
+        #[arg(long)]
+        i_consent_to_download: bool,
+        /// Snapshot directory to create (metadata, config, tokenizer, ONNX).
+        #[arg(long)]
+        out: PathBuf,
+    },
 }
 
 #[derive(Debug, Subcommand)]
@@ -1267,6 +1293,37 @@ fn run() -> Result<()> {
                 if !result.admitted {
                     bail!("pack admission denied: {:?}", result.reason);
                 }
+                Ok(())
+            }
+            PacksCmd::Acquire {
+                snapshot,
+                commit,
+                repository,
+                repo_id,
+                onnx_file,
+                approve_bytes,
+                i_consent_to_download,
+                out,
+            } => {
+                if !i_consent_to_download {
+                    bail!(
+                        "refusing to download: pass --i-consent-to-download to approve this acquisition"
+                    );
+                }
+                let bytes = std::fs::read(&snapshot)?;
+                let catalog =
+                    medscale_core::model_catalog::import_catalog(&repository, &commit, &bytes)?;
+                let report = medscale_core::model_acquisition::acquire_snapshot(
+                    &medscale_core::model_acquisition::live_transport(),
+                    &catalog,
+                    &medscale_core::model_acquisition::AcquisitionConsent {
+                        repo_id,
+                        onnx_file,
+                        approved_bytes: approve_bytes,
+                    },
+                    &out,
+                )?;
+                println!("{}", serde_json::to_string_pretty(&report)?);
                 Ok(())
             }
         },
