@@ -1689,3 +1689,123 @@ fn recompute_appends_a_new_report_and_never_touches_lane_runs() {
     );
     assert!(foreign.is_err(), "reports are scope-checked: {foreign:?}");
 }
+
+// ---------------------------------------------------------------------------
+// Spec 103: a model admitted from the catalog (verified Hub snapshot -> signed
+// Pack -> PacksInstallLocal) runs as Model Fleet lanes like any other Pack.
+
+fn hex_digest(bytes: &[u8]) -> String {
+    bytes.iter().map(|b| format!("{b:02x}")).collect()
+}
+
+fn git_blob_sha1(bytes: &[u8]) -> String {
+    use sha1::Digest as _;
+    let mut h = sha1::Sha1::new();
+    h.update(format!("blob {}\0", bytes.len()).as_bytes());
+    h.update(bytes);
+    hex_digest(&h.finalize())
+}
+
+/// Builds a synthetic Hub snapshot around the Spec 069 fixture model plus a
+/// catalog row bound to it, then a signed Pack via the Core catalog surface.
+fn catalog_snapshot_pack(name: &str) -> PathBuf {
+    use sha2::Digest as _;
+    const CATALOG_COMMIT: &str = "ea920f36fadd7b45935247d639f0ffa1ef493b23";
+    const HUB_SHA: &str = "0123456789abcdef0123456789abcdef01234567";
+    const REPO: &str = "Synthetic/Fleet-Fixture-onnx";
+    let root = tmp_dir(name);
+    let snapshot = root.join("snapshot");
+    fs::create_dir_all(&snapshot).unwrap();
+    let model = fs::read(onnx_fixture_pack().join("model.onnx")).unwrap();
+    let tokenizer = fs::read(onnx_fixture_pack().join("tokenizer.json")).unwrap();
+    let config = br#"{"id2label":{"0":"O","1":"ENTITY"}}"#.to_vec();
+    fs::write(snapshot.join("model.onnx"), &model).unwrap();
+    fs::write(snapshot.join("tokenizer.json"), &tokenizer).unwrap();
+    fs::write(snapshot.join("config.json"), &config).unwrap();
+    let metadata = format!(
+        r#"{{"id":"{REPO}","sha":"{HUB_SHA}","lastModified":"2026-10-09T00:00:00.000Z","gated":false,"private":false,"siblings":[{{"rfilename":"config.json","size":{},"blobId":"{}"}},{{"rfilename":"model.onnx","size":{},"lfs":{{"sha256":"{}","size":{}}}}},{{"rfilename":"tokenizer.json","size":{},"blobId":"{}"}}]}}"#,
+        config.len(),
+        git_blob_sha1(&config),
+        model.len(),
+        hex_digest(&sha2::Sha256::digest(&model)),
+        model.len(),
+        tokenizer.len(),
+        git_blob_sha1(&tokenizer),
+    );
+    fs::write(snapshot.join("metadata.json"), &metadata).unwrap();
+    let parsed: medscale_pack::HfRepoMetadata = serde_json::from_str(&metadata).unwrap();
+    let hash = medscale_pack::reproducibility_hash(&parsed);
+    let catalog = root.join("models.jsonl");
+    fs::write(
+        &catalog,
+        format!(
+            r#"{{"repo_id":"{REPO}","family":"NER","task":"token-classification","languages":["en"],"formats":["onnx"],"license":"apache-2.0","reproducibility_hash":"{hash}"}}"#
+        ),
+    )
+    .unwrap();
+    let pack = root.join("pack");
+    medscale_core::model_catalog::build_pack_from_snapshot(
+        &catalog,
+        "synthetic/catalog",
+        CATALOG_COMMIT,
+        &snapshot,
+        "model.onnx",
+        4,
+        &pack,
+    )
+    .expect("verified snapshot builds a signed Pack");
+    pack
+}
+
+#[test]
+fn catalog_admitted_pack_runs_as_fleet_lanes() {
+    let mut h = Harness::setup("fleet-catalog-pack");
+    let pack_dir = catalog_snapshot_pack("catalog-pack");
+    let pack_id = match h
+        .call(
+            Capability::PacksInstallLocal,
+            RequestBody::PacksInstallLocal {
+                local_path: pack_dir.display().to_string(),
+            },
+        )
+        .expect("catalog pack install")
+    {
+        ResponseBody::PackAdmit { result } => {
+            assert!(result.admitted, "catalog-built pack must admit: {result:?}");
+            result.pack_id.expect("admitted pack carries a pack_id")
+        }
+        other => panic!("{other:?}"),
+    };
+
+    let project_id = h.project("fleet-catalog-project");
+    let agent_a = h.register_identity(&project_id, &pack_id, vec![ToolKind::ReadContextArtifact]);
+    let agent_b = h.register_identity(&project_id, &pack_id, vec![ToolKind::ReadContextArtifact]);
+    let a1 = h.source_record(b"synthetic note: catalog lane a");
+    let b1 = h.source_record(b"synthetic note: catalog lane b");
+    let ctx_a = h.create_context(&project_id, &[a1.as_str()]);
+    let ctx_b = h.create_context(&project_id, &[b1.as_str()]);
+    let lane_a = h
+        .create_lane(&project_id, &agent_a, &ctx_a, None, None)
+        .expect("lane a");
+    let lane_b = h
+        .create_lane(&project_id, &agent_b, &ctx_b, None, None)
+        .expect("lane b");
+
+    let fleet = h.create_fleet(&project_id);
+    h.dispatch(&fleet.header.id, 1, &[&lane_a.header.id, &lane_b.header.id])
+        .expect("dispatch");
+    let (_, run_a, proposal_a) = h
+        .execute_lane(&fleet.header.id, &lane_a.header.id, &pack_dir, true)
+        .expect("execute catalog lane a");
+    assert_eq!(run_a.status, AgentRunState::Completed);
+    assert!(
+        proposal_a.is_some(),
+        "a completed lane carries its proposal"
+    );
+    let (after_b, run_b, proposal_b) = h
+        .execute_lane(&fleet.header.id, &lane_b.header.id, &pack_dir, true)
+        .expect("execute catalog lane b");
+    assert_eq!(run_b.status, AgentRunState::Completed);
+    assert!(proposal_b.is_some());
+    assert_eq!(after_b.status, FleetRunState::Completed);
+}
