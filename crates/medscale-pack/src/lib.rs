@@ -3,6 +3,7 @@
 mod catalog;
 mod compatibility;
 mod format;
+mod fp16_widen;
 mod hf_snapshot;
 mod mesc_verify;
 mod onnx_runtime;
