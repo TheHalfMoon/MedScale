@@ -10,6 +10,7 @@ mod onnx_runtime;
 mod residency;
 mod runtime;
 mod store;
+mod token_windows;
 
 pub use catalog::{
     CatalogError, CatalogFilter, CatalogPage, CatalogRow, CatalogSource, CatalogStatus, DeviceFit,
@@ -26,9 +27,13 @@ pub use hf_snapshot::{
 };
 pub use mesc_verify::{MescEpochStore, MescVerifyError, verify_mesc_release_dir};
 pub use onnx_runtime::{
-    ONNX_TOKEN_CLASSIFIER_RUNTIME_ID, OnnxRuntimeError, OnnxTokenClassifierRuntime,
-    PreparedOnnxTokenClassifier,
+    DocumentRunOptions, ONNX_TOKEN_CLASSIFIER_RUNTIME_ID, OnnxRuntimeError,
+    OnnxTokenClassifierRuntime, PreparedOnnxTokenClassifier,
 };
 pub use residency::{EvictionPlan, ResidencyError, ResidencyPool};
 pub use runtime::{FixtureRuntime, PackRuntimeAdapter, RuntimeOutput};
 pub use store::PackStore;
+pub use token_windows::{
+    BestContextVotes, CharSpan, DecodedEntity, MAX_WINDOWS, TokenLogits, TokenWindow, WindowError,
+    decode_entities, default_stride, plan_windows,
+};

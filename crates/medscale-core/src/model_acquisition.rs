@@ -16,8 +16,22 @@
 //! - each file is checked for exact size and digest before it is kept.
 //!
 //! Files are written to a staging directory and moved into place only after
-//! every file verified; any failure leaves nothing behind. No patient or
-//! research input is ever sent: requests carry only public repository paths.
+//! every file verified. No patient or research input is ever sent: requests
+//! carry only public repository paths.
+//!
+//! Recovery is file-granular:
+//! - the staging directory records the pinned commit it belongs to;
+//! - after an interrupted acquisition (transport failure, timeout, HTTP error),
+//!   only files that already passed size and digest verification remain in
+//!   staging, and a retry for the same commit re-verifies and reuses them
+//!   instead of downloading them again;
+//! - a staged file that no longer verifies is discarded and downloaded again;
+//! - staging for a different commit is discarded;
+//! - an integrity failure (digest or size mismatch, a refused host) removes
+//!   staging entirely.
+//!
+//! Byte-range resume inside one file is not implemented: the Governed Browse
+//! transport performs plain GETs without `Range` headers.
 
 use std::path::{Path, PathBuf};
 use std::time::Duration;
@@ -63,6 +77,9 @@ pub struct AcquiredFile {
     pub name: String,
     pub bytes: u64,
     pub sha256: String,
+    /// True when the file was reused from verified staging of an earlier,
+    /// interrupted acquisition of the same commit.
+    pub resumed: bool,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -72,6 +89,53 @@ pub struct AcquisitionReport {
     pub snapshot_dir: PathBuf,
     pub files: Vec<AcquiredFile>,
     pub total_bytes: u64,
+    /// Bytes reused from verified staging rather than downloaded.
+    pub resumed_bytes: u64,
+}
+
+/// Name of the marker that binds a staging directory to one pinned commit.
+const STAGING_MARKER: &str = ".medscale-staging";
+
+impl AcquisitionError {
+    /// Integrity failures discard staging; interruptions keep verified files.
+    fn discards_staging(&self) -> bool {
+        matches!(
+            self,
+            AcquisitionError::Snapshot(_)
+                | AcquisitionError::HostNotAllowed(_)
+                | AcquisitionError::UrlRefused(_)
+                | AcquisitionError::TooLarge { .. }
+        )
+    }
+}
+
+/// Opens (or creates) staging for `repo_id@revision`, discarding staging that
+/// belongs to any other commit.
+fn open_staging(staging: &Path, repo_id: &str, revision: &str) -> Result<(), AcquisitionError> {
+    let marker = format!("{repo_id}@{revision}\n");
+    let current = std::fs::read_to_string(staging.join(STAGING_MARKER)).ok();
+    if current.as_deref() != Some(marker.as_str()) {
+        let _ = std::fs::remove_dir_all(staging);
+    }
+    std::fs::create_dir_all(staging).map_err(|e| io(&e))?;
+    std::fs::write(staging.join(STAGING_MARKER), marker).map_err(|e| io(&e))
+}
+
+/// A staged file is reused only when it still has the exact size and digest.
+fn staged_file(meta: &HfRepoMetadata, staging: &Path, name: &str, size: u64) -> Option<String> {
+    let path = staging.join(name);
+    let len = std::fs::metadata(&path).ok()?.len();
+    let verified = if len == size {
+        std::fs::read(&path)
+            .ok()
+            .and_then(|body| verify_file(meta, name, &body).ok())
+    } else {
+        None
+    };
+    if verified.is_none() {
+        let _ = std::fs::remove_file(&path);
+    }
+    verified
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -229,14 +293,23 @@ pub fn acquire_snapshot(
         });
     }
 
-    // 3. Download into staging; verify each file; publish atomically.
+    // 3. Download into staging (reusing verified files of an interrupted
+    //    acquisition of the same commit); verify each file; publish atomically.
     let staging = dest_dir.with_extension("partial");
-    let _ = std::fs::remove_dir_all(&staging);
-    std::fs::create_dir_all(&staging).map_err(|e| io(&e))?;
+    open_staging(&staging, &meta.id, &meta.sha)?;
     let result: Result<Vec<AcquiredFile>, AcquisitionError> = (|| {
         let mut acquired = Vec::new();
         for name in files {
             let size = expected_size(&meta, name)?;
+            if let Some(sha256) = staged_file(&meta, &staging, name, size) {
+                acquired.push(AcquiredFile {
+                    name: name.to_string(),
+                    bytes: size,
+                    sha256,
+                    resumed: true,
+                });
+                continue;
+            }
             let url = format!(
                 "https://huggingface.co/{}/resolve/{}/{name}",
                 meta.id, meta.sha
@@ -249,11 +322,15 @@ pub fn acquire_snapshot(
                 }));
             }
             let sha256 = verify_file(&meta, name, &body)?;
-            std::fs::write(staging.join(name), &body).map_err(|e| io(&e))?;
+            // Write then rename, so staging never holds a torn file.
+            let part = staging.join(format!("{name}.part"));
+            std::fs::write(&part, &body).map_err(|e| io(&e))?;
+            std::fs::rename(&part, staging.join(name)).map_err(|e| io(&e))?;
             acquired.push(AcquiredFile {
                 name: name.to_string(),
                 bytes: size,
                 sha256,
+                resumed: false,
             });
         }
         std::fs::write(staging.join("metadata.json"), &meta_bytes).map_err(|e| io(&e))?;
@@ -262,18 +339,23 @@ pub fn acquire_snapshot(
     let acquired = match result {
         Ok(a) => a,
         Err(e) => {
-            let _ = std::fs::remove_dir_all(&staging);
+            if e.discards_staging() {
+                let _ = std::fs::remove_dir_all(&staging);
+            }
             return Err(e);
         }
     };
+    let _ = std::fs::remove_file(staging.join(STAGING_MARKER));
     let _ = std::fs::remove_dir_all(dest_dir);
     std::fs::rename(&staging, dest_dir).map_err(|e| io(&e))?;
+    let resumed_bytes = acquired.iter().filter(|f| f.resumed).map(|f| f.bytes).sum();
     Ok(AcquisitionReport {
         repo_id: meta.id.clone(),
         revision: meta.sha.clone(),
         snapshot_dir: dest_dir.to_path_buf(),
         files: acquired,
         total_bytes: total,
+        resumed_bytes,
     })
 }
 
@@ -408,6 +490,157 @@ mod tests {
             "{err}"
         );
         assert!(!d.exists() && !d.with_extension("partial").exists());
+    }
+
+    /// Metadata and both JSON files answer; the ONNX download times out.
+    fn interrupted_transport(f: &Fixture) -> ScriptedBrowseTransport {
+        let base = format!("https://huggingface.co/{REPO}/resolve/{SHA}");
+        ScriptedBrowseTransport::new()
+            .route(
+                &format!("https://huggingface.co/api/models/{REPO}?blobs=true"),
+                ScriptedBrowseTransport::ok("application/json", f.meta.as_bytes()),
+            )
+            .route(
+                &format!("{base}/config.json"),
+                ScriptedBrowseTransport::ok("application/json", &f.config),
+            )
+            .route(
+                &format!("{base}/tokenizer.json"),
+                ScriptedBrowseTransport::ok("application/json", &f.tokenizer),
+            )
+            .route(
+                &format!("{base}/model.onnx"),
+                Err(BrowseTransportError::Timeout),
+            )
+    }
+
+    /// Only metadata and the ONNX file answer: any JSON re-download fails.
+    fn onnx_only_transport(f: &Fixture) -> ScriptedBrowseTransport {
+        ScriptedBrowseTransport::new()
+            .route(
+                &format!("https://huggingface.co/api/models/{REPO}?blobs=true"),
+                ScriptedBrowseTransport::ok("application/json", f.meta.as_bytes()),
+            )
+            .route(
+                &format!("https://huggingface.co/{REPO}/resolve/{SHA}/model.onnx"),
+                ScriptedBrowseTransport::ok("application/octet-stream", &f.onnx),
+            )
+    }
+
+    #[test]
+    fn interrupted_acquisition_resumes_from_verified_staging() {
+        let f = fixture(false);
+        let d = dest("resume");
+        let staging = d.with_extension("partial");
+        let err = acquire_snapshot(
+            &interrupted_transport(&f),
+            &f.catalog,
+            &consent(1_000_000),
+            &d,
+        )
+        .unwrap_err();
+        assert!(
+            matches!(
+                err,
+                AcquisitionError::Transport(BrowseTransportError::Timeout)
+            ),
+            "{err}"
+        );
+        assert!(!d.exists());
+        assert!(staging.join("config.json").is_file());
+        assert!(staging.join("tokenizer.json").is_file());
+        assert!(!staging.join("model.onnx").exists());
+
+        let report = acquire_snapshot(
+            &onnx_only_transport(&f),
+            &f.catalog,
+            &consent(1_000_000),
+            &d,
+        )
+        .unwrap();
+        let resumed: Vec<_> = report
+            .files
+            .iter()
+            .filter(|x| x.resumed)
+            .map(|x| x.name.as_str())
+            .collect();
+        assert_eq!(resumed, ["config.json", "tokenizer.json"]);
+        assert_eq!(
+            report.resumed_bytes,
+            (f.config.len() + f.tokenizer.len()) as u64
+        );
+        assert!(d.join("model.onnx").is_file());
+        assert!(!d.join(STAGING_MARKER).exists());
+        assert!(!staging.exists());
+        let _ = std::fs::remove_dir_all(d);
+    }
+
+    #[test]
+    fn corrupted_staged_file_is_downloaded_again() {
+        let f = fixture(false);
+        let d = dest("corrupt");
+        let staging = d.with_extension("partial");
+        let _ = acquire_snapshot(
+            &interrupted_transport(&f),
+            &f.catalog,
+            &consent(1_000_000),
+            &d,
+        );
+        // Same size, different bytes: must not be reused.
+        std::fs::write(staging.join("config.json"), vec![b' '; f.config.len()]).unwrap();
+        // The JSON files are not scripted here, so the corrupted file cannot be
+        // replaced and the run stops; nothing unverified is published.
+        let err = acquire_snapshot(
+            &onnx_only_transport(&f),
+            &f.catalog,
+            &consent(1_000_000),
+            &d,
+        )
+        .unwrap_err();
+        assert!(matches!(err, AcquisitionError::Transport(_)), "{err}");
+        assert!(!d.exists());
+        assert!(!staging.join("config.json").exists());
+        let report = acquire_snapshot(
+            &transport(&f, &f.onnx, "cdn-lfs.huggingface.co"),
+            &f.catalog,
+            &consent(1_000_000),
+            &d,
+        )
+        .unwrap();
+        let config = report
+            .files
+            .iter()
+            .find(|x| x.name == "config.json")
+            .unwrap();
+        assert!(!config.resumed);
+        assert_eq!(std::fs::read(d.join("config.json")).unwrap(), f.config);
+        let _ = std::fs::remove_dir_all(d);
+    }
+
+    #[test]
+    fn staging_for_another_commit_is_discarded() {
+        let f = fixture(false);
+        let d = dest("stale");
+        let staging = d.with_extension("partial");
+        let _ = std::fs::remove_dir_all(&staging);
+        std::fs::create_dir_all(&staging).unwrap();
+        std::fs::write(
+            staging.join(STAGING_MARKER),
+            format!("{REPO}@{}\n", "0".repeat(40)),
+        )
+        .unwrap();
+        std::fs::write(staging.join("config.json"), &f.config).unwrap();
+        std::fs::write(staging.join("stray.bin"), b"x").unwrap();
+        let report = acquire_snapshot(
+            &transport(&f, &f.onnx, "cdn-lfs.huggingface.co"),
+            &f.catalog,
+            &consent(1_000_000),
+            &d,
+        )
+        .unwrap();
+        assert_eq!(report.resumed_bytes, 0);
+        assert!(!d.join("stray.bin").exists());
+        let _ = std::fs::remove_dir_all(d);
     }
 
     #[test]
