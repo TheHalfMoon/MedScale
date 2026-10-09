@@ -96,10 +96,17 @@ pub fn plan_windows(
     }
 }
 
+/// Source span of one token as char offsets `(start, end)`.
+pub type CharSpan = (usize, usize);
+
+/// One token's selected span and logits.
+pub type TokenLogits = (CharSpan, Vec<f32>);
+
 /// Best-context logits per content token across overlapping windows.
 #[derive(Debug)]
 pub struct BestContextVotes {
-    slots: Vec<Option<(usize, (usize, usize), Vec<f32>)>>,
+    /// Per token: the winning context weight and that window's span and logits.
+    slots: Vec<Option<(usize, TokenLogits)>>,
 }
 
 impl BestContextVotes {
@@ -129,13 +136,13 @@ impl BestContextVotes {
             let weight = 1 + rank.min(n - rank - 1);
             let span = offset(pos);
             let slot = self.slots.get_mut(token).ok_or(WindowError::Uncovered)?;
-            if let Some((_, existing, _)) = slot
+            if let Some((_, (existing, _))) = slot
                 && *existing != span
             {
                 return Err(WindowError::InconsistentOffsets);
             }
-            if slot.as_ref().is_none_or(|(w, _, _)| weight > *w) {
-                *slot = Some((weight, span, row(pos).to_vec()));
+            if slot.as_ref().is_none_or(|(w, _)| weight > *w) {
+                *slot = Some((weight, (span, row(pos).to_vec())));
             }
         }
         Ok(())
@@ -143,10 +150,10 @@ impl BestContextVotes {
 
     /// Every token's selected logits and offsets, or an error if any token
     /// was never covered (no partial result).
-    pub fn finish(self) -> Result<Vec<((usize, usize), Vec<f32>)>, WindowError> {
+    pub fn finish(self) -> Result<Vec<TokenLogits>, WindowError> {
         self.slots
             .into_iter()
-            .map(|s| s.map(|(_, span, logits)| (span, logits)))
+            .map(|s| s.map(|(_, token)| token))
             .collect::<Option<Vec<_>>>()
             .ok_or(WindowError::Uncovered)
     }
@@ -211,7 +218,7 @@ fn flush(
 /// Softmax, arg-max and BIOES/BILOU grouping over per-token logits.
 #[must_use]
 pub fn decode_entities(
-    tokens: &[((usize, usize), Vec<f32>)],
+    tokens: &[TokenLogits],
     labels: &[String],
     text: &str,
     threshold: f32,
