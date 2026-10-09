@@ -217,6 +217,7 @@ impl OnnxTokenClassifierRuntime {
                 )
                 .map_err(|e| OnnxRuntimeError::prepare("input_fact", &e))?;
         }
+        relax_symbolic_value_info(&mut model);
         normalize_static_shape_ops(&mut model);
         let optimized = model
             .into_optimized()
@@ -540,6 +541,52 @@ impl ElementWiseMiniOp for CastToI64 {
     fn eval_out_of_place(&self, t: &Tensor, _out_dt: Option<DatumType>) -> TractResult<Tensor> {
         Ok(t.cast_to::<i64>()?.into_owned())
     }
+}
+
+/// Spec 103: some exports (for example the XLM-R `model_fp16.onnx` files)
+/// declare intermediate `value_info` shapes with symbolic dimensions
+/// (`batch`, `sequence`). `tract-onnx` always imports them as facts, and they
+/// then conflict with the concrete `[1, fixed_sequence_length]` inputs this
+/// runtime sets ("Impossible to unify Sym(batch) with Val(1)"). Symbolic
+/// dimensions are relaxed to unknown, keeping the rank, the concrete
+/// dimensions and the datum type, so analysis derives them from the inputs.
+/// Returns the number of relaxed facts.
+fn relax_symbolic_value_info(model: &mut InferenceModel) -> usize {
+    use tract_hir::infer::{GenericFactoid, ShapeFactoid};
+    let mut relaxed = 0;
+    for node in 0..model.nodes().len() {
+        for slot in 0..model.nodes()[node].outputs.len() {
+            let outlet = OutletId::new(node, slot);
+            let Ok(fact) = model.outlet_fact(outlet) else {
+                continue;
+            };
+            let symbolic = |d: &GenericFactoid<TDim>| matches!(d, GenericFactoid::Only(dim) if dim.to_i64().is_err());
+            if !fact.shape.dims().any(symbolic) {
+                continue;
+            }
+            let dims = fact
+                .shape
+                .dims()
+                .map(|d| {
+                    if symbolic(d) {
+                        GenericFactoid::Any
+                    } else {
+                        d.clone()
+                    }
+                })
+                .collect();
+            let shape = if fact.shape.is_open() {
+                ShapeFactoid::open(dims)
+            } else {
+                ShapeFactoid::closed(dims)
+            };
+            let relaxed_fact = fact.clone().with_shape(shape);
+            if model.set_outlet_fact(outlet, relaxed_fact).is_ok() {
+                relaxed += 1;
+            }
+        }
+    }
+    relaxed
 }
 
 /// ONNX `Sign` for every numeric type. `tract` evaluates `Sign` only on
