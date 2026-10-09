@@ -49,6 +49,8 @@ pub enum OnnxRuntimeError {
     TokenBound,
     #[error("unsupported required model input: {0}")]
     UnsupportedModelInput(String),
+    #[error("tokenizer is a BPE model without merges: text would be split into single characters")]
+    DegenerateTokenizer,
     #[error("model execution failed")]
     ModelExecution,
     /// Preparing the model failed. Preparation happens before any input is
@@ -190,6 +192,7 @@ impl OnnxTokenClassifierRuntime {
 
         let mut tokenizer =
             Tokenizer::from_bytes(&tokenizer_bytes).map_err(|_| OnnxRuntimeError::Tokenizer)?;
+        reject_degenerate_tokenizer(&tokenizer_bytes)?;
         // The runtime owns padding to the fixed sequence length. Exported
         // tokenizers may embed their own fixed padding (OpenMed: 512), which
         // would break that contract, so padding is disabled here. The
@@ -739,6 +742,26 @@ fn relax_symbolic_value_info(model: &mut InferenceModel) -> usize {
     relaxed
 }
 
+/// Spec 103: a BPE tokenizer with a large vocabulary but no merges can only
+/// emit single characters, so the model sees input it was never trained on
+/// and returns plausible-looking but meaningless labels. Observed in the
+/// published OpenMed v3.0.0 XLM-R NER exports (`OpenMed-NER-*-BigMed-278M`:
+/// 250,002-entry BPE vocabulary, zero merges; qualification run
+/// 37974743874 labelled every character `O`). Such tokenizers are refused.
+fn reject_degenerate_tokenizer(bytes: &[u8]) -> Result<(), OnnxRuntimeError> {
+    let json: serde_json::Value =
+        serde_json::from_slice(bytes).map_err(|_| OnnxRuntimeError::Tokenizer)?;
+    let model = &json["model"];
+    if model["type"] == "BPE" {
+        let merges = model["merges"].as_array().map_or(0, Vec::len);
+        let vocab = model["vocab"].as_object().map_or(0, serde_json::Map::len);
+        if merges == 0 && vocab > 1024 {
+            return Err(OnnxRuntimeError::DegenerateTokenizer);
+        }
+    }
+    Ok(())
+}
+
 /// ONNX `Sign` for every numeric type. `tract` evaluates `Sign` only on
 /// floats (and quantized ints); DeBERTa-v2 exports apply it to `int64`
 /// relative positions (`log_bucket_position`). Integers map to -1, 0 or 1
@@ -851,6 +874,26 @@ fn normalize_static_shape_ops(model: &mut InferenceModel) -> usize {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn bpe_without_merges_and_a_large_vocabulary_is_refused() {
+        let vocab: serde_json::Map<String, serde_json::Value> = (0..2000)
+            .map(|i| (format!("t{i}"), serde_json::json!(i)))
+            .collect();
+        let degenerate =
+            serde_json::json!({"model": {"type": "BPE", "vocab": vocab, "merges": []}});
+        assert!(matches!(
+            reject_degenerate_tokenizer(degenerate.to_string().as_bytes()),
+            Err(OnnxRuntimeError::DegenerateTokenizer)
+        ));
+        let merged =
+            serde_json::json!({"model": {"type": "BPE", "vocab": vocab, "merges": ["t 1"]}});
+        assert!(reject_degenerate_tokenizer(merged.to_string().as_bytes()).is_ok());
+        let unigram = serde_json::json!({"model": {"type": "Unigram", "vocab": []}});
+        assert!(reject_degenerate_tokenizer(unigram.to_string().as_bytes()).is_ok());
+        let tiny = serde_json::json!({"model": {"type": "WordLevel", "vocab": {"a": 0}}});
+        assert!(reject_degenerate_tokenizer(tiny.to_string().as_bytes()).is_ok());
+    }
 
     #[test]
     fn sign_covers_signed_unsigned_and_float_tensors() {
