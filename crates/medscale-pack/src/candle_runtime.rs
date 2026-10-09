@@ -81,6 +81,10 @@ pub enum CandleRuntimeError {
     Windowing(#[from] WindowError),
 }
 
+fn parse(what: &'static str) -> impl Fn(serde_json::Error) -> CandleRuntimeError {
+    move |e| CandleRuntimeError::InvalidConfig(format!("{what}: {e}"))
+}
+
 fn prepare_err(e: impl fmt::Display) -> CandleRuntimeError {
     CandleRuntimeError::Prepare(format!("{e}").chars().take(600).collect())
 }
@@ -173,9 +177,6 @@ fn build(
         .map_err(prepare_err)?;
     let hidden = usize_field(config, &["hidden_size", "dim"])?;
     let max_positions = usize_field(config, &["max_position_embeddings"]).unwrap_or(MAX_WINDOW);
-    let parse = |what: &str| {
-        move |e: serde_json::Error| CandleRuntimeError::InvalidConfig(format!("{what}: {e}"))
-    };
     let (encoder, window) = match model_type.as_str() {
         "bert" => {
             let cfg: bert::Config =
