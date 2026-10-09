@@ -204,13 +204,32 @@ fn flush(
     #[allow(clippy::cast_precision_loss)]
     let score = open.scores.iter().sum::<f32>() / open.scores.len() as f32;
     let char_len = chars.len() - 1;
-    if score >= threshold && open.start < open.end && open.end <= char_len {
+    if score < threshold || open.start >= open.end || open.end > char_len {
+        return;
+    }
+    // SentencePiece and byte-level tokenizers include the word-start space in
+    // a token's offsets (" knee"). The span is trimmed to its non-whitespace
+    // extent, and the offsets move with it (a deliberate difference from the
+    // Python source, which keeps the space).
+    let (mut start, mut end) = (open.start, open.end);
+    let is_space = |i: usize| {
+        text[chars[i]..chars[i + 1]]
+            .chars()
+            .all(char::is_whitespace)
+    };
+    while start < end && is_space(start) {
+        start += 1;
+    }
+    while end > start && is_space(end - 1) {
+        end -= 1;
+    }
+    if start < end {
         entities.push(DecodedEntity {
-            text: text[chars[open.start]..chars[open.end]].to_owned(),
+            text: text[chars[start]..chars[end]].to_owned(),
             label: open.label,
             score,
-            start: open.start,
-            end: open.end,
+            start,
+            end,
         });
     }
 }
@@ -369,6 +388,15 @@ mod tests {
         assert_eq!(e[1].text, "diabetes mellitus");
         assert!(e[1].score > 0.99);
         assert!(decode_entities(&tokens, &l, text, 1.0).is_empty());
+    }
+
+    #[test]
+    fn spans_are_trimmed_of_word_start_spaces() {
+        let text = "left knee";
+        let l = labels(&["O", "B-A"]);
+        let e = decode_entities(&[((4, 9), vec![0.0, 9.0])], &l, text, 0.0);
+        assert_eq!((e[0].start, e[0].end, e[0].text.as_str()), (5, 9, "knee"));
+        assert!(decode_entities(&[((4, 5), vec![0.0, 9.0])], &l, text, 0.0).is_empty());
     }
 
     #[test]
