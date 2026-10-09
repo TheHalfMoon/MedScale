@@ -4,6 +4,7 @@ mod candle_runtime;
 mod catalog;
 mod compatibility;
 mod format;
+mod fp16_widen;
 mod hf_snapshot;
 mod mesc_verify;
 mod onnx_runtime;
@@ -21,7 +22,8 @@ pub use catalog::{
     ModelCatalog, SizeMb,
 };
 pub use compatibility::{
-    EVIDENCED_ARCHITECTURES, KNOWN_UNSUPPORTED, RuntimeExpectation, runtime_expectation,
+    EVIDENCED_ARCHITECTURES, KNOWN_DEFECTIVE_EXPORTS, KNOWN_UNSUPPORTED, RuntimeExpectation,
+    runtime_expectation,
 };
 pub use format::{admit_pack_dir, forbidden_reason};
 pub use hf_snapshot::{
