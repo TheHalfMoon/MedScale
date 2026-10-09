@@ -10,6 +10,26 @@ LAUNCH_UI_FROZEN = FALSE
 
 The founder request promotes [095–100](PRODUCTIZATION_PROGRAM.md). Base 1e2b7d94, CI 36480424698 (6/6). Queue/closure supersede summaries ending 073/075. Drafts 124/125 stay separate. Release/privacy/multi-client readiness remains false and PHI remains unauthorized.
 
+## Spec 103 model execution — 2026-10-10
+
+```text
+SPEC_103 = IMPLEMENTATION_IN_PROGRESS
+EXECUTED_TESTED_ARCHITECTURES = bert, distilbert, roberta, modernbert, deberta-v2, xlm-roberta
+TASK_QUALIFIED_MODELS = 0
+CLINICALLY_VALIDATED_MODELS = 0
+RELEASE_READY = FALSE
+```
+
+The founder's issue #183 priority, OpenMed model-execution parity, is tracked in [`specs/103-local-model-catalog/CAPABILITY_MATRIX.md`](../../specs/103-local-model-catalog/CAPABILITY_MATRIX.md). The full lifecycle runs on the pure-Rust tract runtime for six architectures with real OpenMed v3.0.0 models (qualification run 37977100903): catalog, governed acquisition, verification, signed Pack, admission, prepare, run, Model Fleet comparison, residency.
+
+Not done:
+- the other runtimes (ONNX Runtime, MLX/Core ML, PyTorch, Android, WebGPU);
+- GLiNER and multimodal models;
+- interactive DeBERTa prepare time;
+- the Models UI, blocked by F096-T01 ([external gates](EXTERNAL_GATES.md)).
+
+Issue #182 progress on `main`: README, identity audit and guard (#195). Its desktop parts land with the Tauri chain.
+
 ## Historical completion status through Spec 073
 
 ```text
