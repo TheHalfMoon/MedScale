@@ -25,6 +25,7 @@ pub mod legal;
 pub mod medagent;
 pub mod mesc;
 pub mod mobile;
+pub mod model_catalog;
 pub mod model_fleet;
 pub mod network;
 pub mod objects;

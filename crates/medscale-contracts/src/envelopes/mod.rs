@@ -289,6 +289,8 @@ pub enum Capability {
     // Spec 091: federation (signed bundles between trusted institutions).
     FederationAdmin,
     FederationRead,
+    // Spec 103: local model catalog (read-only metadata; no network).
+    ModelCatalogRead,
 }
 
 impl Capability {
@@ -358,6 +360,7 @@ impl Capability {
                 | Self::PackRead
                 | Self::AdapterRead
                 | Self::FederationRead
+                | Self::ModelCatalogRead
         )
     }
 
@@ -542,6 +545,7 @@ impl Capability {
             Self::AdapterRead,
             Self::FederationAdmin,
             Self::FederationRead,
+            Self::ModelCatalogRead,
         ]
     }
 }
@@ -1679,6 +1683,10 @@ pub enum RequestBody {
         act: Box<crate::federation::FederationActRequest>,
     },
     FederationGet,
+    // Spec 103: read-only query over a locally supplied catalog snapshot.
+    ModelCatalogQuery {
+        query: Box<crate::model_catalog::ModelCatalogQueryRequest>,
+    },
 }
 
 impl RequestBody {
@@ -2354,6 +2362,10 @@ pub enum ResponseBody {
     },
     Federation {
         view: Box<crate::federation::FederationView>,
+    },
+    // Spec 103: one page of the local model catalog.
+    ModelCatalogPage {
+        page: Box<crate::model_catalog::ModelCatalogPage>,
     },
 }
 
