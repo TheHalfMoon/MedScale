@@ -1,6 +1,6 @@
 # Spec 103 tasks
 
-Status as of 2026-10-09. `[x]` done, `[~]` partly done (the gap is stated), `[ ]` not started.
+Status as of 2026-10-09 (after #190). `[x]` done, `[~]` partly done (the gap is stated), `[ ]` not started.
 
 - [x] T103-01 (P1) `catalog.rs`: `CatalogRow`, `CatalogStatus` (10-state ladder), snapshot source binding (repository, commit, SHA-256), strict JSONL parser with required fields validated and duplicates rejected. Unknown fields are ignored, not kept. Merged in #184.
 - [~] T103-02 (P1) Filters: task, family, language, format, architecture, license claim, device fit, status, parameter and disk ceilings; stable ordering; offset pagination. **Gap:** no tier filter; offset rather than cursor pagination.
@@ -18,7 +18,7 @@ Status as of 2026-10-09. `[x]` done, `[~]` partly done (the gap is stated), `[ ]
   - hermetic scripted-transport tests.
 
   **Gap:** no resume of interrupted downloads, and **the live acquisition of a real model is not yet executed** (host memory).
-- [~] T103-09 (P4) Budgeted LRU residency pool; Core prepared-model cache migrated to it (#185). **Gap:** no per-architecture compatibility predicates; incompatibility surfaces at `prepare`.
-- [~] T103-10 (P5) Execution evidence for four real OpenMed v3.0.0 models: bert, distilbert, roberta, modernbert (`research.md` §9–10). **Gap:** licenses come from the Hub card claim; a card-level rights review is not recorded. DeBERTa-v2 and XLM-R are not runtime-compatible.
+- [~] T103-09 (P4) Budgeted LRU residency pool; Core prepared-model cache migrated to it (#185). Pre-download runtime expectation per catalog row from recorded evidence, shown in the Core catalog view and CLI (#190). **Gap:** expectations are architecture-level, not per-model verification.
+- [~] T103-10 (P5) Execution evidence for four real OpenMed v3.0.0 models: bert, distilbert, roberta, modernbert (`research.md` §9–10). Card-level rights ledger with base-model lineage: `evidence/103-local-model-catalog/RIGHTS_LEDGER.md`. **Gap:** training-dataset terms (BC5CDR, ANATOMY) are not verified; DeBERTa-v2 and XLM-R are not runtime-compatible.
 - [x] T103-11 (P6) Catalog-admitted Packs run as Model Fleet lanes (end-to-end test, #188).
 - [~] T103-12 Bare model-count claims are blocked by the identity guard (`apps/desktop-tauri/src/identity.test.ts`, on #179). **Gap:** lands with the Tauri chain.
