@@ -49,8 +49,14 @@ pub enum OnnxRuntimeError {
     TokenBound,
     #[error("unsupported required model input: {0}")]
     UnsupportedModelInput(String),
+    #[error("tokenizer is a BPE model without merges: text would be split into single characters")]
+    DegenerateTokenizer,
     #[error("model execution failed")]
     ModelExecution,
+    /// Preparing the model failed. Preparation happens before any input is
+    /// seen, so the detail (tract's message) never contains user text.
+    #[error("model preparation failed at {stage}: {detail}")]
+    Prepare { stage: &'static str, detail: String },
     #[error("model output shape is outside the token-classification contract")]
     OutputShape,
     #[error("model output contained a non-finite logit")]
@@ -127,6 +133,13 @@ impl fmt::Debug for PreparedOnnxTokenClassifier {
     }
 }
 
+impl OnnxRuntimeError {
+    fn prepare(stage: &'static str, error: &impl fmt::Display) -> Self {
+        let detail: String = format!("{error:#}").chars().take(600).collect();
+        Self::Prepare { stage, detail }
+    }
+}
+
 impl OnnxTokenClassifierRuntime {
     /// Construct a runtime with an explicit token ceiling.
     pub fn new(max_tokens: usize) -> Result<Self, OnnxRuntimeError> {
@@ -179,6 +192,7 @@ impl OnnxTokenClassifierRuntime {
 
         let mut tokenizer =
             Tokenizer::from_bytes(&tokenizer_bytes).map_err(|_| OnnxRuntimeError::Tokenizer)?;
+        reject_degenerate_tokenizer(&tokenizer_bytes)?;
         // The runtime owns padding to the fixed sequence length. Exported
         // tokenizers may embed their own fixed padding (OpenMed: 512), which
         // would break that contract, so padding is disabled here. The
@@ -209,12 +223,22 @@ impl OnnxTokenClassifierRuntime {
         }
 
         let mut model_reader = Cursor::new(model_bytes);
-        let mut model = tract_onnx::onnx()
-            .model_for_read(&mut model_reader)
-            .map_err(|_| OnnxRuntimeError::ModelExecution)?;
+        let onnx = tract_onnx::onnx();
+        let mut proto = onnx
+            .proto_model_for_read(&mut model_reader)
+            .map_err(|e| OnnxRuntimeError::prepare("load", &e))?;
+        drop(model_reader);
+        // fp16 exports are widened to fp32 in memory (see `fp16_widen`).
+        if let Some(graph) = proto.graph.as_mut() {
+            crate::fp16_widen::widen_fp16(graph);
+        }
+        let mut model = onnx
+            .model_for_proto_model(&proto)
+            .map_err(|e| OnnxRuntimeError::prepare("load", &e))?;
+        drop(proto);
         let input_outlets = model
             .input_outlets()
-            .map_err(|_| OnnxRuntimeError::ModelExecution)?
+            .map_err(|e| OnnxRuntimeError::prepare("inputs", &e))?
             .to_vec();
         let input_names: Vec<String> = input_outlets
             .iter()
@@ -237,12 +261,13 @@ impl OnnxTokenClassifierRuntime {
                     index,
                     InferenceFact::dt_shape(i64::datum_type(), tvec!(1, fixed_sequence_length)),
                 )
-                .map_err(|_| OnnxRuntimeError::ModelExecution)?;
+                .map_err(|e| OnnxRuntimeError::prepare("input_fact", &e))?;
         }
+        relax_symbolic_value_info(&mut model);
         normalize_static_shape_ops(&mut model);
         let optimized = model
             .into_optimized()
-            .map_err(|_| OnnxRuntimeError::ModelExecution)?;
+            .map_err(|e| OnnxRuntimeError::prepare("optimize", &e))?;
         if optimized
             .output_outlets()
             .map_err(|_| OnnxRuntimeError::OutputShape)?
@@ -262,7 +287,7 @@ impl OnnxTokenClassifierRuntime {
         }
         let runnable = optimized
             .into_runnable()
-            .map_err(|_| OnnxRuntimeError::ModelExecution)?;
+            .map_err(|e| OnnxRuntimeError::prepare("runnable", &e))?;
         let runtime_contract_digest = runtime_contract_digest(pack)?;
 
         Ok(PreparedOnnxTokenClassifier {
@@ -664,6 +689,146 @@ impl ElementWiseMiniOp for CastToI64 {
     }
 }
 
+/// Spec 103: some exports (for example the XLM-R `model_fp16.onnx` files)
+/// declare intermediate `value_info` shapes with symbolic dimensions
+/// (`batch`, `sequence`). `tract-onnx` always imports them as facts, and they
+/// then conflict with the concrete `[1, fixed_sequence_length]` inputs this
+/// runtime sets ("Impossible to unify Sym(batch) with Val(1)"). Symbolic
+/// dimensions are relaxed to unknown, keeping the rank, the concrete
+/// dimensions and the datum type, so analysis derives them from the inputs.
+/// Returns the number of relaxed facts.
+fn relax_symbolic_value_info(model: &mut InferenceModel) -> usize {
+    use tract_hir::infer::{GenericFactoid, ShapeFactoid};
+    let mut relaxed = 0;
+    for node in 0..model.nodes().len() {
+        for slot in 0..model.nodes()[node].outputs.len() {
+            let outlet = OutletId::new(node, slot);
+            let Ok(fact) = model.outlet_fact(outlet) else {
+                continue;
+            };
+            let symbolic = |d: &GenericFactoid<TDim>| matches!(d, GenericFactoid::Only(dim) if dim.to_i64().is_err());
+            if !fact.shape.dims().any(symbolic) {
+                continue;
+            }
+            let dims = fact
+                .shape
+                .dims()
+                .map(|d| {
+                    if symbolic(d) {
+                        GenericFactoid::Any
+                    } else {
+                        d.clone()
+                    }
+                })
+                .collect();
+            let shape = if fact.shape.is_open() {
+                ShapeFactoid::open(dims)
+            } else {
+                ShapeFactoid::closed(dims)
+            };
+            let relaxed_fact = fact.clone().with_shape(shape);
+            if model.set_outlet_fact(outlet, relaxed_fact).is_ok() {
+                relaxed += 1;
+            }
+        }
+    }
+    relaxed
+}
+
+/// Spec 103: a BPE tokenizer with a large vocabulary but no merges can only
+/// emit single characters, so the model sees input it was never trained on
+/// and returns plausible-looking but meaningless labels. Observed in the
+/// published OpenMed v3.0.0 XLM-R NER exports (`OpenMed-NER-*-BigMed-278M`:
+/// 250,002-entry BPE vocabulary, zero merges; qualification run
+/// 37974743874 labelled every character `O`). Such tokenizers are refused.
+fn reject_degenerate_tokenizer(bytes: &[u8]) -> Result<(), OnnxRuntimeError> {
+    let json: serde_json::Value =
+        serde_json::from_slice(bytes).map_err(|_| OnnxRuntimeError::Tokenizer)?;
+    let model = &json["model"];
+    if model["type"] == "BPE" {
+        let merges = model["merges"].as_array().map_or(0, Vec::len);
+        let vocab = model["vocab"].as_object().map_or(0, serde_json::Map::len);
+        if merges == 0 && vocab > 1024 {
+            return Err(OnnxRuntimeError::DegenerateTokenizer);
+        }
+    }
+    Ok(())
+}
+
+/// ONNX `Sign` for every numeric type. `tract` evaluates `Sign` only on
+/// floats (and quantized ints); DeBERTa-v2 exports apply it to `int64`
+/// relative positions (`log_bucket_position`). Integers map to -1, 0 or 1
+/// (unsigned: 0 or 1); floats keep zero and NaN and otherwise take the sign.
+#[derive(Debug, Clone)]
+struct SignAnyNumeric;
+
+impl ElementWiseMiniOp for SignAnyNumeric {
+    fn name(&self) -> String {
+        "medscale.SignAnyNumeric".into()
+    }
+
+    fn output_type(&self, input_type: DatumType) -> Option<DatumType> {
+        Some(input_type)
+    }
+
+    fn eval_out_of_place(&self, t: &Tensor, _out_dt: Option<DatumType>) -> TractResult<Tensor> {
+        fn ints<T: Datum + Copy + PartialOrd + From<i8>>(t: &mut Tensor) -> TractResult<()> {
+            let (zero, one, minus) = (T::from(0), T::from(1), T::from(-1));
+            for x in t.as_slice_mut::<T>()? {
+                *x = if *x > zero {
+                    one
+                } else if *x < zero {
+                    minus
+                } else {
+                    zero
+                };
+            }
+            Ok(())
+        }
+        fn unsigned<T: Datum + Copy + PartialOrd + From<u8>>(t: &mut Tensor) -> TractResult<()> {
+            for x in t.as_slice_mut::<T>()? {
+                *x = if *x > T::from(0) {
+                    T::from(1)
+                } else {
+                    T::from(0)
+                };
+            }
+            Ok(())
+        }
+        let mut out = t.clone();
+        match t.datum_type() {
+            DatumType::I64 => ints::<i64>(&mut out)?,
+            DatumType::I32 => ints::<i32>(&mut out)?,
+            DatumType::I16 => ints::<i16>(&mut out)?,
+            DatumType::I8 => ints::<i8>(&mut out)?,
+            DatumType::U64 => unsigned::<u64>(&mut out)?,
+            DatumType::U32 => unsigned::<u32>(&mut out)?,
+            DatumType::U16 => unsigned::<u16>(&mut out)?,
+            DatumType::U8 => unsigned::<u8>(&mut out)?,
+            DatumType::F64 => {
+                for x in out.as_slice_mut::<f64>()? {
+                    if *x != 0.0 && !x.is_nan() {
+                        *x = x.signum();
+                    }
+                }
+            }
+            DatumType::F32 => {
+                for x in out.as_slice_mut::<f32>()? {
+                    if *x != 0.0 && !x.is_nan() {
+                        *x = x.signum();
+                    }
+                }
+            }
+            other => {
+                return Err(TractError::msg(format!(
+                    "Sign is not defined for {other:?}"
+                )));
+            }
+        }
+        Ok(out)
+    }
+}
+
 /// Spec 103: `tract-onnx` loads ONNX `Shape` and `Cast(to=INT64)` as symbolic
 /// `TDim` operations. In Transformer exports (for example OpenMed BERT token
 /// classifiers) shape arithmetic then meets `i64` constants and analysis fails
@@ -671,12 +836,22 @@ impl ElementWiseMiniOp for CastToI64 {
 /// runtime always fixes every input to a concrete `[1, fixed_sequence_length]`
 /// shape, so those values are concrete integers and can be typed as `i64`
 /// without changing semantics. Only full-range `Shape` nodes and casts to
-/// `TDim` are rewritten; returns the number of rewritten nodes.
+/// `TDim` are rewritten. `Sign` becomes [`SignAnyNumeric`]. The rewrite also
+/// descends into both branches of ONNX `If` (DeBERTa-v2 computes relative
+/// position buckets inside one). Returns the number of rewritten nodes.
 fn normalize_static_shape_ops(model: &mut InferenceModel) -> usize {
     let mut rewritten = 0;
     for node in model.nodes_mut() {
+        if let Some(branch) = node.op_as_mut::<tract_onnx::ops::logic::If>() {
+            rewritten += normalize_static_shape_ops(&mut branch.then_body);
+            rewritten += normalize_static_shape_ops(&mut branch.else_body);
+            continue;
+        }
         let op = format!("{:?}", node.op);
-        if node.op.name() == "Shape" && op.contains("start: 0, end: None") {
+        if node.op.name() == "Sign" || op == "ElementWiseOp(Sign)" {
+            node.op = ElementWiseOp(Box::new(SignAnyNumeric), None).into_hir();
+            rewritten += 1;
+        } else if node.op.name() == "Shape" && op.contains("start: 0, end: None") {
             node.op = tract_hir::ops::expandable::expand(tract_hir::ops::array::Shape::new(
                 i64::datum_type(),
             ));
@@ -687,4 +862,46 @@ fn normalize_static_shape_ops(model: &mut InferenceModel) -> usize {
         }
     }
     rewritten
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn bpe_without_merges_and_a_large_vocabulary_is_refused() {
+        let vocab: serde_json::Map<String, serde_json::Value> = (0..2000)
+            .map(|i| (format!("t{i}"), serde_json::json!(i)))
+            .collect();
+        let degenerate =
+            serde_json::json!({"model": {"type": "BPE", "vocab": vocab, "merges": []}});
+        assert!(matches!(
+            reject_degenerate_tokenizer(degenerate.to_string().as_bytes()),
+            Err(OnnxRuntimeError::DegenerateTokenizer)
+        ));
+        let merged =
+            serde_json::json!({"model": {"type": "BPE", "vocab": vocab, "merges": ["t 1"]}});
+        assert!(reject_degenerate_tokenizer(merged.to_string().as_bytes()).is_ok());
+        let unigram = serde_json::json!({"model": {"type": "Unigram", "vocab": []}});
+        assert!(reject_degenerate_tokenizer(unigram.to_string().as_bytes()).is_ok());
+        let tiny = serde_json::json!({"model": {"type": "WordLevel", "vocab": {"a": 0}}});
+        assert!(reject_degenerate_tokenizer(tiny.to_string().as_bytes()).is_ok());
+    }
+
+    #[test]
+    fn sign_covers_signed_unsigned_and_float_tensors() {
+        let op = SignAnyNumeric;
+        let i = op
+            .eval_out_of_place(&tensor1(&[-7i64, 0, 3, i64::MIN]), None)
+            .unwrap();
+        assert_eq!(i.as_slice::<i64>().unwrap(), &[-1, 0, 1, -1]);
+        let u = op.eval_out_of_place(&tensor1(&[0u8, 9]), None).unwrap();
+        assert_eq!(u.as_slice::<u8>().unwrap(), &[0, 1]);
+        let f = op
+            .eval_out_of_place(&tensor1(&[-2.5f32, 0.0, 4.0]), None)
+            .unwrap();
+        assert_eq!(f.as_slice::<f32>().unwrap(), &[-1.0, 0.0, 1.0]);
+        assert_eq!(op.output_type(DatumType::I64), Some(DatumType::I64));
+        assert!(op.eval_out_of_place(&tensor1(&[true]), None).is_err());
+    }
 }

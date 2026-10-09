@@ -11,20 +11,28 @@ use serde::Serialize;
 use crate::catalog::CatalogRow;
 
 /// Architectures with at least one OpenMed v3.0.0 model executed end to end
-/// (catalog → verified snapshot → signed Pack → admission → run).
-pub const EVIDENCED_ARCHITECTURES: &[&str] = &["bert", "distilbert", "roberta", "modernbert"];
+/// (catalog → verified snapshot → signed Pack → admission → run). DeBERTa-v2
+/// and XLM-R were added with qualification run 37977100903 (XLM-R through its
+/// fp16 export, widened to fp32 at load).
+pub const EVIDENCED_ARCHITECTURES: &[&str] = &[
+    "bert",
+    "distilbert",
+    "roberta",
+    "modernbert",
+    "deberta-v2",
+    "xlm-roberta",
+];
 
 /// Architectures recorded as not supported by the current runtime, with the cause.
-pub const KNOWN_UNSUPPORTED: &[(&str, &str)] = &[
-    (
-        "deberta-v2",
-        "tract does not evaluate Sign on I64 (relative-position buckets), including inside an If subgraph",
-    ),
-    (
-        "xlm-roberta",
-        "fp32 exports exceed the 1 GiB Pack bound and int8 exports need quantized operators tract does not prepare",
-    ),
-];
+pub const KNOWN_UNSUPPORTED: &[(&str, &str)] = &[];
+
+/// Published exports known to be defective, matched by architecture and a
+/// repository-id prefix, with the cause.
+pub const KNOWN_DEFECTIVE_EXPORTS: &[(&str, &str, &str)] = &[(
+    "xlm-roberta",
+    "OpenMed/OpenMed-NER-",
+    "the published tokenizer.json is a BPE model with zero merges, so text is split into single characters; the runtime refuses it",
+)];
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
@@ -53,6 +61,14 @@ pub fn runtime_expectation(row: &CatalogRow) -> RuntimeExpectation {
         return RuntimeExpectation::NoOnnxArtifact;
     }
     let arch = row.architecture.to_ascii_lowercase();
+    if let Some((_, _, reason)) = KNOWN_DEFECTIVE_EXPORTS
+        .iter()
+        .find(|(a, prefix, _)| *a == arch && row.repo_id.starts_with(prefix))
+    {
+        return RuntimeExpectation::KnownUnsupported {
+            reason: (*reason).to_string(),
+        };
+    }
     if let Some((_, reason)) = KNOWN_UNSUPPORTED.iter().find(|(a, _)| *a == arch) {
         return RuntimeExpectation::KnownUnsupported {
             reason: (*reason).to_string(),
@@ -72,12 +88,16 @@ mod tests {
     const COMMIT: &str = "ea920f36fadd7b45935247d639f0ffa1ef493b23";
 
     fn row(task: &str, arch: &str, formats: &str) -> CatalogRow {
+        named("Org/m", task, arch, formats)
+    }
+
+    fn named(repo: &str, task: &str, arch: &str, formats: &str) -> CatalogRow {
         let line = format!(
-            r#"{{"repo_id":"Org/m","family":"NER","task":"{task}","architecture":"{arch}","formats":{formats},"license":"apache-2.0"}}"#
+            r#"{{"repo_id":"{repo}","family":"NER","task":"{task}","architecture":"{arch}","formats":{formats},"license":"apache-2.0"}}"#
         );
         ModelCatalog::import("s/f", COMMIT, line.as_bytes())
             .unwrap()
-            .get("Org/m")
+            .get(repo)
             .unwrap()
             .clone()
     }
@@ -96,12 +116,26 @@ mod tests {
             )),
             RuntimeExpectation::ExpectedRunnable
         );
-        assert!(matches!(
+        assert_eq!(
             runtime_expectation(&row("token-classification", "deberta-v2", r#"["onnx"]"#)),
-            RuntimeExpectation::KnownUnsupported { .. }
-        ));
+            RuntimeExpectation::ExpectedRunnable
+        );
+        assert_eq!(
+            runtime_expectation(&named(
+                "OpenMed/OpenMed-PII-Spanish-BigMed-Large-278M-v1-onnx-android",
+                "token-classification",
+                "xlm-roberta",
+                r#"["onnx"]"#
+            )),
+            RuntimeExpectation::ExpectedRunnable
+        );
         assert!(matches!(
-            runtime_expectation(&row("token-classification", "xlm-roberta", r#"["onnx"]"#)),
+            runtime_expectation(&named(
+                "OpenMed/OpenMed-NER-DiseaseDetect-BigMed-278M-v1-onnx-android",
+                "token-classification",
+                "xlm-roberta",
+                r#"["onnx"]"#
+            )),
             RuntimeExpectation::KnownUnsupported { .. }
         ));
         assert_eq!(
