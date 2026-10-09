@@ -147,6 +147,57 @@ pub fn query_catalog_snapshot(
     })
 }
 
+/// The `ModelCatalogRead` capability body: one catalog page as a contract
+/// type. Read-only; the snapshot is a local file.
+pub fn catalog_page(
+    request: &medscale_contracts::model_catalog::ModelCatalogQueryRequest,
+) -> Result<medscale_contracts::model_catalog::ModelCatalogPage, ModelCatalogError> {
+    let query = CatalogQuery {
+        text: request.text.clone(),
+        task: request.task.clone(),
+        family: request.family.clone(),
+        language: request.language.clone(),
+        format: request.format.clone(),
+        architecture: request.architecture.clone(),
+        license_claim: request.license_claim.clone(),
+        device_fit: request.device_fit.clone(),
+        status: request.status.clone(),
+        max_params: request.max_params,
+        max_disk_mb: request.max_disk_mb,
+        offset: request.offset as usize,
+        limit: request.limit as usize,
+    };
+    let view = query_catalog_snapshot(
+        Path::new(&request.snapshot_path),
+        &request.repository,
+        &request.commit,
+        &query,
+    )?;
+    let to_json = |value: &CatalogRowView| {
+        serde_json::to_value(value).map_err(|e| ModelCatalogError::Io(e.to_string()))
+    };
+    Ok(medscale_contracts::model_catalog::ModelCatalogPage {
+        repository: view.source.repository.clone(),
+        commit: view.source.commit.clone(),
+        manifest_sha256: view.source.manifest_sha256.clone(),
+        total_rows: view.total_rows as u64,
+        status_counts: view
+            .status_counts
+            .iter()
+            .map(|(status, count)| {
+                let key = serde_json::to_value(status)
+                    .ok()
+                    .and_then(|v| v.as_str().map(str::to_owned))
+                    .unwrap_or_else(|| format!("{status:?}"));
+                (key, *count as u64)
+            })
+            .collect(),
+        total_matching: view.total_matching as u64,
+        next_offset: view.next_offset.map(|o| o as u64),
+        rows: view.rows.iter().map(to_json).collect::<Result<_, _>>()?,
+    })
+}
+
 /// Verifies a locally supplied Hub snapshot against its catalog row and writes
 /// a signed token-classification Pack to `out_dir`. Returns the Pack id.
 /// Admission is a separate `PacksInstallLocal` call.
