@@ -57,9 +57,9 @@ jobs:
             onnx: model.onnx
             text: "Patiënt Jan de Vries, geboren op 12 maart 1980, woont in Utrecht."
           - arch: xlm-roberta-fp16
-            repo: OpenMed/OpenMed-NER-DiseaseDetect-BigMed-278M-v1-onnx-android
+            repo: OpenMed/OpenMed-PII-Spanish-BigMed-Large-278M-v1-onnx-android
             onnx: model_fp16.onnx
-            text: "The patient has type 2 diabetes mellitus and chronic kidney disease."
+            text: "La paciente María García, nacida el 3 de mayo de 1975, vive en Sevilla."
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v4
 
