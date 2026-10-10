@@ -1,7 +1,7 @@
 # OpenMed ↔ MedScale model-execution capability matrix (Spec 103, issue #183)
 
 **Baseline:** OpenMed v3.0.0, `maziyarpanahi/openmed@ea920f36fadd7b45935247d639f0ffa1ef493b23`, source-read. Newer upstream changes are not part of this baseline.
-**MedScale:** `main` (Spec 103 PRs #184–#200 and Spec 104 PR #198 merged). A row's status changes only with merged code and recorded evidence.
+**MedScale:** `main` (Spec 103 PRs #184–#203 and Spec 104 PR #198 merged). A row's status changes only with merged code and recorded evidence.
 **Evidence base:** real-model qualification on free GitHub runners (Linux x64 CPU, synthetic text):
 - ONNX on tract: run [37984399447](https://github.com/TheHalfMoon/MedScale/actions/runs/37984399447), on the exact code of #196;
 - safetensors on candle: run [37986892863](https://github.com/TheHalfMoon/MedScale/actions/runs/37986892863). Each model's catalog binding, per-file digests, signed Pack and admission were verified before execution.
@@ -19,7 +19,7 @@ Status vocabulary:
 |---|---|---|---|
 | Discover / search | `models.jsonl` (2,266 rows), `core/model_registry.py`, `core/model_search.py` | Bounded JSONL import, 10-state status ladder, filters, stable order, pagination (`medscale-pack/src/catalog.rs`). Core capability `ModelCatalogRead` (#193). CLI `packs catalog` | IMPLEMENTED (no tier filter; offset pagination) |
 | Inspect before download | model cards, size estimates | Size estimate labelled `estimated`. Pre-download `runtime_expectation` per row from recorded evidence (`compatibility.rs`), including known-defective exports | IMPLEMENTED (expectations are architecture-level) |
-| Acquire | `huggingface_hub.snapshot_download`, `core/hf_hub.py`; Android `ModelDownloader.kt` | Per-model consent with a byte ceiling, Governed Browse transport, Hub host allowlist, pinned commit, atomic staging (#187). File-level resume of interrupted acquisitions (#192) | IMPLEMENTED (#187, #192). No byte-range resume. The live CLI acquisition is not exercised on the founder workstation (memory) |
+| Acquire | `huggingface_hub.snapshot_download`, `core/hf_hub.py`; Android `ModelDownloader.kt` | Per-model consent with a byte ceiling, Governed Browse transport, Hub host allowlist, pinned commit, atomic staging (#187). File-level resume of interrupted acquisitions (#192) | IMPLEMENTED (#187, #192, #202, #203). Live acquisition through the product CLI runs on CI (run 38037709005). Repositories updated after the catalog snapshot are acquired at the catalog-pinned revision found in their commit history (#203). No byte-range resume. The live CLI acquisition is not exercised on the founder workstation (memory) |
 | Verify | `core/model_integrity.py`, pinned revisions | OpenMed reproducibility hash ported; per-file LFS SHA-256 or git-blob SHA-1; exact sizes; gated and private repositories refused (`hf_snapshot.rs`) | IMPLEMENTED |
 | Admit | n/a (OpenMed loads directly) | Signed MedScale Pack (synthetic trust root), anti-rollback, provenance, `PacksInstallLocal` | IMPLEMENTED (production signing `NOT_GRANTED`) |
 | Load / prepare | `onnx/inference.py` `OnnxModel.from_pretrained`; `core/backends.py` | tract static-shape plan. Normalisations: `Shape`/`Cast→TDim`, integer `Sign`, `If` branches, symbolic `value_info` relaxation, fp16→fp32 widening. Degenerate tokenizers refused (#196) | IMPLEMENTED for 6 architectures (#196) |
@@ -34,7 +34,7 @@ Status vocabulary:
 | ONNX on CPU | ONNX Runtime `CPUExecutionProvider`; fp32 / int8 variants; threads | tract 0.22.4 (pure Rust, no native runtime download). fp32 and fp16 (widened) | IMPLEMENTED. int8 exports not prepared (quantized operators) |
 | ONNX Runtime (native) | yes | Evaluated, not admitted: tract covers all six qualified architectures. ORT adds a native binary to the supply chain; it would mainly help DeBERTa prepare time and int8 | NOT IMPLEMENTED by decision. Revisit if int8 or prepare time becomes a product requirement |
 | PyTorch / Transformers weights | `HuggingFaceBackend` (Python) | **Native safetensors runtime on `candle` 0.9.1** (Spec 104): no Python, no pickle, no executable code. Encoders from `candle-transformers`, MedScale-built heads, same windowing and decoding | IMPLEMENTED (#198). 5 architectures executed on CI; scores match the ONNX runs to about four decimals. Pickle-only weights are refused |
-| Apple MLX | `openmed/mlx/*` (bert, deberta-v2, modernbert, longformer, gliner heads) | — | NOT IMPLEMENTED. Needs a dependency-admission spec plus Apple Silicon qualification (macOS CI runners are arm64) |
+| Apple MLX | `openmed/mlx/*` (bert, deberta-v2, modernbert, longformer, gliner heads) | **MLX `mlx-fp` exports run on any platform** through the candle runtime: OpenMed's key renaming is ported (`mlx_layout.rs`), and tensor values are unchanged (#203). There is no MLX runtime on Apple GPUs | PARTIAL: bert, distilbert, roberta and deberta-v2 MLX exports executed (runs 38039625442, 38041300631; scores identical to the safetensors runs). Quantized MLX refused; GLiNER MLX heads not implemented |
 | Core ML | export only (`coreml` extra) | — | NOT IMPLEMENTED |
 | OpenVINO / TensorRT / GGUF | exporters and sessions | — | NOT IMPLEMENTED |
 | Android | `android/openmedkit` (ORT Mobile, accelerator fallback, model cache/downloader) | No Android surface | NOT IMPLEMENTED |
@@ -74,11 +74,14 @@ These are architecture-level **expectations**, not tests:
 |---|---|
 | Expected runnable via ONNX on tract | 646 |
 | Expected runnable via safetensors on candle | 582 |
+| Expected runnable via MLX `mlx-fp` exports on candle | 474 |
 | Known blocked: XLM-R NER defective tokenizer | 65 |
-| Known blocked: PyTorch-format XLM-R over the 1 GiB bound | 122 |
+| Known blocked: XLM-R over the 1 GiB bound (PyTorch-format 122, MLX 122) | 244 |
 | Known blocked: GLiNER, pickle-only weights (`pytorch_model.bin`) | 91 |
-| MLX-only repositories (no MLX runtime in MedScale) | 658 |
-| Other (untested architectures, generative, vision) | 102 |
+| Known blocked: quantized MLX exports | 6 |
+| Untested (zero-shot MLX, unevidenced architectures, generative, vision) | 158 |
+
+Expected runnable in total: **1,702 of 2,266**. Each runtime and format is backed by real runs of one model per architecture; individual rows are not tested.
 
 **Correction (2026-10-10).** An earlier revision of this table, merged in #199, counted 1,109 safetensors candidates and 244 XLM-R rows over the bound. OpenMed lists its `*-mlx` repositories with formats `["mlx-fp", "pytorch"]`, but those repositories publish MLX weights only. They are now counted as MLX-only, here and in the runtime expectation (#198).
 
