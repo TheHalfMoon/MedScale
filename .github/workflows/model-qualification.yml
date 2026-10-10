@@ -36,36 +36,26 @@ jobs:
       max-parallel: 3
       matrix:
         include:
-          - arch: bert
-            repo: OpenMed/OpenMed-NER-DiseaseDetect-ElectraMed-33M-v1-onnx-android
-            onnx: model.onnx
-            test: openmed_snapshot_external_103
-            text: "The patient has type 2 diabetes mellitus and chronic kidney disease."
-          - arch: distilbert
-            repo: OpenMed/OpenMed-NER-AnatomyDetect-TinyMed-65M-v1-onnx-android
-            onnx: model.onnx
-            test: openmed_snapshot_external_103
+          - arch: bert-mlx
+            repo: OpenMed/OpenMed-NER-AnatomyDetect-ElectraMed-33M-mlx
+            onnx: weights.safetensors
+            test: safetensors_external_104
             text: "Pain in the left knee radiates to the right ankle."
-          - arch: roberta
-            repo: OpenMed/OpenMed-NER-AnatomyDetect-TinyMed-82M-v1-onnx-android
-            onnx: model.onnx
-            test: openmed_snapshot_external_103
+          - arch: distilbert-mlx
+            repo: OpenMed/OpenMed-NER-AnatomyDetect-TinyMed-65M-mlx
+            onnx: weights.safetensors
+            test: safetensors_external_104
             text: "Pain in the left knee radiates to the right ankle."
-          - arch: modernbert
-            repo: OpenMed/OpenMed-NER-AnatomyDetect-ModernClinical-149M-v1-onnx-android
-            onnx: model.onnx
-            test: openmed_snapshot_external_103
+          - arch: roberta-mlx
+            repo: OpenMed/OpenMed-NER-AnatomyDetect-TinyMed-82M-mlx
+            onnx: weights.safetensors
+            test: safetensors_external_104
             text: "Pain in the left knee radiates to the right ankle."
-          - arch: deberta-v2
+          - arch: deberta-v2-onnx
             repo: OpenMed/OpenMed-PII-Dutch-SuperClinical-Small-44M-v1-onnx-android
             onnx: model.onnx
             test: openmed_snapshot_external_103
-            text: "Patiënt Jan de Vries, geboren op 12 maart 1980, woont in Utrecht."
-          - arch: xlm-roberta-fp16
-            repo: OpenMed/OpenMed-PII-Spanish-BigMed-Large-278M-v1-onnx-android
-            onnx: model_fp16.onnx
-            test: openmed_snapshot_external_103
-            text: "La paciente María García, nacida el 3 de mayo de 1975, vive en Sevilla."
+            text: "Pain in the left knee radiates to the right ankle."
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v4
 
