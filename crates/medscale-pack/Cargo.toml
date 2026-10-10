@@ -26,6 +26,7 @@ tokenizers = { workspace = true }
 candle-core = { workspace = true, features = ["metal"] }
 candle-nn = { workspace = true, features = ["metal"] }
 candle-transformers = { workspace = true, features = ["metal"] }
+candle-metal-kernels = { workspace = true }
 
 [lints]
 workspace = true
