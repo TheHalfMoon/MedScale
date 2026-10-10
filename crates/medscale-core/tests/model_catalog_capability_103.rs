@@ -83,7 +83,7 @@ fn catalog_query_is_dispatched_read_only_without_a_vault() {
         kinds,
         [
             ("OpenMed/A-bert", "expected_runnable"),
-            ("OpenMed/C-mlx", "no_onnx_artifact"),
+            ("OpenMed/C-mlx", "expected_runnable_safetensors"),
             ("OpenMed/OpenMed-NER-B-xlmr", "known_unsupported"),
         ]
     );
