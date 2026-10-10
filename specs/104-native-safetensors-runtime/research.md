@@ -59,3 +59,9 @@ OpenMed runs these models through Python Transformers/PyTorch (`core/backends.py
 - ModernBERT token classification: `model.*` (encoder), `head.dense` / `head.norm` (`ModernBertHead`), then `classifier`.
 - Hugging Face prefixes: `bert.`, `distilbert.`, `roberta.`, `deberta.`; ModernBERT uses `model.`.
 - `VarBuilder::from_buffered_safetensors(bytes, DType::F32, &Device::Cpu)` converts bf16/fp16 tensors to f32 on access.
+
+## 5. What the PyTorch-format rows actually ship (sampled 2026-10-10)
+
+- **MLX repositories:** OpenMed v3.0.0 lists them (`*-mlx`) with formats `["mlx-fp", "pytorch"]`, but they publish MLX weights only. This covers 527 of the 1,109 PyTorch-format rows of the five evidenced architectures, and 122 of the 244 XLM-R rows. They are not candidates for this runtime, and the compatibility expectation treats any MLX format as "no runnable artifact".
+- **Non-MLX rows:** 15 of the 15 sampled ship `model.safetensors`, giving 582 candidates for the five architectures. A pickle-only repository would be refused at acquisition.
+- **GLiNER zero-shot repositories** (91 rows, for example `OpenMed-ZeroShot-NER-Anatomy-Tiny-60M` at `65f3fb2f`) ship only `pytorch_model.bin` (pickle). They are refused by R103-06 / R104-02 until upstream publishes safetensors.

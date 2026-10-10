@@ -75,10 +75,18 @@ pub fn runtime_expectation(row: &CatalogRow) -> RuntimeExpectation {
     }
     let arch = row.architecture.to_ascii_lowercase();
     if !row.formats.iter().any(|f| f.eq_ignore_ascii_case("onnx")) {
-        if row
+        // OpenMed v3.0.0 lists MLX repositories (`*-mlx`) with formats such as
+        // `["mlx-fp", "pytorch"]`, but they publish MLX weights only: no
+        // `model.safetensors` in Transformers layout and no `.bin`.
+        let mlx = row
             .formats
             .iter()
-            .any(|f| f.eq_ignore_ascii_case("pytorch"))
+            .any(|f| f.to_ascii_lowercase().starts_with("mlx"));
+        if !mlx
+            && row
+                .formats
+                .iter()
+                .any(|f| f.eq_ignore_ascii_case("pytorch"))
         {
             if let Some((_, reason)) = SAFETENSORS_KNOWN_UNSUPPORTED
                 .iter()
@@ -191,6 +199,14 @@ mod tests {
         assert_eq!(
             runtime_expectation(&row("token-classification", "gliner", r#"["pytorch"]"#)),
             RuntimeExpectation::Untested
+        );
+        assert_eq!(
+            runtime_expectation(&row(
+                "token-classification",
+                "bert",
+                r#"["mlx-fp","pytorch"]"#
+            )),
+            RuntimeExpectation::NoOnnxArtifact
         );
         assert_eq!(
             runtime_expectation(&row("token-classification", "gliner", r#"["onnx"]"#)),
