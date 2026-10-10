@@ -8,6 +8,7 @@ mod fp16_widen;
 mod hf_snapshot;
 mod mesc_verify;
 mod onnx_runtime;
+mod pack_runtime;
 mod residency;
 mod runtime;
 mod store;
@@ -34,6 +35,9 @@ pub use mesc_verify::{MescEpochStore, MescVerifyError, verify_mesc_release_dir};
 pub use onnx_runtime::{
     DocumentRunOptions, ONNX_TOKEN_CLASSIFIER_RUNTIME_ID, OnnxRuntimeError,
     OnnxTokenClassifierRuntime, PreparedOnnxTokenClassifier,
+};
+pub use pack_runtime::{
+    PackEvaluation, PackRuntimeKind, evaluate_admitted_pack, pack_runtime_kind,
 };
 pub use residency::{EvictionPlan, ResidencyError, ResidencyPool};
 pub use runtime::{FixtureRuntime, PackRuntimeAdapter, RuntimeOutput};

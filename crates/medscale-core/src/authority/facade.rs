@@ -42,6 +42,9 @@ pub struct CoreFacade {
     packs: Mutex<medscale_pack::PackStore>,
     prepared_models:
         Mutex<medscale_pack::ResidencyPool<Arc<medscale_pack::PreparedOnnxTokenClassifier>>>,
+    /// Spec 104: prepared candle safetensors models, with the same budget.
+    prepared_candle_models:
+        Mutex<medscale_pack::ResidencyPool<Arc<medscale_pack::PreparedCandleTokenClassifier>>>,
     mesc_epochs: Mutex<medscale_pack::MescEpochStore>,
     /// Spec 079: custody of pseudonym map keys. Never vault metadata.
     privacy_keys: PrivacyKeys,
@@ -114,6 +117,9 @@ impl CoreFacade {
             allowlist: Mutex::new(Vec::new()),
             packs: Mutex::new(medscale_pack::PackStore::default()),
             prepared_models: Mutex::new(medscale_pack::ResidencyPool::new(
+                PREPARED_MODEL_BUDGET_BYTES,
+            )),
+            prepared_candle_models: Mutex::new(medscale_pack::ResidencyPool::new(
                 PREPARED_MODEL_BUDGET_BYTES,
             )),
             mesc_epochs: Mutex::new(medscale_pack::MescEpochStore::new()),
@@ -614,6 +620,103 @@ impl CoreFacade {
         self.prepared_models
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner)
+    }
+
+    fn prepared_candle_models(
+        &self,
+    ) -> std::sync::MutexGuard<
+        '_,
+        medscale_pack::ResidencyPool<Arc<medscale_pack::PreparedCandleTokenClassifier>>,
+    > {
+        self.prepared_candle_models
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+    }
+
+    /// Spec 104: `PacksEvaluateLocal` for a Pack that declares the candle
+    /// safetensors runtime. Same admission checks as the ONNX path (done by
+    /// the caller); prepared models are kept in their own residency pool,
+    /// keyed by content digest, and preparation never holds the pool lock.
+    fn evaluate_candle_pack(
+        &self,
+        path: &std::path::Path,
+        manifest: &medscale_contracts::packs::PackManifestV0,
+        input: &str,
+        realm_id: medscale_contracts::objects::RealmId,
+        authority_scope_id: medscale_contracts::objects::AuthorityScopeId,
+    ) -> Result<ResponseBody, AuthorityError> {
+        let key = manifest.content_digest.to_hex();
+        let cached = self.prepared_candle_models().get(&key).cloned();
+        let (prepared, prepared_cache_hit) = if let Some(prepared) = cached {
+            (prepared, true)
+        } else {
+            let candidate = Arc::new(
+                medscale_pack::prepare_candle_token_classifier(path, manifest).map_err(|err| {
+                    AuthorityError::InvalidArgument {
+                        message: format!("pack runtime preparation failed: {err}"),
+                    }
+                })?,
+            );
+            let resident_bytes = manifest
+                .artifacts
+                .iter()
+                .filter(|a| a.kind == medscale_contracts::packs::PackArtifactKind::SafetensorsModel)
+                .filter_map(|a| std::fs::metadata(path.join(&a.relative_path)).ok())
+                .map(|m| m.len())
+                .sum::<u64>()
+                .max(1);
+            let mut cache = self.prepared_candle_models();
+            if let Some(existing) = cache.get(&key).cloned() {
+                (existing, true)
+            } else {
+                let _ = cache.load(&key, resident_bytes, Arc::clone(&candidate));
+                (candidate, false)
+            }
+        };
+        let output = prepared
+            .run_document(
+                &manifest.pack_id,
+                input,
+                medscale_pack::CandleRunOptions::default(),
+            )
+            .map_err(|err| AuthorityError::InvalidArgument {
+                message: format!("pack runtime evaluation failed: {err}"),
+            })?;
+        let mut store = self.store();
+        let audit_id = store.alloc_id("audit");
+        store.insert(StoredObject::Audit(ActionAuditRecord {
+            header: ObjectHeader {
+                id: audit_id.clone(),
+                schema_version: AUTHORITY_SCHEMA_VERSION,
+                realm_id,
+                authority_scope_id,
+            },
+            kind: ActionAuditKind::Audit,
+            actor: OpaqueId::new("pack-runtime"),
+            action: "packs.evaluate_local".to_owned(),
+            target_refs: vec![manifest.pack_id.clone()],
+            effect_state: None,
+            payload_digest: None,
+            detail: Some(serde_json::json!({
+                "runtime": medscale_pack::CANDLE_TOKEN_CLASSIFIER_RUNTIME_ID,
+                "input_bytes": input.len(),
+                "evidence_only": true,
+                "synthetic_only": true,
+                "prepared_cache_hit": prepared_cache_hit,
+            })),
+        }));
+        Ok(ResponseBody::PackEvaluation {
+            result: medscale_contracts::packs::PackEvaluationResult {
+                pack_id: output.pack_id,
+                content_digest: manifest.content_digest.clone(),
+                runtime_id: medscale_pack::CANDLE_TOKEN_CLASSIFIER_RUNTIME_ID.to_owned(),
+                prepared_cache_hit,
+                evidence_only: output.evidence_only,
+                proposal_payload: output.proposal_payload,
+                provenance: prepared.provenance().clone(),
+                audit_id,
+            },
+        })
     }
 
     fn mesc_epochs(&self) -> std::sync::MutexGuard<'_, medscale_pack::MescEpochStore> {
@@ -1548,6 +1651,17 @@ impl CoreFacade {
                         message: "max_tokens is not representable".to_owned(),
                     }
                 })?;
+                if medscale_pack::pack_runtime_kind(&manifest)
+                    == Some(medscale_pack::PackRuntimeKind::CandleSafetensors)
+                {
+                    return self.evaluate_candle_pack(
+                        path,
+                        &manifest,
+                        &request.input,
+                        req.realm_id,
+                        req.authority_scope_id,
+                    );
+                }
                 let runtime =
                     medscale_pack::OnnxTokenClassifierRuntime::new(max_tokens).map_err(|err| {
                         AuthorityError::InvalidArgument {
