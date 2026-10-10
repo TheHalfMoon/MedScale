@@ -239,6 +239,64 @@ fn expected_size(meta: &HfRepoMetadata, name: &str) -> Result<u64, AcquisitionEr
         .ok_or_else(|| AcquisitionError::UnknownSize(name.to_string()))
 }
 
+/// Upper bound on commits searched for the catalog-pinned revision.
+const MAX_REVISION_SEARCH: usize = 32;
+const COMMITS_MAX_BYTES: usize = 1024 * 1024;
+
+#[derive(serde::Deserialize)]
+struct HubCommit {
+    id: String,
+}
+
+fn parse_metadata(bytes: &[u8]) -> Result<HfRepoMetadata, AcquisitionError> {
+    serde_json::from_slice(bytes).map_err(|e| AcquisitionError::Metadata(e.to_string()))
+}
+
+/// Hub metadata whose reproducibility hash matches the catalog row.
+///
+/// The catalog binds a row to one commit, but a repository can receive later
+/// commits (for example model-card edits) after the catalog snapshot. Then the
+/// current metadata no longer matches. Instead of failing, the commit history
+/// is searched, newest first and bounded, for the revision whose metadata
+/// reproduces the catalog hash. Files are then fetched from that commit only.
+/// Every request goes through the same governed transport and host allowlist.
+fn pinned_metadata(
+    transport: &dyn BrowseTransport,
+    row: &CatalogRow,
+) -> Result<(HfRepoMetadata, Vec<u8>), AcquisitionError> {
+    let base = format!("https://huggingface.co/api/models/{}", row.repo_id);
+    let bytes = governed_get(transport, &format!("{base}?blobs=true"), METADATA_MAX_BYTES)?;
+    let meta = parse_metadata(&bytes)?;
+    let mismatch = match verify_against_catalog(&meta, row) {
+        Ok(()) => return Ok((meta, bytes)),
+        Err(e @ SnapshotError::ReproducibilityMismatch { .. }) => e,
+        Err(e) => return Err(e.into()),
+    };
+    let commits_bytes = governed_get(
+        transport,
+        &format!("{base}/commits/main"),
+        COMMITS_MAX_BYTES,
+    )?;
+    let commits: Vec<HubCommit> = serde_json::from_slice(&commits_bytes)
+        .map_err(|e| AcquisitionError::Metadata(e.to_string()))?;
+    for commit in commits.iter().take(MAX_REVISION_SEARCH) {
+        let hex40 = commit.id.len() == 40 && commit.id.bytes().all(|b| b.is_ascii_hexdigit());
+        if !hex40 || commit.id == meta.sha {
+            continue;
+        }
+        let bytes = governed_get(
+            transport,
+            &format!("{base}/revision/{}?blobs=true", commit.id),
+            METADATA_MAX_BYTES,
+        )?;
+        let candidate = parse_metadata(&bytes)?;
+        if candidate.sha == commit.id && verify_against_catalog(&candidate, row).is_ok() {
+            return Ok((candidate, bytes));
+        }
+    }
+    Err(mismatch.into())
+}
+
 /// Acquires the snapshot files for one catalog row into `dest_dir`
 /// (`metadata.json`, `config.json`, `tokenizer.json`, the ONNX file).
 pub fn acquire_snapshot(
@@ -255,18 +313,9 @@ pub fn acquire_snapshot(
         return Err(AcquisitionError::ConsentMismatch(consent.onnx_file.clone()));
     }
 
-    // 1. Metadata, bound to the catalog row (immutable commit and file list).
-    let meta_bytes = governed_get(
-        transport,
-        &format!(
-            "https://huggingface.co/api/models/{}?blobs=true",
-            row.repo_id
-        ),
-        METADATA_MAX_BYTES,
-    )?;
-    let meta: HfRepoMetadata = serde_json::from_slice(&meta_bytes)
-        .map_err(|e| AcquisitionError::Metadata(e.to_string()))?;
-    verify_against_catalog(&meta, row)?;
+    // 1. Metadata, bound to the catalog row (immutable commit and file list),
+    //    at the catalog-pinned revision even if the repository moved on.
+    let (meta, meta_bytes) = pinned_metadata(transport, row)?;
 
     // 2. Exact sizes and the consent bound, before any file download.
     let files = ["config.json", "tokenizer.json", consent.onnx_file.as_str()];
@@ -665,6 +714,88 @@ mod tests {
             err,
             AcquisitionError::ExceedsConsent { approved: 100, .. }
         ));
+    }
+
+    /// The repository received a later commit (new sha, extra file) after
+    /// the catalog snapshot; the pinned revision is found in its history.
+    fn moved_repository(f: &Fixture) -> ScriptedBrowseTransport {
+        const NEW: &str = "1111111111111111111111111111111111111111";
+        let newer = f.meta.replace(SHA, NEW).replace(
+            "\"siblings\":[",
+            "\"siblings\":[{\"rfilename\":\"README.md\"},",
+        );
+        let api = format!("https://huggingface.co/api/models/{REPO}");
+        let files = format!("https://huggingface.co/{REPO}/resolve/{SHA}");
+        // Routes match first-come, so the moved main metadata is listed first.
+        ScriptedBrowseTransport::new()
+            .route(
+                &format!("{api}?blobs=true"),
+                ScriptedBrowseTransport::ok("application/json", newer.as_bytes()),
+            )
+            .route(
+                &format!("{api}/commits/main"),
+                ScriptedBrowseTransport::ok(
+                    "application/json",
+                    format!(r#"[{{"id":"{NEW}"}},{{"id":"not-a-sha"}},{{"id":"{SHA}"}}]"#)
+                        .as_bytes(),
+                ),
+            )
+            .route(
+                &format!("{api}/revision/{SHA}?blobs=true"),
+                ScriptedBrowseTransport::ok("application/json", f.meta.as_bytes()),
+            )
+            .route(
+                &format!("{files}/config.json"),
+                ScriptedBrowseTransport::ok("application/json", &f.config),
+            )
+            .route(
+                &format!("{files}/tokenizer.json"),
+                ScriptedBrowseTransport::ok("application/json", &f.tokenizer),
+            )
+            .route(
+                &format!("{files}/model.onnx"),
+                ScriptedBrowseTransport::ok("application/octet-stream", &f.onnx),
+            )
+    }
+
+    #[test]
+    fn a_moved_repository_is_acquired_at_the_catalog_pinned_revision() {
+        let f = fixture(false);
+        let d = dest("moved");
+        let report =
+            acquire_snapshot(&moved_repository(&f), &f.catalog, &consent(1_000_000), &d).unwrap();
+        assert_eq!(report.revision, SHA);
+        let meta: HfRepoMetadata =
+            serde_json::from_slice(&std::fs::read(d.join("metadata.json")).unwrap()).unwrap();
+        assert_eq!(meta.sha, SHA);
+        let _ = std::fs::remove_dir_all(d);
+    }
+
+    #[test]
+    fn no_matching_revision_keeps_the_reproducibility_refusal() {
+        let f = fixture(false);
+        let base = format!("https://huggingface.co/api/models/{REPO}");
+        let newer = f
+            .meta
+            .replace(SHA, "2222222222222222222222222222222222222222");
+        let t = ScriptedBrowseTransport::new()
+            .route(
+                &format!("{base}?blobs=true"),
+                ScriptedBrowseTransport::ok("application/json", newer.as_bytes()),
+            )
+            .route(
+                &format!("{base}/commits/main"),
+                ScriptedBrowseTransport::ok("application/json", b"[]"),
+            );
+        let err =
+            acquire_snapshot(&t, &f.catalog, &consent(1_000_000), &dest("nomatch")).unwrap_err();
+        assert!(
+            matches!(
+                err,
+                AcquisitionError::Snapshot(SnapshotError::ReproducibilityMismatch { .. })
+            ),
+            "{err}"
+        );
     }
 
     #[test]
