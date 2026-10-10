@@ -15,12 +15,15 @@ The founder request promotes [095–100](PRODUCTIZATION_PROGRAM.md). Base 1e2b7d
 ```text
 SPEC_103 = IMPLEMENTATION_IN_PROGRESS
 EXECUTED_TESTED_ARCHITECTURES = bert, distilbert, roberta, modernbert, deberta-v2, xlm-roberta
+SPEC_104_NATIVE_SAFETENSORS_RUNTIME = CLOSED_CANONICAL (#198)
 TASK_QUALIFIED_MODELS = 0
 CLINICALLY_VALIDATED_MODELS = 0
 RELEASE_READY = FALSE
 ```
 
 The founder's issue #183 priority, OpenMed model-execution parity, is tracked in [`specs/103-local-model-catalog/CAPABILITY_MATRIX.md`](../../specs/103-local-model-catalog/CAPABILITY_MATRIX.md). The full lifecycle runs on the pure-Rust tract runtime for six architectures with real OpenMed v3.0.0 models (qualification run 37977100903): catalog, governed acquisition, verification, signed Pack, admission, prepare, run, Model Fleet comparison, residency.
+
+Spec 104 adds a pure-Rust safetensors runtime (candle 0.9.1) for PyTorch-format rows. Five architectures were executed on real OpenMed models (run 37986892863); MLX-only repositories, pickle-only GLiNER and PyTorch-format XLM-R over the 1 GiB bound are not covered.
 
 Not done:
 - the other runtimes (ONNX Runtime, MLX/Core ML, PyTorch, Android, WebGPU);

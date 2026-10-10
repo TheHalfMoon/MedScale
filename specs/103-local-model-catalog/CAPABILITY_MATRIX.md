@@ -1,7 +1,7 @@
 # OpenMed ↔ MedScale model-execution capability matrix (Spec 103, issue #183)
 
 **Baseline:** OpenMed v3.0.0, `maziyarpanahi/openmed@ea920f36fadd7b45935247d639f0ffa1ef493b23`, source-read. Newer upstream changes are not part of this baseline.
-**MedScale:** `main` (Spec 103 PRs #184–#197 merged) plus Spec 104 (#198, in review). A row's status changes only with merged code and recorded evidence.
+**MedScale:** `main` (Spec 103 PRs #184–#200 and Spec 104 PR #198 merged). A row's status changes only with merged code and recorded evidence.
 **Evidence base:** real-model qualification on free GitHub runners (Linux x64 CPU, synthetic text):
 - ONNX on tract: run [37984399447](https://github.com/TheHalfMoon/MedScale/actions/runs/37984399447), on the exact code of #196;
 - safetensors on candle: run [37986892863](https://github.com/TheHalfMoon/MedScale/actions/runs/37986892863). Each model's catalog binding, per-file digests, signed Pack and admission were verified before execution.
@@ -33,7 +33,7 @@ Status vocabulary:
 |---|---|---|---|
 | ONNX on CPU | ONNX Runtime `CPUExecutionProvider`; fp32 / int8 variants; threads | tract 0.22.4 (pure Rust, no native runtime download). fp32 and fp16 (widened) | IMPLEMENTED. int8 exports not prepared (quantized operators) |
 | ONNX Runtime (native) | yes | Evaluated, not admitted: tract covers all six qualified architectures. ORT adds a native binary to the supply chain; it would mainly help DeBERTa prepare time and int8 | NOT IMPLEMENTED by decision. Revisit if int8 or prepare time becomes a product requirement |
-| PyTorch / Transformers weights | `HuggingFaceBackend` (Python) | **Native safetensors runtime on `candle` 0.9.1** (Spec 104): no Python, no pickle, no executable code. Encoders from `candle-transformers`, MedScale-built heads, same windowing and decoding | IN REVIEW (#198). 5 architectures executed on CI; scores match the ONNX runs to about four decimals. Pickle-only weights are refused |
+| PyTorch / Transformers weights | `HuggingFaceBackend` (Python) | **Native safetensors runtime on `candle` 0.9.1** (Spec 104): no Python, no pickle, no executable code. Encoders from `candle-transformers`, MedScale-built heads, same windowing and decoding | IMPLEMENTED (#198). 5 architectures executed on CI; scores match the ONNX runs to about four decimals. Pickle-only weights are refused |
 | Apple MLX | `openmed/mlx/*` (bert, deberta-v2, modernbert, longformer, gliner heads) | — | NOT IMPLEMENTED. Needs a dependency-admission spec plus Apple Silicon qualification (macOS CI runners are arm64) |
 | Core ML | export only (`coreml` extra) | — | NOT IMPLEMENTED |
 | OpenVINO / TensorRT / GGUF | exporters and sessions | — | NOT IMPLEMENTED |
