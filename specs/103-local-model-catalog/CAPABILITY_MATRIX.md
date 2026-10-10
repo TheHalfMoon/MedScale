@@ -73,10 +73,14 @@ These are architecture-level **expectations**, not tests:
 | Expectation | Rows |
 |---|---|
 | Expected runnable via ONNX on tract | 646 |
-| Expected runnable via safetensors on candle | 1,109 |
+| Expected runnable via safetensors on candle | 582 |
 | Known blocked: XLM-R NER defective tokenizer | 65 |
-| Known blocked: PyTorch-format XLM-R over the 1 GiB bound | 244 |
-| Other (untested architectures, GLiNER, generative, vision) | 202 |
+| Known blocked: PyTorch-format XLM-R over the 1 GiB bound | 122 |
+| Known blocked: GLiNER, pickle-only weights (`pytorch_model.bin`) | 91 |
+| MLX-only repositories (no MLX runtime in MedScale) | 658 |
+| Other (untested architectures, generative, vision) | 102 |
+
+**Correction (2026-10-10).** An earlier revision of this table, merged in #199, counted 1,109 safetensors candidates and 244 XLM-R rows over the bound. OpenMed lists its `*-mlx` repositories with formats `["mlx-fp", "pytorch"]`, but those repositories publish MLX weights only. They are now counted as MLX-only, here and in the runtime expectation (#198).
 
 "Catalog rows" are listing counts. Only the named models are `EXECUTED_TESTED`. No row is `TASK_QUALIFIED` (no labelled evaluation) or `CLINICALLY_VALIDATED`.
 
@@ -86,13 +90,14 @@ These are architecture-level **expectations**, not tests:
 |---|---|---|---|
 | NER (token classification) | `ner/*`, ONNX/HF/MLX pipelines | Runtime above; evidence-only proposals | IMPLEMENTED |
 | PII token classification | PII models plus `core/pii.py`, entity merger, validators, anonymizer | The PII models run as token classifiers (DeBERTa and XLM-R evidence). OpenMed's merger, validators and anonymizer are not ported; MedScale's privacy gate (Specs 079–082) is separate | PARTIAL |
-| Zero-shot (GLiNER) | `ner/families/gliner*.py`, `mlx/models/gliner_*` | — | NOT IMPLEMENTED |
+| Zero-shot (GLiNER) | `ner/families/gliner*.py`, `mlx/models/gliner_*` | — | NOT IMPLEMENTED. Also BLOCKED: the 91 rows ship pickle only |
 | Multimodal | `openmed/multimodal/*` | — | NOT IMPLEMENTED |
 
 ## 5. External constraints (precise)
 
 - **F096-T01:** the Tauri dependency advisory (`glib`, Linux). The founder has **not** accepted it. It blocks the Tauri chain (#174 → #179) and therefore the Models UI (T103-07).
 - **The OpenMed XLM-R NER exports** need upstream republishing of their tokenizers.
-- **PyTorch-format XLM-R (244 rows)** exceeds the 1 GiB Pack bound. Raising the bound is a governed decision; it has not been taken.
+- **PyTorch-format XLM-R (122 rows)** exceeds the 1 GiB Pack bound. Raising the bound is a governed decision; it has not been taken.
+- **GLiNER zero-shot (91 rows)** ships pickle weights only, which are refused (R103-06). It needs upstream safetensors.
 - **Production signing** is `NOT_GRANTED`; **real PHI** is `NOT_AUTHORIZED`; **clinical validation** is `NOT_PERFORMED`.
 - **Training-dataset terms** (BC5CDR, ANATOMY, PII sets) are unverified ([rights ledger](../../evidence/103-local-model-catalog/RIGHTS_LEDGER.md)).
