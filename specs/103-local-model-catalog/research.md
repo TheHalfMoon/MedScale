@@ -155,3 +155,17 @@ The pad token now comes from the tokenizer (BERT `[PAD]`, RoBERTa/XLM-R `<pad>`)
 - **DeBERTa:** needs operator support upstream in `tract`, or an ONNX Runtime backend, which requires dependency admission.
 
 No row is `TASK_QUALIFIED` (no labelled evaluation) or `CLINICALLY_VALIDATED`.
+
+## 11. DeBERTa-v2 and XLM-R on tract; CI qualification (2026-10-10)
+
+This section supersedes the "next options" in §10. Neither ONNX Runtime nor a raised Pack bound was needed:
+- **DeBERTa-v2:** `tract_onnx::ops::logic::If` exposes `then_body` and `else_body` publicly. The prepare-time rewrite replaces `Sign` with an integer-capable op in both branches.
+- **XLM-R:** the fp16 export (555 MB) fits the 1 GiB bound. It is widened to fp32 in memory, because tract's fp16 `LayerNormalization` declares f16 but computes f32. Symbolic `value_info` dimensions are relaxed first.
+
+Real models are now qualified on free GitHub runners by `.github/workflows/model-qualification.yml` (`qual/**` branches only, synthetic text, weights never kept). The founder workstation could not hold the release build plus a 566 MB model in memory: the local DeBERTa run was paged out and was stopped. Run 37977100903 executed all six architectures; per-model figures are in [`CAPABILITY_MATRIX.md`](CAPABILITY_MATRIX.md) §3.
+
+Findings:
+- The XLM-R **NER** exports ship a degenerate tokenizer (BPE, 250,002 entries, zero merges; run 37974743874). MedScale refuses it; the PII exports (Unigram) run.
+- DeBERTa-v2 first prepare takes 9–13 minutes on CI (T103-15).
+- Spans from SentencePiece/byte-level tokenizers carried the word-start space. Decoded spans are trimmed (#194).
+- Outputs on single synthetic sentences are partial (`Vries` and `María` missed). This is execution evidence, not task quality.
