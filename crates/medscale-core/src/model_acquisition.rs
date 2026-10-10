@@ -250,7 +250,8 @@ pub fn acquire_snapshot(
     let row: &CatalogRow = catalog
         .get(&consent.repo_id)
         .ok_or_else(|| AcquisitionError::NotInCatalog(consent.repo_id.clone()))?;
-    if !consent.onnx_file.to_ascii_lowercase().ends_with(".onnx") {
+    let weight_file = consent.onnx_file.to_ascii_lowercase();
+    if !(weight_file.ends_with(".onnx") || weight_file.ends_with(".safetensors")) {
         return Err(AcquisitionError::ConsentMismatch(consent.onnx_file.clone()));
     }
 

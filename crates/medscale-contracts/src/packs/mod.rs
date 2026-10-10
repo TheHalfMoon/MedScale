@@ -23,6 +23,8 @@ pub enum PackArtifactKind {
     TokenizerMeta,
     ModelMetadata,
     OnnxModel,
+    /// Data-only safetensors weights (Spec 104). No executable content.
+    SafetensorsModel,
     /// Forbidden by default.
     Pickle,
     /// Forbidden by default (code-bearing).

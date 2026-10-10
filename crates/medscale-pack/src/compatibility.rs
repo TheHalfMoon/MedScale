@@ -26,6 +26,17 @@ pub const EVIDENCED_ARCHITECTURES: &[&str] = &[
 /// Architectures recorded as not supported by the current runtime, with the cause.
 pub const KNOWN_UNSUPPORTED: &[(&str, &str)] = &[];
 
+/// Architectures executed end to end through the native safetensors runtime
+/// (Spec 104, qualification run 37986892863) from PyTorch-format rows.
+pub const SAFETENSORS_EVIDENCED_ARCHITECTURES: &[&str] =
+    &["bert", "distilbert", "roberta", "deberta-v2", "modernbert"];
+
+/// PyTorch-format architectures known not to fit the safetensors path.
+pub const SAFETENSORS_KNOWN_UNSUPPORTED: &[(&str, &str)] = &[(
+    "xlm-roberta",
+    "PyTorch-format XLM-R weights (1.11 GB for the 278M-parameter models) exceed the 1 GiB Pack bound",
+)];
+
 /// Published exports known to be defective, matched by architecture and a
 /// repository-id prefix, with the cause.
 pub const KNOWN_DEFECTIVE_EXPORTS: &[(&str, &str, &str)] = &[(
@@ -42,7 +53,12 @@ pub enum RuntimeExpectation {
     ExpectedRunnable,
     /// Known not to run on the current runtime.
     KnownUnsupported { reason: String },
-    /// No ONNX file is listed (for example MLX or PyTorch only).
+    /// No ONNX file, but PyTorch-format weights for an architecture with
+    /// recorded native safetensors execution evidence (Spec 104). Expected to
+    /// run; still unverified for this row (its weights may be pickle-only,
+    /// which acquisition refuses).
+    ExpectedRunnableSafetensors,
+    /// No runnable artifact is listed (for example MLX only).
     NoOnnxArtifact,
     /// The task is not token classification.
     UnsupportedTask { task: String },
@@ -57,10 +73,36 @@ pub fn runtime_expectation(row: &CatalogRow) -> RuntimeExpectation {
             task: row.task.clone(),
         };
     }
+    let arch = row.architecture.to_ascii_lowercase();
     if !row.formats.iter().any(|f| f.eq_ignore_ascii_case("onnx")) {
+        // OpenMed v3.0.0 lists MLX repositories (`*-mlx`) with formats such as
+        // `["mlx-fp", "pytorch"]`, but they publish MLX weights only: no
+        // `model.safetensors` in Transformers layout and no `.bin`.
+        let mlx = row
+            .formats
+            .iter()
+            .any(|f| f.to_ascii_lowercase().starts_with("mlx"));
+        if !mlx
+            && row
+                .formats
+                .iter()
+                .any(|f| f.eq_ignore_ascii_case("pytorch"))
+        {
+            if let Some((_, reason)) = SAFETENSORS_KNOWN_UNSUPPORTED
+                .iter()
+                .find(|(a, _)| *a == arch)
+            {
+                return RuntimeExpectation::KnownUnsupported {
+                    reason: (*reason).to_string(),
+                };
+            }
+            if SAFETENSORS_EVIDENCED_ARCHITECTURES.contains(&arch.as_str()) {
+                return RuntimeExpectation::ExpectedRunnableSafetensors;
+            }
+            return RuntimeExpectation::Untested;
+        }
         return RuntimeExpectation::NoOnnxArtifact;
     }
-    let arch = row.architecture.to_ascii_lowercase();
     if let Some((_, _, reason)) = KNOWN_DEFECTIVE_EXPORTS
         .iter()
         .find(|(a, prefix, _)| *a == arch && row.repo_id.starts_with(prefix))
@@ -140,6 +182,30 @@ mod tests {
         ));
         assert_eq!(
             runtime_expectation(&row("token-classification", "bert", r#"["mlx-fp"]"#)),
+            RuntimeExpectation::NoOnnxArtifact
+        );
+        assert_eq!(
+            runtime_expectation(&row("token-classification", "deberta-v2", r#"["pytorch"]"#)),
+            RuntimeExpectation::ExpectedRunnableSafetensors
+        );
+        assert!(matches!(
+            runtime_expectation(&row(
+                "token-classification",
+                "xlm-roberta",
+                r#"["pytorch"]"#
+            )),
+            RuntimeExpectation::KnownUnsupported { .. }
+        ));
+        assert_eq!(
+            runtime_expectation(&row("token-classification", "gliner", r#"["pytorch"]"#)),
+            RuntimeExpectation::Untested
+        );
+        assert_eq!(
+            runtime_expectation(&row(
+                "token-classification",
+                "bert",
+                r#"["mlx-fp","pytorch"]"#
+            )),
             RuntimeExpectation::NoOnnxArtifact
         );
         assert_eq!(

@@ -605,7 +605,7 @@ fn normalized_artifact_bytes(
     Ok(normalized)
 }
 
-fn select_artifact(
+pub(crate) fn select_artifact(
     root: &Path,
     pack: &PackManifestV0,
     kind: PackArtifactKind,

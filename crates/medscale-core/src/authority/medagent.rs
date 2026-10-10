@@ -1004,17 +1004,11 @@ impl MedAgent<'_> {
             return Err(AuthorityError::DigestMismatch);
         }
 
-        let runtime =
-            medscale_pack::OnnxTokenClassifierRuntime::new(max_tokens).map_err(|err| {
-                AuthorityError::InvalidArgument {
-                    message: format!("pack runtime configuration denied: {err}"),
-                }
-            })?;
-        let evaluation = runtime.run(path, &manifest, &run.prompt).map_err(|err| {
-            AuthorityError::InvalidArgument {
-                message: format!("pack runtime evaluation failed: {err}"),
-            }
-        })?;
+        // The Pack's declared runtime (tract ONNX or candle safetensors,
+        // Spec 104) is used; nothing is inferred from file names.
+        let evaluation =
+            medscale_pack::evaluate_admitted_pack(path, &manifest, &run.prompt, max_tokens)
+                .map_err(|message| AuthorityError::InvalidArgument { message })?;
 
         let turn = self.append_turn(
             run_id,
