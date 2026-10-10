@@ -204,6 +204,15 @@ pub enum BrowseTransportError {
     Failed,
 }
 
+/// Result of a streamed download ([`BrowseTransport::get_to_file`]).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BrowseFileResponse {
+    pub status: u16,
+    pub location: Option<String>,
+    /// Length of the file after the call (resumed bytes included).
+    pub file_len: u64,
+}
+
 /// The Browse egress seam. Core owns policy; the transport only performs a
 /// single GET of an already validated URL, without following redirects.
 pub trait BrowseTransport: Send + Sync {
@@ -213,6 +222,72 @@ pub trait BrowseTransport: Send + Sync {
         max_body_bytes: usize,
         timeout: Duration,
     ) -> Result<BrowseHttpResponse, BrowseTransportError>;
+
+    /// Streams one GET body into `path` without holding it in memory. With
+    /// `resume_from > 0` a `Range: bytes=<resume_from>-` request is sent: a
+    /// `206` response is appended to the existing file, and a `200` response
+    /// (range ignored) replaces it. The file never grows beyond
+    /// `max_total_bytes + 1` (one byte over means too large). Redirects are
+    /// returned, never followed. When the connection fails mid-body, the bytes
+    /// already received stay in the file so a later call can resume.
+    /// Transports without streaming support refuse.
+    fn get_to_file(
+        &self,
+        url: &ValidatedUrl,
+        resume_from: u64,
+        max_total_bytes: u64,
+        path: &std::path::Path,
+        timeout: Duration,
+    ) -> Result<BrowseFileResponse, BrowseTransportError> {
+        let _ = (url, resume_from, max_total_bytes, path, timeout);
+        Err(BrowseTransportError::Failed)
+    }
+}
+
+/// Writes `reader` into `path` after a `200` (replace) or `206` (append),
+/// bounded to `max_total_bytes + 1` bytes in total.
+fn stream_into_file(
+    reader: &mut dyn std::io::Read,
+    status: u16,
+    resume_from: u64,
+    max_total_bytes: u64,
+    path: &std::path::Path,
+) -> Result<u64, BrowseTransportError> {
+    use std::io::{Read as _, Write as _};
+    let append = status == 206 && resume_from > 0;
+    let mut file = std::fs::OpenOptions::new()
+        .create(true)
+        .write(true)
+        .append(append)
+        .truncate(!append)
+        .open(path)
+        .map_err(|_| BrowseTransportError::Failed)?;
+    let start = if append { resume_from } else { 0 };
+    let budget = max_total_bytes.saturating_add(1).saturating_sub(start);
+    let mut limited = reader.take(budget);
+    let mut buffer = vec![0u8; 64 * 1024];
+    let mut written = start;
+    loop {
+        match limited.read(&mut buffer) {
+            Ok(0) => break,
+            Ok(n) => {
+                file.write_all(&buffer[..n])
+                    .map_err(|_| BrowseTransportError::Failed)?;
+                written += n as u64;
+            }
+            Err(e) => {
+                // Keep what arrived; the caller may resume from here.
+                let _ = file.flush();
+                return Err(if e.kind() == std::io::ErrorKind::TimedOut {
+                    BrowseTransportError::Timeout
+                } else {
+                    BrowseTransportError::Failed
+                });
+            }
+        }
+    }
+    file.flush().map_err(|_| BrowseTransportError::Failed)?;
+    Ok(written)
 }
 
 /// Live transport over `ureq` with the public-only resolver.
@@ -318,6 +393,51 @@ impl BrowseTransport for UreqBrowseTransport {
             body,
         })
     }
+
+    fn get_to_file(
+        &self,
+        url: &ValidatedUrl,
+        resume_from: u64,
+        max_total_bytes: u64,
+        path: &std::path::Path,
+        timeout: Duration,
+    ) -> Result<BrowseFileResponse, BrowseTransportError> {
+        let refused = Arc::new(AtomicBool::new(false));
+        let agent = Self::agent(timeout, Arc::clone(&refused));
+        let mut request = agent.get(&url.url);
+        if resume_from > 0 {
+            request = request.header("Range", &format!("bytes={resume_from}-"));
+        }
+        let mut response = match request.call() {
+            Ok(r) => r,
+            Err(ureq::Error::HostNotFound) if refused.load(Ordering::SeqCst) => {
+                return Err(BrowseTransportError::ForbiddenAddress);
+            }
+            Err(ureq::Error::Timeout(_)) => return Err(BrowseTransportError::Timeout),
+            Err(_) => return Err(BrowseTransportError::Failed),
+        };
+        let status = response.status().as_u16();
+        let location = response
+            .headers()
+            .get("location")
+            .and_then(|v| v.to_str().ok())
+            .map(str::to_owned);
+        if status != 200 && status != 206 {
+            return Ok(BrowseFileResponse {
+                status,
+                location,
+                file_len: std::fs::metadata(path).map(|m| m.len()).unwrap_or(0),
+            });
+        }
+        let limit = max_total_bytes.saturating_add(1);
+        let mut reader = response.body_mut().with_config().limit(limit).reader();
+        let file_len = stream_into_file(&mut reader, status, resume_from, max_total_bytes, path)?;
+        Ok(BrowseFileResponse {
+            status,
+            location,
+            file_len,
+        })
+    }
 }
 
 /// Offline scripted transport for hermetic tests and demos: no sockets.
@@ -326,6 +446,11 @@ impl BrowseTransport for UreqBrowseTransport {
 #[derive(Default)]
 pub struct ScriptedBrowseTransport {
     routes: Vec<(String, Result<BrowseHttpResponse, BrowseTransportError>)>,
+    /// Streamed downloads of these URLs stop with `Timeout` once the file
+    /// reaches the given length (an interrupted connection).
+    interruptions: Vec<(String, u64)>,
+    /// When true, `Range` requests are answered with the full `200` body.
+    ignore_range: bool,
 }
 
 impl fmt::Debug for ScriptedBrowseTransport {
@@ -364,6 +489,21 @@ impl ScriptedBrowseTransport {
         })
     }
 
+    /// Streamed downloads of `url` stop with `Timeout` once the file reaches
+    /// `offset` bytes.
+    #[must_use]
+    pub fn interrupt_after(mut self, url: &str, offset: u64) -> Self {
+        self.interruptions.push((url.to_owned(), offset));
+        self
+    }
+
+    /// Answer `Range` requests with the full body (`200`), as some servers do.
+    #[must_use]
+    pub fn ignoring_range(mut self) -> Self {
+        self.ignore_range = true;
+        self
+    }
+
     /// A 302 redirect.
     pub fn redirect(location: &str) -> Result<BrowseHttpResponse, BrowseTransportError> {
         Ok(BrowseHttpResponse {
@@ -392,6 +532,55 @@ impl BrowseTransport for ScriptedBrowseTransport {
             Some((_, Err(e))) => Err(e.clone()),
             None => Err(BrowseTransportError::Failed),
         }
+    }
+
+    fn get_to_file(
+        &self,
+        url: &ValidatedUrl,
+        resume_from: u64,
+        max_total_bytes: u64,
+        path: &std::path::Path,
+        _timeout: Duration,
+    ) -> Result<BrowseFileResponse, BrowseTransportError> {
+        let response = match self.routes.iter().find(|(u, _)| u == &url.url) {
+            Some((_, Ok(response))) => response.clone(),
+            Some((_, Err(e))) => return Err(e.clone()),
+            None => return Err(BrowseTransportError::Failed),
+        };
+        if response.status != 200 {
+            return Ok(BrowseFileResponse {
+                status: response.status,
+                location: response.location,
+                file_len: std::fs::metadata(path).map(|m| m.len()).unwrap_or(0),
+            });
+        }
+        let ranged = resume_from > 0 && !self.ignore_range;
+        let (status, start) = if ranged { (206, resume_from) } else { (200, 0) };
+        let from = usize::try_from(start)
+            .unwrap_or(usize::MAX)
+            .min(response.body.len());
+        let body = &response.body[from..];
+        let cut = self
+            .interruptions
+            .iter()
+            .find(|(u, _)| u == &url.url)
+            .map(|(_, offset)| *offset)
+            .filter(|offset| *offset > start);
+        let take = cut.map_or(body.len(), |c| {
+            usize::try_from(c - start)
+                .unwrap_or(usize::MAX)
+                .min(body.len())
+        });
+        let mut reader: &[u8] = &body[..take];
+        let file_len = stream_into_file(&mut reader, status, resume_from, max_total_bytes, path)?;
+        if take < body.len() {
+            return Err(BrowseTransportError::Timeout);
+        }
+        Ok(BrowseFileResponse {
+            status,
+            location: None,
+            file_len,
+        })
     }
 }
 

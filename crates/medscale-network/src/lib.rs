@@ -10,9 +10,9 @@ pub use adapters::{
 };
 pub use allowlist::{AllowlistDecision, evaluate_allowlist};
 pub use browse::{
-    BrowseHttpResponse, BrowseTransport, BrowseTransportError, PublicOnlyResolver,
-    ScriptedBrowseTransport, UreqBrowseTransport, ValidatedUrl, is_forbidden_ip, resolve_redirect,
-    validate_url,
+    BrowseFileResponse, BrowseHttpResponse, BrowseTransport, BrowseTransportError,
+    PublicOnlyResolver, ScriptedBrowseTransport, UreqBrowseTransport, ValidatedUrl,
+    is_forbidden_ip, resolve_redirect, validate_url,
 };
 pub use transport::{
     BrokerTransport, FixtureTransport, TransportError, TransportRequest, UreqTransport,
