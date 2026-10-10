@@ -265,9 +265,22 @@ impl OnnxTokenClassifierRuntime {
         }
         relax_symbolic_value_info(&mut model);
         normalize_static_shape_ops(&mut model);
-        let optimized = model
+        // EXPERIMENT (qual branch only): stage timings.
+        let t = std::time::Instant::now();
+        let typed = model
+            .into_typed()
+            .map_err(|e| OnnxRuntimeError::prepare("optimize", &e))?;
+        eprintln!("PREPARE_TIMING into_typed_ms={} nodes={}", t.elapsed().as_millis(), typed.nodes().len());
+        let t = std::time::Instant::now();
+        let decluttered = typed
+            .into_decluttered()
+            .map_err(|e| OnnxRuntimeError::prepare("optimize", &e))?;
+        eprintln!("PREPARE_TIMING declutter_ms={} nodes={}", t.elapsed().as_millis(), decluttered.nodes().len());
+        let t = std::time::Instant::now();
+        let optimized = decluttered
             .into_optimized()
             .map_err(|e| OnnxRuntimeError::prepare("optimize", &e))?;
+        eprintln!("PREPARE_TIMING optimize_ms={} nodes={}", t.elapsed().as_millis(), optimized.nodes().len());
         if optimized
             .output_outlets()
             .map_err(|_| OnnxRuntimeError::OutputShape)?
