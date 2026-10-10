@@ -7,6 +7,7 @@ mod format;
 mod fp16_widen;
 mod hf_snapshot;
 mod mesc_verify;
+mod mlx_layout;
 mod onnx_runtime;
 mod pack_runtime;
 mod residency;
@@ -32,6 +33,7 @@ pub use hf_snapshot::{
     labels_from_config, reproducibility_hash, verify_against_catalog, verify_file,
 };
 pub use mesc_verify::{MescEpochStore, MescVerifyError, verify_mesc_release_dir};
+pub use mlx_layout::{is_mlx_export, mlx_key};
 pub use onnx_runtime::{
     DocumentRunOptions, ONNX_TOKEN_CLASSIFIER_RUNTIME_ID, OnnxRuntimeError,
     OnnxTokenClassifierRuntime, PreparedOnnxTokenClassifier,
