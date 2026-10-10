@@ -23,7 +23,7 @@ Rows without ONNX, by architecture:
 | gliner | 91 |
 | other | 75 |
 
-The PyTorch rows publish `model.safetensors`. For example, `OpenMed/OpenMed-NER-AnatomyDetect-ElectraMed-33M` at `3c914174` ships `model.safetensors` (66 MB), `config.json` and `tokenizer.json`.
+The non-MLX PyTorch rows publish `model.safetensors` (see §5 for the sample, and for the MLX repositories that also list `pytorch`). For example, `OpenMed/OpenMed-NER-AnatomyDetect-ElectraMed-33M` at `3c914174` ships `model.safetensors` (66 MB), `config.json` and `tokenizer.json`.
 
 OpenMed runs these models through Python Transformers/PyTorch (`core/backends.py` `HuggingFaceBackend`). MedScale has no Python runtime, and embedding one would add an interpreter, a package supply chain and an executable-code surface. A native Rust reader of safetensors weights runs the same checkpoints without any of that.
 

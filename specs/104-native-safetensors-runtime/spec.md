@@ -6,7 +6,7 @@
 
 ## Goal
 
-Run the OpenMed catalog rows that ship only PyTorch-format weights (1,512 of 2,266 rows in OpenMed v3.0.0). Most of them publish `model.safetensors`. MedScale runs them locally in pure Rust, with no Python interpreter, no pickle and no executable model code, behind the same governed lifecycle as ONNX Packs.
+Run the OpenMed catalog rows that ship Transformers-layout `model.safetensors` weights but no ONNX export. In OpenMed v3.0.0, 1,512 of 2,266 rows list a `pytorch` format, but 658 of those are MLX repositories (research §5). For the five evidenced architectures this leaves 582 candidate rows. MedScale runs them locally in pure Rust, with no Python interpreter, no pickle and no executable model code, behind the same governed lifecycle as ONNX Packs.
 
 ## Requirements
 
