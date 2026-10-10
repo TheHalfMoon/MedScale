@@ -32,8 +32,10 @@ pub const SAFETENSORS_EVIDENCED_ARCHITECTURES: &[&str] =
     &["bert", "distilbert", "roberta", "deberta-v2", "modernbert"];
 
 /// Architectures executed from OpenMed MLX `mlx-fp` exports (renamed-key
-/// safetensors, `mlx_layout.rs`), qualification run 38039625442.
-pub const MLX_EVIDENCED_ARCHITECTURES: &[&str] = &["bert", "distilbert", "roberta"];
+/// safetensors, `mlx_layout.rs`): qualification runs 38039625442 (bert,
+/// distilbert, roberta) and 38041300631 (deberta-v2). Repositories that ship
+/// no `tokenizer.json` are refused at acquisition.
+pub const MLX_EVIDENCED_ARCHITECTURES: &[&str] = &["bert", "distilbert", "roberta", "deberta-v2"];
 
 /// PyTorch-format architectures known not to fit the safetensors path.
 pub const SAFETENSORS_KNOWN_UNSUPPORTED: &[(&str, &str)] = &[(
