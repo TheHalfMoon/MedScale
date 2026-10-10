@@ -31,6 +31,12 @@ pub const KNOWN_UNSUPPORTED: &[(&str, &str)] = &[];
 pub const SAFETENSORS_EVIDENCED_ARCHITECTURES: &[&str] =
     &["bert", "distilbert", "roberta", "deberta-v2", "modernbert"];
 
+/// Architectures executed from OpenMed MLX `mlx-fp` exports (renamed-key
+/// safetensors, `mlx_layout.rs`): qualification runs 38039625442 (bert,
+/// distilbert, roberta) and 38041300631 (deberta-v2). Repositories that ship
+/// no `tokenizer.json` are refused at acquisition.
+pub const MLX_EVIDENCED_ARCHITECTURES: &[&str] = &["bert", "distilbert", "roberta", "deberta-v2"];
+
 /// PyTorch-format architectures known not to fit the safetensors path.
 pub const SAFETENSORS_KNOWN_UNSUPPORTED: &[(&str, &str)] = &[(
     "xlm-roberta",
@@ -67,6 +73,32 @@ pub enum RuntimeExpectation {
 }
 
 /// Expectation for `row` on the local ONNX token-classification runtime.
+/// Expectation for an OpenMed MLX repository (no ONNX, MLX weights only).
+fn mlx_expectation(row: &CatalogRow, arch: &str) -> RuntimeExpectation {
+    let full_precision = row.formats.iter().any(|f| f.eq_ignore_ascii_case("mlx-fp"));
+    if !full_precision {
+        return RuntimeExpectation::KnownUnsupported {
+            reason: "quantized MLX exports change tensor contents and are not supported".into(),
+        };
+    }
+    // Zero-shot repositories use span heads, not token-classification heads.
+    if row.repo_id.contains("ZeroShot") {
+        return RuntimeExpectation::Untested;
+    }
+    if let Some((_, reason)) = SAFETENSORS_KNOWN_UNSUPPORTED
+        .iter()
+        .find(|(a, _)| *a == arch)
+    {
+        return RuntimeExpectation::KnownUnsupported {
+            reason: (*reason).to_string(),
+        };
+    }
+    if MLX_EVIDENCED_ARCHITECTURES.contains(&arch) {
+        return RuntimeExpectation::ExpectedRunnableSafetensors;
+    }
+    RuntimeExpectation::Untested
+}
+
 pub fn runtime_expectation(row: &CatalogRow) -> RuntimeExpectation {
     if row.task != "token-classification" {
         return RuntimeExpectation::UnsupportedTask {
@@ -76,17 +108,19 @@ pub fn runtime_expectation(row: &CatalogRow) -> RuntimeExpectation {
     let arch = row.architecture.to_ascii_lowercase();
     if !row.formats.iter().any(|f| f.eq_ignore_ascii_case("onnx")) {
         // OpenMed v3.0.0 lists MLX repositories (`*-mlx`) with formats such as
-        // `["mlx-fp", "pytorch"]`, but they publish MLX weights only: no
-        // `model.safetensors` in Transformers layout and no `.bin`.
+        // `["mlx-fp", "pytorch"]`; they publish MLX weights only
+        // (`weights.safetensors` with renamed keys, see `mlx_layout`).
         let mlx = row
             .formats
             .iter()
             .any(|f| f.to_ascii_lowercase().starts_with("mlx"));
-        if !mlx
-            && row
-                .formats
-                .iter()
-                .any(|f| f.eq_ignore_ascii_case("pytorch"))
+        if mlx {
+            return mlx_expectation(row, &arch);
+        }
+        if row
+            .formats
+            .iter()
+            .any(|f| f.eq_ignore_ascii_case("pytorch"))
         {
             if let Some((_, reason)) = SAFETENSORS_KNOWN_UNSUPPORTED
                 .iter()
@@ -182,7 +216,7 @@ mod tests {
         ));
         assert_eq!(
             runtime_expectation(&row("token-classification", "bert", r#"["mlx-fp"]"#)),
-            RuntimeExpectation::NoOnnxArtifact
+            RuntimeExpectation::ExpectedRunnableSafetensors
         );
         assert_eq!(
             runtime_expectation(&row("token-classification", "deberta-v2", r#"["pytorch"]"#)),
@@ -206,7 +240,19 @@ mod tests {
                 "bert",
                 r#"["mlx-fp","pytorch"]"#
             )),
-            RuntimeExpectation::NoOnnxArtifact
+            RuntimeExpectation::ExpectedRunnableSafetensors
+        );
+        assert!(matches!(
+            runtime_expectation(&row("token-classification", "bert", r#"["mlx-8bit"]"#)),
+            RuntimeExpectation::KnownUnsupported { .. }
+        ));
+        assert!(matches!(
+            runtime_expectation(&row("token-classification", "xlm-roberta", r#"["mlx-fp"]"#)),
+            RuntimeExpectation::KnownUnsupported { .. }
+        ));
+        assert_eq!(
+            runtime_expectation(&row("token-classification", "modernbert", r#"["mlx-fp"]"#)),
+            RuntimeExpectation::Untested
         );
         assert_eq!(
             runtime_expectation(&row("token-classification", "gliner", r#"["onnx"]"#)),

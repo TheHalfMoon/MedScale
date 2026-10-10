@@ -173,8 +173,22 @@ fn build(
     num_labels: usize,
 ) -> Result<(String, usize, Encoder, Linear), CandleRuntimeError> {
     let model_type = candle_model_type(config)?;
+    let mlx = crate::mlx_layout::is_mlx_export(config);
+    if mlx && crate::mlx_layout::is_quantized(config) {
+        return Err(CandleRuntimeError::InvalidConfig(
+            "quantized MLX exports are not supported".into(),
+        ));
+    }
     let vb = VarBuilder::from_buffered_safetensors(weights, DType::F32, &Device::Cpu)
         .map_err(prepare_err)?;
+    // OpenMed MLX exports store the same weights under renamed keys; the
+    // encoders ask for Hugging Face names (see `mlx_layout`).
+    let vb = if mlx {
+        let layout_type = model_type.clone();
+        vb.rename_f(move |name| crate::mlx_layout::mlx_key(name, &layout_type))
+    } else {
+        vb
+    };
     let hidden = usize_field(config, &["hidden_size", "dim"])?;
     let max_positions = usize_field(config, &["max_position_embeddings"]).unwrap_or(MAX_WINDOW);
     let (encoder, window) = match model_type.as_str() {

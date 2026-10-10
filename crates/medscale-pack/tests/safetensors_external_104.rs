@@ -35,13 +35,17 @@ fn safetensors_catalog_row_to_local_execution() {
     let row = catalog
         .get(&meta.id)
         .expect("repository must be in the catalog");
+    // `model.safetensors` (Transformers layout) or `weights.safetensors`
+    // (OpenMed MLX export, renamed keys).
+    let weight_file =
+        std::env::var("MEDSCALE_HF_ONNX_FILE").unwrap_or_else(|_| "model.safetensors".into());
     let out = std::env::temp_dir().join(format!("medscale-104-pack-{}", std::process::id()));
     let pack_id = build_token_classifier_pack(
         &TokenClassifierSnapshot {
             meta: &meta,
             row,
             snapshot_dir: &snapshot,
-            onnx_file: "model.safetensors",
+            onnx_file: &weight_file,
             fixed_sequence_length: 512,
         },
         &out,
