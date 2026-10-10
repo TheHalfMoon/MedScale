@@ -17,7 +17,7 @@ Status as of 2026-10-10 (after #191–#196). Capability matrix: [`CAPABILITY_MAT
   - atomic staging;
   - hermetic scripted-transport tests.
 
-  File-level resume of interrupted acquisitions from verified staging (#192). **Gap:** no byte-range resume inside one file (the transport sends no `Range`). **The live CLI acquisition is not executed on the founder workstation** (host memory); real snapshots are acquired and verified on CI by the qualification workflow.
+  File-level resume of interrupted acquisitions from verified staging (#192). **Gap:** no byte-range resume inside one file (the transport sends no `Range`). Live acquisition through the product CLI runs on CI (#202, run 38037709005). It found and fixed regional CDN hosts (`*.cdn.hf.co`), and repositories updated after the catalog snapshot are acquired at the catalog-pinned revision (#203). The founder workstation lacks the memory for it.
 - [~] T103-09 (P4) Budgeted LRU residency pool; Core prepared-model cache migrated to it (#185). Pre-download runtime expectation per catalog row from recorded evidence, shown in the Core catalog view and CLI (#190). **Gap:** expectations are architecture-level, not per-model verification.
 - [~] T103-10 (P5) Execution evidence for four real OpenMed v3.0.0 models: bert, distilbert, roberta, modernbert (`research.md` §9–10). Card-level rights ledger with base-model lineage: `evidence/103-local-model-catalog/RIGHTS_LEDGER.md`. **Gap:** training-dataset terms (BC5CDR, ANATOMY, PII sets) are not verified.
 - [x] T103-11 (P6) Catalog-admitted Packs run as Model Fleet lanes (end-to-end test, #188).
