@@ -17,6 +17,8 @@
 //! partial-failure exclusion, refusal for non-comparable fleets, append-only
 //! recompute with no side effect on lane runs, and report history.
 
+mod support;
+
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -1808,4 +1810,78 @@ fn catalog_admitted_pack_runs_as_fleet_lanes() {
     assert_eq!(run_b.status, AgentRunState::Completed);
     assert!(proposal_b.is_some());
     assert_eq!(after_b.status, FleetRunState::Completed);
+}
+
+/// Spec 104: one fleet compares lanes running on different local runtimes:
+/// lane A on a tract ONNX Pack, lane B on a candle safetensors Pack. Each lane
+/// runs its Pack's declared runtime; the comparison is factual, not a ranking.
+#[test]
+fn fleet_compares_lanes_on_different_local_runtimes() {
+    let mut h = Harness::setup("fleet-mixed-runtime");
+    let onnx_dir = catalog_snapshot_pack("mixed-onnx");
+    let candle_dir = support::dir("mixed-candle");
+    support::candle_pack(&candle_dir);
+    let mut install = |dir: &Path| -> OpaqueId {
+        match h
+            .call(
+                Capability::PacksInstallLocal,
+                RequestBody::PacksInstallLocal {
+                    local_path: dir.display().to_string(),
+                },
+            )
+            .expect("pack install")
+        {
+            ResponseBody::PackAdmit { result } => {
+                assert!(result.admitted, "{result:?}");
+                result.pack_id.expect("admitted pack carries a pack_id")
+            }
+            other => panic!("{other:?}"),
+        }
+    };
+    let onnx_pack = install(&onnx_dir);
+    let candle_pack = install(&candle_dir);
+    assert_ne!(onnx_pack, candle_pack);
+
+    let project_id = h.project("fleet-mixed-project");
+    let agent_a = h.register_identity(&project_id, &onnx_pack, vec![ToolKind::ReadContextArtifact]);
+    let agent_b = h.register_identity(
+        &project_id,
+        &candle_pack,
+        vec![ToolKind::ReadContextArtifact],
+    );
+    let a1 = h.source_record(b"synthetic note: onnx lane");
+    let b1 = h.source_record(b"synthetic note: candle lane");
+    let ctx_a = h.create_context(&project_id, &[a1.as_str()]);
+    let ctx_b = h.create_context(&project_id, &[b1.as_str()]);
+    let lane_a = h
+        .create_lane(&project_id, &agent_a, &ctx_a, None, None)
+        .expect("lane a");
+    let lane_b = h
+        .create_lane(&project_id, &agent_b, &ctx_b, None, None)
+        .expect("lane b");
+    let fleet = h.create_fleet(&project_id);
+    h.dispatch(&fleet.header.id, 1, &[&lane_a.header.id, &lane_b.header.id])
+        .expect("dispatch");
+    let (_, run_a, proposal_a) = h
+        .execute_lane(&fleet.header.id, &lane_a.header.id, &onnx_dir, true)
+        .expect("onnx lane");
+    assert_eq!(run_a.status, AgentRunState::Completed);
+    assert!(proposal_a.is_some());
+    let (after, run_b, proposal_b) = h
+        .execute_lane(&fleet.header.id, &lane_b.header.id, &candle_dir, true)
+        .expect("candle lane");
+    assert_eq!(run_b.status, AgentRunState::Completed);
+    assert!(proposal_b.is_some());
+    assert_eq!(after.status, FleetRunState::Completed);
+
+    let report = h
+        .compare(&fleet.header.id)
+        .expect("compare across runtimes");
+    assert_eq!(report.fleet_run_id, fleet.header.id);
+    assert_eq!(
+        report.participating_lane_ids,
+        vec![lane_a.header.id.clone(), lane_b.header.id.clone()]
+    );
+    assert!(report.excluded_lane_ids.is_empty());
+    report.validate().expect("valid report");
 }
