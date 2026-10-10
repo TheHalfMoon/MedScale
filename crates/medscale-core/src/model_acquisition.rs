@@ -50,6 +50,21 @@ pub const HUB_HOSTS: &[&str] = &[
     "cdn-lfs-eu-1.huggingface.co",
     "cas-bridge.xethub.hf.co",
 ];
+/// Hugging Face CDN host suffixes. Live acquisition (2026-10-10) showed LFS
+/// files redirected to regional hosts such as `us.aws.cdn.hf.co`, which an
+/// exact list cannot anticipate. A suffix match requires the leading dot, so
+/// `cdn.hf.co.example.com` or `evilcdn.hf.co` never match. Every file is
+/// still verified against the pinned-commit size and digest.
+pub const HUB_HOST_SUFFIXES: &[&str] = &[".cdn.hf.co", ".xethub.hf.co"];
+
+/// True for an allowed Hub host (exact name or an allowed CDN suffix).
+pub fn is_hub_host(host: &str) -> bool {
+    HUB_HOSTS.contains(&host)
+        || HUB_HOST_SUFFIXES
+            .iter()
+            .any(|suffix| host.ends_with(suffix))
+}
+
 const MAX_HOPS: usize = 4;
 const METADATA_MAX_BYTES: usize = 4 * 1024 * 1024;
 const JSON_MAX_BYTES: u64 = 64 * 1024 * 1024;
@@ -188,7 +203,7 @@ fn governed_get(
     for _ in 0..=MAX_HOPS {
         let validated =
             validate_url(&next).map_err(|r| AcquisitionError::UrlRefused(format!("{r:?}")))?;
-        if !HUB_HOSTS.contains(&validated.host.as_str()) {
+        if !is_hub_host(&validated.host) {
             return Err(AcquisitionError::HostNotAllowed(validated.host));
         }
         let response = transport
@@ -641,6 +656,34 @@ mod tests {
         .unwrap();
         assert_eq!(report.resumed_bytes, 0);
         assert!(!d.join("stray.bin").exists());
+        let _ = std::fs::remove_dir_all(d);
+    }
+
+    #[test]
+    fn regional_hub_cdn_hosts_are_allowed_by_suffix_only() {
+        for host in [
+            "huggingface.co",
+            "cdn-lfs.huggingface.co",
+            "us.aws.cdn.hf.co",
+            "eu.aws.cdn.hf.co",
+            "cas-bridge.xethub.hf.co",
+        ] {
+            assert!(is_hub_host(host), "{host}");
+        }
+        for host in [
+            "cdn.hf.co.example.com",
+            "evilcdn.hf.co",
+            "hf.co",
+            "huggingface.co.example.com",
+            "example.com",
+        ] {
+            assert!(!is_hub_host(host), "{host}");
+        }
+        let f = fixture(false);
+        let t = transport(&f, &f.onnx, "us.aws.cdn.hf.co");
+        let d = dest("regional");
+        let report = acquire_snapshot(&t, &f.catalog, &consent(1_000_000), &d).unwrap();
+        assert_eq!(report.revision, SHA);
         let _ = std::fs::remove_dir_all(d);
     }
 
