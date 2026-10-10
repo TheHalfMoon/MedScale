@@ -30,8 +30,12 @@
 //! - an integrity failure (digest or size mismatch, a refused host) removes
 //!   staging entirely.
 //!
-//! Byte-range resume inside one file is not implemented: the Governed Browse
-//! transport performs plain GETs without `Range` headers.
+//! Inside one file, downloads are streamed to `<name>.part` in staging and
+//! resume with a `Range` request from the bytes already received (a server
+//! that ignores the range sends the whole file again, which replaces the
+//! partial file). A completed file is verified before it replaces nothing:
+//! the `.part` file becomes the staged file only after its exact size and
+//! digest match the pinned commit.
 
 use std::path::{Path, PathBuf};
 use std::time::Duration;
@@ -95,6 +99,8 @@ pub struct AcquiredFile {
     /// True when the file was reused from verified staging of an earlier,
     /// interrupted acquisition of the same commit.
     pub resumed: bool,
+    /// Bytes of a partial download reused through a `Range` request.
+    pub resumed_from: u64,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -254,6 +260,61 @@ fn expected_size(meta: &HfRepoMetadata, name: &str) -> Result<u64, AcquisitionEr
         .ok_or_else(|| AcquisitionError::UnknownSize(name.to_string()))
 }
 
+/// One governed streamed download into `part`, resuming from its current
+/// length, following redirects only to allowed Hub hosts.
+fn governed_download(
+    transport: &dyn BrowseTransport,
+    url: &str,
+    part: &Path,
+    size: u64,
+) -> Result<u64, AcquisitionError> {
+    let mut next = url.to_string();
+    for _ in 0..=MAX_HOPS {
+        let validated =
+            validate_url(&next).map_err(|r| AcquisitionError::UrlRefused(format!("{r:?}")))?;
+        if !is_hub_host(&validated.host) {
+            return Err(AcquisitionError::HostNotAllowed(validated.host));
+        }
+        let existing = std::fs::metadata(part).map(|m| m.len()).unwrap_or(0);
+        let resume = if existing < size {
+            existing
+        } else {
+            let _ = std::fs::remove_file(part);
+            0
+        };
+        let response = transport
+            .get_to_file(&validated, resume, size, part, TIMEOUT)
+            .map_err(AcquisitionError::Transport)?;
+        match response.status {
+            200 | 206 => {
+                if response.file_len > size {
+                    let _ = std::fs::remove_file(part);
+                    return Err(AcquisitionError::TooLarge {
+                        name: validated.path,
+                        bytes: response.file_len,
+                        limit: size,
+                    });
+                }
+                return Ok(if response.status == 206 { resume } else { 0 });
+            }
+            301 | 302 | 303 | 307 | 308 => {
+                let location = response.location.ok_or(AcquisitionError::Http {
+                    status: response.status,
+                    url: validated.url.clone(),
+                })?;
+                next = resolve_redirect(&validated, &location);
+            }
+            status => {
+                return Err(AcquisitionError::Http {
+                    status,
+                    url: validated.url,
+                });
+            }
+        }
+    }
+    Err(AcquisitionError::TooManyRedirects)
+}
+
 /// Upper bound on commits searched for the catalog-pinned revision.
 const MAX_REVISION_SEARCH: usize = 32;
 const COMMITS_MAX_BYTES: usize = 1024 * 1024;
@@ -372,6 +433,7 @@ pub fn acquire_snapshot(
                     bytes: size,
                     sha256,
                     resumed: true,
+                    resumed_from: 0,
                 });
                 continue;
             }
@@ -379,23 +441,33 @@ pub fn acquire_snapshot(
                 "https://huggingface.co/{}/resolve/{}/{name}",
                 meta.id, meta.sha
             );
-            let max = usize::try_from(size).unwrap_or(usize::MAX);
-            let body = governed_get(transport, &url, max)?;
+            // Streamed into `<name>.part`, resuming from any bytes left by an
+            // interrupted attempt; it becomes the staged file only after the
+            // exact size and digest verify.
+            let part = staging.join(format!("{name}.part"));
+            let resumed_from = governed_download(transport, &url, &part, size)?;
+            let body = std::fs::read(&part).map_err(|e| io(&e))?;
             if body.len() as u64 != size {
+                let _ = std::fs::remove_file(&part);
                 return Err(AcquisitionError::Snapshot(SnapshotError::SizeMismatch {
                     path: name.to_string(),
                 }));
             }
-            let sha256 = verify_file(&meta, name, &body)?;
-            // Write then rename, so staging never holds a torn file.
-            let part = staging.join(format!("{name}.part"));
-            std::fs::write(&part, &body).map_err(|e| io(&e))?;
+            let sha256 = match verify_file(&meta, name, &body) {
+                Ok(sha256) => sha256,
+                Err(e) => {
+                    let _ = std::fs::remove_file(&part);
+                    return Err(e.into());
+                }
+            };
+            drop(body);
             std::fs::rename(&part, staging.join(name)).map_err(|e| io(&e))?;
             acquired.push(AcquiredFile {
                 name: name.to_string(),
                 bytes: size,
                 sha256,
                 resumed: false,
+                resumed_from,
             });
         }
         std::fs::write(staging.join("metadata.json"), &meta_bytes).map_err(|e| io(&e))?;
@@ -413,7 +485,10 @@ pub fn acquire_snapshot(
     let _ = std::fs::remove_file(staging.join(STAGING_MARKER));
     let _ = std::fs::remove_dir_all(dest_dir);
     std::fs::rename(&staging, dest_dir).map_err(|e| io(&e))?;
-    let resumed_bytes = acquired.iter().filter(|f| f.resumed).map(|f| f.bytes).sum();
+    let resumed_bytes = acquired
+        .iter()
+        .map(|f| if f.resumed { f.bytes } else { f.resumed_from })
+        .sum();
     Ok(AcquisitionReport {
         repo_id: meta.id.clone(),
         revision: meta.sha.clone(),
@@ -638,6 +713,105 @@ mod tests {
         assert!(!d.join(STAGING_MARKER).exists());
         assert!(!staging.exists());
         let _ = std::fs::remove_dir_all(d);
+    }
+
+    #[test]
+    fn an_interrupted_file_resumes_with_a_range_request() {
+        let f = fixture(false);
+        let d = dest("range");
+        let staging = d.with_extension("partial");
+        let cdn = "https://cdn-lfs.huggingface.co/blobs/abc";
+        let interrupted =
+            transport(&f, &f.onnx, "cdn-lfs.huggingface.co").interrupt_after(cdn, 1000);
+        let err = acquire_snapshot(&interrupted, &f.catalog, &consent(1_000_000), &d).unwrap_err();
+        assert!(
+            matches!(
+                err,
+                AcquisitionError::Transport(BrowseTransportError::Timeout)
+            ),
+            "{err}"
+        );
+        assert_eq!(
+            std::fs::metadata(staging.join("model.onnx.part"))
+                .unwrap()
+                .len(),
+            1000
+        );
+        let report = acquire_snapshot(
+            &transport(&f, &f.onnx, "cdn-lfs.huggingface.co"),
+            &f.catalog,
+            &consent(1_000_000),
+            &d,
+        )
+        .unwrap();
+        let onnx = report
+            .files
+            .iter()
+            .find(|x| x.name == "model.onnx")
+            .unwrap();
+        assert_eq!(onnx.resumed_from, 1000);
+        assert_eq!(std::fs::read(d.join("model.onnx")).unwrap(), f.onnx);
+        assert!(report.resumed_bytes >= 1000);
+        let _ = std::fs::remove_dir_all(d);
+    }
+
+    #[test]
+    fn a_server_that_ignores_range_replaces_the_partial_file() {
+        let f = fixture(false);
+        let d = dest("norange");
+        let cdn = "https://cdn-lfs.huggingface.co/blobs/abc";
+        let _ = acquire_snapshot(
+            &transport(&f, &f.onnx, "cdn-lfs.huggingface.co").interrupt_after(cdn, 1000),
+            &f.catalog,
+            &consent(1_000_000),
+            &d,
+        );
+        let report = acquire_snapshot(
+            &transport(&f, &f.onnx, "cdn-lfs.huggingface.co").ignoring_range(),
+            &f.catalog,
+            &consent(1_000_000),
+            &d,
+        )
+        .unwrap();
+        let onnx = report
+            .files
+            .iter()
+            .find(|x| x.name == "model.onnx")
+            .unwrap();
+        assert_eq!(onnx.resumed_from, 0);
+        assert_eq!(std::fs::read(d.join("model.onnx")).unwrap(), f.onnx);
+        let _ = std::fs::remove_dir_all(d);
+    }
+
+    #[test]
+    fn a_corrupted_partial_file_is_caught_by_the_digest() {
+        let f = fixture(false);
+        let d = dest("badpart");
+        let staging = d.with_extension("partial");
+        let cdn = "https://cdn-lfs.huggingface.co/blobs/abc";
+        let _ = acquire_snapshot(
+            &transport(&f, &f.onnx, "cdn-lfs.huggingface.co").interrupt_after(cdn, 1000),
+            &f.catalog,
+            &consent(1_000_000),
+            &d,
+        );
+        // Tamper with the bytes kept for resumption.
+        std::fs::write(staging.join("model.onnx.part"), vec![9u8; 1000]).unwrap();
+        let err = acquire_snapshot(
+            &transport(&f, &f.onnx, "cdn-lfs.huggingface.co"),
+            &f.catalog,
+            &consent(1_000_000),
+            &d,
+        )
+        .unwrap_err();
+        assert!(
+            matches!(
+                err,
+                AcquisitionError::Snapshot(SnapshotError::DigestMismatch { .. })
+            ),
+            "{err}"
+        );
+        assert!(!d.exists() && !staging.exists());
     }
 
     #[test]
